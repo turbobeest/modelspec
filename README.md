@@ -47,9 +47,7 @@ An interactive 3D force-directed visualization of the entire AI model landscape.
 
 <p align="center">
  
-![chrome_4h1JI1jDlV](https://github.com/user-attachments/assets/0d3bab33-6c42-418c-a07a-c8ec5dab60c4)
-
-  <img src="docs/screenshots/graph-lineage.png" alt="Lineage View" width="48%">
+  <img src="https://github.com/user-attachments/assets/0d3bab33-6c42-418c-a07a-c8ec5dab60c4" alt="Lineage View" width="48%">
   <img src="docs/screenshots/graph-detail.png" alt="Node Detail Panel" width="48%">
 </p>
 
