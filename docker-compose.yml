@@ -1,0 +1,13 @@
+services:
+  # FalkorDB - Knowledge Graph Database
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6382:6379"   # Redis protocol (client connections)
+      - "3002:3000"   # FalkorDB Browser UI
+    volumes:
+      - falkordb_data:/var/lib/falkordb/data
+    restart: unless-stopped
+
+volumes:
+  falkordb_data:

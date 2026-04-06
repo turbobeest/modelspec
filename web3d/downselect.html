@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelSpec — Downselect Wizard</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #060a13;
+      color: #e2e8f0;
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+      overflow-y: auto;
+    }
+
+    /* Nav */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 44px;
+      display: flex; align-items: center; gap: 0; z-index: 200;
+      background: rgba(6, 10, 19, 0.95); border-bottom: 1px solid rgba(100,116,139,0.2);
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand {
+      padding: 0 20px; font-size: 14px; font-weight: 700; color: #f1f5f9;
+      border-right: 1px solid rgba(100,116,139,0.2);
+      display: flex; align-items: center; height: 100%;
+    }
+    .nav-link {
+      padding: 0 16px; height: 100%; display: flex; align-items: center;
+      color: #64748b; text-decoration: none; font-size: 11px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      border-bottom: 2px solid transparent; transition: all 0.15s;
+    }
+    .nav-link:hover { color: #94a3b8; }
+    .nav-link.active { color: #60a5fa; border-bottom-color: #3b82f6; }
+
+    /* Layout */
+    #app {
+      margin-top: 44px; display: flex; min-height: calc(100vh - 44px);
+    }
+
+    /* Filter sidebar */
+    #filters {
+      width: 340px; flex-shrink: 0;
+      background: rgba(10, 18, 36, 0.6);
+      border-right: 1px solid rgba(100,116,139,0.15);
+      padding: 20px; overflow-y: auto; max-height: calc(100vh - 44px);
+    }
+
+    .filter-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(100,116,139,0.1);
+    }
+    .filter-section:last-child { border-bottom: none; }
+
+    .filter-section h3 {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #94a3b8; margin-bottom: 10px;
+    }
+
+    .filter-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .filter-row label {
+      font-size: 11px; color: #94a3b8; min-width: 90px; flex-shrink: 0;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      height: 4px; background: rgba(100,116,139,0.25); border-radius: 2px;
+      outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: #3b82f6; cursor: pointer;
+      border: 2px solid #1e293b;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #3b82f6; cursor: pointer; border: 2px solid #1e293b;
+    }
+
+    select, input[type="number"], input[type="text"] {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(100,116,139,0.2);
+      border-radius: 6px; padding: 6px 10px;
+      color: #e2e8f0; font-family: inherit; font-size: 11px;
+      outline: none; width: 100%;
+    }
+    select { cursor: pointer; }
+    select:focus, input:focus { border-color: rgba(59,130,246,0.5); }
+
+    .chip-grid {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .chip {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(100,116,139,0.15);
+      border-radius: 6px; padding: 4px 10px;
+      color: #94a3b8; font-size: 10px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover { background: rgba(51,65,85,0.8); color: #e2e8f0; }
+    .chip.selected {
+      background: rgba(59,130,246,0.15);
+      border-color: rgba(59,130,246,0.4);
+      color: #60a5fa;
+    }
+
+    .toggle-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .toggle {
+      width: 36px; height: 20px; border-radius: 10px;
+      background: rgba(30,41,59,0.8); border: 1px solid rgba(100,116,139,0.3);
+      cursor: pointer; position: relative; transition: all 0.2s;
+    }
+    .toggle.on { background: rgba(59,130,246,0.3); border-color: #3b82f6; }
+    .toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #64748b; transition: all 0.2s;
+    }
+    .toggle.on::after { left: 18px; background: #60a5fa; }
+    .toggle-label { font-size: 11px; color: #94a3b8; }
+
+    /* Run button */
+    #run-btn {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white; font-family: inherit; font-size: 12px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s; margin-top: 8px;
+    }
+    #run-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    #run-btn:active { transform: translateY(0); }
+    #run-btn.loading { opacity: 0.6; pointer-events: none; }
+
+    .result-count {
+      font-size: 10px; color: #64748b; margin-top: 8px; text-align: center;
+    }
+
+    /* Results area */
+    #results {
+      flex: 1; padding: 20px; overflow-y: auto; max-height: calc(100vh - 44px);
+    }
+
+    #results-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    #results-header h2 {
+      font-size: 16px; font-weight: 600; color: #f1f5f9;
+    }
+    #results-summary {
+      font-size: 11px; color: #64748b;
+    }
+
+    /* Result cards */
+    .result-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(100,116,139,0.15);
+      border-radius: 10px; padding: 16px; margin-bottom: 10px;
+      display: flex; gap: 16px; align-items: flex-start;
+      transition: border-color 0.15s;
+    }
+    .result-card:hover { border-color: rgba(100,116,139,0.3); }
+
+    .result-rank {
+      font-size: 24px; font-weight: 700; color: #334155;
+      min-width: 40px; text-align: center; line-height: 1;
+      padding-top: 4px;
+    }
+    .result-rank.top-3 { color: #f59e0b; }
+
+    .result-body { flex: 1; min-width: 0; }
+    .result-name {
+      font-size: 14px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px;
+    }
+    .result-meta {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+    }
+    .result-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+    }
+    .result-props {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 4px 16px; font-size: 11px;
+    }
+    .result-prop-key { color: #64748b; }
+    .result-prop-val { color: #e2e8f0; }
+
+    .result-score-area {
+      display: flex; align-items: flex-start; gap: 10px;
+      flex-shrink: 0; margin-left: auto;
+    }
+    .score-number {
+      text-align: center; min-width: 50px;
+    }
+    .score-value {
+      font-size: 20px; font-weight: 700;
+    }
+    .score-label { font-size: 9px; color: #64748b; text-transform: uppercase; }
+    .score-bar {
+      width: 50px; height: 4px; background: rgba(100,116,139,0.2);
+      border-radius: 2px; margin-top: 4px;
+    }
+    .score-bar-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+    }
+    .score-bars-col {
+      display: flex; flex-direction: column; gap: 3px; padding-top: 2px;
+    }
+    .sbi-row {
+      display: flex; align-items: center; gap: 4px; height: 12px;
+    }
+    .sbi-row .sbi-label { font-size: 8px; color: #64748b; width: 30px; }
+    .sbi-row .sbi-bar {
+      width: 40px; height: 3px; background: rgba(100,116,139,0.15);
+      border-radius: 1px; overflow: hidden; flex-shrink: 0;
+      display: inline-block;
+    }
+    .sbi-row .sbi-bar-fill { display: block; height: 100%; border-radius: 1px; }
+    .sbi-row .sbi-val { font-size: 8px; color: #94a3b8; width: 20px; text-align: right; }
+    .score-reasons-col {
+      display: flex; flex-direction: column; gap: 3px; padding-top: 2px;
+      font-size: 9px; color: #64748b; white-space: nowrap;
+    }
+    .score-reasons-col div { height: 12px; line-height: 12px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 80px 40px; color: #475569;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state h3 { font-size: 16px; color: #64748b; margin-bottom: 8px; }
+    .empty-state p { font-size: 12px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="nav-brand">ModelSpec</div>
+    <a href="/graph" class="nav-link">3D Graph</a>
+    <a href="/downselect" class="nav-link active">Downselect</a>
+    <a href="https://github.com/turbobeest/modelspec" target="_blank" class="nav-link" style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      turbobeest/modelspec
+    </a>
+  </nav>
+
+  <div id="app">
+    <div id="filters">
+      <div class="filter-section">
+        <h3>Use Case</h3>
+        <div class="chip-grid" id="use-case-chips">
+          <div class="chip" data-value="general" onclick="toggleChip(this)">General</div>
+          <div class="chip" data-value="coding" onclick="toggleChip(this)">Coding</div>
+          <div class="chip" data-value="reasoning" onclick="toggleChip(this)">Reasoning</div>
+          <div class="chip" data-value="chat" onclick="toggleChip(this)">Chat</div>
+          <div class="chip" data-value="embedding" onclick="toggleChip(this)">Embedding</div>
+          <div class="chip" data-value="vision" onclick="toggleChip(this)">Vision</div>
+          <div class="chip" data-value="image-gen" onclick="toggleChip(this)">Image Gen</div>
+          <div class="chip" data-value="agentic" onclick="toggleChip(this)">Agentic</div>
+          <div class="chip" data-value="safety" onclick="toggleChip(this)">Safety</div>
+          <div class="chip" data-value="rag" onclick="toggleChip(this)">RAG</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Model Type</h3>
+        <select id="filter-type">
+          <option value="">Any type</option>
+          <option value="llm-chat">LLM Chat</option>
+          <option value="llm-reasoning">LLM Reasoning</option>
+          <option value="llm-code">LLM Code</option>
+          <option value="llm-base">LLM Base</option>
+          <option value="vlm">Vision-Language (VLM)</option>
+          <option value="embedding-text">Embedding</option>
+          <option value="reranker">Reranker</option>
+          <option value="image-generation">Image Generation</option>
+          <option value="video-generation">Video Generation</option>
+          <option value="audio-asr">Audio ASR</option>
+          <option value="audio-tts">Audio TTS</option>
+          <option value="safety-classifier">Safety Classifier</option>
+          <option value="reward-model">Reward Model</option>
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <h3>Constraints</h3>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-open" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">Open weights only</span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-commercial" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">Commercial use OK</span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-reasoning" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">Reasoning / CoT</span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-tools" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">Tool use / function calling</span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-vision" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">Vision input</span>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Hosting</h3>
+        <div class="chip-grid" id="hosting-chips">
+          <div class="chip" data-value="local" onclick="toggleChip(this)">Local / Self-Hosted</div>
+          <div class="chip" data-value="cloud" onclick="toggleChip(this)">Cloud Platform</div>
+          <div class="chip" data-value="provider" onclick="toggleChip(this)">Provider API</div>
+        </div>
+        <div id="hosting-detail" style="margin-top:8px;display:none">
+          <div class="chip-grid" id="platform-chips"></div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Cost</h3>
+        <div class="filter-row">
+          <label>Max $/M input</label>
+          <input type="number" id="filter-max-cost" placeholder="e.g. 5.00" step="0.1" min="0">
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Scale</h3>
+        <div class="filter-row">
+          <label>Min params</label>
+          <input type="number" id="filter-min-params" placeholder="e.g. 7000000000" step="1000000000">
+        </div>
+        <div class="filter-row">
+          <label>Max params</label>
+          <input type="number" id="filter-max-params" placeholder="e.g. 70000000000" step="1000000000">
+        </div>
+        <div class="filter-row">
+          <label>Min context</label>
+          <input type="number" id="filter-min-context" placeholder="e.g. 128000" step="1000">
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Provider</h3>
+        <select id="filter-provider">
+          <option value="">Any provider</option>
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <h3>Origin</h3>
+        <div class="chip-grid" id="origin-chips">
+          <div class="chip" data-value="US" onclick="toggleChip(this)">US</div>
+          <div class="chip" data-value="CN" onclick="toggleChip(this)">China</div>
+          <div class="chip" data-value="FR" onclick="toggleChip(this)">France</div>
+          <div class="chip" data-value="GB" onclick="toggleChip(this)">UK</div>
+          <div class="chip" data-value="DE" onclick="toggleChip(this)">Germany</div>
+          <div class="chip" data-value="IL" onclick="toggleChip(this)">Israel</div>
+          <div class="chip" data-value="KR" onclick="toggleChip(this)">Korea</div>
+          <div class="chip" data-value="AE" onclick="toggleChip(this)">UAE</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Hardware Target</h3>
+        <div class="chip-grid" id="hw-presets" style="margin-bottom:10px"></div>
+        <div class="filter-row">
+          <label>Memory</label>
+          <input type="range" id="hw-memory" min="0" max="512" value="0" step="1"
+                 oninput="hwSliderChanged()" style="flex:1">
+          <span id="hw-memory-val" style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right">Any</span>
+        </div>
+        <div class="filter-row">
+          <label>Bandwidth</label>
+          <input type="range" id="hw-bandwidth" min="0" max="4000" value="0" step="10"
+                 oninput="hwSliderChanged()" style="flex:1">
+          <span id="hw-bandwidth-val" style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right">Any</span>
+        </div>
+        <div class="filter-row">
+          <label>Compute</label>
+          <input type="range" id="hw-tops" min="0" max="2000" value="0" step="10"
+                 oninput="hwSliderChanged()" style="flex:1">
+          <span id="hw-tops-val" style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right">Any</span>
+        </div>
+        <div class="filter-row">
+          <label>Min quant</label>
+          <select id="hw-quant" onchange="hwSliderChanged()" style="width:auto;flex:1">
+            <option value="">Any</option>
+            <option value="FP16">FP16 (full)</option>
+            <option value="Q8">Q8 (high)</option>
+            <option value="Q4">Q4 (good)</option>
+            <option value="Q2">Q2 (lossy)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3>Results</h3>
+        <div class="filter-row">
+          <label>Show top</label>
+          <select id="filter-limit">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="run-btn" onclick="runDownselect()">Run Downselect</button>
+      <div class="result-count" id="result-count"></div>
+    </div>
+
+    <div id="results">
+      <div class="empty-state">
+        <div class="icon">&#9881;</div>
+        <h3>Configure your constraints</h3>
+        <p>Set filters on the left and click "Run Downselect" to find the best models for your use case.</p>
+        <p style="margin-top:12px;color:#334155">1,300+ models across 47 providers</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    const TYPE_COLORS = {
+      'llm-chat': '#3b82f6', 'llm-reasoning': '#8b5cf6', 'llm-code': '#22c55e',
+      'llm-base': '#6b7280', 'vlm': '#14b8a6', 'embedding-text': '#f59e0b',
+      'image-generation': '#ec4899', 'video-generation': '#f43f5e',
+      'audio-asr': '#06b6d4', 'audio-tts': '#0ea5e9',
+      'safety-classifier': '#ef4444', 'reward-model': '#fbbf24',
+      'reranker': '#a855f7', 'document-ocr': '#84cc16',
+    };
+
+    // ─── Chip & toggle interactions ──────────────────────────
+
+    function toggleChip(el) { el.classList.toggle('selected'); }
+    function toggleSwitch(el) { el.classList.toggle('on'); }
+
+    function getSelectedChips(containerId) {
+      return [...document.querySelectorAll(`#${containerId} .chip.selected`)]
+        .map(c => c.dataset.value);
+    }
+
+    function isToggleOn(id) {
+      return document.getElementById(id).classList.contains('on');
+    }
+
+    // ─── Hardware presets ─────────────────────────────────────
+
+    const HW_PRESETS = [
+      //                                                    mem   bw(GB/s)  tops(INT8)  quant
+      { id: 'rpi5',         label: 'RPi 5 16GB',            memory: 16,  bandwidth: 34,    tops: 2,     quant: 'Q2' },
+      { id: 'jetson_nano',  label: 'Jetson Orin Nano 8GB',  memory: 8,   bandwidth: 68,    tops: 40,    quant: 'Q4' },
+      { id: 'mbair_m4',     label: 'MacBook Air M4 24GB',   memory: 24,  bandwidth: 120,   tops: 38,    quant: 'Q4' },
+      { id: 'mbpro_m4',     label: 'MBP M4 Pro 48GB',       memory: 48,  bandwidth: 273,   tops: 76,    quant: 'Q4' },
+      { id: 'mbpro_m4max',  label: 'MBP M4 Max 128GB',      memory: 128, bandwidth: 546,   tops: 152,   quant: 'Q8' },
+      { id: 'mac_studio',   label: 'Mac Studio M4 Ultra',   memory: 192, bandwidth: 819,   tops: 304,   quant: 'FP16' },
+      { id: 'rtx_4090',     label: 'RTX 4090 24GB',         memory: 24,  bandwidth: 1008,  tops: 660,   quant: 'Q4' },
+      { id: 'rtx_5090',     label: 'RTX 5090 32GB',         memory: 32,  bandwidth: 1792,  tops: 1321,  quant: 'Q4' },
+      { id: 'gh200',        label: 'GH200 96GB',            memory: 96,  bandwidth: 4000,  tops: 1980,  quant: 'FP16' },
+      { id: 'a100_80',      label: 'A100 80GB',             memory: 80,  bandwidth: 2039,  tops: 624,   quant: 'FP16' },
+      { id: 'h100_80',      label: 'H100 80GB',             memory: 80,  bandwidth: 3352,  tops: 1979,  quant: 'FP16' },
+      { id: 'dgx_spark',    label: 'DGX Spark 128GB',       memory: 128, bandwidth: 273,   tops: 209,   quant: 'FP16' },
+    ];
+
+    // Populate preset chips
+    (function() {
+      const grid = document.getElementById('hw-presets');
+      HW_PRESETS.forEach(hw => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.dataset.value = hw.id;
+        chip.textContent = hw.label;
+        chip.onclick = () => selectHwPreset(hw, chip);
+        grid.appendChild(chip);
+      });
+    })();
+
+    let activeHwPreset = null;
+
+    function selectHwPreset(hw, chipEl) {
+      // Deselect previous
+      document.querySelectorAll('#hw-presets .chip').forEach(c => c.classList.remove('selected'));
+
+      if (activeHwPreset === hw.id) {
+        // Toggle off
+        activeHwPreset = null;
+        document.getElementById('hw-memory').value = 0;
+        document.getElementById('hw-bandwidth').value = 0;
+        document.getElementById('hw-tops').value = 0;
+        document.getElementById('hw-quant').value = '';
+        hwSliderChanged();
+        return;
+      }
+
+      activeHwPreset = hw.id;
+      chipEl.classList.add('selected');
+      document.getElementById('hw-memory').value = hw.memory;
+      document.getElementById('hw-bandwidth').value = hw.bandwidth;
+      document.getElementById('hw-tops').value = hw.tops;
+      document.getElementById('hw-quant').value = hw.quant;
+      hwSliderChanged();
+    }
+
+    function hwSliderChanged() {
+      const mem = parseInt(document.getElementById('hw-memory').value);
+      const bw = parseInt(document.getElementById('hw-bandwidth').value);
+      const tops = parseInt(document.getElementById('hw-tops').value);
+
+      document.getElementById('hw-memory-val').textContent = mem === 0 ? 'Any' : mem + ' GB';
+      document.getElementById('hw-bandwidth-val').textContent = bw === 0 ? 'Any' : bw >= 1000 ? (bw/1000).toFixed(1) + ' TB/s' : bw + ' GB/s';
+      document.getElementById('hw-tops-val').textContent = tops === 0 ? 'Any' : tops + ' TOPS';
+
+      // If user manually adjusts sliders, deselect preset
+      if (activeHwPreset) {
+        const preset = HW_PRESETS.find(h => h.id === activeHwPreset);
+        if (preset && (mem !== preset.memory || bw !== preset.bandwidth || tops !== preset.tops
+            || document.getElementById('hw-quant').value !== preset.quant)) {
+          document.querySelectorAll('#hw-presets .chip').forEach(c => c.classList.remove('selected'));
+          activeHwPreset = null;
+        }
+      }
+    }
+
+    // ─── Hosting chip interaction ─────────────────────────────
+
+    const PLATFORM_OPTIONS = {
+      local: [
+        { id: 'ollama', label: 'Ollama' },
+        { id: 'lm_studio', label: 'LM Studio' },
+        { id: 'llama_cpp', label: 'llama.cpp' },
+        { id: 'vllm', label: 'vLLM' },
+        { id: 'mlx', label: 'MLX' },
+        { id: 'gpt4all', label: 'GPT4All' },
+      ],
+      cloud: [
+        { id: 'aws_bedrock', label: 'AWS Bedrock' },
+        { id: 'azure_ai_foundry', label: 'Azure AI' },
+        { id: 'google_vertex_ai', label: 'Google Vertex' },
+        { id: 'groq', label: 'Groq' },
+        { id: 'together_ai', label: 'Together AI' },
+        { id: 'fireworks_ai', label: 'Fireworks' },
+        { id: 'deepinfra', label: 'DeepInfra' },
+        { id: 'replicate', label: 'Replicate' },
+        { id: 'cerebras', label: 'Cerebras' },
+        { id: 'sambanova', label: 'SambaNova' },
+        { id: 'nvidia_nim', label: 'NVIDIA NIM' },
+        { id: 'openrouter', label: 'OpenRouter' },
+      ],
+      provider: [
+        { id: 'anthropic', label: 'Anthropic' },
+        { id: 'openai', label: 'OpenAI' },
+        { id: 'google', label: 'Google AI' },
+        { id: 'mistral', label: 'Mistral' },
+        { id: 'cohere', label: 'Cohere' },
+        { id: 'xai', label: 'xAI' },
+        { id: 'deepseek', label: 'DeepSeek' },
+      ],
+    };
+
+    // Override toggleChip for hosting chips to show/hide platform sub-options
+    document.querySelectorAll('#hosting-chips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        updatePlatformChips();
+      });
+    });
+
+    function updatePlatformChips() {
+      const selected = getSelectedChips('hosting-chips');
+      const detail = document.getElementById('hosting-detail');
+      const container = document.getElementById('platform-chips');
+
+      if (selected.length === 0) {
+        detail.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      detail.style.display = 'block';
+      container.innerHTML = '';
+
+      selected.forEach(mode => {
+        const platforms = PLATFORM_OPTIONS[mode] || [];
+        platforms.forEach(p => {
+          const chip = document.createElement('div');
+          chip.className = 'chip';
+          chip.dataset.value = p.id;
+          chip.textContent = p.label;
+          chip.onclick = () => toggleChip(chip);
+          container.appendChild(chip);
+        });
+      });
+    }
+
+    // ─── Load providers ──────────────────────────────────────
+
+    async function loadProviders() {
+      try {
+        const stats = await fetch(`${API}/api/v1/graph?view=provider`).then(r => r.json());
+        const providers = stats.nodes
+          .filter(n => n.label === 'Provider')
+          .sort((a, b) => (a.display_name || a.id).localeCompare(b.display_name || b.id));
+
+        const select = document.getElementById('filter-provider');
+        providers.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.display_name || p.id}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.warn('Failed to load providers:', e);
+      }
+    }
+
+    // ─── Run downselect ──────────────────────────────────────
+
+    async function runDownselect() {
+      const btn = document.getElementById('run-btn');
+      btn.classList.add('loading');
+      btn.textContent = 'Ranking...';
+
+      try {
+        // Gather filter values
+        const modelType = document.getElementById('filter-type').value;
+        const provider = document.getElementById('filter-provider').value;
+        const maxCost = document.getElementById('filter-max-cost').value;
+        const minParams = document.getElementById('filter-min-params').value;
+        const maxParams = document.getElementById('filter-max-params').value;
+        const minContext = document.getElementById('filter-min-context').value;
+        const limit = parseInt(document.getElementById('filter-limit').value);
+        const useCases = getSelectedChips('use-case-chips');
+        const origins = getSelectedChips('origin-chips');
+        const openOnly = isToggleOn('toggle-open');
+        const reasoning = isToggleOn('toggle-reasoning');
+        const tools = isToggleOn('toggle-tools');
+        const vision = isToggleOn('toggle-vision');
+        const hostingModes = getSelectedChips('hosting-chips');
+        const platforms = getSelectedChips('platform-chips');
+
+        // Build constraints object for the ranking engine
+        const constraints = {};
+        if (modelType) constraints.model_type = modelType;
+        if (provider) constraints.provider = provider;
+        if (openOnly) constraints.open_weights = true;
+        if (maxCost) constraints.max_cost_input = parseFloat(maxCost);
+        if (minParams) constraints.min_params = parseInt(minParams);
+        if (maxParams) constraints.max_params = parseInt(maxParams);
+        if (minContext) constraints.min_context = parseInt(minContext);
+        if (reasoning) constraints.reasoning = true;
+        if (tools) constraints.tool_use = true;
+        if (vision) constraints.vision = true;
+        if (origins.length > 0) constraints.origin_countries = origins;
+        if (hostingModes.length > 0) constraints.hosting = hostingModes;
+        if (platforms.length > 0) constraints.platforms = platforms;
+
+        // Hardware constraints
+        const hwMem = parseInt(document.getElementById('hw-memory').value);
+        const hwBw = parseInt(document.getElementById('hw-bandwidth').value);
+        const hwTops = parseInt(document.getElementById('hw-tops').value);
+        const hwQuant = document.getElementById('hw-quant').value;
+        if (hwMem > 0) {
+          // Estimate max params that fit: usable memory / bytes_per_param
+          const bytesPerParam = { 'Q2': 0.25, 'Q4': 0.5, 'Q8': 1.0, 'FP16': 2.0 }[hwQuant] || 0.5;
+          const usableMem = hwMem * 0.85; // 15% reserved for OS/KV cache
+          const maxParams = Math.floor((usableMem / bytesPerParam) * 1e9);
+          constraints.max_params = maxParams;
+          constraints.hw_memory_gb = hwMem;
+          constraints.hw_quant = hwQuant;
+        }
+        if (hwBw > 0) constraints.hw_bandwidth_gbps = hwBw;
+        if (hwTops > 0) constraints.hw_tops = hwTops;
+
+        // Use first selected use case, default to general
+        const useCase = useCases.length > 0 ? useCases[0] : 'general';
+
+        // POST to the server-side ranking engine
+        const response = await fetch(`${API}/api/v1/rank`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            use_case: useCase,
+            constraints: constraints,
+            limit: limit,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ detail: response.statusText }));
+          throw new Error(err.detail || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderResults(data.ranked, data.use_case);
+        document.getElementById('result-count').textContent =
+          `${data.total} models ranked for "${data.use_case || 'general'}"`;
+
+      } catch (e) {
+        console.error('Downselect failed:', e);
+        document.getElementById('results').innerHTML =
+          `<div class="empty-state"><h3 style="color:#ef4444">Error: ${e.message}</h3></div>`;
+      } finally {
+        btn.classList.remove('loading');
+        btn.textContent = 'Run Downselect';
+      }
+    }
+
+    // ─── Render results ──────────────────────────────────────
+
+    function renderResults(models, useCase) {
+      const container = document.getElementById('results');
+
+      if (models.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">&#128269;</div>
+            <h3>No models match your constraints</h3>
+            <p>Try relaxing some filters.</p>
+          </div>`;
+        return;
+      }
+
+      const maxScore = models[0].score || 1;
+
+      let html = `
+        <div id="results-header">
+          <h2>Ranked Models</h2>
+          <span id="results-summary">${models.length} models ranked for "${useCase || 'general'}" by 4-stage engine</span>
+        </div>`;
+
+      models.forEach((m) => {
+        const rank = m.rank;
+        const typeColor = TYPE_COLORS[m.model_type] || '#64748b';
+        const scoreColor = m.score >= 60 ? '#22c55e' : m.score >= 40 ? '#f59e0b' : m.score >= 20 ? '#3b82f6' : '#64748b';
+        const barWidth = Math.max(5, (m.score / maxScore) * 100);
+
+        // Build benchmark contribution chips
+        const benchChips = Object.entries(m.benchmark_contributions || {})
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name, val]) => `<span class="result-badge" style="background:#6366f122;color:#818cf8" title="${name}: ${val.toFixed(2)} pts">${name.replace(/_/g, ' ')}</span>`)
+          .join('');
+
+        // Score breakdown items (horizontal)
+        const breakdown = [
+          { label: 'Bench', val: m.benchmark_score, max: 40, color: '#6366f1' },
+          { label: 'Caps', val: m.capability_score, max: 20, color: '#22c55e' },
+          { label: 'Type', val: m.type_bonus, max: 15, color: '#f59e0b' },
+          { label: 'Cost', val: m.cost_score, max: 10, color: '#14b8a6' },
+          { label: 'Ctx', val: m.context_score, max: 10, color: '#3b82f6' },
+        ];
+        const visibleBreakdown = breakdown.filter(b => b.val > 0);
+        const barsHtml = visibleBreakdown.map(b => {
+            const pct = Math.min(100, (b.val / b.max) * 100);
+            return `<div class="sbi-row">
+              <span class="sbi-label">${b.label}</span>
+              <span class="sbi-bar"><span class="sbi-bar-fill" style="width:${pct}%;background:${b.color}"></span></span>
+              <span class="sbi-val">${b.val.toFixed(1)}</span>
+            </div>`;
+          }).join('');
+
+        // Pad reasons to match number of bar rows so they align
+        const reasons = (m.reasons || []).slice(0, visibleBreakdown.length);
+        const reasonsHtml = reasons.map(r => `<div>${r}</div>`).join('');
+
+        html += `
+          <div class="result-card">
+            <div class="result-rank ${rank <= 3 ? 'top-3' : ''}">#${rank}</div>
+            <div class="result-body">
+              <div class="result-name">${m.display_name || m.model_id}</div>
+              <div class="result-meta">
+                <span class="result-badge" style="background:${typeColor}22;color:${typeColor}">${m.model_type || 'unknown'}</span>
+                ${m.open_weights ? '<span class="result-badge" style="background:#22c55e22;color:#22c55e">Open</span>' : ''}
+                ${m.status ? `<span class="result-badge" style="background:#64748b22;color:#94a3b8">${m.status}</span>` : ''}
+              </div>
+              <div class="result-props">
+                ${m.total_parameters ? `<div><span class="result-prop-key">Params:</span> <span class="result-prop-val">${(m.total_parameters / 1e9).toFixed(1)}B</span></div>` : ''}
+                ${m.context_window ? `<div><span class="result-prop-key">Context:</span> <span class="result-prop-val">${(m.context_window / 1000).toFixed(0)}K</span></div>` : ''}
+                ${m.arena_elo_overall ? `<div><span class="result-prop-key">ELO:</span> <span class="result-prop-val">${m.arena_elo_overall}</span></div>` : ''}
+                ${m.cost_input !== null && m.cost_input !== undefined ? `<div><span class="result-prop-key">Cost in:</span> <span class="result-prop-val">$${m.cost_input}/M</span></div>` : ''}
+                ${m.cost_output !== null && m.cost_output !== undefined ? `<div><span class="result-prop-key">Cost out:</span> <span class="result-prop-val">$${m.cost_output}/M</span></div>` : ''}
+                ${m.provider ? `<div><span class="result-prop-key">Provider:</span> <span class="result-prop-val">${m.provider}</span></div>` : ''}
+              </div>
+              ${benchChips ? `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:3px">${benchChips}</div>` : ''}
+            </div>
+            <div class="result-score-area">
+              <div class="score-number">
+                <div class="score-value" style="color:${scoreColor}">${m.score}</div>
+                <div class="score-label">Score</div>
+                <div class="score-bar"><div class="score-bar-fill" style="width:${barWidth}%"></div></div>
+              </div>
+              <div class="score-bars-col">${barsHtml}</div>
+              <div class="score-reasons-col">${reasonsHtml}</div>
+            </div>
+          </div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ─── Init ────────────────────────────────────────────────
+
+    loadProviders();
+
+    // Run on Enter key in any input
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') runDownselect();
+      });
+    });
+  </script>
+</body>
+</html>

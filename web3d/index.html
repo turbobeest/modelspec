@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelSpec — 3D Knowledge Graph</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #060a13;
+      color: #e2e8f0;
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+      overflow: hidden;
+    }
+
+    #graph-container,
+    #graph-container > div,
+    #graph-container canvas {
+      position: absolute !important;
+      top: 0 !important; left: 0 !important;
+      width: 100% !important; height: 100% !important;
+      display: block !important;
+      border: none !important; outline: none !important;
+    }
+
+    /* Panels */
+    .panel {
+      background: rgba(10, 18, 36, 0.92);
+      border: 1px solid rgba(100, 116, 139, 0.25);
+      border-radius: 8px;
+      padding: 12px;
+      backdrop-filter: blur(16px);
+    }
+
+    #controls {
+      position: fixed; top: 16px; left: 16px; z-index: 100;
+      display: flex; flex-direction: column; gap: 8px;
+      max-width: 300px;
+    }
+
+    .panel h1 { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 2px; }
+    .panel .subtitle { font-size: 10px; color: #64748b; letter-spacing: 0.5px; }
+    .panel h2 {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #94a3b8; margin-bottom: 8px;
+    }
+
+    /* View buttons */
+    .view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .view-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(100, 116, 139, 0.15);
+      border-radius: 6px; padding: 5px 8px;
+      color: #94a3b8; font-size: 10px; font-family: inherit;
+      cursor: pointer; transition: all 0.15s; text-align: left;
+    }
+    .view-btn:hover { background: rgba(51, 65, 85, 0.8); color: #e2e8f0; }
+    .view-btn.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+    }
+
+    /* Search */
+    #search-input {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(100, 116, 139, 0.15);
+      border-radius: 6px; padding: 6px 10px;
+      color: #e2e8f0; font-family: inherit; font-size: 11px; outline: none;
+    }
+    #search-input:focus { border-color: rgba(59, 130, 246, 0.5); }
+    .search-item {
+      padding: 4px 0; cursor: pointer; color: #94a3b8; font-size: 11px;
+    }
+    .search-item:hover { color: #e2e8f0; }
+
+    /* Legend */
+    .legend-item {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 9px; color: #94a3b8; padding: 2px 0; margin-right: 10px;
+    }
+    .legend-icon { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Stats bar */
+    #stats { position: fixed; bottom: 16px; left: 16px; z-index: 100; }
+    .stat-row {
+      display: flex; gap: 16px; font-size: 10px; color: #64748b;
+    }
+    .stat-val { color: #94a3b8; font-weight: 600; }
+
+    /* Detail panel */
+    #detail-panel {
+      position: fixed; top: 16px; right: 16px; z-index: 100;
+      max-width: 360px; max-height: calc(100vh - 32px); overflow-y: auto;
+      display: none;
+    }
+    #detail-panel.visible { display: block; }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; }
+    .detail-close {
+      background: none; border: none; color: #64748b;
+      cursor: pointer; font-size: 18px; padding: 4px;
+    }
+    .detail-close:hover { color: #e2e8f0; }
+    .detail-label {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .detail-props { font-size: 11px; line-height: 1.8; }
+    .detail-props .key { color: #64748b; }
+    .detail-props .val { color: #e2e8f0; }
+    .detail-rels { margin-top: 8px; font-size: 10px; }
+    .detail-rels .rel-item {
+      padding: 3px 0; border-bottom: 1px solid rgba(100,116,139,0.1);
+      display: flex; gap: 6px; align-items: center;
+    }
+    .rel-type { color: #60a5fa; font-weight: 500; }
+    .rel-arrow { color: #475569; }
+    .rel-peer { color: #94a3b8; cursor: pointer; }
+    .rel-peer:hover { color: #e2e8f0; }
+
+    /* Loading */
+    #loading {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 200; text-align: center;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top-color: #6366f1; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <nav id="graph-nav" style="position:fixed;top:0;left:0;right:0;height:36px;display:flex;align-items:center;z-index:150;background:rgba(6,10,19,0.9);border-bottom:1px solid rgba(100,116,139,0.15);backdrop-filter:blur(12px)">
+    <div style="padding:0 16px;font-size:13px;font-weight:700;color:#f1f5f9;border-right:1px solid rgba(100,116,139,0.15);height:100%;display:flex;align-items:center">ModelSpec</div>
+    <a href="/graph" style="padding:0 14px;height:100%;display:flex;align-items:center;color:#60a5fa;text-decoration:none;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;border-bottom:2px solid #3b82f6">3D Graph</a>
+    <a href="/downselect" style="padding:0 14px;height:100%;display:flex;align-items:center;color:#64748b;text-decoration:none;font-size:10px;letter-spacing:0.5px;text-transform:uppercase">Downselect</a>
+    <a href="https://github.com/turbobeest/modelspec" target="_blank" style="margin-left:auto;padding:0 16px;height:100%;display:flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:10px">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      turbobeest/modelspec
+    </a>
+  </nav>
+
+  <div id="graph-container"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div style="font-size: 12px; color: #64748b;">Loading knowledge graph...</div>
+  </div>
+
+  <div id="controls">
+    <div class="panel">
+      <h1>ModelSpec</h1>
+      <div class="subtitle">3D Model Intelligence Graph</div>
+    </div>
+
+    <div class="panel">
+      <h2>Edge View</h2>
+      <div class="view-grid" id="view-buttons"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Search</h2>
+      <input type="text" id="search-input" placeholder="Model name, provider, or type...">
+      <div id="search-results"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Layout</h2>
+      <div style="display:flex;gap:4px">
+        <button class="view-btn active" id="btn-labels" onclick="toggleLabels()">Labels</button>
+      </div>
+    </div>
+
+    <div class="panel" id="legend-panel">
+      <h2>3moticons</h2>
+      <div id="legend"></div>
+    </div>
+  </div>
+
+  <div id="detail-panel" class="panel">
+    <div class="detail-header">
+      <h2>Node Detail</h2>
+      <button class="detail-close" onclick="closeDetail()">&times;</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+
+  <div id="stats" class="panel">
+    <div class="stat-row">
+      <span>Nodes: <span class="stat-val" id="stat-nodes">0</span></span>
+      <span>Edges: <span class="stat-val" id="stat-edges">0</span></span>
+      <span>View: <span class="stat-val" id="stat-view">-</span></span>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/3d-force-graph@1"></script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // CONFIG
+    // ═══════════════════════════════════════════════════════════════
+    const API = '';
+    let currentView = 'provider';
+    let graph3d = null;
+    let graphData = { nodes: [], links: [] };
+    let labelsVisible = true;
+
+    // ═══════════════════════════════════════════════════════════════
+    // 3MOTICON COLORS — one per model_type / node label
+    // ═══════════════════════════════════════════════════════════════
+    const TYPE_COLORS = {
+      'llm-chat':           '#3b82f6',
+      'llm-reasoning':      '#8b5cf6',
+      'llm-code':           '#22c55e',
+      'llm-base':           '#6b7280',
+      'vlm':                '#14b8a6',
+      'embedding-text':     '#f59e0b',
+      'image-generation':   '#ec4899',
+      'video-generation':   '#f43f5e',
+      'audio-asr':          '#06b6d4',
+      'audio-tts':          '#0ea5e9',
+      'safety-classifier':  '#ef4444',
+      'reward-model':       '#fbbf24',
+      'reranker':           '#a855f7',
+      'document-ocr':       '#84cc16',
+      'audio-realtime':     '#06b6d4',
+    };
+
+    const LABEL_COLORS = {
+      'Provider':    '#f97316',
+      'Platform':    '#06b6d4',
+      'Capability':  '#22c55e',
+      'Benchmark':   '#eab308',
+      'Hardware':    '#a855f7',
+      'License':     '#94a3b8',
+      'Tag':         '#64748b',
+      'UseCase':     '#14b8a6',
+    };
+
+    const EDGE_COLORS = {
+      'MADE_BY':        '#f97316',
+      'DERIVED_FROM':   '#8b5cf6',
+      'HAS_CAPABILITY': '#22c55e',
+      'SCORED_ON':      '#eab308',
+      'FITS_ON':        '#a855f7',
+      'AVAILABLE_ON':   '#06b6d4',
+      'LICENSED_AS':    '#94a3b8',
+      'TAGGED_WITH':    '#64748b',
+      'COMPETES_WITH':  '#ef4444',
+      'MERGED_FROM':    '#ec4899',
+    };
+
+    function nodeColor(n) {
+      if (n.label === 'Model') return TYPE_COLORS[n.model_type] || '#64748b';
+      return LABEL_COLORS[n.label] || '#475569';
+    }
+
+    function nodeSize(n) {
+      if (n.label !== 'Model') return { Provider: 8, Platform: 5, Capability: 4, Benchmark: 4, Hardware: 5, License: 3, Tag: 2 }[n.label] || 3;
+      const p = n.total_parameters;
+      if (!p) return 4;
+      return Math.max(3, Math.min(14, Math.log10(p / 1e8) * 3 + 4));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 3MOTICONS — Programmatic 3D mesh icons
+    // ═══════════════════════════════════════════════════════════════
+
+    function make3moticon(type, color, size) {
+      const c = new THREE.Color(color);
+      const mat = () => new THREE.MeshLambertMaterial({
+        color: c, transparent: true, opacity: 0.88,
+        emissive: c, emissiveIntensity: 0.2,
+      });
+      const wireMat = () => new THREE.MeshBasicMaterial({
+        color: c, wireframe: true, transparent: true, opacity: 0.3,
+      });
+
+      switch (type) {
+        case 'llm-chat': return makeSpeechBubble(size, mat());
+        case 'llm-reasoning': return makeLightbulb(size, mat());
+        case 'llm-code': return makeCodeBrackets(size, mat());
+        case 'llm-base': return makeCube(size, mat());
+        case 'vlm': return makeEye(size, mat(), c);
+        case 'embedding-text': return makeMagnet(size, mat(), c);
+        case 'image-generation': return makePalette(size, mat(), c);
+        case 'video-generation': return makeClapboard(size, mat());
+        case 'audio-asr': return makeMicrophone(size, mat(), c);
+        case 'audio-tts': return makeSpeaker(size, mat(), c);
+        case 'audio-realtime': return makeSpeaker(size, mat(), c);
+        case 'safety-classifier': return makeShield(size, mat());
+        case 'reward-model': return makeStar(size, mat());
+        case 'reranker': return makeFunnel(size, mat());
+        case 'document-ocr': return makeDocument(size, mat());
+        // Node labels (non-model)
+        case '_Provider': return makeBuilding(size, mat());
+        case '_Platform': return makeCloud(size, mat(), c);
+        case '_Hardware': return makeChip(size, mat());
+        case '_Capability': return makeGear(size, mat());
+        case '_Benchmark': return makeTarget(size, mat(), c);
+        default: return makeSphere(size, mat());
+      }
+    }
+
+    // ─── Shape builders ────────────────────────────────────────
+
+    function makeSpeechBubble(s, mat) {
+      const shape = new THREE.Shape();
+      const r = s * 0.8;
+      // Rounded rectangle
+      shape.moveTo(-r, -r * 0.6);
+      shape.lineTo(-r, r * 0.5);
+      shape.quadraticCurveTo(-r, r * 0.7, -r * 0.7, r * 0.7);
+      shape.lineTo(r * 0.7, r * 0.7);
+      shape.quadraticCurveTo(r, r * 0.7, r, r * 0.5);
+      shape.lineTo(r, -r * 0.6);
+      shape.quadraticCurveTo(r, -r * 0.8, r * 0.7, -r * 0.8);
+      // Tail
+      shape.lineTo(-r * 0.1, -r * 0.8);
+      shape.lineTo(-r * 0.4, -r * 1.2);
+      shape.lineTo(-r * 0.5, -r * 0.8);
+      shape.lineTo(-r * 0.7, -r * 0.8);
+      shape.quadraticCurveTo(-r, -r * 0.8, -r, -r * 0.6);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: s * 0.3, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.2, bevelSegments: 2 });
+      geo.center();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makeLightbulb(s, mat) {
+      const group = new THREE.Group();
+      // Bulb (sphere top)
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(s * 0.55, 16, 12), mat);
+      bulb.position.y = s * 0.3;
+      group.add(bulb);
+      // Base (cylinder)
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(s * 0.3, s * 0.35, s * 0.4, 8), mat);
+      base.position.y = -s * 0.3;
+      group.add(base);
+      // Filament rays
+      for (let i = 0; i < 4; i++) {
+        const ray = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, s * 0.5, 4), mat.clone());
+        ray.material.emissiveIntensity = 0.5;
+        const angle = (i / 4) * Math.PI * 2;
+        ray.position.set(Math.cos(angle) * s * 0.7, s * 0.4, Math.sin(angle) * s * 0.7);
+        ray.rotation.z = Math.PI / 4;
+        ray.rotation.y = angle;
+        group.add(ray);
+      }
+      return group;
+    }
+
+    function makeCodeBrackets(s, mat) {
+      const group = new THREE.Group();
+      // Left bracket <
+      const left = new THREE.Shape();
+      left.moveTo(s * 0.3, s * 0.6);
+      left.lineTo(-s * 0.3, 0);
+      left.lineTo(s * 0.3, -s * 0.6);
+      left.lineTo(s * 0.5, -s * 0.45);
+      left.lineTo(0, 0);
+      left.lineTo(s * 0.5, s * 0.45);
+      const lg = new THREE.ExtrudeGeometry(left, { depth: s * 0.2, bevelEnabled: false });
+      const lm = new THREE.Mesh(lg, mat);
+      lm.position.x = -s * 0.4;
+      group.add(lm);
+      // Right bracket >
+      const right = new THREE.Shape();
+      right.moveTo(-s * 0.3, s * 0.6);
+      right.lineTo(s * 0.3, 0);
+      right.lineTo(-s * 0.3, -s * 0.6);
+      right.lineTo(-s * 0.5, -s * 0.45);
+      right.lineTo(0, 0);
+      right.lineTo(-s * 0.5, s * 0.45);
+      const rg = new THREE.ExtrudeGeometry(right, { depth: s * 0.2, bevelEnabled: false });
+      const rm = new THREE.Mesh(rg, mat);
+      rm.position.x = s * 0.4;
+      group.add(rm);
+      // Slash /
+      const slash = new THREE.Mesh(
+        new THREE.BoxGeometry(s * 0.15, s * 0.9, s * 0.15),
+        mat
+      );
+      slash.rotation.z = -Math.PI / 6;
+      group.add(slash);
+      return group;
+    }
+
+    function makeEye(s, mat, c) {
+      const group = new THREE.Group();
+      // Outer almond shape (torus squished)
+      const outer = new THREE.Mesh(
+        new THREE.TorusGeometry(s * 0.5, s * 0.15, 8, 24),
+        mat
+      );
+      outer.scale.set(1.2, 0.7, 0.4);
+      group.add(outer);
+      // Iris
+      const iris = new THREE.Mesh(
+        new THREE.SphereGeometry(s * 0.35, 16, 12),
+        new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.4, transparent: true, opacity: 0.9 })
+      );
+      group.add(iris);
+      // Pupil
+      const pupil = new THREE.Mesh(
+        new THREE.SphereGeometry(s * 0.15, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0x000000 })
+      );
+      pupil.position.z = s * 0.2;
+      group.add(pupil);
+      return group;
+    }
+
+    function makeMagnet(s, mat, c) {
+      const group = new THREE.Group();
+      // Three interlocking rings
+      for (let i = 0; i < 3; i++) {
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(s * 0.45, s * 0.08, 8, 24),
+          mat.clone()
+        );
+        ring.rotation.x = (i / 3) * Math.PI;
+        ring.rotation.y = (i / 3) * Math.PI * 0.5;
+        group.add(ring);
+      }
+      // Center sphere
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(s * 0.2, 12, 8),
+        new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.5, transparent: true, opacity: 0.9 })
+      );
+      group.add(core);
+      return group;
+    }
+
+    function makeShield(s, mat) {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, s * 0.8);
+      shape.quadraticCurveTo(s * 0.7, s * 0.6, s * 0.7, s * 0.1);
+      shape.lineTo(s * 0.7, -s * 0.1);
+      shape.quadraticCurveTo(s * 0.5, -s * 0.7, 0, -s * 0.9);
+      shape.quadraticCurveTo(-s * 0.5, -s * 0.7, -s * 0.7, -s * 0.1);
+      shape.lineTo(-s * 0.7, s * 0.1);
+      shape.quadraticCurveTo(-s * 0.7, s * 0.6, 0, s * 0.8);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: s * 0.25, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.15, bevelSegments: 2 });
+      geo.center();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makeStar(s, mat) {
+      const shape = new THREE.Shape();
+      const pts = 5;
+      for (let i = 0; i < pts * 2; i++) {
+        const angle = (i / (pts * 2)) * Math.PI * 2 - Math.PI / 2;
+        const r = i % 2 === 0 ? s * 0.7 : s * 0.3;
+        if (i === 0) shape.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+        else shape.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+      }
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: s * 0.2, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.1, bevelSegments: 1 });
+      geo.center();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makeFunnel(s, mat) {
+      const geo = new THREE.CylinderGeometry(s * 0.2, s * 0.6, s * 1.2, 8, 1, true);
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makePalette(s, mat, c) {
+      const group = new THREE.Group();
+      // Flat ellipse body
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(s * 0.6, 16, 8),
+        mat
+      );
+      body.scale.set(1.3, 0.3, 1);
+      group.add(body);
+      // Paint dots
+      const colors = [0xef4444, 0x3b82f6, 0x22c55e, 0xeab308];
+      for (let i = 0; i < 4; i++) {
+        const dot = new THREE.Mesh(
+          new THREE.SphereGeometry(s * 0.12, 8, 6),
+          new THREE.MeshLambertMaterial({ color: colors[i] })
+        );
+        const angle = (i / 4) * Math.PI * 1.5 + 0.5;
+        dot.position.set(Math.cos(angle) * s * 0.35, s * 0.15, Math.sin(angle) * s * 0.35);
+        group.add(dot);
+      }
+      return group;
+    }
+
+    function makeMicrophone(s, mat, c) {
+      const group = new THREE.Group();
+      // Capsule head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(s * 0.35, 12, 8), mat);
+      head.position.y = s * 0.3;
+      head.scale.set(1, 1.3, 1);
+      group.add(head);
+      // Stand
+      const stand = new THREE.Mesh(new THREE.CylinderGeometry(s * 0.08, s * 0.08, s * 0.7, 6), mat);
+      stand.position.y = -s * 0.3;
+      group.add(stand);
+      // Base
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(s * 0.25, s * 0.3, s * 0.1, 8), mat);
+      base.position.y = -s * 0.7;
+      group.add(base);
+      return group;
+    }
+
+    function makeSpeaker(s, mat, c) {
+      const group = new THREE.Group();
+      // Box body
+      const body = new THREE.Mesh(new THREE.BoxGeometry(s * 0.6, s * 0.8, s * 0.5), mat);
+      group.add(body);
+      // Cone
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(s * 0.5, s * 0.4, 12),
+        mat.clone()
+      );
+      cone.rotation.x = -Math.PI / 2;
+      cone.position.z = s * 0.4;
+      group.add(cone);
+      // Sound wave arcs
+      for (let i = 1; i <= 2; i++) {
+        const arc = new THREE.Mesh(
+          new THREE.TorusGeometry(s * 0.3 * i, s * 0.03, 4, 12, Math.PI * 0.7),
+          new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.4 - i * 0.1 })
+        );
+        arc.rotation.y = Math.PI / 2;
+        arc.position.z = s * 0.5 + i * s * 0.15;
+        group.add(arc);
+      }
+      return group;
+    }
+
+    function makeClapboard(s, mat) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(s * 1, s * 0.7, s * 0.1), mat);
+      group.add(body);
+      const clap = new THREE.Mesh(new THREE.BoxGeometry(s * 1, s * 0.15, s * 0.08), mat.clone());
+      clap.material.emissiveIntensity = 0.4;
+      clap.position.y = s * 0.42;
+      clap.rotation.z = 0.15;
+      group.add(clap);
+      return group;
+    }
+
+    function makeDocument(s, mat) {
+      const shape = new THREE.Shape();
+      shape.moveTo(-s * 0.4, -s * 0.55);
+      shape.lineTo(-s * 0.4, s * 0.55);
+      shape.lineTo(s * 0.2, s * 0.55);
+      shape.lineTo(s * 0.4, s * 0.35);
+      shape.lineTo(s * 0.4, -s * 0.55);
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: s * 0.08, bevelEnabled: false });
+      geo.center();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makeBuilding(s, mat) {
+      const group = new THREE.Group();
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(s * 0.6, s * 1.2, s * 0.5), mat);
+      tower.position.y = s * 0.1;
+      group.add(tower);
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(s * 0.9, s * 0.6, s * 0.4), mat.clone());
+      wing.material.opacity = 0.7;
+      wing.position.y = -s * 0.3;
+      group.add(wing);
+      // Windows (dots)
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 2; c++) {
+          const w = new THREE.Mesh(
+            new THREE.PlaneGeometry(s * 0.1, s * 0.1),
+            new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.7 })
+          );
+          w.position.set(-s * 0.1 + c * s * 0.2, s * 0.5 - r * s * 0.25, s * 0.26);
+          group.add(w);
+        }
+      }
+      return group;
+    }
+
+    function makeCloud(s, mat, c) {
+      const group = new THREE.Group();
+      const positions = [[0, 0, 0], [-s*0.3, -s*0.1, 0], [s*0.3, -s*0.1, 0], [s*0.15, s*0.15, 0], [-s*0.15, s*0.12, 0]];
+      const sizes = [s*0.3, s*0.22, s*0.22, s*0.2, s*0.18];
+      positions.forEach((pos, i) => {
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(sizes[i], 12, 8), mat);
+        sphere.position.set(...pos);
+        group.add(sphere);
+      });
+      return group;
+    }
+
+    function makeChip(s, mat) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(s * 0.8, s * 0.15, s * 0.8), mat);
+      group.add(body);
+      // Pins on each side
+      for (let side = 0; side < 4; side++) {
+        for (let i = 0; i < 3; i++) {
+          const pin = new THREE.Mesh(
+            new THREE.BoxGeometry(s * 0.05, s * 0.05, s * 0.15),
+            mat
+          );
+          const offset = (i - 1) * s * 0.25;
+          if (side === 0) pin.position.set(offset, 0, s * 0.5);
+          else if (side === 1) pin.position.set(offset, 0, -s * 0.5);
+          else if (side === 2) { pin.rotation.y = Math.PI/2; pin.position.set(s * 0.5, 0, offset); }
+          else { pin.rotation.y = Math.PI/2; pin.position.set(-s * 0.5, 0, offset); }
+          group.add(pin);
+        }
+      }
+      return group;
+    }
+
+    function makeGear(s, mat) {
+      const shape = new THREE.Shape();
+      const teeth = 8;
+      for (let i = 0; i < teeth; i++) {
+        const a1 = (i / teeth) * Math.PI * 2;
+        const a2 = ((i + 0.3) / teeth) * Math.PI * 2;
+        const a3 = ((i + 0.5) / teeth) * Math.PI * 2;
+        const a4 = ((i + 0.8) / teeth) * Math.PI * 2;
+        const ri = s * 0.35, ro = s * 0.55;
+        if (i === 0) shape.moveTo(Math.cos(a1) * ri, Math.sin(a1) * ri);
+        shape.lineTo(Math.cos(a2) * ro, Math.sin(a2) * ro);
+        shape.lineTo(Math.cos(a3) * ro, Math.sin(a3) * ro);
+        shape.lineTo(Math.cos(a4) * ri, Math.sin(a4) * ri);
+      }
+      shape.closePath();
+      // Center hole
+      const hole = new THREE.Path();
+      for (let i = 0; i <= 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        if (i === 0) hole.moveTo(Math.cos(a) * s * 0.12, Math.sin(a) * s * 0.12);
+        else hole.lineTo(Math.cos(a) * s * 0.12, Math.sin(a) * s * 0.12);
+      }
+      shape.holes.push(hole);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: s * 0.15, bevelEnabled: false });
+      geo.center();
+      return new THREE.Mesh(geo, mat);
+    }
+
+    function makeTarget(s, mat, c) {
+      const group = new THREE.Group();
+      [s*0.5, s*0.3].forEach((r, i) => {
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(r, s * 0.04, 6, 24),
+          i === 0 ? mat : mat.clone()
+        );
+        group.add(ring);
+      });
+      const bull = new THREE.Mesh(new THREE.SphereGeometry(s * 0.1, 8, 6),
+        new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.6 })
+      );
+      group.add(bull);
+      return group;
+    }
+
+    function makeCube(s, mat) { return new THREE.Mesh(new THREE.BoxGeometry(s*0.8, s*0.8, s*0.8), mat); }
+    function makeSphere(s, mat) { return new THREE.Mesh(new THREE.SphereGeometry(s * 0.5, 16, 12), mat); }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TEXT SPRITES
+    // ═══════════════════════════════════════════════════════════════
+
+    function makeTextSprite(text, color) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const fontSize = 24;
+      ctx.font = `${fontSize}px monospace`;
+      const textWidth = ctx.measureText(text).width;
+      canvas.width = textWidth + 16;
+      canvas.height = fontSize + 8;
+      ctx.font = `${fontSize}px monospace`;
+      ctx.fillStyle = color || '#e2e8f0';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(canvas.width / 6, canvas.height / 6, 1);
+      return sprite;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════
+
+    async function init() {
+      // Load available views
+      const views = await fetch(`${API}/api/v1/views`).then(r => r.json());
+      const grid = document.getElementById('view-buttons');
+      views.forEach(v => {
+        const btn = document.createElement('button');
+        btn.className = 'view-btn' + (v.id === currentView ? ' active' : '');
+        btn.textContent = v.label;
+        btn.dataset.view = v.id;
+        btn.onclick = () => switchView(v.id);
+        grid.appendChild(btn);
+      });
+
+      // Init 3D graph
+      const container = document.getElementById('graph-container');
+      graph3d = ForceGraph3D()(container)
+        .width(window.innerWidth)
+        .height(window.innerHeight)
+        .backgroundColor('#060a13')
+        .nodeLabel(n => `${n.display_name || n.id} (${n.label}${n.model_type ? ': ' + n.model_type : ''})`)
+        .nodeColor(n => nodeColor(n))
+        .nodeVal(n => nodeSize(n))
+        .nodeOpacity(0.9)
+        .linkColor(e => EDGE_COLORS[e.type] || '#1e293b')
+        .linkOpacity(0.5)
+        .linkWidth(0.5)
+        .linkDirectionalArrowLength(3)
+        .linkDirectionalArrowRelPos(1)
+        .onNodeClick(n => showNodeDetail(n.id))
+        .onNodeHover(n => { container.style.cursor = n ? 'pointer' : 'default'; })
+        .nodeThreeObject(n => {
+          const size = nodeSize(n) * 0.7;
+          const color = nodeColor(n);
+          const type = n.label === 'Model' ? (n.model_type || 'llm-chat') : ('_' + n.label);
+
+          const group = new THREE.Group();
+          const icon = make3moticon(type, color, size);
+          group.add(icon);
+
+          // Slow rotation
+          icon.userData.rotates = true;
+
+          // Label
+          if (labelsVisible && n.display_name) {
+            const labelText = n.display_name.length > 20
+              ? n.display_name.substring(0, 18) + '..'
+              : n.display_name;
+            const sprite = makeTextSprite(labelText, color);
+            sprite.position.set(0, size + 3, 0);
+            group.add(sprite);
+          }
+
+          return group;
+        })
+        .d3AlphaDecay(0.02)
+        .d3VelocityDecay(0.3);
+
+      // Add ambient + directional light for Lambert materials
+      const scene = graph3d.scene();
+      scene.add(new THREE.AmbientLight(0x404060, 2));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      dirLight.position.set(100, 200, 100);
+      scene.add(dirLight);
+      const dirLight2 = new THREE.DirectionalLight(0x6366f1, 0.8);
+      dirLight2.position.set(-100, -50, -100);
+      scene.add(dirLight2);
+
+      // Animate rotation of 3moticons
+      (function animate() {
+        requestAnimationFrame(animate);
+        const time = Date.now() * 0.001;
+        graphData.nodes.forEach(n => {
+          if (n.__threeObj) {
+            const icon = n.__threeObj.children[0];
+            if (icon && icon.userData && icon.userData.rotates) {
+              icon.rotation.y = time * 0.3;
+            }
+          }
+        });
+      })();
+
+      await switchView(currentView);
+      document.getElementById('loading').style.display = 'none';
+
+      // Search
+      document.getElementById('search-input').addEventListener('input', debounce(handleSearch, 300));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // VIEW SWITCHING
+    // ═══════════════════════════════════════════════════════════════
+
+    async function switchView(viewId) {
+      currentView = viewId;
+      document.querySelectorAll('#view-buttons .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === viewId);
+      });
+
+      const data = await fetch(`${API}/api/v1/graph?view=${viewId}`).then(r => r.json());
+
+      graphData = {
+        nodes: data.nodes.map(n => ({
+          id: n.id,
+          display_name: n.display_name,
+          label: n.label,
+          model_type: n.model_type,
+          total_parameters: n.total_parameters,
+          properties: n.properties || {},
+        })),
+        links: data.edges.map(e => ({
+          source: e.source,
+          target: e.target,
+          type: e.type,
+          properties: e.properties || {},
+        })),
+      };
+
+      graph3d.graphData(graphData);
+
+      document.getElementById('stat-nodes').textContent = data.nodes.length;
+      document.getElementById('stat-edges').textContent = data.edges.length;
+      document.getElementById('stat-view').textContent = viewId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+      updateLegend(data.nodes);
+    }
+
+    // SVG silhouettes matching each 3moticon
+    function legendSVG(type, color) {
+      const s = 14; // icon size
+      const c = color;
+      const ICONS = {
+        'llm-chat': `<path d="M2,4 Q2,2 4,2 L10,2 Q12,2 12,4 L12,8 Q12,10 10,10 L6,10 L4,13 L4.5,10 L4,10 Q2,10 2,8 Z" fill="${c}" opacity="0.85"/>`,
+        'llm-reasoning': `<circle cx="7" cy="5" r="3.5" fill="${c}" opacity="0.85"/><rect x="5.5" y="8.5" width="3" height="2" rx="0.5" fill="${c}" opacity="0.7"/><line x1="7" y1="1" x2="7" y2="0" stroke="${c}" stroke-width="0.7"/><line x1="3" y1="2.5" x2="2" y2="1.5" stroke="${c}" stroke-width="0.7"/><line x1="11" y1="2.5" x2="12" y2="1.5" stroke="${c}" stroke-width="0.7"/>`,
+        'llm-code': `<polyline points="1,7 5,3 5,4.5 1,8.5" fill="${c}" opacity="0.85"/><polyline points="13,7 9,3 9,4.5 13,8.5" fill="${c}" opacity="0.85"/><rect x="6" y="2.5" width="1.5" height="9" rx="0.5" transform="rotate(-15 7 7)" fill="${c}" opacity="0.7"/>`,
+        'llm-base': `<rect x="3" y="3" width="8" height="8" rx="1" fill="${c}" opacity="0.7"/>`,
+        'vlm': `<ellipse cx="7" cy="7" rx="6" ry="3.5" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.8"/><circle cx="7" cy="7" r="2.5" fill="${c}" opacity="0.85"/><circle cx="7.8" cy="6.5" r="1" fill="#060a13"/>`,
+        'embedding-text': `<circle cx="7" cy="7" r="2" fill="${c}" opacity="0.9"/><ellipse cx="7" cy="7" rx="5" ry="5" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.5" transform="rotate(0 7 7)"/><ellipse cx="7" cy="7" rx="5" ry="5" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.4" transform="rotate(60 7 7)"/><ellipse cx="7" cy="7" rx="5" ry="5" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.3" transform="rotate(120 7 7)"/>`,
+        'image-generation': `<ellipse cx="7" cy="8" rx="6" ry="3.5" fill="${c}" opacity="0.7"/><circle cx="4" cy="6.5" r="1" fill="#ef4444"/><circle cx="7" cy="6" r="1" fill="#3b82f6"/><circle cx="10" cy="6.5" r="1" fill="#22c55e"/><circle cx="5.5" cy="5" r="0.8" fill="#eab308"/>`,
+        'video-generation': `<rect x="2" y="4" width="10" height="7" rx="1" fill="${c}" opacity="0.8"/><rect x="2" y="2.5" width="10" height="2" rx="0.5" fill="${c}" opacity="0.6" transform="rotate(5 7 3.5)"/>`,
+        'audio-asr': `<ellipse cx="7" cy="4" rx="2.5" ry="3" fill="${c}" opacity="0.85"/><rect x="6.2" y="7" width="1.5" height="3.5" fill="${c}" opacity="0.7"/><rect x="4.5" y="11" width="5" height="1" rx="0.5" fill="${c}" opacity="0.6"/>`,
+        'audio-tts': `<rect x="2" y="3.5" width="4" height="5.5" rx="0.5" fill="${c}" opacity="0.8"/><polygon points="6,3 12,1 12,11 6,9" fill="${c}" opacity="0.7"/><path d="M12.5,4 Q14,6 12.5,8" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.5"/>`,
+        'audio-realtime': `<rect x="2" y="3.5" width="4" height="5.5" rx="0.5" fill="${c}" opacity="0.8"/><polygon points="6,3 12,1 12,11 6,9" fill="${c}" opacity="0.7"/><path d="M12.5,4 Q14,6 12.5,8" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.5"/>`,
+        'safety-classifier': `<path d="M7,1 L12,3.5 L12,7 Q12,11 7,13 Q2,11 2,7 L2,3.5 Z" fill="${c}" opacity="0.85"/>`,
+        'reward-model': `<polygon points="7,1 8.8,5 13,5.5 9.8,8.3 10.8,13 7,10.8 3.2,13 4.2,8.3 1,5.5 5.2,5" fill="${c}" opacity="0.85"/>`,
+        'reranker': `<polygon points="2,2 12,2 10,7 4,7" fill="${c}" opacity="0.7"/><rect x="5" y="7" width="4" height="5" fill="${c}" opacity="0.85"/>`,
+        'document-ocr': `<path d="M3,1 L9,1 L11,3 L11,13 L3,13 Z" fill="${c}" opacity="0.8"/><line x1="5" y1="5" x2="9" y2="5" stroke="#060a13" stroke-width="0.6"/><line x1="5" y1="7" x2="9" y2="7" stroke="#060a13" stroke-width="0.6"/><line x1="5" y1="9" x2="8" y2="9" stroke="#060a13" stroke-width="0.6"/>`,
+        '_Provider': `<rect x="4" y="1" width="5" height="10" rx="0.5" fill="${c}" opacity="0.8"/><rect x="2" y="5" width="9" height="6" rx="0.5" fill="${c}" opacity="0.6"/><rect x="5.5" y="3" width="1" height="1" fill="#fbbf24" opacity="0.8"/><rect x="7.5" y="3" width="1" height="1" fill="#fbbf24" opacity="0.8"/><rect x="5.5" y="5.5" width="1" height="1" fill="#fbbf24" opacity="0.6"/><rect x="7.5" y="5.5" width="1" height="1" fill="#fbbf24" opacity="0.6"/>`,
+        '_Platform': `<circle cx="4" cy="7" r="2.5" fill="${c}" opacity="0.7"/><circle cx="7" cy="6" r="2.8" fill="${c}" opacity="0.8"/><circle cx="10" cy="7" r="2.5" fill="${c}" opacity="0.7"/><circle cx="5.5" cy="5" r="2" fill="${c}" opacity="0.75"/><circle cx="8.5" cy="5" r="2" fill="${c}" opacity="0.75"/>`,
+        '_Hardware': `<rect x="3" y="5" width="8" height="4" rx="0.5" fill="${c}" opacity="0.8"/><rect x="3.5" y="3" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="5.5" y="3" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="7.5" y="3" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="9.5" y="3" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="3.5" y="9" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="5.5" y="9" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="7.5" y="9" width="1" height="2" fill="${c}" opacity="0.6"/><rect x="9.5" y="9" width="1" height="2" fill="${c}" opacity="0.6"/>`,
+        '_Capability': `<path d="M7,2 L8.5,4.5 L11,4 L9.5,6.5 L12,8 L9.5,8.5 L10,11 L7,9.5 L4,11 L4.5,8.5 L2,8 L4.5,6.5 L3,4 L5.5,4.5 Z" fill="${c}" opacity="0.8"/><circle cx="7" cy="7" r="1.5" fill="#060a13"/>`,
+        '_Benchmark': `<circle cx="7" cy="7" r="5" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.5"/><circle cx="7" cy="7" r="3" fill="none" stroke="${c}" stroke-width="0.8" opacity="0.7"/><circle cx="7" cy="7" r="1.2" fill="${c}" opacity="0.9"/>`,
+        '_License': `<rect x="3" y="2" width="8" height="10" rx="1" fill="${c}" opacity="0.6"/><line x1="5" y1="5" x2="9" y2="5" stroke="#060a13" stroke-width="0.6"/><line x1="5" y1="7" x2="9" y2="7" stroke="#060a13" stroke-width="0.6"/>`,
+        '_Tag': `<circle cx="4" cy="5" r="1" fill="${c}" opacity="0.9"/><path d="M2,3 L7,3 L12,7 L7,12 L2,7 Z" fill="${c}" opacity="0.6"/>`,
+      };
+      const path = ICONS[type] || ICONS['llm-base'] || `<circle cx="7" cy="7" r="4" fill="${c}" opacity="0.7"/>`;
+      return `<svg class="legend-icon" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">${path}</svg>`;
+    }
+
+    function updateLegend(nodes) {
+      const types = {};
+      nodes.forEach(n => {
+        if (n.label === 'Model') {
+          const t = n.model_type || 'unknown';
+          types[t] = (types[t] || 0) + 1;
+        } else {
+          const key = '_' + n.label;
+          types[key] = (types[key] || 0) + 1;
+        }
+      });
+
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      Object.entries(types).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+        const isLabel = type.startsWith('_');
+        const displayName = isLabel ? type.substring(1) : type;
+        const color = isLabel ? (LABEL_COLORS[displayName] || '#64748b') : (TYPE_COLORS[type] || '#64748b');
+        const iconKey = isLabel ? type : type;
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `${legendSVG(iconKey, color)}${displayName} (${count})`;
+        legend.appendChild(item);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NODE DETAIL
+    // ═══════════════════════════════════════════════════════════════
+
+    async function showNodeDetail(nodeId) {
+      const data = await fetch(`${API}/api/v1/node/${encodeURIComponent(nodeId)}`).then(r => r.json());
+      const panel = document.getElementById('detail-panel');
+      const content = document.getElementById('detail-content');
+
+      const isModel = data.label === 'Model';
+      const color = isModel ? (TYPE_COLORS[data.properties.model_type] || '#64748b') : (LABEL_COLORS[data.label] || '#64748b');
+
+      let html = `<span class="detail-label" style="background:${color}22;color:${color}">${data.label}${isModel && data.properties.model_type ? ' / ' + data.properties.model_type : ''}</span>`;
+      html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px">${data.properties.display_name || data.properties.name || data.id}</div>`;
+
+      // Key properties
+      html += '<div class="detail-props">';
+      const skip = ['id', 'display_name', 'name'];
+      const priority = ['model_type', 'status', 'total_parameters', 'context_window', 'cost_input', 'cost_output', 'arena_elo_overall', 'open_weights', 'origin_country', 'release_date', 'card_completeness'];
+
+      const shown = new Set();
+      priority.forEach(k => {
+        const v = data.properties[k];
+        if (v !== null && v !== undefined && v !== '' && v !== 0 && v !== false) {
+          let display = v;
+          if (k === 'total_parameters') display = (v / 1e9).toFixed(1) + 'B';
+          else if (k === 'context_window') display = (v / 1000).toFixed(0) + 'K';
+          else if (k.startsWith('cost_')) display = '$' + v + '/M';
+          else if (k === 'card_completeness') display = v + '%';
+          html += `<div><span class="key">${k.replace(/_/g, ' ')}:</span> <span class="val">${display}</span></div>`;
+          shown.add(k);
+        }
+      });
+      Object.entries(data.properties).forEach(([k, v]) => {
+        if (skip.includes(k) || shown.has(k)) return;
+        if (v === null || v === '' || v === 0 || v === false) return;
+        html += `<div><span class="key">${k.replace(/_/g, ' ')}:</span> <span class="val">${v}</span></div>`;
+      });
+      html += '</div>';
+
+      // Relationships
+      if (data.relationships && data.relationships.length > 0) {
+        html += '<div class="detail-rels"><h2 style="margin-top:8px">Relationships</h2>';
+        // Group by type
+        const grouped = {};
+        data.relationships.forEach(r => {
+          grouped[r.type] = grouped[r.type] || [];
+          grouped[r.type].push(r);
+        });
+        Object.entries(grouped).forEach(([type, rels]) => {
+          html += `<div style="margin-top:4px;color:#60a5fa;font-weight:500;font-size:10px">${type} (${rels.length})</div>`;
+          rels.slice(0, 10).forEach(r => {
+            const arrow = r.direction === 'outgoing' ? '&rarr;' : '&larr;';
+            html += `<div class="rel-item">
+              <span class="rel-arrow">${arrow}</span>
+              <span class="rel-peer" onclick="showNodeDetail('${r.peer_id}')">${r.peer_name} (${r.peer_label})</span>
+            </div>`;
+          });
+          if (rels.length > 10) html += `<div style="color:#475569;font-size:9px">... and ${rels.length - 10} more</div>`;
+        });
+        html += '</div>';
+      }
+
+      content.innerHTML = html;
+      panel.classList.add('visible');
+
+      // Focus camera
+      const node = graphData.nodes.find(n => n.id === nodeId);
+      if (node && node.x !== undefined) {
+        graph3d.cameraPosition(
+          { x: node.x + 80, y: node.y + 40, z: node.z + 80 },
+          { x: node.x, y: node.y, z: node.z },
+          800
+        );
+      }
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-panel').classList.remove('visible');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SEARCH
+    // ═══════════════════════════════════════════════════════════════
+
+    async function handleSearch(e) {
+      const q = e.target.value.trim();
+      const results = document.getElementById('search-results');
+      if (q.length < 2) { results.innerHTML = ''; return; }
+
+      const data = await fetch(`${API}/api/v1/search?q=${encodeURIComponent(q)}&limit=10`).then(r => r.json());
+      results.innerHTML = data.results.map(d => {
+        const color = d.label === 'Model' ? (TYPE_COLORS[d.properties.model_type] || '#64748b') : (LABEL_COLORS[d.label] || '#64748b');
+        return `<div class="search-item" onclick="focusNode('${d.id}')">
+          <span style="color:${color}">${d.label}</span> ${d.display_name || d.id}
+        </div>`;
+      }).join('');
+    }
+
+    function focusNode(nodeId) {
+      showNodeDetail(nodeId);
+      const node = graphData.nodes.find(n => n.id === nodeId);
+      if (node && node.x !== undefined) {
+        graph3d.cameraPosition(
+          { x: node.x + 80, y: node.y + 40, z: node.z + 80 },
+          { x: node.x, y: node.y, z: node.z },
+          800
+        );
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONTROLS
+    // ═══════════════════════════════════════════════════════════════
+
+    function toggleLabels() {
+      labelsVisible = !labelsVisible;
+      document.getElementById('btn-labels').classList.toggle('active', labelsVisible);
+      graph3d.nodeThreeObject(graph3d.nodeThreeObject());
+    }
+
+    function debounce(fn, ms) {
+      let timer;
+      return function(...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), ms); };
+    }
+
+    window.addEventListener('resize', () => {
+      if (graph3d) graph3d.width(window.innerWidth).height(window.innerHeight);
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDetail();
+    });
+
+    init().catch(err => {
+      console.error('Init failed:', err);
+      document.getElementById('loading').innerHTML =
+        `<div style="color:#ef4444">Failed to load: ${err.message}</div>`;
+    });
+  </script>
+</body>
+</html>
