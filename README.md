@@ -35,7 +35,7 @@ ModelSpec answers that question by synthesizing data from HuggingFace, models.de
 An interactive 3D force-directed visualization of the entire AI model landscape. Each model type has a unique **3moticon** — a programmatic 3D mesh icon built with Three.js.
 
 <p align="center">
-  <img src="docs/screenshots/graph-provider.png" alt="3D Knowledge Graph - Provider View" width="100%">
+<img src="https://github.com/user-attachments/assets/d906dac6-6010-4ded-9e50-a4a72a721ef2" width="100%"/>
 </p>
 
 **Features:**
