@@ -1,7 +1,6 @@
 <p align="center">
-  <h1 align="center">ModelSpec</h1>
-  <p align="center">
-    <strong>Open-source model intelligence platform</strong><br>
+<img width="2815" height="872" alt="modelspec" src="https://github.com/user-attachments/assets/5dd1cd18-66a9-477f-8f9b-a2f80deb23eb" />
+
     Catalog every AI model. Map it to your hardware. Rank what's best for you.
   </p>
   <p align="center">
