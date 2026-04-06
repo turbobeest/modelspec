@@ -12,6 +12,7 @@ model_type: embedding-text
 model_subtypes: []
 tags:
 - visual-document-retrieval
+- openai-compatible
 pipeline_tag: visual-document-retrieval
 architecture:
   type: null

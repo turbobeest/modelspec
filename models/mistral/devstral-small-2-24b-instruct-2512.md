@@ -10,7 +10,8 @@ last_updated: ''
 status: active
 model_type: llm-code
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null
@@ -587,9 +588,9 @@ availability:
     regions: []
     notes: ''
   ollama:
-    available: false
-    model_id: ''
-    url: https://ollama.com/
+    available: true
+    model_id: devstral-small-2:24b
+    url: https://ollama.com/library/devstral-small-2
     fine_tuning: false
     gated: false
     regions: []
@@ -777,8 +778,8 @@ deployment:
   custom_hardware: []
   runtimes:
     gguf: false
-    ollama: false
-    ollama_tag: ''
+    ollama: true
+    ollama_tag: devstral-small-2:24b
     lm_studio: false
     vllm: true
     trt_llm: false
@@ -869,7 +870,7 @@ sources:
   arxiv_url: ''
   paper_url: ''
   github_url: ''
-  ollama_url: ''
+  ollama_url: https://ollama.com/library/devstral-small-2
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''

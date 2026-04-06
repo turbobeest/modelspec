@@ -12,6 +12,7 @@ model_type: reward-model
 model_subtypes: []
 tags:
 - text-classification
+- openai-compatible
 pipeline_tag: text-classification
 architecture:
   type: null

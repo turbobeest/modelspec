@@ -12,6 +12,7 @@ model_type: llm-chat
 model_subtypes: []
 tags:
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null
@@ -588,9 +589,9 @@ availability:
     regions: []
     notes: ''
   ollama:
-    available: false
-    model_id: ''
-    url: https://ollama.com/
+    available: true
+    model_id: gpt-oss:20b
+    url: https://ollama.com/library/gpt-oss
     fine_tuning: false
     gated: false
     regions: []
@@ -778,8 +779,8 @@ deployment:
   custom_hardware: []
   runtimes:
     gguf: true
-    ollama: false
-    ollama_tag: ''
+    ollama: true
+    ollama_tag: gpt-oss:20b
     lm_studio: false
     vllm: false
     trt_llm: false
@@ -870,7 +871,7 @@ sources:
   arxiv_url: ''
   paper_url: ''
   github_url: ''
-  ollama_url: ''
+  ollama_url: https://ollama.com/library/gpt-oss
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''

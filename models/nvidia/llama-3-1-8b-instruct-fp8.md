@@ -12,6 +12,7 @@ model_type: llm-chat
 model_subtypes: []
 tags:
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null

@@ -12,6 +12,7 @@ model_type: reward-model
 model_subtypes: []
 tags:
 - text-classification
+- openai-compatible
 pipeline_tag: text-classification
 architecture:
   type: null
@@ -716,8 +717,8 @@ benchmarks:
   swe_bench_agent: null
   tau_bench: null
   web_arena: null
-  artificial_analysis_quality_index: 66
-  artificial_analysis_speed_index: 88
+  artificial_analysis_quality_index: 66.0
+  artificial_analysis_speed_index: 88.0
   openrouter_usage_rank: null
   fmti_score: null
   benchmark_source: ''
@@ -832,7 +833,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 160
+  api_tps_output: 160.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

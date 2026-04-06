@@ -12,6 +12,7 @@ model_type: audio-asr
 model_subtypes: []
 tags:
 - automatic-speech-recognition
+- openai-compatible
 pipeline_tag: automatic-speech-recognition
 architecture:
   type: null

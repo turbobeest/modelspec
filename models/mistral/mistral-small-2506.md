@@ -10,7 +10,8 @@ last_updated: '2025-06-20'
 status: active
 model_type: vlm
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

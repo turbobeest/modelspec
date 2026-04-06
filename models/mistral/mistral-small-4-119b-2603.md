@@ -12,6 +12,7 @@ model_type: llm-chat
 model_subtypes: []
 tags:
 - frontier
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

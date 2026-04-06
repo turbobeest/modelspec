@@ -10,7 +10,8 @@ last_updated: '2026-03-16'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

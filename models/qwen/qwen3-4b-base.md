@@ -12,6 +12,7 @@ model_type: llm-base
 model_subtypes: []
 tags:
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null

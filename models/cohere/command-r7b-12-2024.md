@@ -10,7 +10,8 @@ last_updated: '2024-02-27'
 status: active
 model_type: llm-chat
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

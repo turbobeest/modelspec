@@ -12,6 +12,7 @@ model_type: embedding-text
 model_subtypes: []
 tags:
 - image-feature-extraction
+- openai-compatible
 pipeline_tag: image-feature-extraction
 architecture:
   type: null

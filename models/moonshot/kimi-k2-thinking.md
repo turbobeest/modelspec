@@ -10,7 +10,8 @@ last_updated: '2025-11-06'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null
@@ -587,9 +588,9 @@ availability:
     regions: []
     notes: ''
   ollama:
-    available: false
-    model_id: ''
-    url: https://ollama.com/
+    available: true
+    model_id: kimi-k2-thinking
+    url: https://ollama.com/library/kimi-k2-thinking
     fine_tuning: false
     gated: false
     regions: []
@@ -777,8 +778,8 @@ deployment:
   custom_hardware: []
   runtimes:
     gguf: false
-    ollama: false
-    ollama_tag: ''
+    ollama: true
+    ollama_tag: kimi-k2-thinking
     lm_studio: false
     vllm: false
     trt_llm: false
@@ -869,7 +870,7 @@ sources:
   arxiv_url: ''
   paper_url: ''
   github_url: ''
-  ollama_url: ''
+  ollama_url: https://ollama.com/library/kimi-k2-thinking
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''

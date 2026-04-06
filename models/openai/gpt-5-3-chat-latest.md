@@ -12,7 +12,8 @@ model_type: vlm
 model_subtypes:
 - llm-code
 - llm-reasoning
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

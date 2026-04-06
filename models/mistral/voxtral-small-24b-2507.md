@@ -12,6 +12,7 @@ model_type: llm-chat
 model_subtypes: []
 tags:
 - audio-text-to-text
+- openai-compatible
 pipeline_tag: audio-text-to-text
 architecture:
   type: null

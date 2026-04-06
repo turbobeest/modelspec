@@ -14,6 +14,7 @@ model_subtypes:
 - llm-reasoning
 tags:
 - automatic-speech-recognition
+- openai-compatible
 pipeline_tag: automatic-speech-recognition
 architecture:
   type: null

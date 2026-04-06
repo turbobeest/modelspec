@@ -13,6 +13,7 @@ model_subtypes: []
 tags:
 - frontier
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null
@@ -589,9 +590,9 @@ availability:
     regions: []
     notes: ''
   ollama:
-    available: false
-    model_id: ''
-    url: https://ollama.com/
+    available: true
+    model_id: qwen3.5:397b
+    url: https://ollama.com/library/qwen3.5
     fine_tuning: false
     gated: false
     regions: []
@@ -779,8 +780,8 @@ deployment:
   custom_hardware: []
   runtimes:
     gguf: false
-    ollama: false
-    ollama_tag: ''
+    ollama: true
+    ollama_tag: qwen3.5:397b
     lm_studio: false
     vllm: false
     trt_llm: false
@@ -871,7 +872,7 @@ sources:
   arxiv_url: ''
   paper_url: ''
   github_url: ''
-  ollama_url: ''
+  ollama_url: https://ollama.com/library/qwen3.5
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''

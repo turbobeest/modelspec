@@ -11,7 +11,8 @@ status: active
 model_type: vlm
 model_subtypes:
 - llm-code
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null
@@ -590,8 +591,8 @@ availability:
     notes: ''
   ollama:
     available: true
-    model_id: ''
-    url: https://ollama.com/
+    model_id: gemma3:12b
+    url: https://ollama.com/library/gemma3
     fine_tuning: false
     gated: false
     regions: []
@@ -779,8 +780,8 @@ deployment:
   custom_hardware: []
   runtimes:
     gguf: false
-    ollama: false
-    ollama_tag: ''
+    ollama: true
+    ollama_tag: gemma3:12b
     lm_studio: false
     vllm: false
     trt_llm: false
@@ -871,7 +872,7 @@ sources:
   arxiv_url: ''
   paper_url: ''
   github_url: ''
-  ollama_url: ''
+  ollama_url: https://ollama.com/library/gemma3
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''

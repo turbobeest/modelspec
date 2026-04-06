@@ -13,6 +13,7 @@ model_subtypes:
 - llm-code
 tags:
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null

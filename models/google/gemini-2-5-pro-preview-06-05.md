@@ -11,7 +11,8 @@ status: preview
 model_type: llm-reasoning
 model_subtypes:
 - llm-code
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

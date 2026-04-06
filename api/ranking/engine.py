@@ -219,6 +219,11 @@ LOCAL_PLATFORMS = {
     "ollama", "lm_studio", "gpt4all", "jan_ai", "mlx_community", "open_webui",
 }
 
+# Platforms that map to runtime identifiers (used to derive runtimes from graph edges)
+RUNTIME_PLATFORMS = {
+    "ollama", "lm_studio", "gpt4all",
+}
+
 
 # ═══════════════════════════════════════════════════════════════
 # Data classes
@@ -252,6 +257,9 @@ class ModelData:
     estimated_tps: float | None = None  # Estimated tok/s on target hardware
     concurrent_instances: int | None = None  # How many instances fit on target hardware
     hardware_fits: dict[str, dict] = field(default_factory=dict)
+    # Tags and runtimes from the graph
+    tags: set[str] = field(default_factory=set)
+    runtimes: set[str] = field(default_factory=set)
     # Extra node props for pass-through
     provider: str | None = None
 
@@ -422,6 +430,20 @@ class RankingEngine:
             mid, plat_id = row
             if mid in models_by_id and plat_id:
                 models_by_id[mid].available_platforms.add(plat_id)
+                # Derive runtime info from platform availability
+                if plat_id in RUNTIME_PLATFORMS:
+                    models_by_id[mid].runtimes.add(plat_id)
+
+        # Batch-fetch tags via TAGGED_WITH edges
+        tag_q = (
+            "MATCH (m:Model)-[:TAGGED_WITH]->(t:Tag) "
+            "RETURN m.id, t.id"
+        )
+        tag_result = self.graph.query(tag_q)
+        for row in tag_result.result_set:
+            mid, tag_id = row
+            if mid in models_by_id and tag_id:
+                models_by_id[mid].tags.add(tag_id)
 
         return list(models_by_id.values())
 
@@ -542,6 +564,22 @@ class RankingEngine:
                     provider_match = m.provider in required_platforms
                     if not provider_match:
                         continue
+
+            # Runtime filter — require model to support specific runtimes
+            required_runtimes = constraints.get("runtime")  # list of runtime IDs
+            if required_runtimes:
+                # Check both runtime-derived platforms and the available_platforms
+                model_runtimes = m.runtimes | (m.available_platforms & {
+                    "ollama", "lm_studio", "gpt4all", "vllm", "mlx",
+                    "llama_cpp", "transformers",
+                })
+                if not model_runtimes & set(required_runtimes):
+                    continue
+
+            # OpenAI SDK compatibility filter — require "openai-compatible" tag
+            if constraints.get("openai_compatible"):
+                if "openai-compatible" not in m.tags:
+                    continue
 
             # Hardware fit check — estimate if model fits and how fast it would run
             if hw_memory_gb and hw_memory_gb > 0:

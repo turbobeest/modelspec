@@ -12,6 +12,7 @@ model_type: embedding-text
 model_subtypes: []
 tags:
 - feature-extraction
+- openai-compatible
 pipeline_tag: feature-extraction
 architecture:
   type: null

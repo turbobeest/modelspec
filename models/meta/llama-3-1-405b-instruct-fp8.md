@@ -15,6 +15,7 @@ model_subtypes:
 tags:
 - frontier
 - text-generation
+- openai-compatible
 pipeline_tag: text-generation
 architecture:
   type: null

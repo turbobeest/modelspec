@@ -10,7 +10,8 @@ last_updated: '2025-09-26'
 status: active
 model_type: image-generation
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null

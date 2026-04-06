@@ -12,6 +12,7 @@ model_type: image-generation
 model_subtypes: []
 tags:
 - text-to-image
+- openai-compatible
 pipeline_tag: text-to-image
 architecture:
   type: null

@@ -319,6 +319,10 @@
           <div class="toggle" id="toggle-vision" onclick="toggleSwitch(this)"></div>
           <span class="toggle-label">Vision input</span>
         </div>
+        <div class="toggle-row">
+          <div class="toggle" id="toggle-openai-compat" onclick="toggleSwitch(this)"></div>
+          <span class="toggle-label">OpenAI SDK compatible</span>
+        </div>
       </div>
 
       <div class="filter-section">
@@ -327,6 +331,17 @@
           <div class="chip" data-value="local" onclick="toggleChip(this)">Local / Self-Hosted</div>
           <div class="chip" data-value="cloud" onclick="toggleChip(this)">Cloud Platform</div>
           <div class="chip" data-value="provider" onclick="toggleChip(this)">Provider API</div>
+        </div>
+        <div id="runtime-detail" style="margin-top:8px;display:none">
+          <div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Runtime</div>
+          <div class="chip-grid" id="runtime-chips">
+            <div class="chip" data-value="ollama" onclick="toggleChip(this)">Ollama</div>
+            <div class="chip" data-value="vllm" onclick="toggleChip(this)">vLLM</div>
+            <div class="chip" data-value="llama_cpp" onclick="toggleChip(this)">llama.cpp</div>
+            <div class="chip" data-value="lm_studio" onclick="toggleChip(this)">LM Studio</div>
+            <div class="chip" data-value="mlx" onclick="toggleChip(this)">MLX</div>
+            <div class="chip" data-value="transformers" onclick="toggleChip(this)">Transformers</div>
+          </div>
         </div>
         <div id="hosting-detail" style="margin-top:8px;display:none">
           <div class="chip-grid" id="platform-chips"></div>
@@ -607,12 +622,25 @@
       ],
     };
 
-    // Override toggleChip for hosting chips to show/hide platform sub-options
+    // Override toggleChip for hosting chips to show/hide platform sub-options and runtime chips
     document.querySelectorAll('#hosting-chips .chip').forEach(chip => {
       chip.addEventListener('click', () => {
         updatePlatformChips();
+        updateRuntimeChips();
       });
     });
+
+    function updateRuntimeChips() {
+      const selected = getSelectedChips('hosting-chips');
+      const runtimeDetail = document.getElementById('runtime-detail');
+      if (selected.includes('local')) {
+        runtimeDetail.style.display = 'block';
+      } else {
+        runtimeDetail.style.display = 'none';
+        // Deselect all runtime chips when local is deselected
+        document.querySelectorAll('#runtime-chips .chip').forEach(c => c.classList.remove('selected'));
+      }
+    }
 
     function updatePlatformChips() {
       const selected = getSelectedChips('hosting-chips');
@@ -686,6 +714,8 @@
         const vision = isToggleOn('toggle-vision');
         const hostingModes = getSelectedChips('hosting-chips');
         const platforms = getSelectedChips('platform-chips');
+        const openaiCompat = isToggleOn('toggle-openai-compat');
+        const runtimes = getSelectedChips('runtime-chips');
 
         // Build constraints object for the ranking engine
         const constraints = {};
@@ -699,6 +729,8 @@
         if (reasoning) constraints.reasoning = true;
         if (tools) constraints.tool_use = true;
         if (vision) constraints.vision = true;
+        if (openaiCompat) constraints.openai_compatible = true;
+        if (runtimes.length > 0) constraints.runtime = runtimes;
         if (origins.length > 0) constraints.origin_countries = origins;
         if (hostingModes.length > 0) constraints.hosting = hostingModes;
         if (platforms.length > 0) constraints.platforms = platforms;

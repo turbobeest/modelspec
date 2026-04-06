@@ -14,6 +14,7 @@ model_subtypes:
 - llm-reasoning
 tags:
 - image-text-to-text
+- openai-compatible
 pipeline_tag: image-text-to-text
 architecture:
   type: null

@@ -12,6 +12,7 @@ model_type: embedding-text
 model_subtypes: []
 tags:
 - sentence-similarity
+- openai-compatible
 pipeline_tag: sentence-similarity
 architecture:
   type: null

@@ -10,7 +10,8 @@ last_updated: '2024-01-25'
 status: active
 model_type: embedding-text
 model_subtypes: []
-tags: []
+tags:
+- openai-compatible
 pipeline_tag: ''
 architecture:
   type: null
