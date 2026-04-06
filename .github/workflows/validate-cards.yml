@@ -51,8 +51,7 @@ jobs:
             echo "passed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build PR comment
-        id: comment
+      - name: Build and post PR comment
         uses: actions/github-script@v7
         with:
           script: |
@@ -61,65 +60,63 @@ jobs:
             try {
               data = JSON.parse(fs.readFileSync('validation_output.json', 'utf8'));
             } catch (e) {
-              core.setOutput('body', '## ModelSpec Card Validation\n\n**Status**: Failed to parse validation output.\n\nCheck the workflow logs for details.');
-              return;
+              data = null;
             }
 
-            const results = data.results || [];
-            const regressionErrors = data.regression_errors || [];
-            const total = data.total || 0;
-            const invalid = data.invalid || 0;
-            const newCards = data.new_cards || 0;
-            const totalFieldsAdded = data.total_fields_added || 0;
+            let body;
+            if (!data) {
+              body = '## ModelSpec Card Validation\n\n**Status**: Failed to parse validation output.\n\nCheck the workflow logs for details.';
+            } else {
+              const results = data.results || [];
+              const regressionErrors = data.regression_errors || [];
+              const total = data.total || 0;
+              const invalid = data.invalid || 0;
+              const newCards = data.new_cards || 0;
+              const totalFieldsAdded = data.total_fields_added || 0;
 
-            const allValid = invalid === 0 && regressionErrors.length === 0;
-            const statusEmoji = allValid ? '\u2705' : '\u274c';
-            const statusText = allValid ? 'All cards valid' : `${invalid} card(s) have errors`;
+              const allValid = invalid === 0 && regressionErrors.length === 0;
+              const statusEmoji = allValid ? '\u2705' : '\u274c';
+              const statusText = allValid ? 'All cards valid' : `${invalid} card(s) have errors`;
 
-            let body = `## ModelSpec Card Validation\n\n`;
-            body += `**Status**: ${statusEmoji} ${statusText}\n`;
-            body += `**Changed cards**: ${total}\n`;
-            body += `**New cards**: ${newCards}\n\n`;
+              body = `## ModelSpec Card Validation\n\n`;
+              body += `**Status**: ${statusEmoji} ${statusText}\n`;
+              body += `**Changed cards**: ${total}\n`;
+              body += `**New cards**: ${newCards}\n\n`;
 
-            if (total > 0) {
-              body += `| Card | Completeness | Fields Added | Status |\n`;
-              body += `|------|-------------|-------------|--------|\n`;
+              if (total > 0) {
+                body += `| Card | Completeness | Fields Added | Status |\n`;
+                body += `|------|-------------|-------------|--------|\n`;
 
-              for (const r of results) {
-                if (r.status === 'valid') {
-                  const delta = r.completeness_delta != null ? ` (${r.completeness_delta >= 0 ? '+' : ''}${r.completeness_delta}%)` : ' (new)';
-                  const fieldsAdded = (r.fields_added || []).slice(0, 5).map(f => {
-                    const parts = f.split('.');
-                    return parts[parts.length - 1];
-                  }).join(', ');
-                  const fieldsExtra = (r.fields_added || []).length > 5 ? ` +${(r.fields_added || []).length - 5} more` : '';
-                  body += `| ${r.model_id} | ${r.completeness}%${delta} | ${fieldsAdded}${fieldsExtra} | \u2705 Valid |\n`;
-                } else {
-                  const shortError = (r.error || 'Unknown error').substring(0, 80);
-                  body += `| ${r.file} | - | - | \u274c ${shortError} |\n`;
+                for (const r of results) {
+                  if (r.status === 'valid') {
+                    const delta = r.completeness_delta != null ? ` (${r.completeness_delta >= 0 ? '+' : ''}${r.completeness_delta}%)` : ' (new)';
+                    const fieldsAdded = (r.fields_added || []).slice(0, 5).map(f => {
+                      const parts = f.split('.');
+                      return parts[parts.length - 1];
+                    }).join(', ');
+                    const fieldsExtra = (r.fields_added || []).length > 5 ? ` +${(r.fields_added || []).length - 5} more` : '';
+                    body += `| ${r.model_id} | ${r.completeness}%${delta} | ${fieldsAdded}${fieldsExtra} | \u2705 Valid |\n`;
+                  } else {
+                    const shortError = (r.error || 'Unknown error').substring(0, 80);
+                    body += `| ${r.file} | - | - | \u274c ${shortError} |\n`;
+                  }
+                }
+                body += `\n**Total field enrichments**: ${totalFieldsAdded} fields across ${total} cards\n`;
+              }
+
+              if (regressionErrors.length > 0) {
+                body += `\n### Regression Errors\n\n`;
+                body += `${regressionErrors.length} existing card(s) failed validation:\n\n`;
+                for (const err of regressionErrors.slice(0, 10)) {
+                  body += `- \`${err.file}\`: ${err.error.substring(0, 100)}\n`;
+                }
+                if (regressionErrors.length > 10) {
+                  body += `\n... and ${regressionErrors.length - 10} more\n`;
                 }
               }
-              body += `\n**Total field enrichments**: ${totalFieldsAdded} fields across ${total} cards\n`;
             }
 
-            if (regressionErrors.length > 0) {
-              body += `\n### Regression Errors\n\n`;
-              body += `${regressionErrors.length} existing card(s) failed validation:\n\n`;
-              for (const err of regressionErrors.slice(0, 10)) {
-                body += `- \`${err.file}\`: ${err.error.substring(0, 100)}\n`;
-              }
-              if (regressionErrors.length > 10) {
-                body += `\n... and ${regressionErrors.length - 10} more\n`;
-              }
-            }
-
-            core.setOutput('body', body);
-
-      - name: Find existing comment
-        uses: actions/github-script@v7
-        id: find_comment
-        with:
-          script: |
+            // Find existing bot comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -128,20 +125,12 @@ jobs:
             const botComment = comments.find(
               c => c.user.type === 'Bot' && c.body.includes('## ModelSpec Card Validation')
             );
-            core.setOutput('comment_id', botComment ? botComment.id : '');
 
-      - name: Post or update PR comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = `${{ steps.comment.outputs.body }}`;
-            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
-
-            if (commentId) {
+            if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: parseInt(commentId),
+                comment_id: botComment.id,
                 body: body,
               });
             } else {

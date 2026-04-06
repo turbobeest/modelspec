@@ -246,18 +246,23 @@ def _compute_gap_info(card: Any) -> dict[str, Any]:
     if card.architecture.total_parameters is None:
         missing.append("total_parameters")
 
-    # Context window
+    # Context window (None means missing; 0 is a valid value for non-text models)
     if card.modalities.text.context_window is None:
         missing.append("context_window")
 
-    # Capabilities — check if all sub-sections are default
+    # Capabilities — check if the key sub-sections have overall tier set
     cap = card.capabilities
     cap_filled = False
-    for section_name in ("coding", "reasoning", "tool_use", "language", "creative"):
+    for section_name in ("coding", "reasoning", "tool_use"):
         sub = getattr(cap, section_name)
         if sub.overall is not None:
             cap_filled = True
             break
+    # Also check language and creative via their own key fields
+    if not cap_filled and card.capabilities.language.multilingual:
+        cap_filled = True
+    if not cap_filled and card.capabilities.creative.writing is not None:
+        cap_filled = True
     if not cap_filled:
         missing.append("capabilities")
 
