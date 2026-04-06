@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelSpec — Contribute Research</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #060a13; color: #e2e8f0;
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+      overflow-y: auto;
+    }
+
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 44px;
+      display: flex; align-items: center; z-index: 200;
+      background: rgba(6, 10, 19, 0.95); border-bottom: 1px solid rgba(100,116,139,0.2);
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand { padding: 0 20px; font-size: 14px; font-weight: 700; color: #f1f5f9; border-right: 1px solid rgba(100,116,139,0.2); display: flex; align-items: center; height: 100%; }
+    .nav-link { padding: 0 16px; height: 100%; display: flex; align-items: center; color: #64748b; text-decoration: none; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .nav-link:hover { color: #94a3b8; }
+    .nav-link.active { color: #60a5fa; border-bottom-color: #3b82f6; }
+
+    #app { margin-top: 44px; max-width: 1100px; margin-left: auto; margin-right: auto; padding: 24px; }
+
+    h1 { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #64748b; margin-bottom: 24px; }
+    h2 { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .step { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(100,116,139,0.15); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: #60a5fa; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-title { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+
+    input[type="text"], textarea, select {
+      width: 100%; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(100,116,139,0.2);
+      border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-family: inherit; font-size: 12px; outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: rgba(59,130,246,0.5); }
+    textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+      border: none; border-radius: 6px; font-family: inherit; font-size: 11px;
+      font-weight: 600; cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: white; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-secondary { background: rgba(30,41,59,0.8); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+    .btn-secondary:hover { color: #e2e8f0; border-color: rgba(100,116,139,0.4); }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+    .btn-success:hover { filter: brightness(1.1); }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    .prompt-box {
+      background: rgba(6, 10, 19, 0.8); border: 1px solid rgba(100,116,139,0.25);
+      border-radius: 8px; padding: 16px; font-size: 11px; line-height: 1.7;
+      color: #94a3b8; max-height: 400px; overflow-y: auto; white-space: pre-wrap;
+      display: none;
+    }
+    .prompt-box.visible { display: block; }
+
+    .preview-box {
+      background: rgba(6, 10, 19, 0.8); border: 1px solid rgba(100,116,139,0.25);
+      border-radius: 8px; padding: 16px; font-size: 11px; line-height: 1.6;
+      display: none; max-height: 500px; overflow-y: auto;
+    }
+    .preview-box.visible { display: block; }
+
+    .field-diff { margin: 2px 0; }
+    .diff-add { color: #22c55e; }
+    .diff-existing { color: #64748b; }
+
+    .search-results { max-height: 200px; overflow-y: auto; }
+    .search-item { padding: 6px 8px; cursor: pointer; color: #94a3b8; font-size: 12px; border-radius: 4px; }
+    .search-item:hover { background: rgba(51,65,85,0.5); color: #e2e8f0; }
+
+    .model-selected { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 6px; margin-top: 8px; }
+    .model-selected.visible { display: flex; }
+    .model-selected .name { font-size: 13px; font-weight: 600; color: #60a5fa; }
+    .model-selected .meta { font-size: 10px; color: #64748b; }
+    .model-selected .clear { margin-left: auto; cursor: pointer; color: #64748b; font-size: 14px; }
+    .model-selected .clear:hover { color: #ef4444; }
+
+    .gap-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .gap-chip { padding: 2px 8px; border-radius: 4px; font-size: 9px; background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+
+    .status-msg { font-size: 12px; margin-top: 12px; padding: 8px 12px; border-radius: 6px; }
+    .status-success { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
+    .status-error { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <div class="nav-brand">ModelSpec</div>
+    <a href="/graph" class="nav-link">3D Graph</a>
+    <a href="/downselect" class="nav-link">Downselect</a>
+    <a href="/contribute" class="nav-link active">Contribute</a>
+    <a href="https://github.com/turbobeest/modelspec" target="_blank" class="nav-link" style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      turbobeest/modelspec
+    </a>
+  </nav>
+
+  <div id="app">
+    <h1>Contribute Research</h1>
+    <div class="subtitle">Help fill data gaps by researching models with your favorite LLM, then submit a PR.</div>
+
+    <!-- Step 1: Pick a model -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Pick a model to research</div>
+      </div>
+      <input type="text" id="model-search" placeholder="Search for a model..." oninput="searchModels(this.value)">
+      <div class="search-results" id="model-results"></div>
+      <div class="model-selected" id="model-selected">
+        <div>
+          <div class="name" id="sel-name"></div>
+          <div class="meta" id="sel-meta"></div>
+        </div>
+        <span class="clear" onclick="clearSelection()">&times;</span>
+      </div>
+      <div class="gap-chips" id="gap-chips"></div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="showTopGaps()">Show models with most gaps</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Generate prompt -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Copy this prompt into your LLM</div>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:8px">Click "Generate Prompt" to create a research prompt tailored to this model's gaps. Paste it into Claude, ChatGPT, Gemini, or any LLM.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generatePrompt()">Generate Research Prompt</button>
+        <button class="btn btn-secondary" onclick="copyPrompt()">Copy to Clipboard</button>
+      </div>
+      <div class="prompt-box" id="prompt-box"></div>
+    </div>
+
+    <!-- Step 3: Paste response -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Paste the LLM's response</div>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:8px">Paste the JSON that your LLM produced. We'll validate it and show you what would change.</p>
+      <textarea id="llm-response" placeholder='Paste the JSON response from your LLM here...'></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="previewChanges()">Preview Changes</button>
+      </div>
+      <div class="preview-box" id="preview-box"></div>
+    </div>
+
+    <!-- Step 4: Submit -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Submit as a Pull Request</div>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:8px">This will open GitHub in a new tab where you can create a PR with your researched data.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="submitPR()" id="submit-btn" disabled>Submit to GitHub</button>
+      </div>
+      <div id="submit-status"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let selectedModel = null;
+    let selectedModelData = null;
+    let parsedContribution = null;
+
+    // ─── Step 1: Model search ──────────────────────────────────
+
+    let searchTimeout = null;
+    function searchModels(q) {
+      clearTimeout(searchTimeout);
+      const results = document.getElementById('model-results');
+      if (q.length < 2) { results.innerHTML = ''; return; }
+      searchTimeout = setTimeout(async () => {
+        const data = await fetch(`${API}/api/v1/search?q=${encodeURIComponent(q)}&limit=15`).then(r => r.json());
+        results.innerHTML = data.results
+          .filter(d => d.label === 'Model')
+          .map(d => {
+            const completeness = d.properties.card_completeness ? `${d.properties.card_completeness}%` : '?%';
+            const type = d.properties.model_type || 'unknown';
+            return `<div class="search-item" onclick="selectModel('${d.id}', '${(d.display_name || d.id).replace(/'/g, "\\'")}', '${type}', '${completeness}')">
+              <strong>${d.display_name || d.id}</strong>
+              <span style="color:#64748b;margin-left:8px">${type} &middot; ${completeness} complete</span>
+            </div>`;
+          }).join('');
+      }, 300);
+    }
+
+    function selectModel(id, name, type, completeness) {
+      selectedModel = id;
+      document.getElementById('model-results').innerHTML = '';
+      document.getElementById('model-search').value = '';
+      document.getElementById('sel-name').textContent = name;
+      document.getElementById('sel-meta').textContent = `${id} \u00b7 ${type} \u00b7 ${completeness} complete`;
+      document.getElementById('model-selected').classList.add('visible');
+
+      // Fetch full model data to find gaps
+      fetch(`${API}/api/v1/models/${encodeURIComponent(id)}`).then(r => r.json()).then(data => {
+        selectedModelData = data;
+        showGaps(data);
+      }).catch(() => {});
+    }
+
+    function clearSelection() {
+      selectedModel = null;
+      selectedModelData = null;
+      document.getElementById('model-selected').classList.remove('visible');
+      document.getElementById('gap-chips').innerHTML = '';
+      document.getElementById('prompt-box').classList.remove('visible');
+      document.getElementById('preview-box').classList.remove('visible');
+      document.getElementById('submit-btn').disabled = true;
+    }
+
+    function showGaps(data) {
+      const gaps = [];
+      if (!data.arena_elo_overall) gaps.push('arena_elo');
+      if (!data.total_parameters) gaps.push('parameters');
+      if (!data.context_window) gaps.push('context_window');
+      if (!data.cost_input && data.cost_input !== 0) gaps.push('cost');
+      const benchmarks = ['humaneval', 'gpqa_diamond', 'mmlu_pro', 'math_500', 'swe_bench_verified', 'ifeval'];
+      benchmarks.forEach(b => { if (!data[b]) gaps.push(b); });
+      if (!data.architecture_type) gaps.push('architecture');
+
+      const container = document.getElementById('gap-chips');
+      container.innerHTML = gaps.length > 0
+        ? '<span style="font-size:10px;color:#64748b;margin-right:4px">Missing:</span>' +
+          gaps.map(g => `<span class="gap-chip">${g}</span>`).join('')
+        : '<span style="font-size:10px;color:#22c55e">No major gaps detected</span>';
+    }
+
+    async function showTopGaps() {
+      const results = document.getElementById('model-results');
+      results.innerHTML = '<div style="padding:8px;color:#64748b;font-size:11px">Loading gap analysis...</div>';
+
+      try {
+        // Fetch models sorted by completeness ascending
+        const data = await fetch(`${API}/api/v1/models?page_size=50&sort_by=card_completeness&sort_dir=asc`).then(r => r.json());
+        results.innerHTML = data.models
+          .filter(m => m.model_type && m.arena_elo_overall === null) // Models that matter but lack data
+          .slice(0, 15)
+          .map(m => {
+            const completeness = m.card_completeness ? `${m.card_completeness}%` : '?%';
+            return `<div class="search-item" onclick="selectModel('${m.id}', '${(m.display_name || m.id).replace(/'/g, "\\'")}', '${m.model_type || "unknown"}', '${completeness}')">
+              <strong>${m.display_name || m.id}</strong>
+              <span style="color:#64748b;margin-left:8px">${m.model_type} &middot; ${completeness}</span>
+            </div>`;
+          }).join('');
+      } catch (e) {
+        results.innerHTML = `<div style="color:#ef4444;padding:8px;font-size:11px">Error: ${e.message}</div>`;
+      }
+    }
+
+    // ─── Step 2: Generate prompt ────────────────────────────────
+
+    function generatePrompt() {
+      if (!selectedModel || !selectedModelData) {
+        alert('Please select a model first');
+        return;
+      }
+
+      const d = selectedModelData;
+      const gaps = [];
+      if (!d.arena_elo_overall) gaps.push('arena_elo_overall (Chatbot Arena ELO score)');
+      if (!d.total_parameters) gaps.push('total_parameters (total parameter count, e.g. 70000000000 for 70B)');
+      if (!d.context_window) gaps.push('context_window (max context in tokens)');
+      if (!d.cost_input && d.cost_input !== 0) gaps.push('cost_input ($/M input tokens), cost_output ($/M output tokens)');
+      if (!d.architecture_type) gaps.push('architecture_type (dense-transformer, MoE, SSM, etc.)');
+
+      const benchmarks = [
+        ['humaneval', 'HumanEval coding benchmark (0-100%)'],
+        ['gpqa_diamond', 'GPQA Diamond graduate-level QA (0-100%)'],
+        ['mmlu_pro', 'MMLU-Pro knowledge benchmark (0-100%)'],
+        ['math_500', 'MATH-500 math benchmark (0-100%)'],
+        ['swe_bench_verified', 'SWE-bench Verified software engineering (0-100%)'],
+        ['ifeval', 'IFEval instruction following (0-100%)'],
+        ['arena_elo_coding', 'Arena ELO for coding (typically 900-1500)'],
+        ['arena_elo_math', 'Arena ELO for math (typically 900-1500)'],
+        ['mt_bench', 'MT-Bench multi-turn chat (0-10)'],
+        ['aime_2025', 'AIME 2025 math competition (0-100%)'],
+      ];
+
+      const missingBenchmarks = benchmarks.filter(([key]) => !d[key]);
+
+      const prompt = `I need you to research the AI model "${d.display_name || selectedModel}" (model ID: ${selectedModel}) and provide the following data that is currently missing from our database.
+
+## What we already know:
+- Model type: ${d.model_type || 'unknown'}
+- Provider: ${d.id ? d.id.split('/')[0] : 'unknown'}
+- Status: ${d.status || 'unknown'}
+${d.total_parameters ? `- Parameters: ${(d.total_parameters / 1e9).toFixed(1)}B` : '- Parameters: UNKNOWN'}
+${d.context_window ? `- Context window: ${d.context_window.toLocaleString()} tokens` : '- Context window: UNKNOWN'}
+${d.cost_input ? `- Cost: $${d.cost_input}/M input, $${d.cost_output}/M output` : '- Cost: UNKNOWN'}
+${d.arena_elo_overall ? `- Arena ELO: ${d.arena_elo_overall}` : '- Arena ELO: UNKNOWN'}
+
+## What we need you to find:
+
+${gaps.length > 0 ? '### Basic Info\n' + gaps.map(g => `- ${g}`).join('\n') : ''}
+
+${missingBenchmarks.length > 0 ? '### Benchmark Scores\n' + missingBenchmarks.map(([key, desc]) => `- ${key}: ${desc}`).join('\n') : ''}
+
+## Instructions:
+1. Search for the latest published benchmark results for this model
+2. Use official sources: provider announcements, papers, HuggingFace model cards, lmarena.ai, Artificial Analysis
+3. If you cannot find a specific data point, set it to null rather than guessing
+4. Return your findings as a JSON object in EXACTLY this format:
+
+\`\`\`json
+{
+  "model_id": "${selectedModel}",
+  "researched_by": "your_name_or_handle",
+  "source_urls": ["url1", "url2"],
+${gaps.some(g => g.includes('total_parameters')) ? '  "total_parameters": null,\n' : ''}${gaps.some(g => g.includes('context_window')) ? '  "context_window": null,\n' : ''}${gaps.some(g => g.includes('cost_input')) ? '  "cost_input": null,\n  "cost_output": null,\n' : ''}${gaps.some(g => g.includes('architecture_type')) ? '  "architecture_type": null,\n' : ''}${gaps.some(g => g.includes('arena_elo_overall')) ? '  "arena_elo_overall": null,\n' : ''}  "benchmarks": {
+${missingBenchmarks.map(([key]) => `    "${key}": null`).join(',\n')}
+  }
+}
+\`\`\`
+
+Replace null values with actual numbers you find. Keep null for anything you can't verify.`;
+
+      const box = document.getElementById('prompt-box');
+      box.textContent = prompt;
+      box.classList.add('visible');
+    }
+
+    function copyPrompt() {
+      const box = document.getElementById('prompt-box');
+      if (!box.textContent) { alert('Generate a prompt first'); return; }
+      navigator.clipboard.writeText(box.textContent).then(() => {
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
+      });
+    }
+
+    // ─── Step 3: Parse response ─────────────────────────────────
+
+    function previewChanges() {
+      const raw = document.getElementById('llm-response').value.trim();
+      if (!raw) { alert('Paste the LLM response first'); return; }
+      if (!selectedModel) { alert('Select a model first'); return; }
+
+      // Extract JSON from the response (might be wrapped in ```json blocks)
+      let jsonStr = raw;
+      const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) jsonStr = jsonMatch[1].trim();
+
+      try {
+        const data = JSON.parse(jsonStr);
+        parsedContribution = data;
+
+        // Build preview
+        const preview = document.getElementById('preview-box');
+        let html = '<div style="margin-bottom:8px;font-weight:600;color:#e2e8f0">Changes to ' + selectedModel + '</div>';
+
+        const fields = [
+          'total_parameters', 'context_window', 'cost_input', 'cost_output',
+          'architecture_type', 'arena_elo_overall',
+        ];
+
+        let changeCount = 0;
+        fields.forEach(f => {
+          if (data[f] !== undefined && data[f] !== null) {
+            const existing = selectedModelData ? selectedModelData[f] : null;
+            if (existing) {
+              html += `<div class="field-diff diff-existing">${f}: ${existing} (already set, keeping)</div>`;
+            } else {
+              html += `<div class="field-diff diff-add">+ ${f}: ${data[f]}</div>`;
+              changeCount++;
+            }
+          }
+        });
+
+        if (data.benchmarks) {
+          Object.entries(data.benchmarks).forEach(([key, val]) => {
+            if (val !== null && val !== undefined) {
+              const existing = selectedModelData ? selectedModelData[key] : null;
+              if (existing) {
+                html += `<div class="field-diff diff-existing">${key}: ${existing} (already set)</div>`;
+              } else {
+                html += `<div class="field-diff diff-add">+ ${key}: ${val}</div>`;
+                changeCount++;
+              }
+            }
+          });
+        }
+
+        if (data.source_urls && data.source_urls.length > 0) {
+          html += '<div style="margin-top:8px;font-size:10px;color:#64748b">Sources: ' +
+            data.source_urls.map(u => `<a href="${u}" target="_blank" style="color:#60a5fa">${u}</a>`).join(', ') +
+            '</div>';
+        }
+
+        if (data.researched_by) {
+          html += `<div style="margin-top:4px;font-size:10px;color:#64748b">Researched by: ${data.researched_by}</div>`;
+        }
+
+        html += `<div style="margin-top:12px;font-size:12px;color:#22c55e;font-weight:600">${changeCount} new fields would be added</div>`;
+
+        preview.innerHTML = html;
+        preview.classList.add('visible');
+        document.getElementById('submit-btn').disabled = changeCount === 0;
+
+      } catch (e) {
+        const preview = document.getElementById('preview-box');
+        preview.innerHTML = `<div style="color:#ef4444">Failed to parse JSON: ${e.message}</div><div style="color:#64748b;font-size:10px;margin-top:8px">Make sure the response contains valid JSON. It can be wrapped in \`\`\`json blocks.</div>`;
+        preview.classList.add('visible');
+        parsedContribution = null;
+        document.getElementById('submit-btn').disabled = true;
+      }
+    }
+
+    // ─── Step 4: Submit PR ──────────────────────────────────────
+
+    function submitPR() {
+      if (!parsedContribution || !selectedModel) return;
+
+      // Build the YAML patch content
+      const data = parsedContribution;
+      const provider = selectedModel.split('/')[0];
+      const slug = selectedModel.split('/')[1];
+      const filePath = `models/${provider}/${slug}.md`;
+
+      // Build a commit message
+      const fields = [];
+      ['total_parameters', 'context_window', 'cost_input', 'cost_output', 'architecture_type', 'arena_elo_overall'].forEach(f => {
+        if (data[f] !== undefined && data[f] !== null) fields.push(f);
+      });
+      if (data.benchmarks) {
+        Object.entries(data.benchmarks).forEach(([k, v]) => {
+          if (v !== null) fields.push(k);
+        });
+      }
+
+      const commitMsg = `Data enrichment: ${selectedModel} (+${fields.length} fields)`;
+      const body = [
+        `## Data Enrichment: ${selectedModel}`,
+        '',
+        `**Fields added**: ${fields.join(', ')}`,
+        `**Researched by**: ${data.researched_by || 'anonymous'}`,
+        '',
+        data.source_urls ? `**Sources**:\n${data.source_urls.map(u => `- ${u}`).join('\n')}` : '',
+        '',
+        '---',
+        '*Submitted via ModelSpec Contribute UI*',
+      ].join('\n');
+
+      // Create a GitHub issue instead of a PR (simpler, no fork needed)
+      // The issue contains all the data needed to update the card
+      const issueTitle = encodeURIComponent(commitMsg);
+      const issueBody = encodeURIComponent(body + '\n\n### Raw Data\n```json\n' + JSON.stringify(data, null, 2) + '\n```');
+      const url = `https://github.com/turbobeest/modelspec/issues/new?title=${issueTitle}&body=${issueBody}&labels=enrichment,community`;
+
+      window.open(url, '_blank');
+
+      const status = document.getElementById('submit-status');
+      status.innerHTML = `<div class="status-msg status-success">GitHub issue page opened in a new tab. Fill in any additional context and submit!</div>`;
+    }
+  </script>
+</body>
+</html>

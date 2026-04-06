@@ -891,3 +891,12 @@ async def serve_downselect():
     if not page.exists():
         raise HTTPException(404, "Downselect page not found")
     return HTMLResponse(page.read_text())
+
+
+@app.get("/contribute", response_class=HTMLResponse)
+async def serve_contribute():
+    """Serve the contribution/research page."""
+    page = GRAPH3D_DIR / "contribute.html"
+    if not page.exists():
+        raise HTTPException(404, "Contribute page not found")
+    return HTMLResponse(page.read_text())

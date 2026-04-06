@@ -1,19 +1,24 @@
 """ModelSpec CLI — explore, search, compare, and rank AI models.
 
 Entry point: ``modelspec`` (registered in pyproject.toml).
-All data comes from the FalkorDB graph on localhost:6382.
+Graph commands use FalkorDB on localhost:6382.
+Community commands (gaps, research, contribute, validate) work offline from YAML files.
 """
 
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
+from datetime import date
+from pathlib import Path
 from typing import Any, Optional
 
 import typer
 from falkordb import FalkorDB
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
@@ -141,6 +146,147 @@ def _edge_props(edge) -> dict[str, Any]:
     if hasattr(edge, "properties"):
         return edge.properties
     return {}
+
+
+# ───────────────────────────────────────────────────────────────
+# Offline YAML helpers (used by gaps, research, contribute, validate)
+# ───────────────────────────────────────────────────────────────
+
+# Resolve project root relative to this file:
+# cli/modelspec/cli.py -> project root is ../../..
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_MODELS_DIR = _PROJECT_ROOT / "models"
+
+# Lazy import — schema.card lives at project root level
+_ModelCard = None  # type: ignore[assignment]
+
+
+def _get_model_card_class():
+    """Import ModelCard lazily so graph-only commands don't need the schema on sys.path."""
+    global _ModelCard
+    if _ModelCard is not None:
+        return _ModelCard
+    root = str(_PROJECT_ROOT)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    from schema.card import ModelCard
+    _ModelCard = ModelCard
+    return ModelCard
+
+
+def _discover_card_files(
+    provider: str | None = None,
+) -> list[Path]:
+    """Find all .md model card files, optionally filtered by provider."""
+    if provider:
+        provider_dir = _MODELS_DIR / provider
+        if not provider_dir.is_dir():
+            return []
+        return sorted(provider_dir.glob("*.md"))
+    return sorted(_MODELS_DIR.glob("*/*.md"))
+
+
+def _load_cards(
+    provider: str | None = None,
+    model_type: str | None = None,
+) -> list[Any]:
+    """Load and parse all model cards, with optional filters."""
+    ModelCard = _get_model_card_class()
+    cards = []
+    for path in _discover_card_files(provider=provider):
+        try:
+            card = ModelCard.from_yaml_file(path)
+            if model_type and card.identity.model_type:
+                if card.identity.model_type.value != model_type:
+                    continue
+            elif model_type and not card.identity.model_type:
+                continue
+            card._source_path = path  # stash for later use
+            cards.append(card)
+        except Exception:
+            # Skip unparseable cards silently in bulk load
+            continue
+    return cards
+
+
+# Key benchmark fields that matter most
+_KEY_BENCHMARKS = [
+    "humaneval", "gpqa_diamond", "mmlu_pro", "arena_elo_overall",
+    "swe_bench_verified", "math_500", "aime_2025", "live_code_bench",
+    "ifeval", "mmmu", "mteb_overall",
+]
+
+# Major providers get a higher importance multiplier
+_MAJOR_PROVIDERS = {
+    "openai": 3.0, "anthropic": 3.0, "google": 3.0, "meta": 2.5,
+    "mistral": 2.0, "deepseek": 2.0, "qwen": 2.0, "xai": 2.0,
+    "cohere": 1.5, "microsoft": 1.5, "nvidia": 1.5, "amazon": 1.5,
+}
+
+
+def _compute_gap_info(card: Any) -> dict[str, Any]:
+    """Analyze a card for missing data and compute a priority score."""
+    missing: list[str] = []
+
+    # Benchmarks
+    bench = card.benchmarks
+    filled_bench = bench.filled_count()
+    if filled_bench == 0:
+        missing.append("benchmarks (none)")
+    elif filled_bench < 5:
+        missing.append(f"benchmarks ({filled_bench} filled)")
+
+    # Cost
+    if card.cost.input is None:
+        missing.append("cost.input")
+    if card.cost.output is None:
+        missing.append("cost.output")
+
+    # Architecture
+    if card.architecture.total_parameters is None:
+        missing.append("total_parameters")
+
+    # Context window
+    if card.modalities.text.context_window is None:
+        missing.append("context_window")
+
+    # Capabilities — check if all sub-sections are default
+    cap = card.capabilities
+    cap_filled = False
+    for section_name in ("coding", "reasoning", "tool_use", "language", "creative"):
+        sub = getattr(cap, section_name)
+        if sub.overall is not None:
+            cap_filled = True
+            break
+    if not cap_filled:
+        missing.append("capabilities")
+
+    # Platform availability
+    platforms = card.availability.platforms_available()
+    if len(platforms) == 0:
+        missing.append("availability")
+
+    # Model importance heuristic
+    provider = card.identity.provider
+    importance = _MAJOR_PROVIDERS.get(provider, 1.0)
+
+    # Bump importance for models with community signals
+    if card.adoption.huggingface_downloads and card.adoption.huggingface_downloads > 100_000:
+        importance *= 1.5
+    if card.benchmarks.arena_elo_overall and card.benchmarks.arena_elo_overall > 1200:
+        importance *= 1.3
+
+    priority = importance * len(missing)
+
+    return {
+        "model_id": card.identity.model_id,
+        "display_name": card.identity.display_name,
+        "completeness": card.card_completeness,
+        "missing": missing,
+        "missing_count": len(missing),
+        "priority": round(priority, 1),
+        "provider": provider,
+    }
 
 
 # ───────────────────────────────────────────────────────────────
@@ -1032,6 +1178,610 @@ def hardware(
         )
 
     console.print(table)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Community contribution commands (offline, YAML-based)
+# ═══════════════════════════════════════════════════════════════
+
+
+# ───────────────────────────────────────────────────────────────
+# 7. modelspec gaps — find data gaps
+# ───────────────────────────────────────────────────────────────
+
+@app.command()
+def gaps(
+    type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by model_type (e.g. llm-chat, vlm)"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider slug"),
+    top: int = typer.Option(20, "--top", "-n", help="Show top N models with gaps"),
+    field: Optional[str] = typer.Option(None, "--field", help="Show gaps for a specific field (benchmarks, cost, capabilities, context_window, availability, total_parameters)"),
+) -> None:
+    """Find models with the most missing data, ranked by priority.
+
+    Works offline from YAML model cards in models/.
+    """
+    cards = _load_cards(provider=provider, model_type=type)
+    if not cards:
+        console.print("[yellow]No model cards found matching your filters.[/]")
+        raise typer.Exit(1)
+
+    gap_rows = []
+    for card in cards:
+        info = _compute_gap_info(card)
+        # If --field is given, only include models missing that field
+        if field:
+            matches = [m for m in info["missing"] if field.lower() in m.lower()]
+            if not matches:
+                continue
+        if info["missing_count"] == 0:
+            continue
+        gap_rows.append(info)
+
+    # Sort by priority descending
+    gap_rows.sort(key=lambda x: x["priority"], reverse=True)
+    gap_rows = gap_rows[:top]
+
+    if not gap_rows:
+        console.print("[green]All model cards look complete for the selected criteria.[/]")
+        return
+
+    table = Table(
+        title=f"Data Gaps (top {len(gap_rows)} of {len(cards)} models)",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("#", justify="right", style="dim", width=4)
+    table.add_column("Model", style="bold white", min_width=30)
+    table.add_column("Provider", style="dim", min_width=10)
+    table.add_column("Complete", justify="right", min_width=9)
+    table.add_column("Missing Fields", style="yellow", min_width=35)
+    table.add_column("Priority", justify="right", style="bold magenta")
+
+    for i, row in enumerate(gap_rows, 1):
+        pct = row["completeness"]
+        if pct >= 50:
+            comp_str = f"[green]{pct:.1f}%[/]"
+        elif pct >= 25:
+            comp_str = f"[yellow]{pct:.1f}%[/]"
+        else:
+            comp_str = f"[red]{pct:.1f}%[/]"
+
+        missing_str = ", ".join(row["missing"][:5])
+        if len(row["missing"]) > 5:
+            missing_str += f" (+{len(row['missing']) - 5} more)"
+
+        table.add_row(
+            str(i),
+            row["display_name"] or row["model_id"],
+            row["provider"],
+            comp_str,
+            missing_str,
+            f"{row['priority']:.1f}",
+        )
+
+    console.print(table)
+
+    # Summary
+    total_gaps = sum(r["missing_count"] for r in gap_rows)
+    console.print(f"\n[dim]Total gap fields across shown models: {total_gaps}[/]")
+    console.print("[dim]Run [bold]modelspec research <model_id>[/bold] to auto-fill data from HuggingFace.[/]")
+
+
+# ───────────────────────────────────────────────────────────────
+# 8. modelspec research <model_id> — auto-research a model
+# ───────────────────────────────────────────────────────────────
+
+def _find_card_path(model_id: str) -> Path | None:
+    """Find the YAML file for a given model_id like 'openai/gpt-4o'."""
+    parts = model_id.split("/", 1)
+    if len(parts) != 2:
+        return None
+    provider, slug = parts
+    path = _MODELS_DIR / provider / f"{slug}.md"
+    if path.exists():
+        return path
+    # Try case-insensitive match
+    provider_dir = _MODELS_DIR / provider
+    if provider_dir.is_dir():
+        for f in provider_dir.glob("*.md"):
+            if f.stem.lower() == slug.lower():
+                return f
+    return None
+
+
+def _fetch_huggingface_data(model_id: str) -> dict[str, Any]:
+    """Fetch model metadata from HuggingFace Hub API."""
+    import httpx
+
+    url = f"https://huggingface.co/api/models/{model_id}"
+    try:
+        resp = httpx.get(url, timeout=15.0, follow_redirects=True)
+        if resp.status_code == 200:
+            return resp.json()
+        return {}
+    except Exception:
+        return {}
+
+
+def _apply_hf_updates(card: Any, hf_data: dict[str, Any]) -> dict[str, tuple[Any, Any]]:
+    """Apply HuggingFace data to a card, only filling None/empty fields.
+
+    Returns a dict of {field_path: (old_value, new_value)} for changes made.
+    """
+    changes: dict[str, tuple[Any, Any]] = {}
+
+    # Downloads
+    downloads = hf_data.get("downloads")
+    if downloads and not card.adoption.huggingface_downloads:
+        old = card.adoption.huggingface_downloads
+        card.adoption.huggingface_downloads = downloads
+        changes["adoption.huggingface_downloads"] = (old, downloads)
+
+    # Likes
+    likes = hf_data.get("likes")
+    if likes and not card.adoption.huggingface_likes:
+        old = card.adoption.huggingface_likes
+        card.adoption.huggingface_likes = likes
+        changes["adoption.huggingface_likes"] = (old, likes)
+
+    # Tags -> identity.tags (only if empty)
+    hf_tags = hf_data.get("tags", [])
+    if hf_tags and not card.identity.tags:
+        card.identity.tags = hf_tags[:20]  # cap at 20 tags
+        changes["identity.tags"] = ([], hf_tags[:20])
+
+    # Pipeline tag
+    pipeline_tag = hf_data.get("pipeline_tag")
+    if pipeline_tag and not card.identity.pipeline_tag:
+        old = card.identity.pipeline_tag
+        card.identity.pipeline_tag = pipeline_tag
+        changes["identity.pipeline_tag"] = (old, pipeline_tag)
+
+    # License
+    license_str = hf_data.get("cardData", {}).get("license") if isinstance(hf_data.get("cardData"), dict) else None
+    if not license_str:
+        # Try top-level tags for license
+        for tag in hf_tags:
+            if tag.startswith("license:"):
+                license_str = tag.split(":", 1)[1]
+                break
+
+    # Parameter count from safetensors
+    safetensors = hf_data.get("safetensors")
+    if isinstance(safetensors, dict):
+        total = safetensors.get("total")
+        if total and card.architecture.total_parameters is None:
+            card.architecture.total_parameters = total
+            changes["architecture.total_parameters"] = (None, total)
+
+    # Base model from tags
+    for tag in hf_tags:
+        if tag.startswith("base_model:"):
+            base = tag.split(":", 1)[1]
+            if not card.lineage.base_model:
+                card.lineage.base_model = base
+                changes["lineage.base_model"] = ("", base)
+            break
+
+    # Library name
+    library = hf_data.get("library_name")
+    if library and not card.lineage.library_name:
+        card.lineage.library_name = library
+        changes["lineage.library_name"] = ("", library)
+
+    # HuggingFace URL in sources
+    hf_id = hf_data.get("id") or hf_data.get("modelId")
+    if hf_id and not card.sources.huggingface_url:
+        url = f"https://huggingface.co/{hf_id}"
+        card.sources.huggingface_url = url
+        changes["sources.huggingface_url"] = ("", url)
+
+    # HuggingFace platform availability
+    if hf_id and not card.availability.huggingface.available:
+        card.availability.huggingface.available = True
+        card.availability.huggingface.model_id = hf_id
+        changes["availability.huggingface.available"] = (False, True)
+
+    # Update last_scraped timestamp
+    card.sources.last_scraped_huggingface = str(date.today())
+
+    return changes
+
+
+@app.command()
+def research(
+    model_id: str = typer.Argument(..., help="Model ID, e.g. meta/llama-3.1-8b-instruct"),
+    source: str = typer.Option("all", "--source", "-s", help="Data source: huggingface, all"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would change without writing"),
+) -> None:
+    """Auto-research a model: fetch data from HuggingFace and update its card.
+
+    Only fills empty/None fields — never overwrites existing data.
+    """
+    ModelCard = _get_model_card_class()
+
+    card_path = _find_card_path(model_id)
+    if not card_path:
+        console.print(f"[bold red]Card not found:[/] {model_id}")
+        console.print(f"  Expected at: models/{model_id.replace('/', '/')}.md")
+        raise typer.Exit(1)
+
+    card = ModelCard.from_yaml_file(card_path)
+    all_changes: dict[str, tuple[Any, Any]] = {}
+
+    # HuggingFace
+    if source in ("huggingface", "all"):
+        # For open-weights models, use model_id directly;
+        # for proprietary, try the HF URL from sources
+        hf_id = model_id
+        if card.sources.huggingface_url:
+            # Extract id from URL like https://huggingface.co/meta-llama/...
+            url_parts = card.sources.huggingface_url.rstrip("/").split("huggingface.co/")
+            if len(url_parts) == 2:
+                hf_id = url_parts[1]
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(f"Fetching HuggingFace data for {hf_id}...", total=None)
+            hf_data = _fetch_huggingface_data(hf_id)
+
+        if hf_data:
+            hf_changes = _apply_hf_updates(card, hf_data)
+            all_changes.update(hf_changes)
+            if not hf_changes:
+                console.print(f"[dim]HuggingFace: no new data to fill (existing fields already populated).[/]")
+        else:
+            console.print(f"[yellow]HuggingFace: no data found for {hf_id}[/]")
+
+    if not all_changes:
+        console.print(f"\n[yellow]No changes to make for {model_id}.[/]")
+        return
+
+    # Show diff
+    diff_lines = []
+    for field_path, (old_val, new_val) in sorted(all_changes.items()):
+        old_display = repr(old_val) if old_val not in (None, "", [], False) else "[dim]empty[/]"
+        new_display = repr(new_val)
+        # Truncate long values
+        if len(str(new_display)) > 60:
+            new_display = str(new_display)[:57] + "..."
+        diff_lines.append(f"  [red]- {field_path}: {old_display}[/]")
+        diff_lines.append(f"  [green]+ {field_path}: {new_display}[/]")
+
+    console.print(Panel(
+        "\n".join(diff_lines),
+        title=f"Changes for {model_id} ({len(all_changes)} fields)",
+        border_style="cyan",
+    ))
+
+    if dry_run:
+        console.print(f"\n[yellow]Dry run — no files modified.[/]")
+        console.print(f"  Run without --dry-run to write changes to {card_path.relative_to(_PROJECT_ROOT)}")
+        return
+
+    # Write updated card
+    yaml_content = card.to_yaml()
+    card_path.write_text(yaml_content, encoding="utf-8")
+    console.print(f"\n[green]Updated {len(all_changes)} fields in {card_path.relative_to(_PROJECT_ROOT)}[/]")
+
+
+# ───────────────────────────────────────────────────────────────
+# 9. modelspec contribute — submit a PR
+# ───────────────────────────────────────────────────────────────
+
+def _run_cmd(cmd: list[str], check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
+    """Run a subprocess command, returning the result."""
+    return subprocess.run(
+        cmd,
+        cwd=str(_PROJECT_ROOT),
+        capture_output=capture,
+        text=True,
+        check=check,
+    )
+
+
+@app.command()
+def contribute(
+    message: Optional[str] = typer.Option(None, "--message", "-m", help="Commit/PR message describing your changes"),
+) -> None:
+    """Submit your model card changes as a pull request to turbobeest/modelspec.
+
+    Requires the GitHub CLI (gh) to be installed and authenticated.
+    """
+    # 1. Check gh CLI
+    try:
+        _run_cmd(["gh", "auth", "status"])
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        console.print("[bold red]Error:[/] GitHub CLI (gh) is not installed or not authenticated.")
+        console.print("  Install: https://cli.github.com/")
+        console.print("  Auth:    gh auth login")
+        raise typer.Exit(1)
+
+    # 2. Check for changes
+    diff_result = _run_cmd(["git", "diff", "--name-only"], check=False)
+    staged_result = _run_cmd(["git", "diff", "--name-only", "--cached"], check=False)
+    untracked_result = _run_cmd(["git", "ls-files", "--others", "--exclude-standard", "models/"], check=False)
+
+    changed_files = set()
+    for output in (diff_result.stdout, staged_result.stdout, untracked_result.stdout):
+        for line in output.strip().splitlines():
+            line = line.strip()
+            if line and line.startswith("models/") and line.endswith(".md"):
+                changed_files.add(line)
+
+    if not changed_files:
+        console.print("[yellow]No modified or new model cards found.[/]")
+        console.print("  Run [bold]modelspec research <model_id>[/] first to enrich a model card.")
+        raise typer.Exit(0)
+
+    console.print(f"[bold]Found {len(changed_files)} changed model card(s):[/]")
+    for f in sorted(changed_files):
+        console.print(f"  [green]+[/] {f}")
+
+    # 3. Determine upstream vs fork
+    remote_result = _run_cmd(["git", "remote", "-v"], check=False)
+    is_fork = "turbobeest/modelspec" not in remote_result.stdout
+
+    # 4. Get username
+    user_result = _run_cmd(["gh", "api", "user", "--jq", ".login"], check=False)
+    username = user_result.stdout.strip() or "contributor"
+
+    # 5. Build branch name and message
+    today = date.today().strftime("%Y%m%d")
+    model_names = []
+    for f in sorted(changed_files):
+        parts = Path(f).stem
+        model_names.append(parts)
+
+    summary = "-".join(model_names[:3])
+    if len(model_names) > 3:
+        summary += f"-and-{len(model_names) - 3}-more"
+    branch_name = f"contrib/{username}/{today}-{summary}"
+
+    if not message:
+        message = f"Data enrichment: {', '.join(model_names[:5])}"
+        if len(model_names) > 5:
+            message += f" and {len(model_names) - 5} more"
+
+    # 6. Load before/after completeness for PR body
+    ModelCard = _get_model_card_class()
+    pr_body_lines = ["## Summary", "", f"Updated {len(changed_files)} model card(s):", ""]
+    for f in sorted(changed_files):
+        card_path = _PROJECT_ROOT / f
+        try:
+            card = ModelCard.from_yaml_file(card_path)
+            pr_body_lines.append(f"- **{card.identity.display_name}** (`{card.identity.model_id}`): {card.card_completeness:.1f}% complete")
+        except Exception:
+            pr_body_lines.append(f"- `{f}`")
+
+    pr_body_lines.extend([
+        "",
+        "## Details",
+        "",
+        f"Fields enriched via `modelspec research`.",
+        "",
+        "## Test plan",
+        "",
+        "- [ ] `modelspec validate` passes",
+        "- [ ] Spot-check updated fields against source",
+    ])
+
+    pr_body = "\n".join(pr_body_lines)
+
+    # 7. Create branch, commit, push, open PR
+    try:
+        _run_cmd(["git", "checkout", "-b", branch_name])
+        console.print(f"  Created branch: [bold]{branch_name}[/]")
+    except subprocess.CalledProcessError:
+        console.print(f"[bold red]Error:[/] Could not create branch {branch_name}")
+        raise typer.Exit(1)
+
+    try:
+        for f in sorted(changed_files):
+            _run_cmd(["git", "add", f])
+        _run_cmd(["git", "commit", "-m", message])
+        console.print(f"  Committed: {message}")
+    except subprocess.CalledProcessError as exc:
+        console.print(f"[bold red]Error committing:[/] {exc.stderr}")
+        raise typer.Exit(1)
+
+    try:
+        if is_fork:
+            _run_cmd(["git", "push", "-u", "origin", branch_name])
+        else:
+            _run_cmd(["git", "push", "-u", "origin", branch_name])
+        console.print("  Pushed to origin.")
+    except subprocess.CalledProcessError as exc:
+        console.print(f"[bold red]Error pushing:[/] {exc.stderr}")
+        raise typer.Exit(1)
+
+    # Open PR
+    try:
+        pr_result = _run_cmd([
+            "gh", "pr", "create",
+            "--repo", "turbobeest/modelspec",
+            "--title", f"Data enrichment: {summary}",
+            "--body", pr_body,
+        ])
+        pr_url = pr_result.stdout.strip()
+        console.print(f"\n[bold green]Pull request created![/]")
+        console.print(f"  {pr_url}")
+    except subprocess.CalledProcessError as exc:
+        console.print(f"[bold red]Error creating PR:[/] {exc.stderr}")
+        raise typer.Exit(1)
+
+
+# ───────────────────────────────────────────────────────────────
+# 10. modelspec validate — validate all cards
+# ───────────────────────────────────────────────────────────────
+
+@app.command()
+def validate(
+    fix: bool = typer.Option(False, "--fix", help="Attempt to fix common issues"),
+) -> None:
+    """Validate all model cards against the schema and report issues.
+
+    Works offline from YAML model cards in models/.
+    """
+    ModelCard = _get_model_card_class()
+
+    card_files = _discover_card_files()
+    if not card_files:
+        console.print("[yellow]No model cards found in models/.[/]")
+        raise typer.Exit(1)
+
+    valid_cards = []
+    errors: list[tuple[Path, str]] = []
+    fixed: list[tuple[Path, str]] = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task(f"Validating {len(card_files)} cards...", total=len(card_files))
+
+        for path in card_files:
+            try:
+                card = ModelCard.from_yaml_file(path)
+                valid_cards.append(card)
+
+                # Check for common issues even on parseable cards
+                issues = []
+
+                # Missing required identity fields
+                if not card.identity.display_name:
+                    issues.append("missing display_name")
+                if not card.identity.provider:
+                    issues.append("missing provider")
+
+                # Enum mismatches (already caught by Pydantic, but double check)
+                if card.identity.model_type is None:
+                    issues.append("no model_type set")
+
+                if issues and fix:
+                    changed = False
+                    if not card.identity.display_name:
+                        # Derive from model_id
+                        card.identity.display_name = card.identity.model_id.split("/")[-1].replace("-", " ").title()
+                        changed = True
+                    if changed:
+                        yaml_content = card.to_yaml()
+                        path.write_text(yaml_content, encoding="utf-8")
+                        fixed.append((path, "; ".join(issues)))
+
+                if issues and not fix:
+                    for issue in issues:
+                        errors.append((path, f"warning: {issue}"))
+
+            except Exception as exc:
+                err_msg = str(exc)
+                # Truncate long error messages
+                if len(err_msg) > 120:
+                    err_msg = err_msg[:117] + "..."
+                errors.append((path, err_msg))
+
+                if fix:
+                    # Try to fix by re-loading raw YAML and patching
+                    try:
+                        import yaml
+                        content = path.read_text(encoding="utf-8")
+                        parts = content.split("---", 2)
+                        if len(parts) >= 3:
+                            data = yaml.safe_load(parts[1]) or {}
+                            # Common fix: remove invalid enum values
+                            if "status" in data and data["status"] not in (
+                                "active", "beta", "alpha", "deprecated", "sunset", "preview"
+                            ):
+                                data["status"] = "active"
+                            yaml_str = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+                            new_content = f"---\n{yaml_str}---\n\n{parts[2].strip()}"
+                            path.write_text(new_content, encoding="utf-8")
+                            # Try parsing again
+                            card = ModelCard.from_yaml_file(path)
+                            valid_cards.append(card)
+                            fixed.append((path, "re-serialized with fixes"))
+                    except Exception:
+                        pass
+
+            progress.advance(task)
+
+    # Report errors
+    if errors:
+        err_table = Table(
+            title=f"Validation Issues ({len(errors)})",
+            show_header=True,
+            header_style="bold red",
+        )
+        err_table.add_column("File", style="dim", min_width=40)
+        err_table.add_column("Issue", style="yellow")
+        for path, msg in errors[:50]:
+            rel_path = str(path.relative_to(_PROJECT_ROOT))
+            err_table.add_row(rel_path, msg)
+        if len(errors) > 50:
+            console.print(f"[dim]... and {len(errors) - 50} more issues[/]")
+        console.print(err_table)
+
+    if fixed:
+        fix_table = Table(
+            title=f"Fixed ({len(fixed)})",
+            show_header=True,
+            header_style="bold green",
+        )
+        fix_table.add_column("File", style="dim", min_width=40)
+        fix_table.add_column("Fix Applied", style="green")
+        for path, msg in fixed:
+            rel_path = str(path.relative_to(_PROJECT_ROOT))
+            fix_table.add_row(rel_path, msg)
+        console.print(fix_table)
+
+    # Completeness distribution
+    if valid_cards:
+        completeness_values = [c.card_completeness for c in valid_cards]
+        avg = sum(completeness_values) / len(completeness_values)
+        high = len([v for v in completeness_values if v >= 50])
+        mid = len([v for v in completeness_values if 25 <= v < 50])
+        low = len([v for v in completeness_values if v < 25])
+
+        dist_table = Table(
+            title="Completeness Distribution",
+            show_header=True,
+            header_style="bold cyan",
+        )
+        dist_table.add_column("Range", style="bold", min_width=15)
+        dist_table.add_column("Count", justify="right")
+        dist_table.add_column("Bar", min_width=30)
+
+        max_count = max(high, mid, low, 1)
+        bar_width = 30
+
+        dist_table.add_row(
+            "[green]>= 50%[/]",
+            str(high),
+            "[green]" + "#" * int(high / max_count * bar_width) + "[/]",
+        )
+        dist_table.add_row(
+            "[yellow]25-49%[/]",
+            str(mid),
+            "[yellow]" + "#" * int(mid / max_count * bar_width) + "[/]",
+        )
+        dist_table.add_row(
+            "[red]< 25%[/]",
+            str(low),
+            "[red]" + "#" * int(low / max_count * bar_width) + "[/]",
+        )
+        console.print(dist_table)
+
+        console.print(
+            f"\n[bold]Summary:[/] {len(valid_cards)} valid / {len(card_files)} total cards | "
+            f"Average completeness: [bold]{avg:.1f}%[/]"
+        )
+
+    if errors and not fix:
+        console.print("\n[dim]Run with --fix to attempt automatic fixes.[/]")
 
 
 # ───────────────────────────────────────────────────────────────

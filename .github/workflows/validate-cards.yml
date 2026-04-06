@@ -1,0 +1,230 @@
+name: Validate Model Cards
+
+on:
+  pull_request:
+    paths:
+      - 'models/**'
+      - 'schema/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate changed model cards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for diff against main
+
+      - name: Fetch origin/main
+        run: git fetch origin main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install pydantic pyyaml
+          pip install -e "." --no-deps 2>/dev/null || true
+
+      - name: Run validation
+        id: validate
+        run: |
+          python scripts/validate_pr.py > validation_output.json 2>validation_stderr.txt || true
+          echo "result<<VALIDATION_EOF" >> "$GITHUB_OUTPUT"
+          cat validation_output.json >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "VALIDATION_EOF" >> "$GITHUB_OUTPUT"
+
+          # Also set a simple pass/fail flag
+          if python -c "import json,sys; d=json.load(open('validation_output.json')); sys.exit(0 if d.get('invalid',0)==0 and len(d.get('regression_errors',[]))==0 else 1)"; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build PR comment
+        id: comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let data;
+            try {
+              data = JSON.parse(fs.readFileSync('validation_output.json', 'utf8'));
+            } catch (e) {
+              core.setOutput('body', '## ModelSpec Card Validation\n\n**Status**: Failed to parse validation output.\n\nCheck the workflow logs for details.');
+              return;
+            }
+
+            const results = data.results || [];
+            const regressionErrors = data.regression_errors || [];
+            const total = data.total || 0;
+            const invalid = data.invalid || 0;
+            const newCards = data.new_cards || 0;
+            const totalFieldsAdded = data.total_fields_added || 0;
+
+            const allValid = invalid === 0 && regressionErrors.length === 0;
+            const statusEmoji = allValid ? '\u2705' : '\u274c';
+            const statusText = allValid ? 'All cards valid' : `${invalid} card(s) have errors`;
+
+            let body = `## ModelSpec Card Validation\n\n`;
+            body += `**Status**: ${statusEmoji} ${statusText}\n`;
+            body += `**Changed cards**: ${total}\n`;
+            body += `**New cards**: ${newCards}\n\n`;
+
+            if (total > 0) {
+              body += `| Card | Completeness | Fields Added | Status |\n`;
+              body += `|------|-------------|-------------|--------|\n`;
+
+              for (const r of results) {
+                if (r.status === 'valid') {
+                  const delta = r.completeness_delta != null ? ` (${r.completeness_delta >= 0 ? '+' : ''}${r.completeness_delta}%)` : ' (new)';
+                  const fieldsAdded = (r.fields_added || []).slice(0, 5).map(f => {
+                    const parts = f.split('.');
+                    return parts[parts.length - 1];
+                  }).join(', ');
+                  const fieldsExtra = (r.fields_added || []).length > 5 ? ` +${(r.fields_added || []).length - 5} more` : '';
+                  body += `| ${r.model_id} | ${r.completeness}%${delta} | ${fieldsAdded}${fieldsExtra} | \u2705 Valid |\n`;
+                } else {
+                  const shortError = (r.error || 'Unknown error').substring(0, 80);
+                  body += `| ${r.file} | - | - | \u274c ${shortError} |\n`;
+                }
+              }
+              body += `\n**Total field enrichments**: ${totalFieldsAdded} fields across ${total} cards\n`;
+            }
+
+            if (regressionErrors.length > 0) {
+              body += `\n### Regression Errors\n\n`;
+              body += `${regressionErrors.length} existing card(s) failed validation:\n\n`;
+              for (const err of regressionErrors.slice(0, 10)) {
+                body += `- \`${err.file}\`: ${err.error.substring(0, 100)}\n`;
+              }
+              if (regressionErrors.length > 10) {
+                body += `\n... and ${regressionErrors.length - 10} more\n`;
+              }
+            }
+
+            core.setOutput('body', body);
+
+      - name: Find existing comment
+        uses: actions/github-script@v7
+        id: find_comment
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.find(
+              c => c.user.type === 'Bot' && c.body.includes('## ModelSpec Card Validation')
+            );
+            core.setOutput('comment_id', botComment ? botComment.id : '');
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `${{ steps.comment.outputs.body }}`;
+            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
+
+            if (commentId) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: parseInt(commentId),
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Apply labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let data;
+            try {
+              data = JSON.parse(fs.readFileSync('validation_output.json', 'utf8'));
+            } catch (e) {
+              return;
+            }
+
+            const labels = data.labels || [];
+            if (labels.length === 0) return;
+
+            // Ensure labels exist (create if needed)
+            const labelColors = {
+              'new-models': '0E8A16',
+              'benchmark-update': '1D76DB',
+              'cost-update': 'D93F0B',
+              'enrichment': 'FBCA04',
+              'schema-valid': '0E8A16',
+              'schema-invalid': 'B60205',
+            };
+
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label,
+                });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label,
+                    color: labelColors[label] || 'EDEDED',
+                  });
+                }
+              }
+            }
+
+            // Remove previous schema-valid/schema-invalid labels
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            for (const existing of currentLabels) {
+              if ((existing.name === 'schema-valid' || existing.name === 'schema-invalid') && !labels.includes(existing.name)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: existing.name,
+                });
+              }
+            }
+
+            // Apply new labels
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: labels,
+            });
+
+      - name: Fail if validation errors
+        if: steps.validate.outputs.passed == 'false'
+        run: |
+          echo "::error::Model card validation failed. See PR comment for details."
+          cat validation_stderr.txt 2>/dev/null || true
+          exit 1

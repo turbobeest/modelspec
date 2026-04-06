@@ -1,0 +1,99 @@
+name: Weekly Coverage Report
+
+on:
+  schedule:
+    # Every Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  coverage:
+    name: Generate coverage report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install pydantic pyyaml
+          pip install -e "." --no-deps 2>/dev/null || true
+
+      - name: Generate coverage report
+        id: report
+        run: |
+          python scripts/coverage_report.py > coverage_report.md 2>coverage_stderr.txt
+          echo "report<<REPORT_EOF" >> "$GITHUB_OUTPUT"
+          cat coverage_report.md >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "REPORT_EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportBody = fs.readFileSync('coverage_report.md', 'utf8');
+            const title = 'Weekly Coverage Report';
+
+            // Find existing open issue with this title
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'coverage-report',
+              per_page: 100,
+            });
+
+            const existing = issues.find(i => i.title === title);
+
+            const body = reportBody + `\n\n---\n*Last updated: ${new Date().toISOString()}*`;
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: body,
+              });
+              console.log(`Updated issue #${existing.number}`);
+            } else {
+              // Ensure label exists
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'coverage-report',
+                });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: 'coverage-report',
+                    color: '5319E7',
+                    description: 'Automated weekly coverage report',
+                  });
+                }
+              }
+
+              const { data: newIssue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['coverage-report'],
+              });
+              console.log(`Created issue #${newIssue.number}`);
+            }
