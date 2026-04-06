@@ -379,7 +379,17 @@
 
       <div class="filter-section">
         <h3>Hardware Target</h3>
-        <div class="chip-grid" id="hw-presets" style="margin-bottom:10px"></div>
+        <div class="chip-grid" id="hw-presets" style="margin-bottom:8px"></div>
+        <div class="filter-row">
+          <label>MIG Partition</label>
+          <select id="hw-mig" onchange="applyMig()" style="width:auto;flex:1">
+            <option value="1">Full GPU</option>
+            <option value="2">1/2 MIG</option>
+            <option value="3">1/3 MIG</option>
+            <option value="4">1/4 MIG</option>
+            <option value="7">1/7 MIG</option>
+          </select>
+        </div>
         <div class="filter-row">
           <label>Memory</label>
           <input type="range" id="hw-memory" min="0" max="512" value="0" step="1"
@@ -388,13 +398,13 @@
         </div>
         <div class="filter-row">
           <label>Bandwidth</label>
-          <input type="range" id="hw-bandwidth" min="0" max="4000" value="0" step="10"
+          <input type="range" id="hw-bandwidth" min="0" max="8000" value="0" step="10"
                  oninput="hwSliderChanged()" style="flex:1">
           <span id="hw-bandwidth-val" style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right">Any</span>
         </div>
         <div class="filter-row">
           <label>Compute</label>
-          <input type="range" id="hw-tops" min="0" max="2000" value="0" step="10"
+          <input type="range" id="hw-tops" min="0" max="5000" value="0" step="10"
                  oninput="hwSliderChanged()" style="flex:1">
           <span id="hw-tops-val" style="font-size:10px;color:#94a3b8;min-width:50px;text-align:right">Any</span>
         </div>
@@ -465,28 +475,21 @@
     // ─── Hardware presets ─────────────────────────────────────
 
     const HW_PRESETS = [
-      //                                                    mem   bw(GB/s)  tops(INT8)  quant
-      { id: 'rpi5',         label: 'RPi 5 16GB',            memory: 16,  bandwidth: 34,    tops: 2,     quant: 'Q2' },
-      { id: 'jetson_nano',  label: 'Jetson Orin Nano 8GB',  memory: 8,   bandwidth: 68,    tops: 40,    quant: 'Q4' },
-      { id: 'mbair_m4',     label: 'MacBook Air M4 24GB',   memory: 24,  bandwidth: 120,   tops: 38,    quant: 'Q4' },
-      { id: 'mbpro_m4',     label: 'MBP M4 Pro 48GB',       memory: 48,  bandwidth: 273,   tops: 76,    quant: 'Q4' },
-      { id: 'mbpro_m4max',  label: 'MBP M4 Max 128GB',      memory: 128, bandwidth: 546,   tops: 152,   quant: 'Q8' },
-      { id: 'mac_studio',   label: 'Mac Studio M4 Ultra',   memory: 192, bandwidth: 819,   tops: 304,   quant: 'FP16' },
-      { id: 'rtx_4090',     label: 'RTX 4090 24GB',         memory: 24,  bandwidth: 1008,  tops: 660,   quant: 'Q4' },
-      { id: 'rtx_5090',     label: 'RTX 5090 32GB',         memory: 32,  bandwidth: 1792,  tops: 1321,  quant: 'Q4' },
-      { id: 'gh200',        label: 'GH200 96GB',            memory: 96,  bandwidth: 4000,  tops: 1980,  quant: 'FP16' },
-      { id: 'a100_80',      label: 'A100 80GB',             memory: 80,  bandwidth: 2039,  tops: 624,   quant: 'FP16' },
-      { id: 'h100_80',      label: 'H100 80GB',             memory: 80,  bandwidth: 3352,  tops: 1979,  quant: 'FP16' },
-      { id: 'h200_141',     label: 'H200 141GB',            memory: 141, bandwidth: 4800,  tops: 1979,  quant: 'FP16' },
-      { id: 'b200_192',     label: 'B200 192GB',            memory: 192, bandwidth: 8000,  tops: 4500,  quant: 'FP16' },
-      { id: 'dgx_spark',    label: 'DGX Spark 128GB',       memory: 128, bandwidth: 273,   tops: 209,   quant: 'FP16' },
-      // MIG partitions
-      { id: 'a100_mig2',    label: 'A100 1/2 MIG 40GB',    memory: 40,  bandwidth: 1020,  tops: 312,   quant: 'FP16' },
-      { id: 'a100_mig4',    label: 'A100 1/4 MIG 20GB',    memory: 20,  bandwidth: 510,   tops: 156,   quant: 'Q8' },
-      { id: 'a100_mig7',    label: 'A100 1/7 MIG 10GB',    memory: 10,  bandwidth: 291,   tops: 89,    quant: 'Q4' },
-      { id: 'h100_mig2',    label: 'H100 1/2 MIG 40GB',    memory: 40,  bandwidth: 1676,  tops: 990,   quant: 'FP16' },
-      { id: 'h100_mig4',    label: 'H100 1/4 MIG 20GB',    memory: 20,  bandwidth: 838,   tops: 495,   quant: 'Q8' },
-      { id: 'h100_mig7',    label: 'H100 1/7 MIG 10GB',    memory: 10,  bandwidth: 479,   tops: 283,   quant: 'Q4' },
+      //                                                    mem   bw(GB/s)  tops(INT8)  quant   mig?
+      { id: 'rpi5',         label: 'RPi 5 16GB',            memory: 16,  bandwidth: 34,    tops: 2,     quant: 'Q2',  mig: false },
+      { id: 'jetson_nano',  label: 'Jetson Orin Nano 8GB',  memory: 8,   bandwidth: 68,    tops: 40,    quant: 'Q4',  mig: false },
+      { id: 'mbair_m4',     label: 'MacBook Air M4 24GB',   memory: 24,  bandwidth: 120,   tops: 38,    quant: 'Q4',  mig: false },
+      { id: 'mbpro_m4',     label: 'MBP M4 Pro 48GB',       memory: 48,  bandwidth: 273,   tops: 76,    quant: 'Q4',  mig: false },
+      { id: 'mbpro_m4max',  label: 'MBP M4 Max 128GB',      memory: 128, bandwidth: 546,   tops: 152,   quant: 'Q8',  mig: false },
+      { id: 'mac_studio',   label: 'Mac Studio M4 Ultra',   memory: 192, bandwidth: 819,   tops: 304,   quant: 'FP16',mig: false },
+      { id: 'rtx_4090',     label: 'RTX 4090 24GB',         memory: 24,  bandwidth: 1008,  tops: 660,   quant: 'Q4',  mig: false },
+      { id: 'rtx_5090',     label: 'RTX 5090 32GB',         memory: 32,  bandwidth: 1792,  tops: 1321,  quant: 'Q4',  mig: false },
+      { id: 'a100_80',      label: 'A100 80GB',             memory: 80,  bandwidth: 2039,  tops: 624,   quant: 'FP16',mig: true },
+      { id: 'gh200',        label: 'GH200 96GB',            memory: 96,  bandwidth: 4000,  tops: 1980,  quant: 'FP16',mig: true },
+      { id: 'h100_80',      label: 'H100 80GB',             memory: 80,  bandwidth: 3352,  tops: 1979,  quant: 'FP16',mig: true },
+      { id: 'h200_141',     label: 'H200 141GB',            memory: 141, bandwidth: 4800,  tops: 1979,  quant: 'FP16',mig: true },
+      { id: 'b200_192',     label: 'B200 192GB',            memory: 192, bandwidth: 8000,  tops: 4500,  quant: 'FP16',mig: true },
+      { id: 'dgx_spark',    label: 'DGX Spark 128GB',       memory: 128, bandwidth: 273,   tops: 209,   quant: 'FP16',mig: false },
     ];
 
     // Populate preset chips
@@ -503,28 +506,54 @@
     })();
 
     let activeHwPreset = null;
+    let selectedBaseHw = null; // The full GPU specs before MIG division
 
     function selectHwPreset(hw, chipEl) {
-      // Deselect previous
       document.querySelectorAll('#hw-presets .chip').forEach(c => c.classList.remove('selected'));
 
       if (activeHwPreset === hw.id) {
         // Toggle off
         activeHwPreset = null;
+        selectedBaseHw = null;
         document.getElementById('hw-memory').value = 0;
         document.getElementById('hw-bandwidth').value = 0;
         document.getElementById('hw-tops').value = 0;
         document.getElementById('hw-quant').value = '';
+        document.getElementById('hw-mig').value = '1';
+        document.getElementById('hw-mig').disabled = true;
         hwSliderChanged();
         return;
       }
 
       activeHwPreset = hw.id;
+      selectedBaseHw = { ...hw };
       chipEl.classList.add('selected');
-      document.getElementById('hw-memory').value = hw.memory;
-      document.getElementById('hw-bandwidth').value = hw.bandwidth;
-      document.getElementById('hw-tops').value = hw.tops;
-      document.getElementById('hw-quant').value = hw.quant;
+
+      // Enable/disable MIG based on GPU capability
+      const migSelect = document.getElementById('hw-mig');
+      migSelect.disabled = !hw.mig;
+      if (!hw.mig) migSelect.value = '1';
+
+      applyMig();
+    }
+
+    function applyMig() {
+      if (!selectedBaseHw) return;
+      const migDiv = parseInt(document.getElementById('hw-mig').value) || 1;
+
+      const mem = Math.floor(selectedBaseHw.memory / migDiv);
+      const bw = Math.floor(selectedBaseHw.bandwidth / migDiv);
+      const tops = Math.floor(selectedBaseHw.tops / migDiv);
+
+      // Adjust quant recommendation based on available memory
+      let quant = selectedBaseHw.quant;
+      if (migDiv >= 4 && quant === 'FP16') quant = 'Q4';
+      else if (migDiv >= 2 && quant === 'FP16') quant = 'Q8';
+
+      document.getElementById('hw-memory').value = mem;
+      document.getElementById('hw-bandwidth').value = bw;
+      document.getElementById('hw-tops').value = tops;
+      document.getElementById('hw-quant').value = quant;
       hwSliderChanged();
     }
 
@@ -536,17 +565,10 @@
       document.getElementById('hw-memory-val').textContent = mem === 0 ? 'Any' : mem + ' GB';
       document.getElementById('hw-bandwidth-val').textContent = bw === 0 ? 'Any' : bw >= 1000 ? (bw/1000).toFixed(1) + ' TB/s' : bw + ' GB/s';
       document.getElementById('hw-tops-val').textContent = tops === 0 ? 'Any' : tops + ' TOPS';
-
-      // If user manually adjusts sliders, deselect preset
-      if (activeHwPreset) {
-        const preset = HW_PRESETS.find(h => h.id === activeHwPreset);
-        if (preset && (mem !== preset.memory || bw !== preset.bandwidth || tops !== preset.tops
-            || document.getElementById('hw-quant').value !== preset.quant)) {
-          document.querySelectorAll('#hw-presets .chip').forEach(c => c.classList.remove('selected'));
-          activeHwPreset = null;
-        }
-      }
     }
+
+    // Disable MIG by default
+    document.getElementById('hw-mig').disabled = true;
 
     // ─── Hosting chip interaction ─────────────────────────────
 
