@@ -46,9 +46,9 @@ An interactive 3D force-directed visualization of the entire AI model landscape.
 - Node size scales by parameter count, color by model type
 
 <p align="center">
- 
+
   <img src="https://github.com/user-attachments/assets/0d3bab33-6c42-418c-a07a-c8ec5dab60c4" alt="Lineage View" width="48%">
-  <img src="docs/screenshots/graph-detail.png" alt="Node Detail Panel" width="48%">
+  <img src="https://github.com/user-attachments/assets/445ee78b-928e-41ff-aee7-fec4c9b54e4a" alt="Node Detail Panel" width="48%">
 </p>
 
 ---
