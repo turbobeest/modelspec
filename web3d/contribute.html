@@ -144,7 +144,7 @@
       <p style="font-size:11px;color:#64748b;margin-bottom:8px">Click "Generate Prompt" to create a research prompt tailored to this model's gaps. Paste it into Claude, ChatGPT, Gemini, or any LLM.</p>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="generatePrompt()">Generate Research Prompt</button>
-        <button class="btn btn-secondary" onclick="copyPrompt()">Copy to Clipboard</button>
+        <button class="btn btn-secondary" id="copy-btn" onclick="copyPrompt(this)">Copy to Clipboard</button>
       </div>
       <div class="prompt-box" id="prompt-box"></div>
     </div>
@@ -341,14 +341,40 @@ Replace null values with actual numbers you find. Keep null for anything you can
       box.classList.add('visible');
     }
 
-    function copyPrompt() {
+    function copyPrompt(btn) {
       const box = document.getElementById('prompt-box');
       if (!box.textContent) { alert('Generate a prompt first'); return; }
-      navigator.clipboard.writeText(box.textContent).then(() => {
-        const btn = event.target;
+      // Try modern clipboard API first, fall back to execCommand
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(box.textContent).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
+        }).catch(() => fallbackCopy(box.textContent, btn));
+      } else {
+        fallbackCopy(box.textContent, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
         btn.textContent = 'Copied!';
         setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
-      });
+      } catch (e) {
+        // Last resort: select the text so user can Ctrl+C
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('prompt-box'));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        btn.textContent = 'Selected — press Ctrl+C';
+        setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 3000);
+      }
+      document.body.removeChild(textarea);
     }
 
     // ─── Step 3: Parse response ─────────────────────────────────
