@@ -249,6 +249,8 @@ class ModelData:
     benchmark_scores: dict[str, float] = field(default_factory=dict)
     capability_tiers: dict[str, str] = field(default_factory=dict)
     available_platforms: set[str] = field(default_factory=set)
+    estimated_tps: float | None = None  # Estimated tok/s on target hardware
+    concurrent_instances: int | None = None  # How many instances fit on target hardware
     hardware_fits: dict[str, dict] = field(default_factory=dict)
     # Extra node props for pass-through
     provider: str | None = None
@@ -266,6 +268,9 @@ class ScoredModel:
     cost_score: float
     context_score: float
     type_bonus: float
+    speed_score: float = 0.0
+    estimated_tps: float | None = None
+    concurrent_instances: int | None = None
     reasons: list[str] = field(default_factory=list)
     benchmark_contributions: dict[str, float] = field(default_factory=dict)
     # Pass-through for the response
@@ -443,6 +448,10 @@ class RankingEngine:
         require_tools = constraints.get("tool_use")
         require_vision = constraints.get("vision")
         provider_filter = constraints.get("provider")
+        hw_memory_gb = _safe_float(constraints.get("hw_memory_gb"))
+        hw_bandwidth_gbps = _safe_float(constraints.get("hw_bandwidth_gbps"))
+        hw_quant = constraints.get("hw_quant", "")
+        hw_tops = _safe_float(constraints.get("hw_tops"))
 
         for m in candidates:
             # Skip deprecated/sunset unless explicitly requested
@@ -532,6 +541,34 @@ class RankingEngine:
                     # Also check by provider slug for provider platforms
                     provider_match = m.provider in required_platforms
                     if not provider_match:
+                        continue
+
+            # Hardware fit check — estimate if model fits and how fast it would run
+            if hw_memory_gb and hw_memory_gb > 0:
+                bytes_per_param = {"Q2": 0.25, "Q4": 0.5, "Q8": 1.0, "FP16": 2.0}.get(hw_quant, 0.5)
+                usable_mem = hw_memory_gb * 0.85  # reserve 15% for OS/KV cache
+
+                if m.total_parameters:
+                    model_mem_gb = m.total_parameters * bytes_per_param / 1e9
+                    # Hard filter: won't fit in memory
+                    if model_mem_gb > usable_mem:
+                        continue
+                    # Concurrent instances that fit
+                    m.concurrent_instances = max(1, int(usable_mem / model_mem_gb))
+                    # Estimate tokens/sec from memory bandwidth
+                    # tok/s ≈ bandwidth / model_memory (memory-bandwidth-bound)
+                    if hw_bandwidth_gbps and hw_bandwidth_gbps > 0:
+                        est_tps = hw_bandwidth_gbps / model_mem_gb
+                        m.estimated_tps = round(est_tps, 1)
+                        # Filter out unusably slow models (< 1 tok/s)
+                        if est_tps < 1.0:
+                            continue
+                else:
+                    # No parameter data — use heuristic: API-only models are fine,
+                    # but for local hosting, unknown-size models on small hardware are risky
+                    if hw_memory_gb <= 24 and m.open_weights:
+                        # Small device + open weights + unknown size = skip
+                        # (likely too big for an RPi or MacBook Air)
                         continue
 
             result.append(m)
@@ -630,6 +667,12 @@ class RankingEngine:
                 # First preferred type gets full bonus, descending
                 type_bonus = max(5.0, 15.0 - best_idx * 3.0)
 
+        # --- Speed bonus (up to 10 points, only when hardware specified) ---
+        speed_score = 0.0
+        if model.estimated_tps is not None:
+            # Log-scale: 1 tok/s = 0, 10 tok/s = 5, 100 tok/s = 10
+            speed_score = min(10.0, max(0.0, math.log10(max(1.0, model.estimated_tps)) * 5.0))
+
         # --- Composite score (0-100 scale) ---
         raw_total = (
             bench_score_scaled
@@ -637,6 +680,7 @@ class RankingEngine:
             + cost_score_scaled
             + ctx_score_scaled
             + type_bonus
+            + speed_score
         )
         # Clamp to 0-100
         final_score = max(0.0, min(100.0, raw_total))
@@ -651,6 +695,9 @@ class RankingEngine:
             cost_score=round(cost_score_scaled, 2),
             context_score=round(ctx_score_scaled, 2),
             type_bonus=round(type_bonus, 2),
+            speed_score=round(speed_score, 2),
+            estimated_tps=model.estimated_tps,
+            concurrent_instances=model.concurrent_instances,
             benchmark_contributions=bench_contributions,
             arena_elo_overall=model.arena_elo_overall,
             total_parameters=model.total_parameters,
@@ -723,6 +770,15 @@ class RankingEngine:
             # Arena ELO
             if sm.arena_elo_overall and sm.arena_elo_overall >= 1300:
                 reasons.append(f"Arena ELO: {int(sm.arena_elo_overall)}")
+
+            # Speed estimate
+            if sm.estimated_tps is not None:
+                if sm.estimated_tps >= 50:
+                    reasons.append(f"~{sm.estimated_tps:.0f} tok/s (fast)")
+                elif sm.estimated_tps >= 10:
+                    reasons.append(f"~{sm.estimated_tps:.0f} tok/s")
+                elif sm.estimated_tps >= 1:
+                    reasons.append(f"~{sm.estimated_tps:.1f} tok/s (slow)")
 
             # Open weights
             if sm.open_weights:

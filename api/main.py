@@ -173,6 +173,9 @@ class RankedModel(BaseModel):
     cost_score: float = 0.0
     context_score: float = 0.0
     type_bonus: float = 0.0
+    speed_score: float = 0.0
+    estimated_tps: float | None = None
+    concurrent_instances: int | None = None
     reasons: list[str] = []
     benchmark_contributions: dict[str, float] = {}
     arena_elo_overall: float | None = None
@@ -506,7 +509,9 @@ async def get_graph_data(
 
     # Determine which edge types to include
     if view == "all":
-        edge_filter = None  # No filter
+        # Exclude competition edges from "all" view — too dense
+        edge_filter = ["MADE_BY", "DERIVED_FROM", "MERGED_FROM", "LICENSED_AS",
+                       "HAS_CAPABILITY", "SCORED_ON", "AVAILABLE_ON", "TAGGED_WITH", "FITS_ON"]
     elif view in VIEW_EDGE_MAP:
         edge_filter = VIEW_EDGE_MAP[view]
     else:
@@ -519,10 +524,18 @@ async def get_graph_data(
     if edge_filter:
         # Filter to specific edge types
         type_checks = " OR ".join(f"type(e) = '{t}'" for t in edge_filter)
-        edge_q = (
-            f"MATCH (a)-[e]->(b) WHERE {type_checks} "
-            "RETURN a, e, b"
-        )
+        # For competition edges, only show one direction and cap to keep renderer fast
+        if view == "competition":
+            edge_q = (
+                f"MATCH (a)-[e]->(b) WHERE ({type_checks}) "
+                "AND e.overlap_score >= 0.9 AND id(a) < id(b) "
+                "RETURN a, e, b LIMIT 1500"
+            )
+        else:
+            edge_q = (
+                f"MATCH (a)-[e]->(b) WHERE ({type_checks}) "
+                "RETURN a, e, b"
+            )
     else:
         edge_q = "MATCH (a)-[e]->(b) RETURN a, e, b"
 
@@ -777,6 +790,9 @@ async def rank_models(req: RankRequest):
             cost_score=sm.cost_score,
             context_score=sm.context_score,
             type_bonus=sm.type_bonus,
+            speed_score=sm.speed_score,
+            estimated_tps=sm.estimated_tps,
+            concurrent_instances=sm.concurrent_instances,
             reasons=sm.reasons,
             benchmark_contributions=sm.benchmark_contributions,
             arena_elo_overall=sm.arena_elo_overall,

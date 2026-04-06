@@ -477,7 +477,16 @@
       { id: 'gh200',        label: 'GH200 96GB',            memory: 96,  bandwidth: 4000,  tops: 1980,  quant: 'FP16' },
       { id: 'a100_80',      label: 'A100 80GB',             memory: 80,  bandwidth: 2039,  tops: 624,   quant: 'FP16' },
       { id: 'h100_80',      label: 'H100 80GB',             memory: 80,  bandwidth: 3352,  tops: 1979,  quant: 'FP16' },
+      { id: 'h200_141',     label: 'H200 141GB',            memory: 141, bandwidth: 4800,  tops: 1979,  quant: 'FP16' },
+      { id: 'b200_192',     label: 'B200 192GB',            memory: 192, bandwidth: 8000,  tops: 4500,  quant: 'FP16' },
       { id: 'dgx_spark',    label: 'DGX Spark 128GB',       memory: 128, bandwidth: 273,   tops: 209,   quant: 'FP16' },
+      // MIG partitions
+      { id: 'a100_mig2',    label: 'A100 1/2 MIG 40GB',    memory: 40,  bandwidth: 1020,  tops: 312,   quant: 'FP16' },
+      { id: 'a100_mig4',    label: 'A100 1/4 MIG 20GB',    memory: 20,  bandwidth: 510,   tops: 156,   quant: 'Q8' },
+      { id: 'a100_mig7',    label: 'A100 1/7 MIG 10GB',    memory: 10,  bandwidth: 291,   tops: 89,    quant: 'Q4' },
+      { id: 'h100_mig2',    label: 'H100 1/2 MIG 40GB',    memory: 40,  bandwidth: 1676,  tops: 990,   quant: 'FP16' },
+      { id: 'h100_mig4',    label: 'H100 1/4 MIG 20GB',    memory: 20,  bandwidth: 838,   tops: 495,   quant: 'Q8' },
+      { id: 'h100_mig7',    label: 'H100 1/7 MIG 10GB',    memory: 10,  bandwidth: 479,   tops: 283,   quant: 'Q4' },
     ];
 
     // Populate preset chips
@@ -765,6 +774,7 @@
           { label: 'Type', val: m.type_bonus, max: 15, color: '#f59e0b' },
           { label: 'Cost', val: m.cost_score, max: 10, color: '#14b8a6' },
           { label: 'Ctx', val: m.context_score, max: 10, color: '#3b82f6' },
+          { label: 'Speed', val: m.speed_score || 0, max: 10, color: '#f97316' },
         ];
         const visibleBreakdown = breakdown.filter(b => b.val > 0);
         const barsHtml = visibleBreakdown.map(b => {
@@ -796,6 +806,8 @@
                 ${m.arena_elo_overall ? `<div><span class="result-prop-key">ELO:</span> <span class="result-prop-val">${m.arena_elo_overall}</span></div>` : ''}
                 ${m.cost_input !== null && m.cost_input !== undefined ? `<div><span class="result-prop-key">Cost in:</span> <span class="result-prop-val">$${m.cost_input}/M</span></div>` : ''}
                 ${m.cost_output !== null && m.cost_output !== undefined ? `<div><span class="result-prop-key">Cost out:</span> <span class="result-prop-val">$${m.cost_output}/M</span></div>` : ''}
+                ${m.estimated_tps ? `<div><span class="result-prop-key">Est. speed:</span> <span class="result-prop-val">${m.estimated_tps >= 10 ? m.estimated_tps.toFixed(0) : m.estimated_tps.toFixed(1)} tok/s</span></div>` : ''}
+                ${m.concurrent_instances && m.concurrent_instances > 1 ? `<div><span class="result-prop-key">Instances:</span> <span class="result-prop-val">${m.concurrent_instances}x fit</span></div>` : ''}
                 ${m.provider ? `<div><span class="result-prop-key">Provider:</span> <span class="result-prop-val">${m.provider}</span></div>` : ''}
               </div>
               ${benchChips ? `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:3px">${benchChips}</div>` : ''}
