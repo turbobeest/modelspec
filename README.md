@@ -1,6 +1,6 @@
 <p align="center">
 <P>
-<img width="100%" height="100%" alt="modelspec" src="https://github.com/user-attachments/assets/5dd1cd18-66a9-477f-8f9b-a2f80deb23eb" />
+<img width="2816" height="797" alt="modelspec" src="https://github.com/user-attachments/assets/1e344d67-605d-4577-8ea4-84148d5ae3d5" />
 </P>
   <p align="center">
     <a href="#3d-knowledge-graph">3D Graph</a> &middot;
