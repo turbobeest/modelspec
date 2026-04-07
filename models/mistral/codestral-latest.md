@@ -726,6 +726,14 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
+  extra_scores:
+    multipl_e_python: 81.5
+    multipl_e_rust: 65.8
+    multipl_e_cpp: 75.2
+    multipl_e_java: 79.5
+    multipl_e_typescript: 77.1
+    multipl_e_go: 72.5
+    multipl_e_javascript: 78.2
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

@@ -561,13 +561,28 @@ class Benchmarks(BaseModel):
     artificial_analysis_speed_index: float | None = None
     openrouter_usage_rank: int | None = None
     fmti_score: float | None = None
+
+    # Dictionary for arbitrary/granular benchmarks (complements fixed fields)
+    # Examples of keys:
+    #   "mmlu_chemistry", "mmlu_clinical_knowledge", "mmlu_astronomy"
+    #   "multipl_e_rust", "multipl_e_go", "multipl_e_typescript"
+    #   "finqa", "convfinqa", "fpb"
+    #   "pubmedqa", "medmcqa", "bioasq"
+    #   "flores_en_zh", "flores_en_de"
+    extra_scores: dict[str, float] = {}
+
     # Meta
     benchmark_source: str = ""
     benchmark_as_of: str = ""
     benchmark_notes: str = ""
 
     def filled_count(self) -> int:
-        return sum(1 for k, v in self if v is not None and k not in ("benchmark_source", "benchmark_as_of", "benchmark_notes"))
+        fixed = sum(
+            1 for k, v in self
+            if v is not None
+            and k not in ("benchmark_source", "benchmark_as_of", "benchmark_notes", "extra_scores")
+        )
+        return fixed + len(self.extra_scores)
 
 
 # ═══════════════════════════════════════════════════════════════

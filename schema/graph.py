@@ -194,9 +194,10 @@ def ingest_model_card(graph, card) -> dict[str, int]:
         stats["edges_created"] += 1
 
     # ── 6. Benchmarks → :SCORED_ON edges ───────────────────
+    # 6a. Fixed benchmark fields
     for field_name, value in card.benchmarks:
         if value is not None and isinstance(value, (int, float)) and field_name not in (
-            "benchmark_source", "benchmark_as_of", "benchmark_notes"
+            "benchmark_source", "benchmark_as_of", "benchmark_notes", "extra_scores"
         ):
             bench_id = field_name
             _merge_node(graph, "Benchmark", "id", bench_id, {
@@ -206,6 +207,20 @@ def ingest_model_card(graph, card) -> dict[str, int]:
             _merge_edge(graph, "Model", ident.model_id, "SCORED_ON",
                          "Benchmark", bench_id, {
                              "value": value,
+                             "date": card.benchmarks.benchmark_as_of,
+                         })
+            stats["edges_created"] += 1
+
+    # 6b. extra_scores dictionary entries (same pattern as fixed fields)
+    for bench_id, value in card.benchmarks.extra_scores.items():
+        if isinstance(value, (int, float)):
+            _merge_node(graph, "Benchmark", "id", bench_id, {
+                "id": bench_id,
+                "name": bench_id.replace("_", " ").title(),
+            })
+            _merge_edge(graph, "Model", ident.model_id, "SCORED_ON",
+                         "Benchmark", bench_id, {
+                             "value": float(value),
                              "date": card.benchmarks.benchmark_as_of,
                          })
             stats["edges_created"] += 1

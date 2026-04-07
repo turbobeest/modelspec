@@ -264,17 +264,23 @@
       <div class="filter-section">
         <h3>Use Case</h3>
         <div class="chip-grid" id="use-case-chips">
-          <div class="chip" data-value="general" onclick="toggleChip(this)">General</div>
-          <div class="chip" data-value="coding" onclick="toggleChip(this)">Coding</div>
-          <div class="chip" data-value="reasoning" onclick="toggleChip(this)">Reasoning</div>
-          <div class="chip" data-value="chat" onclick="toggleChip(this)">Chat</div>
-          <div class="chip" data-value="embedding" onclick="toggleChip(this)">Embedding</div>
-          <div class="chip" data-value="vision" onclick="toggleChip(this)">Vision</div>
-          <div class="chip" data-value="image-gen" onclick="toggleChip(this)">Image Gen</div>
-          <div class="chip" data-value="agentic" onclick="toggleChip(this)">Agentic</div>
-          <div class="chip" data-value="safety" onclick="toggleChip(this)">Safety</div>
-          <div class="chip" data-value="rag" onclick="toggleChip(this)">RAG</div>
+          <div class="chip" data-value="general" onclick="selectUseCase(this)">General</div>
+          <div class="chip" data-value="coding" data-subs="coding_python:Python,coding_rust:Rust,coding_go:Go,coding_typescript:TypeScript,coding_cpp:C++,coding_java:Java,coding_javascript:JavaScript" onclick="selectUseCase(this)">Coding</div>
+          <div class="chip" data-value="reasoning" onclick="selectUseCase(this)">Reasoning</div>
+          <div class="chip" data-value="chat" onclick="selectUseCase(this)">Chat</div>
+          <div class="chip" data-value="medical" data-subs="medical_clinical:Clinical,medical_radiology:Radiology" onclick="selectUseCase(this)">Medical</div>
+          <div class="chip" data-value="legal" onclick="selectUseCase(this)">Legal</div>
+          <div class="chip" data-value="financial" onclick="selectUseCase(this)">Financial</div>
+          <div class="chip" data-value="science" data-subs="science_chemistry:Chemistry,science_physics:Physics,science_biology:Biology" onclick="selectUseCase(this)">Science</div>
+          <div class="chip" data-value="writing_creative" data-subs="writing_creative:Creative,writing_technical:Technical,summarization:Summarization" onclick="selectUseCase(this)">Writing</div>
+          <div class="chip" data-value="translation" onclick="selectUseCase(this)">Translation</div>
+          <div class="chip" data-value="embedding" onclick="selectUseCase(this)">Embedding</div>
+          <div class="chip" data-value="vision" onclick="selectUseCase(this)">Vision</div>
+          <div class="chip" data-value="agentic" onclick="selectUseCase(this)">Agentic</div>
+          <div class="chip" data-value="safety" onclick="selectUseCase(this)">Safety</div>
+          <div class="chip" data-value="rag" onclick="selectUseCase(this)">RAG</div>
         </div>
+        <div class="chip-grid" id="use-case-sub-chips" style="margin-top:6px;display:none"></div>
       </div>
 
       <div class="filter-section">
@@ -486,6 +492,62 @@
 
     function isToggleOn(id) {
       return document.getElementById(id).classList.contains('on');
+    }
+
+    // ─── Hierarchical use-case selection ─────────────────────
+
+    let activeUseCaseValue = 'general';  // The resolved use_case sent to API
+
+    function selectUseCase(el) {
+      // Deselect all top-level chips, then select this one
+      document.querySelectorAll('#use-case-chips .chip').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+
+      const topValue = el.dataset.value;
+      const subsAttr = el.dataset.subs;
+      const subContainer = document.getElementById('use-case-sub-chips');
+
+      if (subsAttr) {
+        // Parse sub-options: "coding_python:Python,coding_rust:Rust,..."
+        const subs = subsAttr.split(',').map(s => {
+          const [val, label] = s.split(':');
+          return { value: val, label: label };
+        });
+
+        // Show sub-chips row
+        subContainer.innerHTML = '';
+        // Add a "General" sub-option that maps to the top-level value
+        const genChip = document.createElement('div');
+        genChip.className = 'chip selected';
+        genChip.dataset.value = topValue;
+        genChip.textContent = 'General';
+        genChip.onclick = () => selectSubUseCase(genChip);
+        subContainer.appendChild(genChip);
+
+        subs.forEach(sub => {
+          const chip = document.createElement('div');
+          chip.className = 'chip';
+          chip.dataset.value = sub.value;
+          chip.textContent = sub.label;
+          chip.onclick = () => selectSubUseCase(chip);
+          subContainer.appendChild(chip);
+        });
+
+        subContainer.style.display = 'flex';
+        activeUseCaseValue = topValue;
+      } else {
+        // No sub-options
+        subContainer.style.display = 'none';
+        subContainer.innerHTML = '';
+        activeUseCaseValue = topValue;
+      }
+    }
+
+    function selectSubUseCase(el) {
+      // Single-select within sub-chips
+      document.querySelectorAll('#use-case-sub-chips .chip').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      activeUseCaseValue = el.dataset.value;
     }
 
     // ─── Hardware presets ─────────────────────────────────────
@@ -706,7 +768,6 @@
         const maxParams = document.getElementById('filter-max-params').value;
         const minContext = document.getElementById('filter-min-context').value;
         const limit = parseInt(document.getElementById('filter-limit').value);
-        const useCases = getSelectedChips('use-case-chips');
         const origins = getSelectedChips('origin-chips');
         const openOnly = isToggleOn('toggle-open');
         const reasoning = isToggleOn('toggle-reasoning');
@@ -752,8 +813,8 @@
         if (hwBw > 0) constraints.hw_bandwidth_gbps = hwBw;
         if (hwTops > 0) constraints.hw_tops = hwTops;
 
-        // Use first selected use case, default to general
-        const useCase = useCases.length > 0 ? useCases[0] : 'general';
+        // Use the hierarchical use-case selection
+        const useCase = activeUseCaseValue || 'general';
 
         // POST to the server-side ranking engine
         const response = await fetch(`${API}/api/v1/rank`, {

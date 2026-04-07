@@ -78,6 +78,34 @@ BENCHMARK_RANGES: dict[str, tuple[float, float]] = {
     "swe_bench_agent":  (0.0, 60.0),
     "tau_bench":        (0.0, 80.0),
     "web_arena":        (0.0, 50.0),
+    # Per-language MultiPL-E (percentage-based, 0-100)
+    "multipl_e_python":     (10.0, 100.0),
+    "multipl_e_rust":       (10.0, 100.0),
+    "multipl_e_cpp":        (10.0, 100.0),
+    "multipl_e_java":       (10.0, 100.0),
+    "multipl_e_typescript": (10.0, 100.0),
+    "multipl_e_go":         (10.0, 100.0),
+    "multipl_e_javascript": (10.0, 100.0),
+    # MMLU subject scores (percentage-based, 0-100)
+    "mmlu_chemistry":               (20.0, 95.0),
+    "mmlu_physics":                 (20.0, 95.0),
+    "mmlu_biology":                 (20.0, 95.0),
+    "mmlu_clinical_knowledge":      (20.0, 95.0),
+    "mmlu_professional_law":        (20.0, 90.0),
+    "mmlu_jurisprudence":           (20.0, 90.0),
+    "mmlu_astronomy":               (20.0, 95.0),
+    "mmlu_computer_science":        (20.0, 95.0),
+    "mmlu_professional_accounting": (20.0, 85.0),
+    "mmlu_business_ethics":         (20.0, 90.0),
+    # Domain-specific extras
+    "pubmedqa":     (30.0, 90.0),
+    "medmcqa":      (20.0, 80.0),
+    "bioasq":       (20.0, 80.0),
+    "finqa":        (20.0, 90.0),
+    "convfinqa":    (20.0, 80.0),
+    "fpb":          (20.0, 90.0),
+    # Translation
+    "flores":       (10.0, 70.0),
 }
 
 
@@ -195,6 +223,272 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         },
         "cost_weight": 0.15,
         "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Coding by language ───────────────────────
+    "coding_python": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_python": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_rust": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_rust": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_go": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_go": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_typescript": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_typescript": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_cpp": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_cpp": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_java": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_java": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "coding_javascript": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "multipl_e_javascript": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
+            "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Medical ──────────────────────────────────
+    "medical": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "medqa": 0.30, "pubmedqa": 0.20, "medmcqa": 0.15,
+            "mmlu_clinical_knowledge": 0.15, "mmlu_pro": 0.10,
+            "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.20, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+    "medical_clinical": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "medqa": 0.25, "mmlu_clinical_knowledge": 0.25, "pubmedqa": 0.15,
+            "medmcqa": 0.15, "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.20, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+    "medical_radiology": {
+        "preferred_types": ["vlm", "llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "medqa": 0.20, "mmmu": 0.20, "mmlu_clinical_knowledge": 0.15,
+            "pubmedqa": 0.15, "arena_elo_vision": 0.15, "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.15, "creative": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Legal ────────────────────────────────────
+    "legal": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "legalbench": 0.35, "mmlu_professional_law": 0.20,
+            "mmlu_jurisprudence": 0.15, "ifeval": 0.10,
+            "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.15, "language": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Financial ────────────────────────────────
+    "financial": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "finbench": 0.30, "finqa": 0.20, "mmlu_pro": 0.15,
+            "ifeval": 0.10, "math_500": 0.10, "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Science ──────────────────────────────────
+    "science": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "gpqa_diamond": 0.25, "mmlu_pro": 0.20, "math_500": 0.15,
+            "mmlu_chemistry": 0.10, "mmlu_physics": 0.10, "mmlu_biology": 0.10,
+            "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "science_chemistry": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_chemistry": 0.30, "gpqa_diamond": 0.20, "mmlu_pro": 0.15,
+            "math_500": 0.15, "arena_elo_overall": 0.10, "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "science_physics": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_physics": 0.30, "gpqa_diamond": 0.20, "math_500": 0.15,
+            "mmlu_pro": 0.15, "arena_elo_overall": 0.10, "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "science_biology": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_biology": 0.30, "gpqa_diamond": 0.20, "mmlu_pro": 0.15,
+            "mmlu_clinical_knowledge": 0.10, "arena_elo_overall": 0.15,
+            "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Translation ──────────────────────────────
+    "translation": {
+        "preferred_types": ["llm-chat", "vlm"],
+        "benchmark_weights": {
+            "flores": 0.30, "mgsm": 0.20, "miracl": 0.20,
+            "mmlu_pro": 0.10, "arena_elo_overall": 0.10, "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "language": 0.30, "creative": 0.15, "reasoning": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Creative Writing ─────────────────────────
+    "writing_creative": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "alpaca_eval": 0.25, "wildbench": 0.20, "mt_bench": 0.20,
+            "arena_elo_style_control": 0.15, "arena_elo_overall": 0.10,
+            "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "creative": 0.30, "language": 0.20, "reasoning": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "writing_technical": {
+        "preferred_types": ["llm-chat", "llm-reasoning", "llm-code"],
+        "benchmark_weights": {
+            "mt_bench": 0.20, "ifeval": 0.20, "alpaca_eval": 0.15,
+            "mmlu_pro": 0.15, "arena_elo_overall": 0.15, "wildbench": 0.15,
+        },
+        "capability_weights": {
+            "creative": 0.25, "reasoning": 0.20, "language": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+    "summarization": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "mt_bench": 0.20, "alpaca_eval": 0.20, "arena_elo_overall": 0.15,
+            "ifeval": 0.15, "wildbench": 0.15, "arena_elo_style_control": 0.15,
+        },
+        "capability_weights": {
+            "creative": 0.25, "language": 0.20, "reasoning": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.20,
     },
 }
 

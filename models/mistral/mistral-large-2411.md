@@ -729,6 +729,24 @@ benchmarks:
   artificial_analysis_speed_index: 60.0
   openrouter_usage_rank: null
   fmti_score: null
+  extra_scores:
+    multipl_e_python: 82.8
+    multipl_e_rust: 63.5
+    multipl_e_cpp: 75.5
+    multipl_e_java: 80.2
+    multipl_e_typescript: 77.5
+    multipl_e_go: 72.1
+    multipl_e_javascript: 78.8
+    mmlu_chemistry: 74.8
+    mmlu_physics: 78.2
+    mmlu_biology: 81.5
+    mmlu_clinical_knowledge: 80.5
+    mmlu_professional_law: 70.5
+    mmlu_astronomy: 73.5
+    mmlu_computer_science: 82.2
+    mmlu_professional_accounting: 65.8
+    mmlu_business_ethics: 74.8
+    mmlu_jurisprudence: 71.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2
   benchmark_as_of: 2026-04

@@ -726,6 +726,14 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
+  extra_scores:
+    multipl_e_python: 68.5
+    multipl_e_rust: 42.1
+    multipl_e_cpp: 58.2
+    multipl_e_java: 64.5
+    multipl_e_typescript: 60.8
+    multipl_e_go: 55.2
+    multipl_e_javascript: 62.1
   benchmark_source: bigcode-leaderboard, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

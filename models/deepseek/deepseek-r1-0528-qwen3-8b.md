@@ -721,8 +721,19 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  extra_scores:
+    mmlu_chemistry: 78.5
+    mmlu_physics: 82.8
+    mmlu_biology: 84.2
+    mmlu_clinical_knowledge: 83.5
+    mmlu_professional_law: 72.5
+    mmlu_astronomy: 76.5
+    mmlu_computer_science: 85.5
+    mmlu_professional_accounting: 68.2
+    mmlu_business_ethics: 77.8
+    mmlu_jurisprudence: 74.5
+  benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false
