@@ -490,86 +490,11 @@ class Availability(BaseModel):
 # ═══════════════════════════════════════════════════════════════
 
 class Benchmarks(BaseModel):
-    # Knowledge & Reasoning
-    mmlu_pro: float | None = None
-    gpqa_diamond: float | None = None
-    hle: float | None = None
-    arc_challenge: float | None = None
-    hellaswag: float | None = None
-    truthfulqa: float | None = None
-    bbh: float | None = None
-    ifeval: float | None = None
-    musr: float | None = None
-    winogrande: float | None = None
-    # Math
-    math_500: float | None = None
-    aime_2025: float | None = None
-    aime_2026: float | None = None
-    gsm8k: float | None = None
-    mgsm: float | None = None
-    # Coding
-    humaneval: float | None = None
-    humaneval_plus: float | None = None
-    swe_bench_verified: float | None = None
-    live_code_bench: float | None = None
-    aider_polyglot: float | None = None
-    terminal_bench: float | None = None
-    mbpp: float | None = None
-    multipl_e: float | None = None
-    # Multimodal
-    mmmu: float | None = None
-    mathvista: float | None = None
-    docvqa: float | None = None
-    chartqa: float | None = None
-    # Safety
-    helm_safety: float | None = None
-    bbq: float | None = None
-    toxigen: float | None = None
-    # Human preference
-    arena_elo_overall: float | None = None
-    arena_elo_coding: float | None = None
-    arena_elo_math: float | None = None
-    arena_elo_vision: float | None = None
-    arena_elo_hard_prompts: float | None = None
-    arena_elo_style_control: float | None = None
-    mt_bench: float | None = None
-    alpaca_eval: float | None = None
-    wildbench: float | None = None
-    # Embedding
-    mteb_overall: float | None = None
-    mteb_retrieval: float | None = None
-    mteb_classification: float | None = None
-    mteb_clustering: float | None = None
-    beir: float | None = None
-    miracl: float | None = None
-    # Image gen
-    fid: float | None = None
-    clip_score: float | None = None
-    # Audio
-    wer_librispeech: float | None = None
-    mos_tts: float | None = None
-    # Domain
-    medqa: float | None = None
-    legalbench: float | None = None
-    finbench: float | None = None
-    # Agentic
-    swe_bench_agent: float | None = None
-    tau_bench: float | None = None
-    web_arena: float | None = None
-    # Composite
-    artificial_analysis_quality_index: float | None = None
-    artificial_analysis_speed_index: float | None = None
-    openrouter_usage_rank: int | None = None
-    fmti_score: float | None = None
-
-    # Dictionary for arbitrary/granular benchmarks (complements fixed fields)
-    # Examples of keys:
-    #   "mmlu_chemistry", "mmlu_clinical_knowledge", "mmlu_astronomy"
-    #   "multipl_e_rust", "multipl_e_go", "multipl_e_typescript"
-    #   "finqa", "convfinqa", "fpb"
-    #   "pubmedqa", "medmcqa", "bioasq"
-    #   "flores_en_zh", "flores_en_de"
-    extra_scores: dict[str, float] = {}
+    # All benchmark scores in a single open-ended dictionary.
+    # Keys are benchmark identifiers (e.g. "humaneval", "mmlu_pro",
+    # "multipl_e_rust", "mmlu_chemistry", "pubmedqa", "flores_en_zh").
+    # No fixed schema — any benchmark can be added without code changes.
+    scores: dict[str, float] = {}
 
     # Meta
     benchmark_source: str = ""
@@ -577,12 +502,7 @@ class Benchmarks(BaseModel):
     benchmark_notes: str = ""
 
     def filled_count(self) -> int:
-        fixed = sum(
-            1 for k, v in self
-            if v is not None
-            and k not in ("benchmark_source", "benchmark_as_of", "benchmark_notes", "extra_scores")
-        )
-        return fixed + len(self.extra_scores)
+        return len(self.scores)
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -278,7 +278,8 @@ def _compute_gap_info(card: Any) -> dict[str, Any]:
     # Bump importance for models with community signals
     if card.adoption.huggingface_downloads and card.adoption.huggingface_downloads > 100_000:
         importance *= 1.5
-    if card.benchmarks.arena_elo_overall and card.benchmarks.arena_elo_overall > 1200:
+    arena_elo = card.benchmarks.scores.get("arena_elo_overall")
+    if arena_elo and arena_elo > 1200:
         importance *= 1.3
 
     priority = importance * len(missing)

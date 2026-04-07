@@ -664,68 +664,17 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: 73.5
-  gpqa_diamond: 62.5
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: null
-  ifeval: 83.0
-  musr: null
-  winogrande: null
-  math_500: 82.2
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: 85.5
-  humaneval_plus: null
-  swe_bench_verified: null
-  live_code_bench: null
-  aider_polyglot: null
-  terminal_bench: null
-  mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
-  arena_elo_overall: 1310.0
-  arena_elo_coding: 1320.0
-  arena_elo_math: 1300.0
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: null
-  tau_bench: null
-  web_arena: null
-  artificial_analysis_quality_index: null
-  artificial_analysis_speed_index: null
-  openrouter_usage_rank: null
-  fmti_score: null
+  scores:
+    arena_elo_coding: 1320
+    arena_elo_math: 1300
+    arena_elo_overall: 1310
+    gpqa_diamond: 62.5
+    humaneval: 85.5
+    ifeval: 83
+    math_500: 82.2
+    mmlu_pro: 73.5
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

@@ -662,69 +662,29 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: 75.5
-  gpqa_diamond: 59.1
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: 64.1
-  ifeval: 84.0
-  musr: 29.8
-  winogrande: null
-  math_500: 89.2
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: 85.8
-  humaneval_plus: null
-  swe_bench_verified: 42.5
-  live_code_bench: null
-  aider_polyglot: 58.5
-  terminal_bench: null
-  mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: 78.2
-  bbq: 73.5
-  toxigen: 82.5
-  arena_elo_overall: 1310.0
-  arena_elo_coding: 1320.0
-  arena_elo_math: 1300.0
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: 8.8
-  alpaca_eval: 42.8
-  wildbench: 70.2
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: 35.8
-  tau_bench: 41.2
-  web_arena: null
-  artificial_analysis_quality_index: null
-  artificial_analysis_speed_index: null
-  openrouter_usage_rank: null
-  fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
-    open-llm-leaderboard-v2
+  scores:
+    aider_polyglot: 58.5
+    alpaca_eval: 42.8
+    arena_elo_coding: 1320
+    arena_elo_math: 1300
+    arena_elo_overall: 1310
+    bbh: 64.1
+    bbq: 73.5
+    gpqa_diamond: 59.1
+    helm_safety: 78.2
+    humaneval: 85.8
+    ifeval: 84
+    math_500: 89.2
+    mmlu_pro: 75.5
+    mt_bench: 8.8
+    musr: 29.8
+    swe_bench_agent: 35.8
+    swe_bench_verified: 42.5
+    tau_bench: 41.2
+    toxigen: 82.5
+    wildbench: 70.2
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false

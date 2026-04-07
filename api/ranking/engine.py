@@ -204,8 +204,8 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "safety": {
         "preferred_types": ["safety-classifier", "reward-model"],
         "benchmark_weights": {
-            "helm_safety": 0.30, "bbq": 0.20, "toxigen": 0.20,
-            "arena_elo_overall": 0.10,
+            "helm_safety": 0.30, "bbq": 0.25, "toxigen": 0.25,
+            "arena_elo_overall": 0.20,
         },
         "capability_weights": {},
         "cost_weight": 0.15,
@@ -489,6 +489,322 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         },
         "cost_weight": 0.10,
         "context_weight": 0.20,
+    },
+
+    # ─── Sub-domain: Math (competitive / advanced) ────────
+    "math_competition": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "aime_2025": 0.30, "math_500": 0.25, "aime_2026": 0.15,
+            "gpqa_diamond": 0.10, "arena_elo_math": 0.10, "gsm8k": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.35, "coding": 0.10,
+        },
+        "cost_weight": 0.05,
+        "context_weight": 0.05,
+    },
+
+    # ─── Sub-domain: Education ────────────────────────────
+    "education": {
+        "preferred_types": ["llm-chat", "llm-reasoning", "vlm"],
+        "benchmark_weights": {
+            "mmlu_pro": 0.25, "arc_challenge": 0.15, "hellaswag": 0.10,
+            "mt_bench": 0.15, "ifeval": 0.10, "arena_elo_overall": 0.15,
+            "truthfulqa": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.20, "language": 0.20, "creative": 0.15,
+        },
+        "cost_weight": 0.15,
+        "context_weight": 0.10,
+    },
+    "education_stem": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_pro": 0.15, "mmlu_physics": 0.15, "mmlu_chemistry": 0.15,
+            "mmlu_biology": 0.10, "math_500": 0.15, "gpqa_diamond": 0.15,
+            "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+    "education_humanities": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "mmlu_pro": 0.15, "mmlu_professional_law": 0.10,
+            "mmlu_business_ethics": 0.10, "truthfulqa": 0.15,
+            "alpaca_eval": 0.15, "mt_bench": 0.15, "arena_elo_overall": 0.20,
+        },
+        "capability_weights": {
+            "language": 0.25, "creative": 0.20, "reasoning": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Data Science / Analytics ─────────────
+    "data_science": {
+        "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "multipl_e_python": 0.20, "humaneval": 0.15, "math_500": 0.15,
+            "mmlu_pro": 0.10, "aider_polyglot": 0.10, "arena_elo_coding": 0.15,
+            "gpqa_diamond": 0.10, "arena_elo_overall": 0.05,
+        },
+        "capability_weights": {
+            "coding": 0.25, "reasoning": 0.25, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Customer Support / Chatbot ───────────
+    "customer_support": {
+        "preferred_types": ["llm-chat", "vlm"],
+        "benchmark_weights": {
+            "arena_elo_overall": 0.20, "mt_bench": 0.20, "ifeval": 0.20,
+            "alpaca_eval": 0.15, "arena_elo_style_control": 0.15,
+            "truthfulqa": 0.10,
+        },
+        "capability_weights": {
+            "language": 0.25, "tool_use": 0.20, "creative": 0.10,
+        },
+        "cost_weight": 0.25,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Content Moderation ───────────────────
+    "content_moderation": {
+        "preferred_types": ["safety-classifier", "llm-chat", "reward-model"],
+        "benchmark_weights": {
+            "helm_safety": 0.30, "toxigen": 0.25, "bbq": 0.20,
+            "ifeval": 0.10, "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "safety": 0.30, "language": 0.15,
+        },
+        "cost_weight": 0.20,
+        "context_weight": 0.05,
+    },
+
+    # ─── Sub-domain: Research Assistant ───────────────────
+    "research_assistant": {
+        "preferred_types": ["llm-reasoning", "llm-chat", "vlm"],
+        "benchmark_weights": {
+            "gpqa_diamond": 0.20, "mmlu_pro": 0.15, "math_500": 0.10,
+            "arena_elo_overall": 0.15, "mt_bench": 0.10, "ifeval": 0.10,
+            "truthfulqa": 0.10, "arena_elo_hard_prompts": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "language": 0.15, "tool_use": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.20,
+    },
+
+    # ─── Sub-domain: Roleplay / Character ─────────────────
+    "roleplay": {
+        "preferred_types": ["llm-chat"],
+        "benchmark_weights": {
+            "arena_elo_style_control": 0.25, "alpaca_eval": 0.20,
+            "wildbench": 0.15, "mt_bench": 0.15, "arena_elo_overall": 0.15,
+            "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "creative": 0.35, "language": 0.25,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Audio ────────────────────────────────
+    "speech_to_text": {
+        "preferred_types": ["audio-stt", "audio-multimodal"],
+        "benchmark_weights": {
+            "wer_librispeech": 0.50, "arena_elo_overall": 0.20,
+            "miracl": 0.15, "mgsm": 0.15,
+        },
+        "capability_weights": {
+            "language": 0.20,
+        },
+        "cost_weight": 0.20,
+        "context_weight": 0.05,
+    },
+    "text_to_speech": {
+        "preferred_types": ["audio-tts", "audio-multimodal"],
+        "benchmark_weights": {
+            "mos_tts": 0.50, "arena_elo_overall": 0.20,
+            "arena_elo_style_control": 0.15, "mt_bench": 0.15,
+        },
+        "capability_weights": {
+            "creative": 0.15, "language": 0.15,
+        },
+        "cost_weight": 0.20,
+        "context_weight": 0.05,
+    },
+
+    # ─── Sub-domain: Image Generation ─────────────────────
+    "image_generation": {
+        "preferred_types": ["image-gen", "vlm"],
+        "benchmark_weights": {
+            "fid": 0.30, "clip_score": 0.30,
+            "arena_elo_overall": 0.20, "arena_elo_vision": 0.20,
+        },
+        "capability_weights": {
+            "creative": 0.30,
+        },
+        "cost_weight": 0.15,
+        "context_weight": 0.05,
+    },
+
+    # ─── Sub-domain: Cybersecurity ────────────────────────
+    "cybersecurity": {
+        "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "mmlu_computer_science": 0.15, "terminal_bench": 0.15,
+            "arena_elo_coding": 0.10, "gpqa_diamond": 0.10,
+            "arena_elo_overall": 0.10, "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "coding": 0.25, "reasoning": 0.25, "tool_use": 0.20,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: DevOps / Infrastructure ──────────────
+    "devops": {
+        "preferred_types": ["llm-code", "llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "terminal_bench": 0.25, "humaneval": 0.15, "swe_bench_verified": 0.15,
+            "aider_polyglot": 0.10, "arena_elo_coding": 0.15,
+            "ifeval": 0.10, "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "coding": 0.25, "tool_use": 0.25, "reasoning": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Multilingual ─────────────────────────
+    "multilingual": {
+        "preferred_types": ["llm-chat", "vlm"],
+        "benchmark_weights": {
+            "mgsm": 0.25, "miracl": 0.20, "flores": 0.20,
+            "mmlu_pro": 0.10, "arena_elo_overall": 0.15, "ifeval": 0.10,
+        },
+        "capability_weights": {
+            "language": 0.35, "creative": 0.10, "reasoning": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Financial (specialties) ──────────────
+    "financial_analysis": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "finbench": 0.25, "finqa": 0.25, "math_500": 0.15,
+            "mmlu_professional_accounting": 0.10, "mmlu_pro": 0.10,
+            "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+    "financial_compliance": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "finbench": 0.20, "legalbench": 0.20, "mmlu_professional_law": 0.15,
+            "mmlu_professional_accounting": 0.15, "ifeval": 0.15,
+            "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.15, "language": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Science (more specialties) ───────────
+    "science_astronomy": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_astronomy": 0.30, "gpqa_diamond": 0.20, "mmlu_physics": 0.15,
+            "math_500": 0.15, "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Legal (specialties) ──────────────────
+    "legal_contract_review": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "legalbench": 0.30, "mmlu_professional_law": 0.20,
+            "ifeval": 0.15, "arena_elo_overall": 0.10,
+            "mt_bench": 0.10, "mmlu_pro": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "language": 0.20, "domain": 0.15,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.20,
+    },
+
+    # ─── Sub-domain: Biotech / Life Sciences ──────────────
+    "biotech": {
+        "preferred_types": ["llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "mmlu_biology": 0.20, "mmlu_chemistry": 0.15, "medqa": 0.15,
+            "pubmedqa": 0.15, "gpqa_diamond": 0.15, "mmlu_pro": 0.10,
+            "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "reasoning": 0.30, "domain": 0.20, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
+    },
+
+    # ─── Sub-domain: Accounting ───────────────────────────
+    "accounting": {
+        "preferred_types": ["llm-chat", "llm-reasoning"],
+        "benchmark_weights": {
+            "mmlu_professional_accounting": 0.30, "finbench": 0.20,
+            "finqa": 0.15, "math_500": 0.10, "ifeval": 0.10,
+            "arena_elo_overall": 0.15,
+        },
+        "capability_weights": {
+            "reasoning": 0.25, "domain": 0.15, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.10,
+    },
+
+    # ─── Sub-domain: Code Review ──────────────────────────
+    "code_review": {
+        "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
+        "benchmark_weights": {
+            "swe_bench_verified": 0.25, "humaneval": 0.15, "aider_polyglot": 0.15,
+            "arena_elo_coding": 0.15, "terminal_bench": 0.10,
+            "ifeval": 0.10, "arena_elo_overall": 0.10,
+        },
+        "capability_weights": {
+            "coding": 0.30, "reasoning": 0.25, "language": 0.10,
+        },
+        "cost_weight": 0.10,
+        "context_weight": 0.15,
     },
 }
 

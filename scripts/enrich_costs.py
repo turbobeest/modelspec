@@ -583,16 +583,16 @@ def enrich_performance(card: ModelCard) -> bool:
     data = AA_DATA[key]
     changed = False
 
-    # Quality index -> benchmarks.artificial_analysis_quality_index
-    if (card.benchmarks.artificial_analysis_quality_index is None
+    # Quality index
+    if ("artificial_analysis_quality_index" not in card.benchmarks.scores
             and "quality_index" in data):
-        card.benchmarks.artificial_analysis_quality_index = data["quality_index"]
+        card.benchmarks.scores["artificial_analysis_quality_index"] = data["quality_index"]
         changed = True
 
-    # Speed index -> benchmarks.artificial_analysis_speed_index
-    if (card.benchmarks.artificial_analysis_speed_index is None
+    # Speed index
+    if ("artificial_analysis_speed_index" not in card.benchmarks.scores
             and "speed_index" in data):
-        card.benchmarks.artificial_analysis_speed_index = data["speed_index"]
+        card.benchmarks.scores["artificial_analysis_speed_index"] = data["speed_index"]
         changed = True
 
     # Output TPS -> inference_performance.api_tps_output

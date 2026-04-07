@@ -660,79 +660,26 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: null
-  gpqa_diamond: null
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: null
-  ifeval: null
-  musr: null
-  winogrande: null
-  math_500: null
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: null
-  humaneval_plus: null
-  swe_bench_verified: 52.1
-  live_code_bench: null
-  aider_polyglot: 68.2
-  terminal_bench: null
-  mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
-  arena_elo_overall: null
-  arena_elo_coding: null
-  arena_elo_math: null
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: 8.9
-  alpaca_eval: 44.5
-  wildbench: 73.8
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: 45.5
-  tau_bench: 50.2
-  web_arena: null
-  artificial_analysis_quality_index: null
-  artificial_analysis_speed_index: null
-  openrouter_usage_rank: null
-  fmti_score: null
-  extra_scores:
-    mmlu_chemistry: 77.2
-    mmlu_physics: 81.5
-    mmlu_biology: 83.8
-    mmlu_clinical_knowledge: 82.2
-    mmlu_professional_law: 71.8
+  scores:
+    aider_polyglot: 68.2
+    alpaca_eval: 44.5
     mmlu_astronomy: 75.8
-    mmlu_computer_science: 84.5
-    mmlu_professional_accounting: 67.5
+    mmlu_biology: 83.8
     mmlu_business_ethics: 76.5
+    mmlu_chemistry: 77.2
+    mmlu_clinical_knowledge: 82.2
+    mmlu_computer_science: 84.5
     mmlu_jurisprudence: 73.8
+    mmlu_physics: 81.5
+    mmlu_professional_accounting: 67.5
+    mmlu_professional_law: 71.8
+    mt_bench: 8.9
+    swe_bench_agent: 45.5
+    swe_bench_verified: 52.1
+    tau_bench: 50.2
+    wildbench: 73.8
   benchmark_source: bigcode-leaderboard, provider-reports, preference-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false

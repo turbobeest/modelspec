@@ -192,25 +192,21 @@ def enrich_card(card: ModelCard, matcher: CodingBenchmarkMatcher) -> tuple[bool,
     changes: list[str] = []
     benchmarks = card.benchmarks
 
-    # Ensure extra_scores dict exists (should already from default)
-    if not hasattr(benchmarks, "extra_scores") or benchmarks.extra_scores is None:
-        benchmarks.extra_scores = {}
-
     # ── Per-language MultiPL-E scores ─────────────────────────
     mple_data = matcher.find_multipl_e(model_id)
     if mple_data:
         for lang, score in mple_data.items():
             key = f"multipl_e_{lang}"
-            if key not in benchmarks.extra_scores:
-                benchmarks.extra_scores[key] = round(score, 1)
+            if key not in benchmarks.scores:
+                benchmarks.scores[key] = round(score, 1)
                 changes.append(key)
 
     # ── MMLU subject scores ───────────────────────────────────
     mmlu_data = _find_mmlu_data(model_id)
     if mmlu_data:
         for subject, score in mmlu_data.items():
-            if subject not in benchmarks.extra_scores:
-                benchmarks.extra_scores[subject] = round(score, 1)
+            if subject not in benchmarks.scores:
+                benchmarks.scores[subject] = round(score, 1)
                 changes.append(subject)
 
     # Update metadata if we made changes

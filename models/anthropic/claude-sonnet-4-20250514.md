@@ -671,87 +671,52 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: 83.0
-  gpqa_diamond: 74.1
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: null
-  ifeval: 90.4
-  musr: null
-  winogrande: null
-  math_500: 93.8
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: 91.5
-  humaneval_plus: null
-  swe_bench_verified: 65.3
-  live_code_bench: null
-  aider_polyglot: 75.5
-  terminal_bench: 48.2
-  mbpp: null
-  multipl_e: 86.7
-  mmmu: 68.2
-  mathvista: 62.1
-  docvqa: 91.5
-  chartqa: 84.2
-  helm_safety: 91.8
-  bbq: 87.5
-  toxigen: 94.5
-  arena_elo_overall: 1380.0
-  arena_elo_coding: 1390.0
-  arena_elo_math: 1370.0
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: 9.2
-  alpaca_eval: 50.8
-  wildbench: 78.2
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: 55.8
-  tau_bench: 61.5
-  web_arena: null
-  artificial_analysis_quality_index: 85.0
-  artificial_analysis_speed_index: 73.0
-  openrouter_usage_rank: null
-  fmti_score: null
-  extra_scores:
+  scores:
+    aider_polyglot: 75.5
+    alpaca_eval: 50.8
+    arena_elo_coding: 1390
+    arena_elo_math: 1370
+    arena_elo_overall: 1380
+    artificial_analysis_quality_index: 85
+    artificial_analysis_speed_index: 73
+    bbq: 87.5
+    chartqa: 84.2
+    docvqa: 91.5
+    gpqa_diamond: 74.1
+    helm_safety: 91.8
+    humaneval: 91.5
+    ifeval: 90.4
+    math_500: 93.8
+    mathvista: 62.1
+    mmlu_astronomy: 77.8
+    mmlu_biology: 85.5
+    mmlu_business_ethics: 79.5
+    mmlu_chemistry: 79.8
+    mmlu_clinical_knowledge: 84.2
+    mmlu_computer_science: 86.2
+    mmlu_jurisprudence: 77.8
+    mmlu_physics: 82.5
+    mmlu_pro: 83
+    mmlu_professional_accounting: 69.8
+    mmlu_professional_law: 75.5
+    mmmu: 68.2
+    mt_bench: 9.2
+    multipl_e: 86.7
+    multipl_e_cpp: 85.8
+    multipl_e_go: 82.8
+    multipl_e_java: 89.1
+    multipl_e_javascript: 89.5
     multipl_e_python: 93.2
     multipl_e_rust: 78.5
-    multipl_e_cpp: 85.8
-    multipl_e_java: 89.1
     multipl_e_typescript: 88.2
-    multipl_e_go: 82.8
-    multipl_e_javascript: 89.5
-    mmlu_chemistry: 79.8
-    mmlu_physics: 82.5
-    mmlu_biology: 85.5
-    mmlu_clinical_knowledge: 84.2
-    mmlu_professional_law: 75.5
-    mmlu_astronomy: 77.8
-    mmlu_computer_science: 86.2
-    mmlu_professional_accounting: 69.8
-    mmlu_business_ethics: 79.5
-    mmlu_jurisprudence: 77.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
-    preference-evals
+    swe_bench_agent: 55.8
+    swe_bench_verified: 65.3
+    tau_bench: 61.5
+    terminal_bench: 48.2
+    toxigen: 94.5
+    wildbench: 78.2
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false

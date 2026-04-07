@@ -351,8 +351,8 @@ def enrich_card(
             "terminal_bench", "aider_polyglot",
         ]
         for field_name in agentic_fields:
-            if field_name in agentic_data and getattr(benchmarks, field_name) is None:
-                setattr(benchmarks, field_name, float(agentic_data[field_name]))
+            if field_name in agentic_data and field_name not in benchmarks.scores:
+                benchmarks.scores[field_name] = float(agentic_data[field_name])
                 changes.append(field_name)
 
     # Update metadata if we made changes

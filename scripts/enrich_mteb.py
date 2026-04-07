@@ -381,12 +381,11 @@ def enrich_card_mteb(
 
     benchmarks = card.benchmarks
 
-    # Fill only None fields
+    # Fill only missing fields
     for field_name in MTEB_BENCHMARK_FIELDS:
-        if field_name in mteb_data and hasattr(benchmarks, field_name):
-            if getattr(benchmarks, field_name) is None:
-                setattr(benchmarks, field_name, float(mteb_data[field_name]))
-                fields_filled.append(field_name)
+        if field_name in mteb_data and field_name not in benchmarks.scores:
+            benchmarks.scores[field_name] = float(mteb_data[field_name])
+            fields_filled.append(field_name)
 
     # Update metadata if we filled anything
     if fields_filled:

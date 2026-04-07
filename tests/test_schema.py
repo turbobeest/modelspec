@@ -78,12 +78,12 @@ card = ModelCard(
         ),
     ),
     cost=Cost(input=0.0, output=0.0, note="Open weights — local inference only"),
-    benchmarks=Benchmarks(
-        arena_elo_overall=1280,
-        gpqa_diamond=52.3,
-        humaneval=85.0,
-        swe_bench_verified=38.2,
-    ),
+    benchmarks=Benchmarks(scores={
+        "arena_elo_overall": 1280,
+        "gpqa_diamond": 52.3,
+        "humaneval": 85.0,
+        "swe_bench_verified": 38.2,
+    }),
     deployment=Deployment(
         local_inference=True,
         self_hostable=True,

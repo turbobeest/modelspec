@@ -663,68 +663,21 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: 60.2
-  gpqa_diamond: 48.1
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: 52.4
-  ifeval: 75.0
-  musr: 20.1
-  winogrande: null
-  math_500: 68.5
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: 72.5
-  humaneval_plus: null
-  swe_bench_verified: null
-  live_code_bench: null
-  aider_polyglot: null
-  terminal_bench: null
-  mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
-  arena_elo_overall: 1220.0
-  arena_elo_coding: 1230.0
-  arena_elo_math: 1210.0
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: null
-  tau_bench: null
-  web_arena: null
-  artificial_analysis_quality_index: 68.0
-  artificial_analysis_speed_index: 80.0
-  openrouter_usage_rank: null
-  fmti_score: null
+  scores:
+    arena_elo_coding: 1230
+    arena_elo_math: 1210
+    arena_elo_overall: 1220
+    artificial_analysis_quality_index: 68
+    artificial_analysis_speed_index: 80
+    bbh: 52.4
+    gpqa_diamond: 48.1
+    humaneval: 72.5
+    ifeval: 75
+    math_500: 68.5
+    mmlu_pro: 60.2
+    musr: 20.1
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

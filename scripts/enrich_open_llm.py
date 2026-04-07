@@ -475,8 +475,8 @@ def enrich_card(
     benchmarks = card.benchmarks
 
     for field_name in OPEN_LLM_V2_BENCHMARKS:
-        if field_name in scores and getattr(benchmarks, field_name) is None:
-            setattr(benchmarks, field_name, float(scores[field_name]))
+        if field_name in scores and field_name not in benchmarks.scores:
+            benchmarks.scores[field_name] = float(scores[field_name])
             fields_filled.append(field_name)
 
     # Set metadata if we filled anything

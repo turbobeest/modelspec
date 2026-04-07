@@ -661,68 +661,13 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: null
-  gpqa_diamond: null
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: null
-  ifeval: null
-  musr: null
-  winogrande: null
-  math_500: null
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: null
-  humaneval_plus: null
-  swe_bench_verified: null
-  live_code_bench: null
-  aider_polyglot: null
-  terminal_bench: null
-  mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
-  arena_elo_overall: null
-  arena_elo_coding: null
-  arena_elo_math: null
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
-  mteb_overall: 53.2
-  mteb_retrieval: 44.5
-  mteb_classification: 60.2
-  mteb_clustering: 37.2
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: null
-  tau_bench: null
-  web_arena: null
-  artificial_analysis_quality_index: null
-  artificial_analysis_speed_index: null
-  openrouter_usage_rank: null
-  fmti_score: null
+  scores:
+    mteb_classification: 60.2
+    mteb_clustering: 37.2
+    mteb_overall: 53.2
+    mteb_retrieval: 44.5
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

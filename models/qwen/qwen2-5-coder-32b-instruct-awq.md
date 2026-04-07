@@ -669,76 +669,22 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: 60.2
-  gpqa_diamond: 42.5
-  hle: null
-  arc_challenge: null
-  hellaswag: null
-  truthfulqa: null
-  bbh: null
-  ifeval: 76.0
-  musr: null
-  winogrande: null
-  math_500: 70.5
-  aime_2025: null
-  aime_2026: null
-  gsm8k: null
-  mgsm: null
-  humaneval: 87.2
-  humaneval_plus: null
-  swe_bench_verified: null
-  live_code_bench: null
-  aider_polyglot: null
-  terminal_bench: null
-  mbpp: null
-  multipl_e: 80.3
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
-  arena_elo_overall: null
-  arena_elo_coding: null
-  arena_elo_math: null
-  arena_elo_vision: null
-  arena_elo_hard_prompts: null
-  arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
-  fid: null
-  clip_score: null
-  wer_librispeech: null
-  mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: null
-  tau_bench: null
-  web_arena: null
-  artificial_analysis_quality_index: null
-  artificial_analysis_speed_index: null
-  openrouter_usage_rank: null
-  fmti_score: null
-  extra_scores:
+  scores:
+    gpqa_diamond: 42.5
+    humaneval: 87.2
+    ifeval: 76
+    math_500: 70.5
+    mmlu_pro: 60.2
+    multipl_e: 80.3
+    multipl_e_cpp: 79.8
+    multipl_e_go: 76.5
+    multipl_e_java: 83.5
+    multipl_e_javascript: 82.1
     multipl_e_python: 88.5
     multipl_e_rust: 70.2
-    multipl_e_cpp: 79.8
-    multipl_e_java: 83.5
     multipl_e_typescript: 81.2
-    multipl_e_go: 76.5
-    multipl_e_javascript: 82.1
   benchmark_source: provider-reports
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

@@ -807,15 +807,15 @@ def enrich_card(
             "vision": "arena_elo_vision",
         }
         for data_key, field_name in arena_field_map.items():
-            if data_key in arena_data and getattr(benchmarks, field_name) is None:
-                setattr(benchmarks, field_name, float(arena_data[data_key]))
+            if data_key in arena_data and field_name not in benchmarks.scores:
+                benchmarks.scores[field_name] = float(arena_data[data_key])
                 fields_filled.append(field_name)
 
     # Fill benchmark scores
     if bench_data:
         for field_name, value in bench_data.items():
-            if hasattr(benchmarks, field_name) and getattr(benchmarks, field_name) is None:
-                setattr(benchmarks, field_name, float(value))
+            if field_name not in benchmarks.scores:
+                benchmarks.scores[field_name] = float(value)
                 fields_filled.append(field_name)
 
     # Set metadata if we filled anything

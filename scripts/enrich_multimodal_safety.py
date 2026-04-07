@@ -316,10 +316,9 @@ def enrich_card(
 
         filled: list[str] = []
         for field_name, value in scores.items():
-            if field_name in field_names and hasattr(benchmarks, field_name):
-                if getattr(benchmarks, field_name) is None:
-                    setattr(benchmarks, field_name, float(value))
-                    filled.append(field_name)
+            if field_name in field_names and field_name not in benchmarks.scores:
+                benchmarks.scores[field_name] = float(value)
+                filled.append(field_name)
 
         if filled:
             category_fills[cat_name] = filled

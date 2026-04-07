@@ -128,7 +128,7 @@ def ingest_model_card(graph, card) -> dict[str, int]:
         "max_output": card.modalities.text.max_output_tokens,
         "cost_input": card.cost.input,
         "cost_output": card.cost.output,
-        "arena_elo_overall": card.benchmarks.arena_elo_overall,
+        "arena_elo_overall": card.benchmarks.scores.get("arena_elo_overall"),
         "custom_score": card.downselect.custom_score,
         "card_completeness": card.card_completeness,
         "embedding_dimensions": arch.embedding_dimensions,
@@ -194,25 +194,7 @@ def ingest_model_card(graph, card) -> dict[str, int]:
         stats["edges_created"] += 1
 
     # ── 6. Benchmarks → :SCORED_ON edges ───────────────────
-    # 6a. Fixed benchmark fields
-    for field_name, value in card.benchmarks:
-        if value is not None and isinstance(value, (int, float)) and field_name not in (
-            "benchmark_source", "benchmark_as_of", "benchmark_notes", "extra_scores"
-        ):
-            bench_id = field_name
-            _merge_node(graph, "Benchmark", "id", bench_id, {
-                "id": bench_id,
-                "name": field_name.replace("_", " ").title(),
-            })
-            _merge_edge(graph, "Model", ident.model_id, "SCORED_ON",
-                         "Benchmark", bench_id, {
-                             "value": value,
-                             "date": card.benchmarks.benchmark_as_of,
-                         })
-            stats["edges_created"] += 1
-
-    # 6b. extra_scores dictionary entries (same pattern as fixed fields)
-    for bench_id, value in card.benchmarks.extra_scores.items():
+    for bench_id, value in card.benchmarks.scores.items():
         if isinstance(value, (int, float)):
             _merge_node(graph, "Benchmark", "id", bench_id, {
                 "id": bench_id,
