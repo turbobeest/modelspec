@@ -668,9 +668,9 @@ benchmarks:
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
+  bbh: 64.1
   ifeval: 84.0
-  musr: null
+  musr: 29.8
   winogrande: null
   math_500: 89.2
   aime_2025: null
@@ -689,18 +689,18 @@ benchmarks:
   mathvista: null
   docvqa: null
   chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
+  helm_safety: 78.2
+  bbq: 73.5
+  toxigen: 82.5
   arena_elo_overall: 1310.0
   arena_elo_coding: 1320.0
   arena_elo_math: 1300.0
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 8.8
+  alpaca_eval: 42.8
+  wildbench: 70.2
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -721,7 +721,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

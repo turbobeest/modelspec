@@ -670,9 +670,9 @@ benchmarks:
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
+  bbh: 62.8
   ifeval: 84.0
-  musr: null
+  musr: 30.1
   winogrande: null
   math_500: 88.5
   aime_2025: null
@@ -700,9 +700,9 @@ benchmarks:
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 8.5
+  alpaca_eval: 38.2
+  wildbench: 65.5
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -723,7 +723,7 @@ benchmarks:
   artificial_analysis_speed_index: 70.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

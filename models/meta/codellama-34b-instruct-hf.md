@@ -156,7 +156,13 @@ modalities:
 capabilities:
   coding:
     overall: tier-2
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -683,7 +689,7 @@ benchmarks:
   aider_polyglot: null
   terminal_bench: null
   mbpp: null
-  multipl_e: null
+  multipl_e: 58.8
   mmmu: null
   mathvista: null
   docvqa: null
@@ -720,8 +726,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: bigcode-leaderboard, provider-reports
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

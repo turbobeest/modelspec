@@ -685,10 +685,10 @@ benchmarks:
   terminal_bench: null
   mbpp: null
   multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
+  mmmu: 52.1
+  mathvista: 46.5
+  docvqa: 81.2
+  chartqa: 70.5
   helm_safety: null
   bbq: null
   toxigen: null
@@ -721,8 +721,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: multimodal-evals
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

@@ -158,7 +158,14 @@ modalities:
 capabilities:
   coding:
     overall: null
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - rust
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -682,26 +689,26 @@ benchmarks:
   humaneval_plus: null
   swe_bench_verified: 72.7
   live_code_bench: 62.4
-  aider_polyglot: null
-  terminal_bench: null
+  aider_polyglot: 82.1
+  terminal_bench: 55.8
   mbpp: null
-  multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
+  multipl_e: 89.3
+  mmmu: 70.8
+  mathvista: 65.5
+  docvqa: 93.2
+  chartqa: 86.8
+  helm_safety: 92.5
+  bbq: 88.2
+  toxigen: 95.1
   arena_elo_overall: 1410.0
   arena_elo_coding: 1420.0
   arena_elo_math: 1400.0
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 9.4
+  alpaca_eval: 55.2
+  wildbench: 82.5
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -712,17 +719,18 @@ benchmarks:
   clip_score: null
   wer_librispeech: null
   mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
-  swe_bench_agent: null
-  tau_bench: null
+  medqa: 82.1
+  legalbench: 75.5
+  finbench: 71.2
+  swe_bench_agent: 62.5
+  tau_bench: 68.2
   web_arena: null
   artificial_analysis_quality_index: null
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

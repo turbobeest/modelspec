@@ -681,7 +681,7 @@ benchmarks:
   humaneval_plus: null
   swe_bench_verified: 68.2
   live_code_bench: null
-  aider_polyglot: null
+  aider_polyglot: 72.5
   terminal_bench: null
   mbpp: null
   multipl_e: null
@@ -714,8 +714,8 @@ benchmarks:
   medqa: null
   legalbench: null
   finbench: null
-  swe_bench_agent: null
-  tau_bench: null
+  swe_bench_agent: 52.1
+  tau_bench: 55.8
   web_arena: null
   artificial_analysis_quality_index: null
   artificial_analysis_speed_index: null

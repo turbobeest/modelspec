@@ -158,7 +158,14 @@ modalities:
 capabilities:
   coding:
     overall: tier-2
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - rust
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -685,7 +692,7 @@ benchmarks:
   aider_polyglot: null
   terminal_bench: null
   mbpp: null
-  multipl_e: null
+  multipl_e: 72.0
   mmmu: null
   mathvista: null
   docvqa: null
@@ -699,9 +706,9 @@ benchmarks:
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 8.2
+  alpaca_eval: 32.5
+  wildbench: 58.2
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -722,7 +729,7 @@ benchmarks:
   artificial_analysis_speed_index: 88.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, preference-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

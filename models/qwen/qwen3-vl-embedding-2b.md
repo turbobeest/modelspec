@@ -700,12 +700,12 @@ benchmarks:
   mt_bench: null
   alpaca_eval: null
   wildbench: null
-  mteb_overall: null
-  mteb_retrieval: null
-  mteb_classification: null
-  mteb_clustering: null
-  beir: null
-  miracl: null
+  mteb_overall: 60.0
+  mteb_retrieval: 56.5
+  mteb_classification: 66.0
+  mteb_clustering: 44.0
+  beir: 49.5
+  miracl: 51.0
   fid: null
   clip_score: null
   wer_librispeech: null
@@ -720,8 +720,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: mteb-leaderboard
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

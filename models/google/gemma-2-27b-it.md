@@ -669,9 +669,9 @@ benchmarks:
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
+  bbh: 52.4
   ifeval: 75.0
-  musr: null
+  musr: 20.1
   winogrande: null
   math_500: 68.5
   aime_2025: null
@@ -722,7 +722,7 @@ benchmarks:
   artificial_analysis_speed_index: 80.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

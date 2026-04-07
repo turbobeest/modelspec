@@ -155,7 +155,14 @@ modalities:
 capabilities:
   coding:
     overall: tier-2
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - rust
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -677,12 +684,12 @@ benchmarks:
   mgsm: null
   humaneval: 88.5
   humaneval_plus: null
-  swe_bench_verified: null
+  swe_bench_verified: 35.2
   live_code_bench: null
-  aider_polyglot: null
+  aider_polyglot: 60.5
   terminal_bench: null
   mbpp: null
-  multipl_e: null
+  multipl_e: 75.7
   mmmu: null
   mathvista: null
   docvqa: null

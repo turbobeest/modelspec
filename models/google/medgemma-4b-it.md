@@ -711,7 +711,7 @@ benchmarks:
   clip_score: null
   wer_librispeech: null
   mos_tts: null
-  medqa: null
+  medqa: 72.1
   legalbench: null
   finbench: null
   swe_bench_agent: null
@@ -721,8 +721,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: domain-evals
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

@@ -684,22 +684,22 @@ benchmarks:
   terminal_bench: null
   mbpp: null
   multipl_e: null
-  mmmu: null
-  mathvista: null
-  docvqa: null
-  chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
+  mmmu: 72.5
+  mathvista: 68.2
+  docvqa: 94.1
+  chartqa: 88.5
+  helm_safety: 90.5
+  bbq: 86.5
+  toxigen: 93.5
   arena_elo_overall: 1230.0
   arena_elo_coding: 1240.0
   arena_elo_math: 1220.0
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 9.3
+  alpaca_eval: 52.1
+  wildbench: 80.5
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -720,7 +720,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

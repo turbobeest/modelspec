@@ -158,7 +158,14 @@ modalities:
 capabilities:
   coding:
     overall: null
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - rust
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -669,9 +676,9 @@ benchmarks:
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
+  bbh: 55.8
   ifeval: 76.0
-  musr: null
+  musr: 22.7
   winogrande: null
   math_500: 64.5
   aime_2025: null
@@ -685,14 +692,14 @@ benchmarks:
   aider_polyglot: null
   terminal_bench: null
   mbpp: null
-  multipl_e: null
+  multipl_e: 70.8
   mmmu: null
   mathvista: null
   docvqa: null
   chartqa: null
-  helm_safety: null
-  bbq: null
-  toxigen: null
+  helm_safety: 82.5
+  bbq: 78.2
+  toxigen: 86.5
   arena_elo_overall: 1240.0
   arena_elo_coding: 1230.0
   arena_elo_math: 1220.0
@@ -712,9 +719,9 @@ benchmarks:
   clip_score: null
   wer_librispeech: null
   mos_tts: null
-  medqa: null
-  legalbench: null
-  finbench: null
+  medqa: 65.2
+  legalbench: 58.5
+  finbench: 55.2
   swe_bench_agent: null
   tau_bench: null
   web_arena: null
@@ -722,7 +729,7 @@ benchmarks:
   artificial_analysis_speed_index: 72.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, domain-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

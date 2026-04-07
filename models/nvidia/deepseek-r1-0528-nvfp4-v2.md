@@ -158,7 +158,14 @@ modalities:
 capabilities:
   coding:
     overall: tier-2
-    languages: []
+    languages:
+    - cpp
+    - go
+    - java
+    - javascript
+    - python
+    - rust
+    - typescript
     agentic_coding: false
     code_review: false
     refactoring: false
@@ -669,9 +676,9 @@ benchmarks:
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
+  bbh: 68.7
   ifeval: 88.0
-  musr: null
+  musr: 33.5
   winogrande: null
   math_500: 97.5
   aime_2025: 82.5
@@ -682,10 +689,10 @@ benchmarks:
   humaneval_plus: null
   swe_bench_verified: 53.8
   live_code_bench: null
-  aider_polyglot: null
+  aider_polyglot: 65.8
   terminal_bench: null
   mbpp: null
-  multipl_e: null
+  multipl_e: 84.6
   mmmu: null
   mathvista: null
   docvqa: null
@@ -699,9 +706,9 @@ benchmarks:
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 9.0
+  alpaca_eval: 45.2
+  wildbench: 72.5
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -715,14 +722,14 @@ benchmarks:
   medqa: null
   legalbench: null
   finbench: null
-  swe_bench_agent: null
-  tau_bench: null
+  swe_bench_agent: 42.5
+  tau_bench: 48.8
   web_arena: null
   artificial_analysis_quality_index: 84.0
   artificial_analysis_speed_index: 40.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

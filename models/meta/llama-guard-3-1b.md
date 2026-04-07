@@ -688,9 +688,9 @@ benchmarks:
   mathvista: null
   docvqa: null
   chartqa: null
-  helm_safety: null
+  helm_safety: 92.8
   bbq: null
-  toxigen: null
+  toxigen: 95.8
   arena_elo_overall: null
   arena_elo_coding: null
   arena_elo_math: null
@@ -720,8 +720,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: safety-evals
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

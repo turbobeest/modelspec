@@ -661,17 +661,17 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  mmlu_pro: null
-  gpqa_diamond: null
+  mmlu_pro: 52.8
+  gpqa_diamond: 36.5
   hle: null
   arc_challenge: null
   hellaswag: null
   truthfulqa: null
-  bbh: null
-  ifeval: null
-  musr: null
+  bbh: 48.2
+  ifeval: 77.3
+  musr: 18.2
   winogrande: null
-  math_500: null
+  math_500: 58.5
   aime_2025: null
   aime_2026: null
   gsm8k: null
@@ -720,8 +720,8 @@ benchmarks:
   artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: ''
-  benchmark_as_of: ''
+  benchmark_source: open-llm-leaderboard-v2
+  benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
   api_only: false

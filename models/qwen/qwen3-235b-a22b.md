@@ -681,7 +681,7 @@ benchmarks:
   humaneval_plus: null
   swe_bench_verified: 55.8
   live_code_bench: null
-  aider_polyglot: null
+  aider_polyglot: 68.2
   terminal_bench: null
   mbpp: null
   multipl_e: null
@@ -698,9 +698,9 @@ benchmarks:
   arena_elo_vision: null
   arena_elo_hard_prompts: null
   arena_elo_style_control: null
-  mt_bench: null
-  alpaca_eval: null
-  wildbench: null
+  mt_bench: 8.9
+  alpaca_eval: 44.5
+  wildbench: 73.8
   mteb_overall: null
   mteb_retrieval: null
   mteb_classification: null
@@ -714,14 +714,14 @@ benchmarks:
   medqa: null
   legalbench: null
   finbench: null
-  swe_bench_agent: null
-  tau_bench: null
+  swe_bench_agent: 45.5
+  tau_bench: 50.2
   web_arena: null
   artificial_analysis_quality_index: 82.0
   artificial_analysis_speed_index: 55.0
   openrouter_usage_rank: null
   fmti_score: null
-  benchmark_source: lmarena.ai, provider-reports
+  benchmark_source: lmarena.ai, provider-reports, preference-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
