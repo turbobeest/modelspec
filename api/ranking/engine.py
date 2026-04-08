@@ -221,7 +221,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "reasoning": {
@@ -234,7 +234,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.35, "coding": 0.15, "tool_use": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "chat": {
@@ -247,7 +247,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.20, "language": 0.20, "reasoning": 0.15, "tool_use": 0.10,
         },
-        "cost_weight": 0.15,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "embedding": {
@@ -257,7 +257,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
             "beir": 0.15, "miracl": 0.10, "mteb_clustering": 0.05,
         },
         "capability_weights": {},
-        "cost_weight": 0.20,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
     "vision": {
@@ -269,7 +269,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.15, "creative": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "agentic": {
@@ -282,7 +282,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "tool_use": 0.25, "coding": 0.20, "reasoning": 0.20,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "rag": {
@@ -295,7 +295,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.15, "reasoning": 0.10,
         },
-        "cost_weight": 0.20,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "safety": {
@@ -305,7 +305,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
             "arena_elo_overall": 0.20,
         },
         "capability_weights": {},
-        "cost_weight": 0.15,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
     "general": {
@@ -318,7 +318,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.15, "coding": 0.15, "tool_use": 0.10, "creative": 0.10,
         },
-        "cost_weight": 0.15,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -333,7 +333,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_rust": {
@@ -346,7 +346,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_go": {
@@ -359,7 +359,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_typescript": {
@@ -372,7 +372,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_cpp": {
@@ -385,7 +385,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_java": {
@@ -398,7 +398,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "coding_javascript": {
@@ -411,7 +411,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -426,7 +426,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.20, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "medical_clinical": {
@@ -438,7 +438,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.20, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "medical_radiology": {
@@ -450,7 +450,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "creative": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -465,7 +465,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -479,7 +479,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -494,7 +494,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "science_chemistry": {
@@ -506,7 +506,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "science_physics": {
@@ -518,7 +518,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "science_biology": {
@@ -531,7 +531,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -545,7 +545,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.30, "creative": 0.15, "reasoning": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -560,7 +560,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.30, "language": 0.20, "reasoning": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "writing_technical": {
@@ -572,7 +572,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.25, "reasoning": 0.20, "language": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "summarization": {
@@ -584,7 +584,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.25, "language": 0.20, "reasoning": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.20,
     },
 
@@ -598,7 +598,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.35, "coding": 0.10,
         },
-        "cost_weight": 0.05,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
 
@@ -613,7 +613,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.20, "language": 0.20, "creative": 0.15,
         },
-        "cost_weight": 0.15,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "education_stem": {
@@ -626,7 +626,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
     "education_humanities": {
@@ -639,7 +639,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.25, "creative": 0.20, "reasoning": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -654,7 +654,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.25, "reasoning": 0.25, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -669,7 +669,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.25, "tool_use": 0.20, "creative": 0.10,
         },
-        "cost_weight": 0.25,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -683,7 +683,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "safety": 0.30, "language": 0.15,
         },
-        "cost_weight": 0.20,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
 
@@ -698,7 +698,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "language": 0.15, "tool_use": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.20,
     },
 
@@ -713,7 +713,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.35, "language": 0.25,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -727,7 +727,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.20,
         },
-        "cost_weight": 0.20,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
     "text_to_speech": {
@@ -739,7 +739,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.15, "language": 0.15,
         },
-        "cost_weight": 0.20,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
 
@@ -753,7 +753,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "creative": 0.30,
         },
-        "cost_weight": 0.15,
+        "cost_weight": 0.0,
         "context_weight": 0.05,
     },
 
@@ -769,7 +769,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.25, "reasoning": 0.25, "tool_use": 0.20,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -784,7 +784,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.25, "tool_use": 0.25, "reasoning": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -798,7 +798,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "language": 0.35, "creative": 0.10, "reasoning": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -813,7 +813,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
     "financial_compliance": {
@@ -826,7 +826,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -840,7 +840,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -855,7 +855,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "language": 0.20, "domain": 0.15,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.20,
     },
 
@@ -870,7 +870,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.20, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 
@@ -885,7 +885,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.10,
     },
 
@@ -900,7 +900,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.25, "language": 0.10,
         },
-        "cost_weight": 0.10,
+        "cost_weight": 0.0,
         "context_weight": 0.15,
     },
 }
