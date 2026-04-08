@@ -159,7 +159,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -180,7 +180,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -674,17 +674,17 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 54.8
-    arena_elo_coding: 1300
-    arena_elo_math: 1280
-    arena_elo_overall: 1290
-    artificial_analysis_quality_index: 73
-    artificial_analysis_speed_index: 84
+    arena_elo_coding: 1300.0
+    arena_elo_math: 1280.0
+    arena_elo_overall: 1290.0
+    artificial_analysis_quality_index: 73.0
+    artificial_analysis_speed_index: 84.0
     bbh: 62.3
     chartqa: 78.5
     docvqa: 86.8
     gpqa_diamond: 67.8
     humaneval: 84.1
-    ifeval: 83
+    ifeval: 83.0
     math_500: 87.3
     mathvista: 54.5
     mmlu_astronomy: 73.5
@@ -709,8 +709,19 @@ benchmarks:
     multipl_e_typescript: 78.8
     musr: 30.4
     swe_bench_verified: 30.2
+    multipl_e_csharp: 74.2
+    multipl_e_php: 71.5
+    multipl_e_ruby: 57.8
+    multipl_e_swift: 57.8
+    multipl_e_r: 50.5
+    multipl_e_julia: 54.2
+    multipl_e_perl: 42.5
+    multipl_e_lua: 47.5
+    multipl_e_scala: 52.5
+    multipl_e_kotlin: 65.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -870,6 +881,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # gemma 4 31B it
 

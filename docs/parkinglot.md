@@ -192,3 +192,40 @@ Private downselect profiles for organizations:
 - Audit trail for model selection decisions
 
 ---
+
+## GitHub Pages Static Site (Graph Viz + Downselect)
+
+**Date**: 2026-04-07
+**Priority**: High — free public hosting, zero infrastructure cost
+
+### Architecture
+
+Host the 3D knowledge graph visualization and downselect ranking tool on GitHub Pages as a fully client-side static site. Keep it **independent of the main repo code** — separate `gh-pages/` directory or branch with its own build pipeline.
+
+### What gets exported:
+
+1. **Graph JSON** — all nodes + edges exported as static JSON for Three.js viz
+2. **Pre-computed rankings** — top 20 per profile for all 51 use-case profiles as JSON files
+3. **Model scores blob** — all `benchmarks.scores` dicts as a single JSON, enabling client-side filtering
+4. **Client-side ranking engine** — port the weighted-sum scoring logic to JS so the downselect UI can do dynamic constraint filtering (hardware, cost, origin) in the browser
+
+### Build pipeline:
+
+```yaml
+# GitHub Action: triggers on push to main
+# 1. Run export script: python scripts/export_static.py → gh-pages/data/
+# 2. Build React downselect app → gh-pages/downselect/
+# 3. Deploy to GitHub Pages
+```
+
+### Tradeoffs vs. API:
+
+- **Loses**: real-time graph queries, arbitrary Cypher, dynamic edge traversal
+- **Gains**: zero hosting cost, instant load, no server to maintain, public URL
+- For 95% of "what's the best model for X?" queries, pre-computed + client-side filtering is sufficient
+
+### Prerequisite:
+
+Complete the benchmark scraping expansion first — static export should snapshot the fullest dataset possible.
+
+---

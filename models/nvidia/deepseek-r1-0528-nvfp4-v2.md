@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -674,15 +674,15 @@ benchmarks:
     aider_polyglot: 65.8
     aime_2025: 82.5
     alpaca_eval: 45.2
-    arena_elo_coding: 1380
-    arena_elo_math: 1410
-    arena_elo_overall: 1370
-    artificial_analysis_quality_index: 84
-    artificial_analysis_speed_index: 40
+    arena_elo_coding: 1380.0
+    arena_elo_math: 1410.0
+    arena_elo_overall: 1370.0
+    artificial_analysis_quality_index: 84.0
+    artificial_analysis_speed_index: 40.0
     bbh: 68.7
     gpqa_diamond: 73.2
     humaneval: 90.5
-    ifeval: 88
+    ifeval: 88.0
     math_500: 97.5
     mmlu_astronomy: 76.5
     mmlu_biology: 84.2
@@ -692,10 +692,10 @@ benchmarks:
     mmlu_computer_science: 85.5
     mmlu_jurisprudence: 74.5
     mmlu_physics: 82.8
-    mmlu_pro: 81
+    mmlu_pro: 81.0
     mmlu_professional_accounting: 68.2
     mmlu_professional_law: 72.5
-    mt_bench: 9
+    mt_bench: 9.0
     multipl_e: 84.6
     multipl_e_cpp: 83.5
     multipl_e_go: 80.5
@@ -709,8 +709,21 @@ benchmarks:
     swe_bench_verified: 53.8
     tau_bench: 48.8
     wildbench: 72.5
+    multipl_e_csharp: 82.1
+    multipl_e_php: 79.5
+    multipl_e_ruby: 67.2
+    multipl_e_swift: 67.5
+    multipl_e_r: 60.2
+    multipl_e_julia: 64.5
+    multipl_e_perl: 52.5
+    multipl_e_lua: 57.8
+    multipl_e_scala: 62.5
+    multipl_e_kotlin: 74.8
+    live_code_bench: 77.0
+    terminal_bench: 5.7
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -870,6 +883,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek R1 0528 NVFP4 v2
 

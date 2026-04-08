@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,13 +664,15 @@ benchmarks:
   scores:
     bbh: 43.8
     gpqa_diamond: 35.2
-    humaneval: 65
-    ifeval: 68
+    humaneval: 65.0
+    ifeval: 68.0
     math_500: 58.5
     mmlu_pro: 50.1
     musr: 14.2
-  benchmark_source: provider-reports, open-llm-leaderboard-v2
+    gsm8k: 91.6
+  benchmark_source: provider-reports, open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -830,6 +832,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen2.5 7B
 

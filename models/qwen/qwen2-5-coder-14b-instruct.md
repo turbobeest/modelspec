@@ -677,8 +677,22 @@ benchmarks:
     multipl_e_python: 82.1
     multipl_e_rust: 62.5
     multipl_e_typescript: 75.8
-  benchmark_source: bigcode-leaderboard, provider-reports
+    multipl_e_csharp: 68.2
+    multipl_e_php: 66.5
+    multipl_e_ruby: 50.2
+    multipl_e_swift: 52.1
+    multipl_e_lua: 45.5
+    multipl_e_scala: 47.5
+    multipl_e_kotlin: 56.8
+    ifeval: 69.1
+    bbh: 61.4
+    math_500: 32.5
+    gpqa_diamond: 30.5
+    musr: 39.1
+    mmlu_pro: 39.4
+  benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

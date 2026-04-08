@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages:
     - cpp
     - go
@@ -179,7 +179,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -192,7 +192,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -674,11 +674,11 @@ benchmarks:
   scores:
     aider_polyglot: 75.5
     alpaca_eval: 50.8
-    arena_elo_coding: 1380
-    arena_elo_math: 1360
-    arena_elo_overall: 1370
-    artificial_analysis_quality_index: 86
-    artificial_analysis_speed_index: 71
+    arena_elo_coding: 1380.0
+    arena_elo_math: 1360.0
+    arena_elo_overall: 1370.0
+    artificial_analysis_quality_index: 86.0
+    artificial_analysis_speed_index: 71.0
     bbq: 87.5
     chartqa: 84.2
     docvqa: 91.5
@@ -715,8 +715,21 @@ benchmarks:
     terminal_bench: 48.2
     toxigen: 94.5
     wildbench: 78.2
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals
+    multipl_e_csharp: 85.5
+    multipl_e_php: 82.2
+    multipl_e_ruby: 75.2
+    multipl_e_swift: 73.5
+    multipl_e_r: 65.2
+    multipl_e_julia: 67.5
+    multipl_e_perl: 58.8
+    multipl_e_lua: 62.1
+    multipl_e_scala: 68.5
+    multipl_e_kotlin: 79.8
+    live_code_bench: 59.0
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -876,6 +889,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Sonnet 4.5 (latest)
 

@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,17 +665,36 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1310
-    arena_elo_math: 1290
-    arena_elo_overall: 1300
-    gpqa_diamond: 65
+    arena_elo_coding: 1310.0
+    arena_elo_math: 1290.0
+    arena_elo_overall: 1300.0
+    gpqa_diamond: 65.0
     humaneval: 86.8
     ifeval: 85.4
     math_500: 78.3
     mmlu_pro: 76.2
-    swe_bench_verified: 49
-  benchmark_source: lmarena.ai, provider-reports
+    swe_bench_verified: 49.0
+    mgsm: 91.6
+    gsm8k: 96.4
+    flores_en_es: 70.8
+    flores_en_de: 66.9
+    flores_en_ja: 60.8
+    flores_en_zh: 59.2
+    multipl_e_csharp: 80.2
+    multipl_e_php: 77.5
+    multipl_e_ruby: 68.5
+    multipl_e_swift: 66.5
+    multipl_e_r: 58.2
+    multipl_e_julia: 61.5
+    multipl_e_perl: 52.2
+    multipl_e_lua: 55.8
+    multipl_e_scala: 62.5
+    multipl_e_kotlin: 72.8
+    live_code_bench: 38.1
+    aider_polyglot: 51.6
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -835,6 +854,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Sonnet 3.5
 

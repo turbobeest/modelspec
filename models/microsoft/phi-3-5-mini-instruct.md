@@ -663,16 +663,19 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    artificial_analysis_quality_index: 58
-    artificial_analysis_speed_index: 92
+    artificial_analysis_quality_index: 58.0
+    artificial_analysis_speed_index: 92.0
     bbh: 38.1
     gpqa_diamond: 28.5
     ifeval: 72.4
     math_500: 52.8
     mmlu_pro: 42.3
     musr: 11.2
-  benchmark_source: open-llm-leaderboard-v2
+    mgsm: 47.9
+    gsm8k: 86.2
+  benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

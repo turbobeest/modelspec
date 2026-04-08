@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,20 +665,22 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1290
-    arena_elo_math: 1300
-    arena_elo_overall: 1280
-    artificial_analysis_quality_index: 74
-    artificial_analysis_speed_index: 88
+    arena_elo_coding: 1290.0
+    arena_elo_math: 1300.0
+    arena_elo_overall: 1280.0
+    artificial_analysis_quality_index: 74.0
+    artificial_analysis_speed_index: 88.0
     bbh: 50.5
     gpqa_diamond: 55.2
     humaneval: 80.5
-    ifeval: 80
+    ifeval: 80.0
     math_500: 84.2
     mmlu_pro: 68.5
     musr: 21.3
+    live_code_bench: 62.6
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -838,6 +840,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen3 30B A3B Instruct 2507
 

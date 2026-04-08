@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: true
     logical: false
     scientific: false
@@ -184,7 +184,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,16 +664,30 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1320
-    arena_elo_math: 1300
-    arena_elo_overall: 1310
+    arena_elo_coding: 1320.0
+    arena_elo_math: 1300.0
+    arena_elo_overall: 1310.0
     gpqa_diamond: 62.1
     humaneval: 86.2
-    ifeval: 85
+    ifeval: 85.0
     math_500: 84.3
     mmlu_pro: 75.2
+    multipl_e_csharp: 78.5
+    multipl_e_php: 75.8
+    multipl_e_ruby: 66.2
+    multipl_e_swift: 65.5
+    multipl_e_r: 56.8
+    multipl_e_julia: 60.2
+    multipl_e_perl: 50.5
+    multipl_e_lua: 54.8
+    multipl_e_scala: 60.5
+    multipl_e_kotlin: 72.2
+    live_code_bench: 51.1
+    swe_bench_verified: 73.3
+    terminal_bench: 41.0
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -833,6 +847,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Haiku 4.5
 

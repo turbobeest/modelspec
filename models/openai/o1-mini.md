@@ -156,7 +156,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -663,16 +663,20 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1310
-    arena_elo_math: 1330
-    arena_elo_overall: 1300
-    gpqa_diamond: 60
-    humaneval: 85
-    ifeval: 82
-    math_500: 90
+    arena_elo_coding: 1310.0
+    arena_elo_math: 1330.0
+    arena_elo_overall: 1300.0
+    gpqa_diamond: 60.0
+    humaneval: 85.0
+    ifeval: 82.0
+    math_500: 90.0
     mmlu_pro: 72.5
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 89.3
+    gsm8k: 97.1
+    aider_polyglot: 32.9
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -832,6 +836,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # o1-mini
 

@@ -664,11 +664,17 @@ benchmarks:
   scores:
     beir: 45.2
     mteb_classification: 62.5
-    mteb_clustering: 40
+    mteb_clustering: 40.0
     mteb_overall: 56.2
     mteb_retrieval: 51.8
-  benchmark_source: mteb-leaderboard
+    mteb_reranking: 52.0
+    mteb_sts: 78.5
+    mteb_pair_classification: 81.0
+    mteb_summarization: 27.0
+    miracl: 32.5
+  benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

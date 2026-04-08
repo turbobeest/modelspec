@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -179,7 +179,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -192,7 +192,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -674,11 +674,11 @@ benchmarks:
   scores:
     aider_polyglot: 52.8
     alpaca_eval: 38.5
-    arena_elo_coding: 1270
-    arena_elo_math: 1260
-    arena_elo_overall: 1280
-    artificial_analysis_quality_index: 78
-    artificial_analysis_speed_index: 60
+    arena_elo_coding: 1270.0
+    arena_elo_math: 1260.0
+    arena_elo_overall: 1280.0
+    artificial_analysis_quality_index: 78.0
+    artificial_analysis_speed_index: 60.0
     bbh: 58.9
     bbq: 77.5
     chartqa: 74.5
@@ -686,7 +686,7 @@ benchmarks:
     gpqa_diamond: 55.5
     helm_safety: 82.8
     humaneval: 84.2
-    ifeval: 82
+    ifeval: 82.0
     math_500: 78.5
     mathvista: 50.2
     mmlu_astronomy: 73.5
@@ -714,8 +714,21 @@ benchmarks:
     swe_bench_verified: 32.5
     toxigen: 86.2
     wildbench: 65.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, open-llm-leaderboard-v2
+    multipl_e_csharp: 78.2
+    multipl_e_php: 75.5
+    multipl_e_ruby: 62.5
+    multipl_e_swift: 63.5
+    multipl_e_r: 55.2
+    multipl_e_julia: 58.8
+    multipl_e_perl: 48.5
+    multipl_e_lua: 52.8
+    multipl_e_scala: 57.8
+    multipl_e_kotlin: 70.2
+    live_code_bench: 34.4
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -875,6 +888,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Mistral Large 3
 

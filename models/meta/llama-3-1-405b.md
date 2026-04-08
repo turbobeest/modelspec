@@ -159,7 +159,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -173,7 +173,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -186,7 +186,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -666,18 +666,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1260
-    arena_elo_math: 1250
-    arena_elo_overall: 1270
-    artificial_analysis_quality_index: 80
-    artificial_analysis_speed_index: 45
+    arena_elo_coding: 1260.0
+    arena_elo_math: 1250.0
+    arena_elo_overall: 1270.0
+    artificial_analysis_quality_index: 80.0
+    artificial_analysis_speed_index: 45.0
     gpqa_diamond: 49.8
     humaneval: 81.2
-    ifeval: 80
+    ifeval: 80.0
     math_500: 73.8
     mmlu_pro: 67.5
-  benchmark_source: lmarena.ai, provider-reports
+    gsm8k: 96.8
+    live_code_bench: 30.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -837,6 +840,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Llama 3.1 405B
 

@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages:
     - cpp
     - go
@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -191,7 +191,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -672,11 +672,11 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 82.1
-    aime_2025: 82
+    aime_2025: 82.0
     alpaca_eval: 55.2
-    arena_elo_coding: 1420
-    arena_elo_math: 1400
-    arena_elo_overall: 1410
+    arena_elo_coding: 1420.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1410.0
     bbq: 88.2
     chartqa: 86.8
     docvqa: 93.2
@@ -717,8 +717,21 @@ benchmarks:
     terminal_bench: 55.8
     toxigen: 95.1
     wildbench: 82.5
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, domain-evals
+    multipl_e_csharp: 88.2
+    multipl_e_php: 85.5
+    multipl_e_ruby: 78.5
+    multipl_e_swift: 76.8
+    multipl_e_r: 68.5
+    multipl_e_julia: 70.2
+    multipl_e_perl: 62.5
+    multipl_e_lua: 65.8
+    multipl_e_scala: 72.2
+    multipl_e_kotlin: 82.5
+    terminal_bench_2: 65.4
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -878,6 +891,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Opus 4
 

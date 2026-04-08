@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -661,7 +661,78 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    arc_challenge: 63.5
+    gsm8k: 67.9
+    hellaswag: 83.2
+    truthfulqa: 56.6
+    winogrande: 76.4
+    mmlu_abstract_algebra: 36.0
+    mmlu_anatomy: 63.0
+    mmlu_astronomy: 69.7
+    mmlu_business_ethics: 63.0
+    mmlu_clinical_knowledge: 73.6
+    mmlu_college_biology: 72.2
+    mmlu_college_chemistry: 41.0
+    mmlu_college_computer_science: 47.0
+    mmlu_college_mathematics: 36.0
+    mmlu_college_medicine: 61.8
+    mmlu_college_physics: 46.1
+    mmlu_computer_security: 74.0
+    mmlu_conceptual_physics: 56.6
+    mmlu_econometrics: 50.9
+    mmlu_electrical_engineering: 60.0
+    mmlu_elementary_mathematics: 42.9
+    mmlu_formal_logic: 47.6
+    mmlu_global_facts: 42.0
+    mmlu_high_school_biology: 80.6
+    mmlu_high_school_chemistry: 47.8
+    mmlu_high_school_computer_science: 66.0
+    mmlu_high_school_european_history: 74.5
+    mmlu_high_school_geography: 78.8
+    mmlu_high_school_government_and_politics: 88.1
+    mmlu_high_school_macroeconomics: 62.1
+    mmlu_high_school_mathematics: 38.5
+    mmlu_high_school_microeconomics: 72.7
+    mmlu_high_school_physics: 39.1
+    mmlu_high_school_psychology: 82.9
+    mmlu_high_school_statistics: 50.9
+    mmlu_high_school_us_history: 81.4
+    mmlu_high_school_world_history: 84.8
+    mmlu_human_aging: 70.4
+    mmlu_human_sexuality: 76.3
+    mmlu_international_law: 78.5
+    mmlu_jurisprudence: 73.1
+    mmlu_logical_fallacies: 71.8
+    mmlu_machine_learning: 54.5
+    mmlu_management: 80.6
+    mmlu_marketing: 87.6
+    mmlu_medical_genetics: 78.0
+    mmlu_miscellaneous: 83.1
+    mmlu_moral_disputes: 71.1
+    mmlu_moral_scenarios: 43.7
+    mmlu_nutrition: 71.2
+    mmlu_philosophy: 71.1
+    mmlu_prehistory: 71.3
+    mmlu_professional_accounting: 50.7
+    mmlu_professional_law: 46.8
+    mmlu_professional_medicine: 69.5
+    mmlu_professional_psychology: 69.8
+    mmlu_public_relations: 61.8
+    mmlu_security_studies: 75.5
+    mmlu_sociology: 86.6
+    mmlu_us_foreign_policy: 84.0
+    mmlu_virology: 53.0
+    mmlu_world_religions: 81.9
+    ifeval: 53.6
+    bbh: 50.7
+    math_500: 8.4
+    gpqa_diamond: 29.3
+    musr: 42.6
+    mmlu_pro: 30.5
+  benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
+  benchmark_as_of: 2024-07
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -821,6 +892,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Hermes 2 Pro Llama 3 8B
 

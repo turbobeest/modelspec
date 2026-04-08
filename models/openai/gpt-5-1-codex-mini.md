@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -184,7 +184,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,22 +665,35 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 72.1
-    arena_elo_coding: 1410
-    arena_elo_math: 1390
-    arena_elo_overall: 1400
-    artificial_analysis_quality_index: 88
-    artificial_analysis_speed_index: 70
+    arena_elo_coding: 1410.0
+    arena_elo_math: 1390.0
+    arena_elo_overall: 1400.0
+    artificial_analysis_quality_index: 88.0
+    artificial_analysis_speed_index: 70.0
     gpqa_diamond: 79.1
     humaneval: 93.8
     ifeval: 92.5
     math_500: 96.8
-    mmlu_pro: 86
+    mmlu_pro: 86.0
     swe_bench_agent: 55.2
     swe_bench_verified: 71.5
     tau_bench: 58.5
     terminal_bench: 48.8
+    multipl_e_csharp: 89.2
+    multipl_e_php: 86.5
+    multipl_e_ruby: 79.8
+    multipl_e_swift: 77.8
+    multipl_e_r: 69.5
+    multipl_e_julia: 71.8
+    multipl_e_perl: 63.5
+    multipl_e_lua: 66.8
+    multipl_e_scala: 73.8
+    multipl_e_kotlin: 83.5
+    live_code_bench: 83.6
+    terminal_bench_2: 52.8
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -840,6 +853,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-5.1 Codex mini
 

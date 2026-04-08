@@ -661,7 +661,11 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    swe_bench_verified: 53.6
+  benchmark_source: livecodebench, aider, swe-bench, terminal-bench, provider-reports
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -663,8 +663,17 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    artificial_analysis_quality_index: 62
-    artificial_analysis_speed_index: 92
+    artificial_analysis_quality_index: 62.0
+    artificial_analysis_speed_index: 92.0
+    ifeval: 61.7
+    bbh: 51.8
+    math_500: 4.8
+    gpqa_diamond: 29.8
+    musr: 43.7
+    mmlu_pro: 31.4
+  benchmark_source: open-llm-leaderboard-v2
+  benchmark_as_of: 2025-03
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -824,6 +833,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Hermes 3 Llama 3.1 8B
 

@@ -661,7 +661,16 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    ifeval: 20.8
+    bbh: 31.9
+    math_500: 1.6
+    gpqa_diamond: 25.5
+    musr: 36.2
+    mmlu_pro: 12.0
+  benchmark_source: open-llm-leaderboard-v2
+  benchmark_as_of: 2025-03
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

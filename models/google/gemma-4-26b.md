@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -191,7 +191,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -672,9 +672,9 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 52.1
-    arena_elo_coding: 1290
-    arena_elo_math: 1270
-    arena_elo_overall: 1280
+    arena_elo_coding: 1290.0
+    arena_elo_math: 1270.0
+    arena_elo_overall: 1280.0
     bbh: 60.1
     gpqa_diamond: 65.2
     humaneval: 82.5
@@ -701,8 +701,19 @@ benchmarks:
     multipl_e_typescript: 76.8
     musr: 28.7
     swe_bench_verified: 28.5
+    multipl_e_csharp: 72.5
+    multipl_e_php: 69.8
+    multipl_e_ruby: 55.5
+    multipl_e_swift: 55.5
+    multipl_e_r: 48.2
+    multipl_e_julia: 52.5
+    multipl_e_perl: 40.5
+    multipl_e_lua: 45.2
+    multipl_e_scala: 50.2
+    multipl_e_kotlin: 62.8
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -862,6 +873,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemma 4 26B
 

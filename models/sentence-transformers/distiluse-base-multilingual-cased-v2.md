@@ -662,13 +662,18 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    miracl: 38
-    mteb_classification: 57
-    mteb_clustering: 34
-    mteb_overall: 50
+    miracl: 38.0
+    mteb_classification: 57.0
+    mteb_clustering: 34.0
+    mteb_overall: 50.0
     mteb_retrieval: 40.5
+    mteb_reranking: 44.0
+    mteb_sts: 72.0
+    mteb_pair_classification: 75.0
+    mteb_summarization: 23.5
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

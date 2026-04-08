@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -662,7 +662,18 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    mgsm: 58.2
+    gsm8k: 77.7
+    ifeval: 13.4
+    bbh: 39.1
+    math_500: 1.9
+    gpqa_diamond: 26.8
+    musr: 35.8
+    mmlu_pro: 24.9
+  benchmark_source: llm-stats, open-llm-leaderboard-v2
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -822,6 +833,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Llama 3.2 3B
 

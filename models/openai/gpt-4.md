@@ -155,7 +155,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -663,15 +663,15 @@ availability:
 benchmarks:
   scores:
     alpaca_eval: 52.1
-    arena_elo_coding: 1240
-    arena_elo_math: 1220
-    arena_elo_overall: 1230
+    arena_elo_coding: 1240.0
+    arena_elo_math: 1220.0
+    arena_elo_overall: 1230.0
     bbq: 86.5
     chartqa: 88.5
     docvqa: 94.1
     gpqa_diamond: 39.7
     helm_safety: 90.5
-    humaneval: 67
+    humaneval: 67.0
     ifeval: 76.5
     math_500: 42.5
     mathvista: 68.2
@@ -680,8 +680,29 @@ benchmarks:
     mt_bench: 9.3
     toxigen: 93.5
     wildbench: 80.5
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals
+    mgsm: 74.5
+    gsm8k: 92.0
+    flores_en_es: 71.2
+    flores_en_de: 67.3
+    flores_en_ja: 61.4
+    flores_en_zh: 59.7
+    multipl_e_csharp: 76.5
+    multipl_e_php: 74.2
+    multipl_e_ruby: 62.5
+    multipl_e_swift: 61.5
+    multipl_e_r: 52.8
+    multipl_e_julia: 56.2
+    multipl_e_perl: 46.5
+    multipl_e_lua: 50.8
+    multipl_e_scala: 56.8
+    multipl_e_kotlin: 68.2
+    live_code_bench: 48.3
+    aider_polyglot: 52.4
+    swe_bench_verified: 54.6
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -841,6 +862,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-4
 

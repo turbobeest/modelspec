@@ -159,7 +159,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -180,7 +180,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -193,7 +193,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -675,11 +675,11 @@ benchmarks:
   scores:
     aider_polyglot: 58.2
     alpaca_eval: 48.5
-    arena_elo_coding: 1260
-    arena_elo_math: 1240
-    arena_elo_overall: 1250
-    artificial_analysis_quality_index: 72
-    artificial_analysis_speed_index: 90
+    arena_elo_coding: 1260.0
+    arena_elo_math: 1240.0
+    arena_elo_overall: 1250.0
+    artificial_analysis_quality_index: 72.0
+    artificial_analysis_speed_index: 90.0
     bbq: 85.8
     chartqa: 85.2
     docvqa: 92.8
@@ -705,7 +705,7 @@ benchmarks:
     mmlu_professional_law: 76.8
     mmmu: 69.1
     mt_bench: 9.1
-    multipl_e: 83
+    multipl_e: 83.0
     multipl_e_cpp: 82.5
     multipl_e_go: 79.1
     multipl_e_java: 86.5
@@ -719,8 +719,27 @@ benchmarks:
     terminal_bench: 35.2
     toxigen: 92.8
     wildbench: 75.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, domain-evals
+    mgsm: 87.0
+    gsm8k: 92.0
+    flores_en_es: 71.2
+    flores_en_de: 67.3
+    flores_en_ja: 61.4
+    flores_en_zh: 59.7
+    multipl_e_csharp: 72.5
+    multipl_e_php: 70.2
+    multipl_e_ruby: 58.5
+    multipl_e_swift: 58.5
+    multipl_e_r: 50.2
+    multipl_e_julia: 53.5
+    multipl_e_perl: 44.2
+    multipl_e_lua: 48.5
+    multipl_e_scala: 52.8
+    multipl_e_kotlin: 65.2
+    live_code_bench: 23.4
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -880,6 +899,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-4o mini
 

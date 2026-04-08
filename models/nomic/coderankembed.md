@@ -660,7 +660,14 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    mteb_reranking: 53.0
+    mteb_sts: 78.0
+    mteb_pair_classification: 81.0
+    mteb_summarization: 27.5
+  benchmark_source: mteb-leaderboard
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

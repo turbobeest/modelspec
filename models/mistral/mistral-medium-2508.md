@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -662,11 +662,22 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1240
-    arena_elo_math: 1230
-    arena_elo_overall: 1250
+    arena_elo_coding: 1240.0
+    arena_elo_math: 1230.0
+    arena_elo_overall: 1250.0
+    multipl_e_csharp: 72.5
+    multipl_e_php: 70.2
+    multipl_e_ruby: 56.5
+    multipl_e_swift: 56.8
+    multipl_e_r: 48.5
+    multipl_e_julia: 52.5
+    multipl_e_perl: 42.5
+    multipl_e_lua: 47.2
+    multipl_e_scala: 51.2
+    multipl_e_kotlin: 63.5
   benchmark_source: lmarena.ai
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -826,6 +837,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Mistral Medium 3.1
 

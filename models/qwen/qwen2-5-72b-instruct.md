@@ -156,7 +156,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -663,21 +663,33 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1290
-    arena_elo_math: 1270
-    arena_elo_overall: 1280
+    arena_elo_coding: 1290.0
+    arena_elo_math: 1270.0
+    arena_elo_overall: 1280.0
     bbh: 66.3
     bbq: 75.2
     gpqa_diamond: 54.8
     helm_safety: 80.5
     humaneval: 84.5
-    ifeval: 82
+    ifeval: 82.0
     math_500: 83.2
     mmlu_pro: 71.5
     musr: 28.3
     toxigen: 84.8
+    multipl_e_csharp: 74.5
+    multipl_e_php: 72.2
+    multipl_e_ruby: 58.5
+    multipl_e_swift: 58.8
+    multipl_e_r: 50.5
+    multipl_e_julia: 54.8
+    multipl_e_perl: 44.2
+    multipl_e_lua: 49.5
+    multipl_e_scala: 53.2
+    multipl_e_kotlin: 65.5
+    live_code_bench: 55.5
   benchmark_source: lmarena.ai, provider-reports, safety-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -837,6 +849,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen2.5 72B Instruct
 

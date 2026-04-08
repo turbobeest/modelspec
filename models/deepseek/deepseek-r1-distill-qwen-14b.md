@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: true
     logical: false
     scientific: false
@@ -664,15 +664,15 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1370
-    arena_elo_math: 1400
-    arena_elo_overall: 1360
-    artificial_analysis_quality_index: 84
-    artificial_analysis_speed_index: 40
+    arena_elo_coding: 1370.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1360.0
+    artificial_analysis_quality_index: 84.0
+    artificial_analysis_speed_index: 40.0
     bbh: 43.5
     gpqa_diamond: 45.3
     humaneval: 72.5
-    ifeval: 72
+    ifeval: 72.0
     math_500: 82.1
     mmlu_astronomy: 76.5
     mmlu_biology: 84.2
@@ -686,8 +686,10 @@ benchmarks:
     mmlu_professional_accounting: 68.2
     mmlu_professional_law: 72.5
     musr: 16.5
+    live_code_bench: 53.1
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -847,6 +849,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek R1 Distill Qwen 14B
 

@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -664,20 +664,23 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1240
-    arena_elo_math: 1220
-    arena_elo_overall: 1230
-    artificial_analysis_quality_index: 65
-    artificial_analysis_speed_index: 88
+    arena_elo_coding: 1240.0
+    arena_elo_math: 1220.0
+    arena_elo_overall: 1230.0
+    artificial_analysis_quality_index: 65.0
+    artificial_analysis_speed_index: 88.0
     bbh: 48.7
     gpqa_diamond: 45.5
-    humaneval: 72
-    ifeval: 73
+    humaneval: 72.0
+    ifeval: 73.0
     math_500: 65.3
     mmlu_pro: 58.2
     musr: 20.8
-  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
+    gsm8k: 94.4
+    live_code_bench: 24.6
+  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -837,6 +840,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemma 3 12B
 

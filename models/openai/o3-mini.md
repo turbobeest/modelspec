@@ -156,7 +156,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,20 +665,33 @@ benchmarks:
   scores:
     aider_polyglot: 80.5
     aime_2025: 83.3
-    arena_elo_coding: 1350
-    arena_elo_math: 1370
-    arena_elo_overall: 1340
+    arena_elo_coding: 1350.0
+    arena_elo_math: 1370.0
+    arena_elo_overall: 1340.0
     gpqa_diamond: 79.7
     humaneval: 88.9
     ifeval: 86.5
     math_500: 94.8
-    mmlu_pro: 79
+    mmlu_pro: 79.0
     swe_bench_agent: 62.8
     swe_bench_verified: 71.2
     tau_bench: 65.5
     terminal_bench: 58.2
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 92.0
+    multipl_e_csharp: 82.5
+    multipl_e_php: 80.2
+    multipl_e_ruby: 68.5
+    multipl_e_swift: 68.2
+    multipl_e_r: 60.5
+    multipl_e_julia: 64.2
+    multipl_e_perl: 54.2
+    multipl_e_lua: 58.5
+    multipl_e_scala: 63.2
+    multipl_e_kotlin: 75.2
+    live_code_bench: 71.7
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -838,6 +851,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # o3-mini
 

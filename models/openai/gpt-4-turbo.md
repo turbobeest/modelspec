@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,18 +665,36 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1270
-    arena_elo_math: 1250
-    arena_elo_overall: 1260
-    artificial_analysis_quality_index: 79
-    artificial_analysis_speed_index: 65
+    arena_elo_coding: 1270.0
+    arena_elo_math: 1250.0
+    arena_elo_overall: 1260.0
+    artificial_analysis_quality_index: 79.0
+    artificial_analysis_speed_index: 65.0
     gpqa_diamond: 49.3
     humaneval: 87.8
-    ifeval: 82
+    ifeval: 82.0
     math_500: 72.2
     mmlu_pro: 67.4
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 88.5
+    gsm8k: 93.0
+    flores_en_es: 71.2
+    flores_en_de: 67.3
+    flores_en_ja: 61.4
+    flores_en_zh: 59.7
+    multipl_e_csharp: 80.5
+    multipl_e_php: 78.2
+    multipl_e_ruby: 68.5
+    multipl_e_swift: 66.5
+    multipl_e_r: 58.2
+    multipl_e_julia: 61.8
+    multipl_e_perl: 52.5
+    multipl_e_lua: 56.8
+    multipl_e_scala: 62.8
+    multipl_e_kotlin: 73.8
+    live_code_bench: 29.1
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -836,6 +854,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-4 Turbo
 

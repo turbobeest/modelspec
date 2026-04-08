@@ -160,7 +160,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -174,7 +174,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -187,7 +187,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -669,11 +669,11 @@ benchmarks:
   scores:
     aime_2025: 86.7
     alpaca_eval: 51.5
-    arena_elo_coding: 1370
-    arena_elo_math: 1400
-    arena_elo_overall: 1380
-    artificial_analysis_quality_index: 85
-    artificial_analysis_speed_index: 71
+    arena_elo_coding: 1370.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1380.0
+    artificial_analysis_quality_index: 85.0
+    artificial_analysis_speed_index: 71.0
     bbq: 84.2
     chartqa: 87.5
     docvqa: 93.8
@@ -681,20 +681,23 @@ benchmarks:
     gpqa_diamond: 80.5
     helm_safety: 88.5
     humaneval: 91.2
-    ifeval: 91
+    ifeval: 91.0
     legalbench: 73.8
     live_code_bench: 57.8
     math_500: 95.2
     mathvista: 67.8
     medqa: 80.2
-    mmlu_pro: 84
+    mmlu_pro: 84.0
     mmmu: 72.1
     mt_bench: 9.2
     swe_bench_verified: 63.8
     toxigen: 91.5
     wildbench: 79.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, domain-evals
+    aider_polyglot: 76.9
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -854,6 +857,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemini 2.5 Pro Preview 05-06
 

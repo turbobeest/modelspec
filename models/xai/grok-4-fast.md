@@ -156,7 +156,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,18 +664,30 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 70.8
-    arena_elo_coding: 1360
-    arena_elo_math: 1380
-    arena_elo_overall: 1370
+    arena_elo_coding: 1360.0
+    arena_elo_math: 1380.0
+    arena_elo_overall: 1370.0
     gpqa_diamond: 75.2
-    humaneval: 91
-    ifeval: 90
-    math_500: 94
+    humaneval: 91.0
+    ifeval: 90.0
+    math_500: 94.0
     mmlu_pro: 82.5
     swe_bench_agent: 50.2
     swe_bench_verified: 64.5
+    multipl_e_csharp: 85.2
+    multipl_e_php: 82.8
+    multipl_e_ruby: 73.5
+    multipl_e_swift: 72.8
+    multipl_e_r: 64.5
+    multipl_e_julia: 67.8
+    multipl_e_perl: 57.5
+    multipl_e_lua: 61.2
+    multipl_e_scala: 68.2
+    multipl_e_kotlin: 79.5
+    live_code_bench: 83.2
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -835,6 +847,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Grok 4 Fast
 

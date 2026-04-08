@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -184,7 +184,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,20 +664,22 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1230
-    arena_elo_math: 1210
-    arena_elo_overall: 1220
-    artificial_analysis_quality_index: 68
-    artificial_analysis_speed_index: 80
+    arena_elo_coding: 1230.0
+    arena_elo_math: 1210.0
+    arena_elo_overall: 1220.0
+    artificial_analysis_quality_index: 68.0
+    artificial_analysis_speed_index: 80.0
     bbh: 52.4
     gpqa_diamond: 48.1
     humaneval: 72.5
-    ifeval: 75
+    ifeval: 75.0
     math_500: 68.5
     mmlu_pro: 60.2
     musr: 20.1
-  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
+    gsm8k: 74.0
+  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -837,6 +839,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # gemma 2 27B it
 

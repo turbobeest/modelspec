@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -666,9 +666,9 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 72.1
-    arena_elo_coding: 1400
-    arena_elo_math: 1380
-    arena_elo_overall: 1390
+    arena_elo_coding: 1400.0
+    arena_elo_math: 1380.0
+    arena_elo_overall: 1390.0
     gpqa_diamond: 77.2
     humaneval: 92.1
     ifeval: 91.8
@@ -678,8 +678,21 @@ benchmarks:
     swe_bench_verified: 69.3
     tau_bench: 58.5
     terminal_bench: 48.8
+    multipl_e_csharp: 88.5
+    multipl_e_php: 85.2
+    multipl_e_ruby: 78.2
+    multipl_e_swift: 76.5
+    multipl_e_r: 68.2
+    multipl_e_julia: 70.5
+    multipl_e_perl: 62.8
+    multipl_e_lua: 65.5
+    multipl_e_scala: 72.5
+    multipl_e_kotlin: 82.8
+    live_code_bench: 84.6
+    terminal_bench_2: 77.3
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -839,6 +852,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-5.3 Codex Spark
 

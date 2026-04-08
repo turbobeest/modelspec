@@ -664,11 +664,16 @@ availability:
 benchmarks:
   scores:
     mteb_classification: 66.2
-    mteb_clustering: 44
+    mteb_clustering: 44.0
     mteb_overall: 60.5
-    mteb_retrieval: 57
+    mteb_retrieval: 57.0
+    mteb_reranking: 53.0
+    mteb_sts: 78.0
+    mteb_pair_classification: 81.0
+    mteb_summarization: 27.5
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

@@ -155,7 +155,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages:
     - cpp
     - go
@@ -176,7 +176,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -189,7 +189,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -672,9 +672,9 @@ benchmarks:
     aider_polyglot: 65.8
     aime_2025: 79.8
     alpaca_eval: 45.2
-    arena_elo_coding: 1370
-    arena_elo_math: 1400
-    arena_elo_overall: 1360
+    arena_elo_coding: 1370.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1360.0
     bbh: 68.7
     gpqa_diamond: 71.5
     humaneval: 89.2
@@ -692,7 +692,7 @@ benchmarks:
     mmlu_pro: 79.8
     mmlu_professional_accounting: 68.2
     mmlu_professional_law: 72.5
-    mt_bench: 9
+    mt_bench: 9.0
     multipl_e: 84.6
     multipl_e_cpp: 83.5
     multipl_e_go: 80.5
@@ -706,8 +706,21 @@ benchmarks:
     swe_bench_verified: 49.2
     tau_bench: 48.8
     wildbench: 72.5
-  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
+    gsm8k: 89.3
+    multipl_e_csharp: 80.5
+    multipl_e_php: 77.8
+    multipl_e_ruby: 65.5
+    multipl_e_swift: 65.2
+    multipl_e_r: 58.5
+    multipl_e_julia: 62.1
+    multipl_e_perl: 50.2
+    multipl_e_lua: 55.8
+    multipl_e_scala: 60.2
+    multipl_e_kotlin: 72.5
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2,
+    llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -867,6 +880,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek Reasoner
 

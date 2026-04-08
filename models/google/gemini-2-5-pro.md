@@ -160,7 +160,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages:
     - cpp
     - go
@@ -181,7 +181,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -194,7 +194,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -677,11 +677,11 @@ benchmarks:
     aider_polyglot: 71.2
     aime_2025: 86.7
     alpaca_eval: 51.5
-    arena_elo_coding: 1370
-    arena_elo_math: 1400
-    arena_elo_overall: 1380
-    artificial_analysis_quality_index: 85
-    artificial_analysis_speed_index: 71
+    arena_elo_coding: 1370.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1380.0
+    artificial_analysis_quality_index: 85.0
+    artificial_analysis_speed_index: 71.0
     bbq: 84.2
     chartqa: 87.5
     docvqa: 93.8
@@ -689,7 +689,7 @@ benchmarks:
     gpqa_diamond: 80.5
     helm_safety: 88.5
     humaneval: 91.2
-    ifeval: 91
+    ifeval: 91.0
     legalbench: 73.8
     live_code_bench: 57.8
     math_500: 95.2
@@ -703,7 +703,7 @@ benchmarks:
     mmlu_computer_science: 87.8
     mmlu_jurisprudence: 79.2
     mmlu_physics: 84.8
-    mmlu_pro: 84
+    mmlu_pro: 84.0
     mmlu_professional_accounting: 71.2
     mmlu_professional_law: 77.2
     mmmu: 72.1
@@ -722,8 +722,26 @@ benchmarks:
     terminal_bench: 45.5
     toxigen: 91.5
     wildbench: 79.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, domain-evals
+    mgsm: 87.5
+    gsm8k: 90.8
+    flores_en_es: 68.1
+    flores_en_de: 63.2
+    flores_en_ja: 58.1
+    flores_en_zh: 56.8
+    multipl_e_csharp: 84.8
+    multipl_e_php: 82.5
+    multipl_e_ruby: 74.2
+    multipl_e_swift: 72.5
+    multipl_e_r: 64.8
+    multipl_e_julia: 67.2
+    multipl_e_perl: 58.5
+    multipl_e_lua: 61.8
+    multipl_e_scala: 68.5
+    multipl_e_kotlin: 79.2
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -883,6 +901,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemini 2.5 Pro
 

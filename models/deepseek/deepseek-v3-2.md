@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -667,17 +667,17 @@ benchmarks:
   scores:
     aider_polyglot: 58.5
     alpaca_eval: 42.8
-    arena_elo_coding: 1350
-    arena_elo_math: 1330
-    arena_elo_overall: 1340
-    artificial_analysis_quality_index: 80
-    artificial_analysis_speed_index: 70
+    arena_elo_coding: 1350.0
+    arena_elo_math: 1330.0
+    arena_elo_overall: 1340.0
+    artificial_analysis_quality_index: 80.0
+    artificial_analysis_speed_index: 70.0
     bbh: 64.1
     bbq: 73.5
     gpqa_diamond: 64.5
     helm_safety: 78.2
     humaneval: 88.5
-    ifeval: 87
+    ifeval: 87.0
     math_500: 92.5
     mmlu_pro: 78.8
     mt_bench: 8.8
@@ -687,8 +687,24 @@ benchmarks:
     tau_bench: 41.2
     toxigen: 82.5
     wildbench: 70.2
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboard-v2
+    gsm8k: 89.3
+    multipl_e_csharp: 82.5
+    multipl_e_php: 80.2
+    multipl_e_ruby: 68.5
+    multipl_e_swift: 68.5
+    multipl_e_r: 60.2
+    multipl_e_julia: 64.2
+    multipl_e_perl: 52.8
+    multipl_e_lua: 58.2
+    multipl_e_scala: 63.2
+    multipl_e_kotlin: 75.2
+    live_code_bench: 59.3
+    terminal_bench: 37.7
+    terminal_bench_2: 46.4
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -848,6 +864,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek V3.2
 

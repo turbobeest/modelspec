@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,7 +664,16 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    swe_bench_verified: 80.6
+    swe_bench_pro: 54.2
+    terminal_bench_2: 68.5
+    gpqa_diamond: 94.3
+    usamo_2026: 74.4
+    hle: 44.4
+    hle_tools: 51.4
+  benchmark_source: anthropic-system-card-mythos
+  benchmark_as_of: 2026-04
 deployment:
   api_only: false
   local_inference: false
@@ -824,6 +833,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemini 3.1 Pro Preview
 

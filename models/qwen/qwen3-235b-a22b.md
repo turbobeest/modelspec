@@ -156,7 +156,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,11 +665,11 @@ benchmarks:
   scores:
     aider_polyglot: 68.2
     alpaca_eval: 44.5
-    arena_elo_coding: 1350
-    arena_elo_math: 1360
-    arena_elo_overall: 1340
-    artificial_analysis_quality_index: 82
-    artificial_analysis_speed_index: 55
+    arena_elo_coding: 1350.0
+    arena_elo_math: 1360.0
+    arena_elo_overall: 1340.0
+    artificial_analysis_quality_index: 82.0
+    artificial_analysis_speed_index: 55.0
     gpqa_diamond: 71.1
     humaneval: 89.5
     ifeval: 88.5
@@ -690,8 +690,22 @@ benchmarks:
     swe_bench_verified: 55.8
     tau_bench: 50.2
     wildbench: 73.8
-  benchmark_source: lmarena.ai, provider-reports, preference-evals
+    mgsm: 83.5
+    gsm8k: 94.4
+    multipl_e_csharp: 83.5
+    multipl_e_php: 81.2
+    multipl_e_ruby: 70.5
+    multipl_e_swift: 70.2
+    multipl_e_r: 62.5
+    multipl_e_julia: 65.8
+    multipl_e_perl: 55.2
+    multipl_e_lua: 58.8
+    multipl_e_scala: 65.2
+    multipl_e_kotlin: 76.8
+    live_code_bench: 62.2
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -851,6 +865,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen3 235B-A22B
 

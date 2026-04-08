@@ -667,8 +667,14 @@ benchmarks:
     mteb_clustering: 42.1
     mteb_overall: 59.3
     mteb_retrieval: 54.2
-  benchmark_source: mteb-leaderboard
+    mteb_reranking: 52.5
+    mteb_sts: 78.0
+    mteb_pair_classification: 81.0
+    mteb_summarization: 27.2
+    miracl: 35.5
+  benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

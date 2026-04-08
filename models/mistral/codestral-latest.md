@@ -175,7 +175,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -188,7 +188,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -669,12 +669,12 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 60.5
-    arena_elo_coding: 1290
-    arena_elo_math: 1240
-    arena_elo_overall: 1260
+    arena_elo_coding: 1290.0
+    arena_elo_math: 1240.0
+    arena_elo_overall: 1260.0
     gpqa_diamond: 42.5
     humaneval: 88.5
-    ifeval: 74
+    ifeval: 74.0
     math_500: 65.2
     mmlu_pro: 58.5
     multipl_e: 75.7
@@ -686,8 +686,17 @@ benchmarks:
     multipl_e_rust: 65.8
     multipl_e_typescript: 77.1
     swe_bench_verified: 35.2
+    multipl_e_csharp: 73.5
+    multipl_e_php: 71.2
+    multipl_e_ruby: 55.2
+    multipl_e_swift: 56.8
+    multipl_e_lua: 48.5
+    multipl_e_scala: 52.1
+    multipl_e_kotlin: 61.5
+    live_code_bench: 31.4
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -847,6 +856,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Codestral (latest)
 

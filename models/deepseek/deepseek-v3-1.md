@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -666,18 +666,18 @@ benchmarks:
   scores:
     aider_polyglot: 58.5
     alpaca_eval: 42.8
-    arena_elo_coding: 1340
-    arena_elo_math: 1320
-    arena_elo_overall: 1330
-    artificial_analysis_quality_index: 80
-    artificial_analysis_speed_index: 70
+    arena_elo_coding: 1340.0
+    arena_elo_math: 1320.0
+    arena_elo_overall: 1330.0
+    artificial_analysis_quality_index: 80.0
+    artificial_analysis_speed_index: 70.0
     bbh: 64.1
     bbq: 73.5
     gpqa_diamond: 62.3
     helm_safety: 78.2
     humaneval: 87.5
     ifeval: 85.5
-    math_500: 91
+    math_500: 91.0
     mmlu_pro: 77.2
     mt_bench: 8.8
     musr: 29.8
@@ -686,8 +686,23 @@ benchmarks:
     tau_bench: 41.2
     toxigen: 82.5
     wildbench: 70.2
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboard-v2
+    gsm8k: 89.3
+    multipl_e_csharp: 79.8
+    multipl_e_php: 77.2
+    multipl_e_ruby: 64.5
+    multipl_e_swift: 64.8
+    multipl_e_r: 56.5
+    multipl_e_julia: 60.2
+    multipl_e_perl: 49.5
+    multipl_e_lua: 54.5
+    multipl_e_scala: 59.8
+    multipl_e_kotlin: 71.5
+    live_code_bench: 57.7
+    terminal_bench: 31.3
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -847,6 +862,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek V3.1
 

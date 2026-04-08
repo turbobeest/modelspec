@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -666,10 +666,10 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 72.1
-    arena_elo_coding: 1400
-    arena_elo_math: 1380
-    arena_elo_overall: 1390
-    gpqa_diamond: 77.2
+    arena_elo_coding: 1400.0
+    arena_elo_math: 1380.0
+    arena_elo_overall: 1390.0
+    gpqa_diamond: 92.8
     humaneval: 92.1
     ifeval: 91.8
     math_500: 95.5
@@ -678,7 +678,25 @@ benchmarks:
     swe_bench_verified: 69.3
     tau_bench: 58.5
     terminal_bench: 48.8
-  benchmark_source: lmarena.ai, provider-reports
+    multipl_e_csharp: 88.5
+    multipl_e_php: 85.2
+    multipl_e_ruby: 78.2
+    multipl_e_swift: 76.5
+    multipl_e_r: 68.2
+    multipl_e_julia: 70.5
+    multipl_e_perl: 62.8
+    multipl_e_lua: 65.5
+    multipl_e_scala: 72.5
+    multipl_e_kotlin: 82.8
+    live_code_bench: 84.6
+    swe_bench_pro: 57.7
+    usamo_2026: 95.2
+    graphwalks_bfs_256k_1m: 21.4
+    hle: 39.8
+    hle_tools: 52.1
+    terminal_bench_2: 75.1
+    osworld: 75.0
+  benchmark_source: lmarena.ai, provider-reports, anthropic-system-card-mythos
   benchmark_as_of: 2026-04
 deployment:
   api_only: false
@@ -839,6 +857,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-5.4
 

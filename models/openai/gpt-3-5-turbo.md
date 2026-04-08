@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -662,18 +662,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1100
-    arena_elo_math: 1080
-    arena_elo_overall: 1110
-    artificial_analysis_quality_index: 60
-    artificial_analysis_speed_index: 92
+    arena_elo_coding: 1100.0
+    arena_elo_math: 1080.0
+    arena_elo_overall: 1110.0
+    artificial_analysis_quality_index: 60.0
+    artificial_analysis_speed_index: 92.0
     gpqa_diamond: 28.3
     humaneval: 48.1
     ifeval: 60.5
     math_500: 32.8
     mmlu_pro: 40.2
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 56.3
+    gsm8k: 80.0
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -833,6 +836,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-3.5-turbo
 

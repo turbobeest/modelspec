@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -172,7 +172,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -185,7 +185,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,16 +665,29 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1250
-    arena_elo_math: 1240
-    arena_elo_overall: 1260
+    arena_elo_coding: 1250.0
+    arena_elo_math: 1240.0
+    arena_elo_overall: 1260.0
     gpqa_diamond: 59.4
     humaneval: 84.9
-    ifeval: 81
+    ifeval: 81.0
     math_500: 60.1
     mmlu_pro: 68.5
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 90.7
+    gsm8k: 95.0
+    multipl_e_csharp: 75.5
+    multipl_e_php: 72.8
+    multipl_e_ruby: 62.5
+    multipl_e_swift: 60.5
+    multipl_e_r: 52.5
+    multipl_e_julia: 55.8
+    multipl_e_perl: 46.2
+    multipl_e_lua: 50.5
+    multipl_e_scala: 56.2
+    multipl_e_kotlin: 67.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -834,6 +847,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Opus 3
 

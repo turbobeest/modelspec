@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -672,14 +672,14 @@ availability:
 benchmarks:
   scores:
     alpaca_eval: 32.5
-    arena_elo_coding: 1210
-    arena_elo_math: 1220
-    arena_elo_overall: 1200
-    artificial_analysis_quality_index: 68
-    artificial_analysis_speed_index: 88
+    arena_elo_coding: 1210.0
+    arena_elo_math: 1220.0
+    arena_elo_overall: 1200.0
+    artificial_analysis_quality_index: 68.0
+    artificial_analysis_speed_index: 88.0
     gpqa_diamond: 42.1
     humaneval: 70.2
-    ifeval: 72
+    ifeval: 72.0
     math_500: 72.5
     mmlu_astronomy: 68.8
     mmlu_biology: 77.8
@@ -693,7 +693,7 @@ benchmarks:
     mmlu_professional_accounting: 61.2
     mmlu_professional_law: 65.5
     mt_bench: 8.2
-    multipl_e: 72
+    multipl_e: 72.0
     multipl_e_cpp: 72.1
     multipl_e_go: 67.5
     multipl_e_java: 76.5
@@ -702,8 +702,24 @@ benchmarks:
     multipl_e_rust: 60.8
     multipl_e_typescript: 73.8
     wildbench: 58.2
-  benchmark_source: lmarena.ai, provider-reports, preference-evals
+    mgsm: 63.9
+    gsm8k: 88.6
+    multipl_e_csharp: 62.5
+    multipl_e_php: 58.8
+    multipl_e_ruby: 42.5
+    multipl_e_swift: 44.2
+    multipl_e_r: 36.5
+    multipl_e_julia: 40.2
+    multipl_e_perl: 30.5
+    multipl_e_lua: 35.2
+    multipl_e_scala: 38.2
+    multipl_e_kotlin: 50.5
+    live_code_bench: 23.1
+    bbh: 56.9
+    musr: 38.7
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -863,6 +879,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Phi 4 mini instruct
 

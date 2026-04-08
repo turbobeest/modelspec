@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages: []
     agentic_coding: false
     code_review: false
@@ -171,7 +171,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
     logical: false
     scientific: false
@@ -184,7 +184,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -665,20 +665,32 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 78.8
-    arena_elo_coding: 1400
-    arena_elo_math: 1380
-    arena_elo_overall: 1390
+    arena_elo_coding: 1400.0
+    arena_elo_math: 1380.0
+    arena_elo_overall: 1390.0
     gpqa_diamond: 76.2
     humaneval: 91.7
-    ifeval: 91
+    ifeval: 91.0
     math_500: 94.5
     mmlu_pro: 83.8
     swe_bench_agent: 58.2
     swe_bench_verified: 68.8
     tau_bench: 64.8
     terminal_bench: 52.1
+    multipl_e_csharp: 86.2
+    multipl_e_php: 83.5
+    multipl_e_ruby: 76.2
+    multipl_e_swift: 74.5
+    multipl_e_r: 66.5
+    multipl_e_julia: 68.2
+    multipl_e_perl: 60.2
+    multipl_e_lua: 63.5
+    multipl_e_scala: 70.1
+    multipl_e_kotlin: 80.5
+    live_code_bench: 65.4
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -838,6 +850,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Opus 4.1 (latest)
 

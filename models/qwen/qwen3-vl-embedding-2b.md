@@ -663,13 +663,18 @@ availability:
 benchmarks:
   scores:
     beir: 49.5
-    miracl: 51
-    mteb_classification: 66
-    mteb_clustering: 44
-    mteb_overall: 60
+    miracl: 51.0
+    mteb_classification: 66.0
+    mteb_clustering: 44.0
+    mteb_overall: 60.0
     mteb_retrieval: 56.5
+    mteb_reranking: 60.0
+    mteb_sts: 77.5
+    mteb_pair_classification: 82.0
+    mteb_summarization: 28.0
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

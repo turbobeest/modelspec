@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -680,7 +680,8 @@ benchmarks:
     swe_bench_verified: 42
     toxigen: 82.5
     wildbench: 70.2
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboard-v2
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:
   api_only: false
@@ -841,6 +842,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # DeepSeek V2
 

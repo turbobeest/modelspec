@@ -170,7 +170,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: false
     logical: false
     scientific: false
@@ -183,7 +183,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,19 +664,32 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 72.5
-    arena_elo_coding: 1380
-    arena_elo_math: 1340
-    arena_elo_overall: 1350
+    arena_elo_coding: 1380.0
+    arena_elo_math: 1340.0
+    arena_elo_overall: 1350.0
     gpqa_diamond: 70.5
     humaneval: 92.5
-    ifeval: 88
+    ifeval: 88.0
     math_500: 91.2
     mmlu_pro: 78.5
     swe_bench_agent: 52.1
     swe_bench_verified: 68.2
     tau_bench: 55.8
+    multipl_e_csharp: 86.5
+    multipl_e_php: 84.2
+    multipl_e_ruby: 74.8
+    multipl_e_swift: 74.2
+    multipl_e_r: 66.5
+    multipl_e_julia: 69.2
+    multipl_e_perl: 58.8
+    multipl_e_lua: 62.5
+    multipl_e_scala: 69.5
+    multipl_e_kotlin: 80.2
+    live_code_bench: 58.5
+    terminal_bench_2: 37.5
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -836,6 +849,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen3-Coder 480B-A35B Instruct
 

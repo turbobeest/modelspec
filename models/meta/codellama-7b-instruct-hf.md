@@ -661,7 +661,12 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    gsm8k: 5.5
+    winogrande: 64.9
+  benchmark_source: open-llm-leaderboard-v1
+  benchmark_as_of: 2024-07
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

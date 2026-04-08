@@ -662,13 +662,19 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    beir: 43
+    beir: 43.0
     mteb_classification: 62.5
     mteb_clustering: 39.8
     mteb_overall: 55.8
     mteb_retrieval: 48.5
-  benchmark_source: mteb-leaderboard
+    mteb_reranking: 49.5
+    mteb_sts: 77.5
+    mteb_pair_classification: 80.0
+    mteb_summarization: 26.5
+    miracl: 32.0
+  benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

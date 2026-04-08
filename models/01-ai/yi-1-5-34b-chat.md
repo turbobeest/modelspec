@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -668,8 +668,71 @@ benchmarks:
     math_500: 58.5
     mmlu_pro: 52.8
     musr: 18.2
-  benchmark_source: open-llm-leaderboard-v2
+    arc_challenge: 70.5
+    gsm8k: 71.6
+    hellaswag: 86.0
+    truthfulqa: 62.2
+    winogrande: 81.6
+    mmlu_abstract_algebra: 58.0
+    mmlu_anatomy: 80.0
+    mmlu_astronomy: 87.5
+    mmlu_business_ethics: 81.0
+    mmlu_clinical_knowledge: 77.4
+    mmlu_college_biology: 82.6
+    mmlu_college_chemistry: 56.0
+    mmlu_college_computer_science: 69.0
+    mmlu_college_mathematics: 51.0
+    mmlu_college_medicine: 75.1
+    mmlu_college_physics: 52.0
+    mmlu_computer_security: 82.0
+    mmlu_conceptual_physics: 81.7
+    mmlu_econometrics: 57.9
+    mmlu_electrical_engineering: 74.5
+    mmlu_elementary_mathematics: 75.4
+    mmlu_formal_logic: 66.7
+    mmlu_global_facts: 51.0
+    mmlu_high_school_biology: 88.4
+    mmlu_high_school_chemistry: 66.5
+    mmlu_high_school_computer_science: 90.0
+    mmlu_high_school_european_history: 86.1
+    mmlu_high_school_geography: 88.4
+    mmlu_high_school_government_and_politics: 95.9
+    mmlu_high_school_macroeconomics: 83.8
+    mmlu_high_school_mathematics: 55.6
+    mmlu_high_school_microeconomics: 87.8
+    mmlu_high_school_physics: 60.9
+    mmlu_high_school_psychology: 89.0
+    mmlu_high_school_statistics: 68.1
+    mmlu_high_school_us_history: 90.7
+    mmlu_high_school_world_history: 88.2
+    mmlu_human_aging: 80.7
+    mmlu_human_sexuality: 87.8
+    mmlu_international_law: 87.6
+    mmlu_jurisprudence: 83.3
+    mmlu_logical_fallacies: 85.9
+    mmlu_machine_learning: 63.4
+    mmlu_management: 88.3
+    mmlu_marketing: 92.3
+    mmlu_medical_genetics: 84.0
+    mmlu_miscellaneous: 89.9
+    mmlu_moral_disputes: 81.2
+    mmlu_moral_scenarios: 68.2
+    mmlu_nutrition: 82.7
+    mmlu_philosophy: 77.5
+    mmlu_prehistory: 85.2
+    mmlu_professional_accounting: 63.1
+    mmlu_professional_law: 57.0
+    mmlu_professional_medicine: 81.2
+    mmlu_professional_psychology: 78.3
+    mmlu_public_relations: 72.7
+    mmlu_security_studies: 82.0
+    mmlu_sociology: 88.1
+    mmlu_us_foreign_policy: 86.0
+    mmlu_virology: 62.7
+    mmlu_world_religions: 86.5
+  benchmark_source: open-llm-leaderboard-v2, open-llm-leaderboard-v1
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -829,6 +892,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Yi 1.5 34B Chat
 

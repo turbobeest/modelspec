@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -191,7 +191,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -671,18 +671,18 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1230
-    arena_elo_math: 1220
-    arena_elo_overall: 1240
-    artificial_analysis_quality_index: 75
-    artificial_analysis_speed_index: 72
+    arena_elo_coding: 1230.0
+    arena_elo_math: 1220.0
+    arena_elo_overall: 1240.0
+    artificial_analysis_quality_index: 75.0
+    artificial_analysis_speed_index: 72.0
     bbh: 55.8
     bbq: 78.2
     finbench: 55.2
     gpqa_diamond: 42.5
     helm_safety: 82.5
     humaneval: 76.2
-    ifeval: 76
+    ifeval: 76.0
     legalbench: 58.5
     math_500: 64.5
     medqa: 65.2
@@ -707,8 +707,20 @@ benchmarks:
     multipl_e_typescript: 72.5
     musr: 22.7
     toxigen: 86.5
+    multipl_e_csharp: 70.2
+    multipl_e_php: 68.5
+    multipl_e_ruby: 53.5
+    multipl_e_swift: 53.2
+    multipl_e_r: 46.5
+    multipl_e_julia: 50.5
+    multipl_e_perl: 38.5
+    multipl_e_lua: 43.8
+    multipl_e_scala: 48.2
+    multipl_e_kotlin: 60.5
+    live_code_bench: 23.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, domain-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -868,6 +880,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Llama 3.1 70B
 

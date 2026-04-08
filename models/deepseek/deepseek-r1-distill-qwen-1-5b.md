@@ -673,8 +673,15 @@ benchmarks:
     mmlu_physics: 82.8
     mmlu_professional_accounting: 68.2
     mmlu_professional_law: 72.5
-  benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard
+    ifeval: 34.6
+    bbh: 32.4
+    math_500: 16.9
+    gpqa_diamond: 25.6
+    musr: 36.3
+    mmlu_pro: 11.9
+  benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

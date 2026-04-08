@@ -177,7 +177,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -672,7 +672,7 @@ benchmarks:
   scores:
     gpqa_diamond: 42.5
     humaneval: 87.2
-    ifeval: 76
+    ifeval: 76.0
     math_500: 70.5
     mmlu_pro: 60.2
     multipl_e: 80.3
@@ -683,8 +683,20 @@ benchmarks:
     multipl_e_python: 88.5
     multipl_e_rust: 70.2
     multipl_e_typescript: 81.2
-  benchmark_source: provider-reports
+    multipl_e_csharp: 76.5
+    multipl_e_php: 74.2
+    multipl_e_ruby: 58.5
+    multipl_e_swift: 60.5
+    multipl_e_lua: 52.8
+    multipl_e_scala: 55.2
+    multipl_e_kotlin: 64.8
+    live_code_bench: 29.5
+    aider_polyglot: 16.4
+    bbh: 66.3
+    musr: 43.9
+  benchmark_source: provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true
@@ -844,6 +856,7 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Qwen2.5 Coder 32B Instruct
 

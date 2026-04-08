@@ -663,16 +663,18 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1190
-    arena_elo_math: 1170
-    arena_elo_overall: 1180
+    arena_elo_coding: 1190.0
+    arena_elo_math: 1170.0
+    arena_elo_overall: 1180.0
     gpqa_diamond: 33.2
     humaneval: 58.5
-    ifeval: 62
+    ifeval: 62.0
     math_500: 48.5
     mmlu_pro: 43.1
-  benchmark_source: lmarena.ai, provider-reports
+    gsm8k: 89.2
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

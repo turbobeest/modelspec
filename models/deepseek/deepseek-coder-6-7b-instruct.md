@@ -661,7 +661,72 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    arc_challenge: 38.1
+    gsm8k: 26.8
+    hellaswag: 55.1
+    truthfulqa: 45.6
+    winogrande: 56.8
+    mmlu_abstract_algebra: 33.0
+    mmlu_anatomy: 34.8
+    mmlu_astronomy: 33.6
+    mmlu_business_ethics: 42.0
+    mmlu_clinical_knowledge: 41.1
+    mmlu_college_biology: 33.3
+    mmlu_college_chemistry: 36.0
+    mmlu_college_computer_science: 43.0
+    mmlu_college_mathematics: 34.0
+    mmlu_college_medicine: 33.5
+    mmlu_college_physics: 23.5
+    mmlu_computer_security: 61.0
+    mmlu_conceptual_physics: 34.9
+    mmlu_econometrics: 30.7
+    mmlu_electrical_engineering: 44.1
+    mmlu_elementary_mathematics: 34.1
+    mmlu_formal_logic: 36.5
+    mmlu_global_facts: 33.0
+    mmlu_high_school_biology: 41.9
+    mmlu_high_school_chemistry: 32.5
+    mmlu_high_school_computer_science: 56.0
+    mmlu_high_school_european_history: 37.6
+    mmlu_high_school_geography: 42.4
+    mmlu_high_school_government_and_politics: 43.0
+    mmlu_high_school_macroeconomics: 35.6
+    mmlu_high_school_mathematics: 27.8
+    mmlu_high_school_microeconomics: 41.2
+    mmlu_high_school_physics: 33.1
+    mmlu_high_school_psychology: 41.7
+    mmlu_high_school_statistics: 36.6
+    mmlu_high_school_us_history: 39.7
+    mmlu_high_school_world_history: 37.6
+    mmlu_human_aging: 39.0
+    mmlu_human_sexuality: 42.0
+    mmlu_international_law: 45.5
+    mmlu_jurisprudence: 37.0
+    mmlu_logical_fallacies: 46.0
+    mmlu_machine_learning: 33.0
+    mmlu_management: 38.8
+    mmlu_marketing: 65.4
+    mmlu_medical_genetics: 41.0
+    mmlu_miscellaneous: 43.7
+    mmlu_moral_disputes: 41.9
+    mmlu_moral_scenarios: 25.8
+    mmlu_nutrition: 39.2
+    mmlu_philosophy: 42.8
+    mmlu_prehistory: 36.4
+    mmlu_professional_accounting: 31.9
+    mmlu_professional_law: 28.4
+    mmlu_professional_medicine: 34.9
+    mmlu_professional_psychology: 35.1
+    mmlu_public_relations: 52.7
+    mmlu_security_studies: 45.3
+    mmlu_sociology: 42.8
+    mmlu_us_foreign_policy: 54.0
+    mmlu_virology: 37.3
+    mmlu_world_religions: 35.1
+  benchmark_source: open-llm-leaderboard-v1
+  benchmark_as_of: 2024-07
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

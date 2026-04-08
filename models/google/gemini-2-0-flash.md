@@ -161,7 +161,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -175,7 +175,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -188,7 +188,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -668,22 +668,30 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1300
-    arena_elo_math: 1290
-    arena_elo_overall: 1310
-    artificial_analysis_quality_index: 77
-    artificial_analysis_speed_index: 89
+    arena_elo_coding: 1300.0
+    arena_elo_math: 1290.0
+    arena_elo_overall: 1310.0
+    artificial_analysis_quality_index: 77.0
+    artificial_analysis_speed_index: 89.0
     chartqa: 78.5
     docvqa: 88.1
     gpqa_diamond: 60.1
     humaneval: 85.5
-    ifeval: 84
+    ifeval: 84.0
     math_500: 82.3
     mathvista: 55.2
     mmlu_pro: 73.5
     mmmu: 62.5
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals
+    mgsm: 82.6
+    gsm8k: 86.2
+    flores_en_es: 68.1
+    flores_en_de: 63.2
+    flores_en_ja: 58.1
+    flores_en_zh: 56.8
+    live_code_bench: 35.1
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -843,6 +851,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Gemini 2.0 Flash
 

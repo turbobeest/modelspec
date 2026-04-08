@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages:
     - cpp
     - go
@@ -178,7 +178,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -191,7 +191,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -673,11 +673,11 @@ benchmarks:
   scores:
     aider_polyglot: 45.2
     alpaca_eval: 40.5
-    arena_elo_coding: 1250
-    arena_elo_math: 1240
-    arena_elo_overall: 1260
-    artificial_analysis_quality_index: 76
-    artificial_analysis_speed_index: 73
+    arena_elo_coding: 1250.0
+    arena_elo_math: 1240.0
+    arena_elo_overall: 1260.0
+    artificial_analysis_quality_index: 76.0
+    artificial_analysis_speed_index: 73.0
     bbh: 58.1
     bbq: 80.1
     gpqa_diamond: 50.2
@@ -709,8 +709,23 @@ benchmarks:
     swe_bench_verified: 25.8
     toxigen: 88.2
     wildbench: 68.2
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboard-v2
+    mgsm: 91.1
+    gsm8k: 95.0
+    multipl_e_csharp: 72.5
+    multipl_e_php: 70.2
+    multipl_e_ruby: 55.8
+    multipl_e_swift: 55.5
+    multipl_e_r: 48.5
+    multipl_e_julia: 52.2
+    multipl_e_perl: 40.5
+    multipl_e_lua: 45.8
+    multipl_e_scala: 50.2
+    multipl_e_kotlin: 62.5
+    live_code_bench: 28.8
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -870,6 +885,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Llama-3.3-70B-Instruct
 

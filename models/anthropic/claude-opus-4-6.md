@@ -158,7 +158,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-1
     languages:
     - cpp
     - go
@@ -167,35 +167,35 @@ capabilities:
     - python
     - rust
     - typescript
-    agentic_coding: false
-    code_review: false
-    refactoring: false
-    debugging: false
-    test_generation: false
-    documentation: false
-    code_completion: false
-    multi_file_editing: false
+    agentic_coding: true
+    code_review: true
+    refactoring: true
+    debugging: true
+    test_generation: true
+    documentation: true
+    code_completion: true
+    multi_file_editing: true
     fill_in_middle: false
     lsp_integration: false
-    repository_understanding: false
+    repository_understanding: true
   reasoning:
-    overall: null
+    overall: tier-1
     mathematical: true
-    logical: false
-    scientific: false
-    planning: false
+    logical: true
+    scientific: true
+    planning: true
     multi_step: true
     chain_of_thought: true
-    self_correction: false
+    self_correction: true
     spatial: false
     temporal: false
-    causal: false
-    think_budget_control: false
+    causal: true
+    think_budget_control: true
   tool_use:
-    overall: null
+    overall: tier-1
     function_calling: true
-    mcp_compatible: false
-    parallel_tool_calls: false
+    mcp_compatible: true
+    parallel_tool_calls: true
     tool_selection_accuracy: null
     multi_turn_tool_use: false
     tool_error_recovery: false
@@ -673,13 +673,13 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 82.1
-    aime_2025: 82
+    aime_2025: 82.0
     alpaca_eval: 55.2
-    arena_elo_coding: 1420
-    arena_elo_math: 1400
-    arena_elo_overall: 1410
-    artificial_analysis_quality_index: 88
-    artificial_analysis_speed_index: 62
+    arena_elo_coding: 1420.0
+    arena_elo_math: 1400.0
+    arena_elo_overall: 1410.0
+    artificial_analysis_quality_index: 88.0
+    artificial_analysis_speed_index: 62.0
     bbq: 88.2
     chartqa: 86.8
     docvqa: 93.2
@@ -720,7 +720,37 @@ benchmarks:
     terminal_bench: 55.8
     toxigen: 95.1
     wildbench: 82.5
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, domain-evals
+    multipl_e_csharp: 88.2
+    multipl_e_php: 85.5
+    multipl_e_ruby: 78.5
+    multipl_e_swift: 76.8
+    multipl_e_r: 68.5
+    multipl_e_julia: 70.2
+    multipl_e_perl: 62.5
+    multipl_e_lua: 65.8
+    multipl_e_scala: 72.2
+    multipl_e_kotlin: 82.5
+    terminal_bench_2: 65.4
+    swe_bench_verified: 80.8
+    swe_bench_pro: 53.4
+    swe_bench_multilingual: 77.8
+    swe_bench_multimodal: 27.1
+    gpqa_diamond: 91.3
+    mmmlu: 91.1
+    usamo_2026: 42.3
+    graphwalks_bfs_256k_1m: 38.7
+    hle: 40.0
+    hle_tools: 53.1
+    browsecomp: 83.7
+    charxiv_reasoning: 61.5
+    charxiv_reasoning_tools: 78.9
+    osworld: 72.7
+    lab_bench_figqa: 58.5
+    lab_bench_figqa_tools: 75.1
+    screenspot_pro: 57.7
+    screenspot_pro_tools: 83.1
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, domain-evals, anthropic-system-card-mythos
   benchmark_as_of: 2026-04
 deployment:
   api_only: false

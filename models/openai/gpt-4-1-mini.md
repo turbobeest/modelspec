@@ -159,7 +159,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -173,7 +173,7 @@ capabilities:
     lsp_integration: false
     repository_understanding: false
   reasoning:
-    overall: null
+    overall: tier-2
     mathematical: false
     logical: false
     scientific: false
@@ -186,7 +186,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -667,18 +667,18 @@ availability:
 benchmarks:
   scores:
     alpaca_eval: 52.1
-    arena_elo_coding: 1310
-    arena_elo_math: 1290
-    arena_elo_overall: 1300
-    artificial_analysis_quality_index: 74
-    artificial_analysis_speed_index: 89
+    arena_elo_coding: 1310.0
+    arena_elo_math: 1290.0
+    arena_elo_overall: 1300.0
+    artificial_analysis_quality_index: 74.0
+    artificial_analysis_speed_index: 89.0
     bbq: 86.5
     chartqa: 88.5
     docvqa: 94.1
     gpqa_diamond: 60.1
     helm_safety: 90.5
     humaneval: 86.5
-    ifeval: 85
+    ifeval: 85.0
     math_500: 82.3
     mathvista: 68.2
     mmlu_pro: 74.2
@@ -686,8 +686,23 @@ benchmarks:
     mt_bench: 9.3
     toxigen: 93.5
     wildbench: 80.5
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals
+    multipl_e_csharp: 76.5
+    multipl_e_php: 74.2
+    multipl_e_ruby: 62.5
+    multipl_e_swift: 61.5
+    multipl_e_r: 52.8
+    multipl_e_julia: 56.2
+    multipl_e_perl: 46.5
+    multipl_e_lua: 50.8
+    multipl_e_scala: 56.8
+    multipl_e_kotlin: 68.2
+    live_code_bench: 48.3
+    aider_polyglot: 32.4
+    swe_bench_verified: 23.6
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
+    preference-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -847,6 +862,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # GPT-4.1 mini
 

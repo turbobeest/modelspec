@@ -182,7 +182,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -668,8 +668,10 @@ benchmarks:
     math_500: 56.2
     mmlu_pro: 52.3
     musr: 18.5
-  benchmark_source: open-llm-leaderboard-v2
+    gsm8k: 88.0
+  benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -829,6 +831,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Mixtral 8x22B
 

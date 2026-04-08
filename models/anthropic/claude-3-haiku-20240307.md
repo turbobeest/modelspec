@@ -157,7 +157,7 @@ modalities:
     cross_encoder: null
 capabilities:
   coding:
-    overall: null
+    overall: tier-2
     languages: []
     agentic_coding: false
     code_review: false
@@ -184,7 +184,7 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: null
+    overall: tier-2
     function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
@@ -664,16 +664,19 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1170
-    arena_elo_math: 1160
-    arena_elo_overall: 1180
+    arena_elo_coding: 1170.0
+    arena_elo_math: 1160.0
+    arena_elo_overall: 1180.0
     gpqa_diamond: 41.2
     humaneval: 75.9
-    ifeval: 72
+    ifeval: 72.0
     math_500: 50.3
     mmlu_pro: 55.8
-  benchmark_source: lmarena.ai, provider-reports
+    mgsm: 75.1
+    gsm8k: 88.9
+  benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -833,6 +836,7 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
+
 
 # Claude Haiku 3
 
