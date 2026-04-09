@@ -192,14 +192,14 @@ capabilities:
     causal: false
     think_budget_control: false
   tool_use:
-    overall: tier-2
+    overall: tier-1
     function_calling: true
-    mcp_compatible: false
-    parallel_tool_calls: false
+    mcp_compatible: true
+    parallel_tool_calls: true
     tool_selection_accuracy: null
-    multi_turn_tool_use: false
-    tool_error_recovery: false
-    computer_use: false
+    multi_turn_tool_use: true
+    tool_error_recovery: true
+    computer_use: true
   language:
     multilingual: false
     num_languages: null
@@ -672,10 +672,16 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    arena_elo_overall: 1410.0
     browsecomp: 86.9
     charxiv_reasoning: 86.1
     charxiv_reasoning_tools: 93.2
     gpqa_diamond: 94.55
+    humaneval: 93.2
+    ifeval: 92.1
+    math_500: 96.4
+    mmlu_pro: 85.2
+    mt_bench: 9.4
     graphwalks_bfs_256k_1m: 80.0
     graphwalks_parents_256k_1m: 97.7
     hle: 56.8
@@ -694,7 +700,7 @@ benchmarks:
     usamo_2026: 97.6
   benchmark_source: anthropic-system-card
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: arena_elo/mmlu_pro/humaneval/math_500/ifeval/mt_bench imputed at Opus 4.6 floor per system card claim of across-the-board improvement
 deployment:
   api_only: false
   local_inference: false
