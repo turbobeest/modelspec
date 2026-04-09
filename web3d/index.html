@@ -183,6 +183,47 @@
       </div>
     </div>
 
+    <div class="panel">
+      <h2>Gravity Well</h2>
+      <div style="margin-bottom:6px">
+        <select id="gravity-metric" style="width:100%;background:rgba(30,41,59,0.7);border:1px solid rgba(100,116,139,0.15);border-radius:6px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;outline:none;">
+          <option value="">Off</option>
+          <optgroup label="Model Properties">
+            <option value="total_parameters">Parameters</option>
+            <option value="context_window">Context Window</option>
+            <option value="arena_elo_overall">Arena ELO</option>
+          </optgroup>
+          <optgroup label="Benchmarks">
+            <option value="bench:humaneval">HumanEval</option>
+            <option value="bench:swe_bench_verified">SWE-bench Verified</option>
+            <option value="bench:gpqa_diamond">GPQA Diamond</option>
+            <option value="bench:mmlu_pro">MMLU-Pro</option>
+            <option value="bench:math_500">MATH-500</option>
+            <option value="bench:mteb_overall">MTEB Overall</option>
+            <option value="bench:arena_elo_coding">Arena ELO Coding</option>
+            <option value="bench:terminal_bench_2">Terminal-Bench 2.0</option>
+            <option value="bench:aider_polyglot">Aider Polyglot</option>
+            <option value="bench:helm_safety">HELM Safety</option>
+          </optgroup>
+          <optgroup label="Downselect Score">
+            <option value="downselect:general">General</option>
+            <option value="downselect:coding">Coding</option>
+            <option value="downselect:coding_rust">Coding (Rust)</option>
+            <option value="downselect:reasoning">Reasoning</option>
+            <option value="downselect:agentic">Agentic</option>
+            <option value="downselect:medical">Medical</option>
+            <option value="downselect:embedding">Embedding</option>
+          </optgroup>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:10px;color:#64748b;">Strength</label>
+        <input type="range" id="gravity-strength" min="0" max="100" value="50"
+          style="flex:1;accent-color:#6366f1;height:4px;" disabled>
+      </div>
+      <div id="gravity-status" style="font-size:10px;color:#475569;margin-top:4px;"></div>
+    </div>
+
     <div class="panel" id="legend-panel">
       <h2>3moticons</h2>
       <div id="legend"></div>
@@ -770,7 +811,7 @@
       dirLight2.position.set(-100, -50, -100);
       scene.add(dirLight2);
 
-      // Animate rotation of 3moticons
+      // Animate rotation of 3moticons + gravity well
       (function animate() {
         requestAnimationFrame(animate);
         const time = Date.now() * 0.001;
@@ -782,6 +823,16 @@
             }
           }
         });
+        // Animate gravity well
+        if (gravityWellMesh && gravityWellMesh.visible) {
+          gravityWellMesh.rotation.y = time * 0.2;
+          gravityWellMesh.children.forEach(child => {
+            if (child.userData && child.userData.isHalo) {
+              const pulse = 1.0 + Math.sin(time * 2) * 0.15;
+              child.scale.set(pulse, pulse, pulse);
+            }
+          });
+        }
       })();
 
       await switchView(currentView);
@@ -789,6 +840,188 @@
 
       // Search
       document.getElementById('search-input').addEventListener('input', debounce(handleSearch, 300));
+
+      // Gravity Well
+      document.getElementById('gravity-metric').addEventListener('change', onGravityChange);
+      document.getElementById('gravity-strength').addEventListener('input', onGravityStrengthChange);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // GRAVITY WELL
+    // ═══════════════════════════════════════════════════════════════
+
+    let gravityWellMesh = null;
+    let gravityActive = false;
+    let gravityScores = {};  // nodeId -> normalized 0-1 value
+    const GRAVITY_WELL_POS = { x: 0, y: 150, z: 0 };
+
+    function createGravityWellMesh() {
+      if (gravityWellMesh) return;
+      const scene = graph3d.scene();
+
+      // Glowing attractor sphere
+      const group = new THREE.Group();
+
+      // Core sphere
+      const coreGeo = new THREE.SphereGeometry(4, 32, 32);
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.9 });
+      group.add(new THREE.Mesh(coreGeo, coreMat));
+
+      // Outer glow rings
+      for (let i = 1; i <= 3; i++) {
+        const ringGeo = new THREE.RingGeometry(4 + i * 3, 5 + i * 3, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0x6366f1, transparent: true, opacity: 0.15 / i, side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI * 0.5 * (i % 2);
+        ring.rotation.y = Math.PI * 0.3 * i;
+        group.add(ring);
+      }
+
+      // Pulsing halo
+      const haloGeo = new THREE.SphereGeometry(8, 16, 16);
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.08, wireframe: true });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.userData.isHalo = true;
+      group.add(halo);
+
+      group.position.set(GRAVITY_WELL_POS.x, GRAVITY_WELL_POS.y, GRAVITY_WELL_POS.z);
+      group.visible = false;
+      scene.add(group);
+      gravityWellMesh = group;
+    }
+
+    async function onGravityChange() {
+      const metric = document.getElementById('gravity-metric').value;
+      const slider = document.getElementById('gravity-strength');
+      const status = document.getElementById('gravity-status');
+
+      if (!metric) {
+        // Turn off
+        gravityActive = false;
+        gravityScores = {};
+        slider.disabled = true;
+        status.textContent = '';
+        if (gravityWellMesh) gravityWellMesh.visible = false;
+        graph3d.d3Force('gravity', null);
+        graph3d.d3ReheatSimulation();
+        return;
+      }
+
+      slider.disabled = false;
+      status.textContent = 'Loading scores...';
+
+      // Compute scores based on metric type
+      if (metric.startsWith('downselect:')) {
+        // Fetch ranking from API
+        const useCase = metric.split(':')[1];
+        try {
+          const resp = await fetch(`${API}/api/v1/rank`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ use_case: useCase, limit: 500 }),
+          });
+          const data = await resp.json();
+          gravityScores = {};
+          if (data.ranked && data.ranked.length > 0) {
+            const maxScore = data.ranked[0].score;
+            data.ranked.forEach(r => {
+              gravityScores[r.model_id] = r.score / maxScore;
+            });
+          }
+        } catch (e) {
+          status.textContent = 'Error fetching rankings';
+          return;
+        }
+      } else if (metric.startsWith('bench:')) {
+        // Benchmark score — look in SCORED_ON edges
+        const benchId = metric.split(':')[1];
+        gravityScores = {};
+        let maxVal = 0;
+        graphData.nodes.forEach(n => {
+          if (n.label === 'Model') {
+            // Find SCORED_ON edge to this benchmark
+            const edge = graphData.links.find(e =>
+              (e.source === n.id || e.source?.id === n.id) &&
+              (e.target === benchId || e.target?.id === benchId) &&
+              e.type === 'SCORED_ON'
+            );
+            if (edge && edge.properties && edge.properties.value != null) {
+              const val = parseFloat(edge.properties.value);
+              gravityScores[n.id] = val;
+              if (val > maxVal) maxVal = val;
+            }
+          }
+        });
+        // Normalize to 0-1
+        if (maxVal > 0) {
+          Object.keys(gravityScores).forEach(k => { gravityScores[k] /= maxVal; });
+        }
+      } else {
+        // Node property (total_parameters, context_window, arena_elo_overall)
+        gravityScores = {};
+        let maxVal = 0;
+        graphData.nodes.forEach(n => {
+          if (n.label === 'Model') {
+            const val = parseFloat(n[metric] || n.properties?.[metric] || 0);
+            if (val > 0) {
+              // Use log scale for parameters/context to avoid outlier domination
+              const scaled = (metric === 'total_parameters' || metric === 'context_window')
+                ? Math.log10(val) : val;
+              gravityScores[n.id] = scaled;
+              if (scaled > maxVal) maxVal = scaled;
+            }
+          }
+        });
+        if (maxVal > 0) {
+          Object.keys(gravityScores).forEach(k => { gravityScores[k] /= maxVal; });
+        }
+      }
+
+      const count = Object.keys(gravityScores).length;
+      status.textContent = `${count} models attracted`;
+
+      // Activate
+      gravityActive = true;
+      createGravityWellMesh();
+      gravityWellMesh.visible = true;
+      applyGravityForce();
+    }
+
+    function onGravityStrengthChange() {
+      if (gravityActive) applyGravityForce();
+    }
+
+    function applyGravityForce() {
+      const strength = parseInt(document.getElementById('gravity-strength').value) / 100;
+      const wellX = GRAVITY_WELL_POS.x;
+      const wellY = GRAVITY_WELL_POS.y;
+      const wellZ = GRAVITY_WELL_POS.z;
+
+      // Custom d3 force: pulls nodes toward the well proportional to their score
+      graph3d.d3Force('gravity', (alpha) => {
+        graphData.nodes.forEach(n => {
+          const score = gravityScores[n.id];
+          if (score != null && score > 0) {
+            // Attraction toward well: stronger for higher scores
+            const pull = alpha * strength * score * 2.0;
+            n.vx += (wellX - n.x) * pull * 0.01;
+            n.vy += (wellY - n.y) * pull * 0.01;
+            n.vz += (wellZ - n.z) * pull * 0.01;
+          } else if (n.label === 'Model') {
+            // Models without the metric: gentle push away from well
+            const push = alpha * strength * 0.3;
+            const dx = n.x - wellX, dy = n.y - wellY, dz = n.z - wellZ;
+            const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy + dz*dz));
+            n.vx += (dx / dist) * push;
+            n.vy += (dy / dist) * push;
+            n.vz += (dz / dist) * push;
+          }
+        });
+      });
+
+      graph3d.d3ReheatSimulation();
     }
 
     // ═══════════════════════════════════════════════════════════════
