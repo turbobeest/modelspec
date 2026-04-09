@@ -219,9 +219,15 @@
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:10px;color:#64748b;">Strength</label>
-        <input type="range" id="gravity-strength" min="0" max="100" value="50"
+        <label style="font-size:10px;color:#64748b;white-space:nowrap;">Strength</label>
+        <input type="range" id="gravity-strength" min="0" max="100" value="70"
           style="flex:1;accent-color:#6366f1;height:4px;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <label style="font-size:10px;color:#64748b;white-space:nowrap;">Curve</label>
+        <input type="range" id="gravity-curve" min="10" max="50" value="20"
+          style="flex:1;accent-color:#a855f7;height:4px;">
+        <span id="gravity-curve-label" style="font-size:9px;color:#64748b;min-width:20px;">x2.0</span>
       </div>
       <div id="gravity-status" style="font-size:10px;color:#475569;margin-top:4px;"></div>
     </div>
@@ -860,6 +866,11 @@
         if (gravityActive) onGravityChange();
       });
       document.getElementById('gravity-strength').addEventListener('input', onGravityStrengthChange);
+      document.getElementById('gravity-curve').addEventListener('input', () => {
+        const val = parseInt(document.getElementById('gravity-curve').value) / 10;
+        document.getElementById('gravity-curve-label').textContent = `x${val.toFixed(1)}`;
+        if (gravityActive) applyGravityForce();
+      });
 
       // Saved Rankings — populate dropdown from localStorage
       populateSavedRankings();
@@ -1011,17 +1022,22 @@
 
     function applyGravityForce() {
       const strength = parseInt(document.getElementById('gravity-strength').value) / 100;
+      const curve = parseInt(document.getElementById('gravity-curve').value) / 10;  // 1.0 to 5.0
       const wellX = GRAVITY_WELL_POS.x, wellY = GRAVITY_WELL_POS.y, wellZ = GRAVITY_WELL_POS.z;
       graph3d.d3Force('gravity', (alpha) => {
         graphData.nodes.forEach(n => {
-          const score = gravityScores[n.id];
-          if (score != null && score > 0) {
-            const pull = alpha * strength * score * 2.0;
+          const rawScore = gravityScores[n.id];
+          if (rawScore != null && rawScore > 0) {
+            // Apply exponential curve: score^curve amplifies differences
+            const score = Math.pow(rawScore, curve);
+            // 10X base strength for dramatic visual separation
+            const pull = alpha * strength * score * 20.0;
             n.vx += (wellX - n.x) * pull * 0.01;
             n.vy += (wellY - n.y) * pull * 0.01;
             n.vz += (wellZ - n.z) * pull * 0.01;
           } else if (n.label === 'Model') {
-            const push = alpha * strength * 0.3;
+            // Push unscored models away — also 10X'd
+            const push = alpha * strength * 3.0;
             const dx = n.x - wellX, dy = n.y - wellY, dz = n.z - wellZ;
             const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy + dz*dz));
             n.vx += (dx / dist) * push;
