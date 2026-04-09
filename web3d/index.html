@@ -1031,13 +1031,13 @@
             // Apply exponential curve: score^curve amplifies differences
             const score = Math.pow(rawScore, curve);
             // 10X base strength for dramatic visual separation
-            const pull = alpha * strength * score * 20.0;
+            const pull = alpha * strength * score * 200.0;
             n.vx += (wellX - n.x) * pull * 0.01;
             n.vy += (wellY - n.y) * pull * 0.01;
             n.vz += (wellZ - n.z) * pull * 0.01;
           } else if (n.label === 'Model') {
             // Push unscored models away — also 10X'd
-            const push = alpha * strength * 3.0;
+            const push = alpha * strength * 30.0;
             const dx = n.x - wellX, dy = n.y - wellY, dz = n.z - wellZ;
             const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy + dz*dz));
             n.vx += (dx / dist) * push;
