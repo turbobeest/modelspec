@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-to-video
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 1500000000
   active_parameters: null
   num_experts: null
   experts_per_token: null

@@ -15,7 +15,7 @@ tags:
 pipeline_tag: time-series-forecasting
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 91000000
   active_parameters: null
   num_experts: null
   experts_per_token: null

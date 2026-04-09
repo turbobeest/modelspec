@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-text-to-text
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 8000000000
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -84,7 +84,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: null
-    context_window: null
+    context_window: 8192
     streaming: null
     fill_in_middle: null
     json_mode: null

@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 780000000
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -60,7 +60,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: proprietary
+  license_type: apache-2.0
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -82,7 +82,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: null
-    context_window: null
+    context_window: 512
     streaming: null
     fill_in_middle: null
     json_mode: null

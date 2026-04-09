@@ -15,7 +15,7 @@ tags:
 pipeline_tag: feature-extraction
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 400000000
   active_parameters: null
   num_experts: null
   experts_per_token: null

@@ -83,7 +83,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: null
-    context_window: null
+    context_window: 65536
     streaming: null
     fill_in_middle: null
     json_mode: null

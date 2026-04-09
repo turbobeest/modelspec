@@ -61,7 +61,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: proprietary
+  license_type: apache-2.0
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -83,7 +83,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: null
-    context_window: null
+    context_window: 256000
     streaming: null
     fill_in_middle: null
     json_mode: null

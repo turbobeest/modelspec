@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 200000000
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -60,7 +60,7 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: proprietary
+  license_type: apache-2.0
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
