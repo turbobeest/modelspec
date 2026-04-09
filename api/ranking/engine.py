@@ -1289,11 +1289,17 @@ class RankingEngine:
             # Runtime filter — require model to support specific runtimes
             required_runtimes = constraints.get("runtime")  # list of runtime IDs
             if required_runtimes:
-                # Check both runtime-derived platforms and the available_platforms
+                # Check explicit runtime platforms
                 model_runtimes = m.runtimes | (m.available_platforms & {
                     "ollama", "lm_studio", "gpt4all", "vllm", "mlx",
                     "llama_cpp", "transformers",
                 })
+                # Infer runtime compatibility for open-weights models:
+                # If on HuggingFace or open-weights, they can run on vllm/transformers/llama_cpp
+                if m.open_weights:
+                    model_runtimes |= {"vllm", "transformers", "llama_cpp"}
+                    if m.available_platforms & {"ollama", "lm_studio", "gpt4all"}:
+                        model_runtimes |= {"ollama", "lm_studio", "gpt4all"}
                 if not model_runtimes & set(required_runtimes):
                     continue
 
