@@ -456,7 +456,19 @@
       </div>
 
       <button id="run-btn" onclick="runDownselect()">Run Downselect</button>
+      <button id="save-btn" onclick="saveRanking()" style="display:none;margin-top:4px;width:100%;padding:8px;border-radius:8px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#818cf8;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Save Ranking</button>
       <div class="result-count" id="result-count"></div>
+
+      <div style="margin-top:12px;border-top:1px solid rgba(100,116,139,0.1);padding-top:12px;">
+        <label style="font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Saved Rankings</label>
+        <select id="saved-rankings" style="width:100%;margin-top:4px;background:rgba(30,41,59,0.7);border:1px solid rgba(100,116,139,0.15);border-radius:6px;padding:6px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;outline:none;">
+          <option value="">Load a saved ranking...</option>
+        </select>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <button onclick="loadSavedRanking()" style="flex:1;padding:6px;border-radius:6px;border:1px solid rgba(100,116,139,0.2);background:rgba(30,41,59,0.5);color:#94a3b8;cursor:pointer;font-family:inherit;font-size:11px;">Load</button>
+          <button onclick="deleteSavedRanking()" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.05);color:#f87171;cursor:pointer;font-family:inherit;font-size:11px;">Delete</button>
+        </div>
+      </div>
     </div>
 
     <div id="results">
@@ -837,6 +849,12 @@
         document.getElementById('result-count').textContent =
           `${data.total} models ranked for "${data.use_case || 'general'}"`;
 
+        // Stash for save
+        lastRankedResults = data.ranked;
+        lastRankedUseCase = data.use_case;
+        lastRankedConstraints = constraints;
+        document.getElementById('save-btn').style.display = 'block';
+
       } catch (e) {
         console.error('Downselect failed:', e);
         document.getElementById('results').innerHTML =
@@ -943,9 +961,134 @@
       container.innerHTML = html;
     }
 
+    // ─── Saved Rankings (localStorage) ─────────────────────
+
+    const SAVED_RANKINGS_KEY = 'modelspec_saved_rankings';
+    let lastRankedResults = null;  // stash from most recent runDownselect
+    let lastRankedUseCase = null;
+    let lastRankedConstraints = null;
+
+    function getSavedRankings() {
+      try { return JSON.parse(localStorage.getItem(SAVED_RANKINGS_KEY) || '[]'); }
+      catch { return []; }
+    }
+
+    function setSavedRankings(rankings) {
+      localStorage.setItem(SAVED_RANKINGS_KEY, JSON.stringify(rankings));
+    }
+
+    function populateSavedRankingsDropdown() {
+      const select = document.getElementById('saved-rankings');
+      select.innerHTML = '<option value="">Load a saved ranking...</option>';
+      getSavedRankings().forEach((r, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        const count = r.results ? r.results.length : 0;
+        const date = r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '';
+        opt.textContent = `${r.name} (${count} models, ${date})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function saveRanking() {
+      if (!lastRankedResults || lastRankedResults.length === 0) return;
+
+      const useCase = lastRankedUseCase || 'general';
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
+
+      // Build descriptive name
+      const parts = [useCase.replace(/_/g, ' ')];
+      if (lastRankedConstraints) {
+        if (lastRankedConstraints.open_weights) parts.push('open');
+        if (lastRankedConstraints.hosting) parts.push(lastRankedConstraints.hosting.join('/'));
+        if (lastRankedConstraints.origin_countries) parts.push(lastRankedConstraints.origin_countries.join(','));
+        if (lastRankedConstraints.max_cost_input) parts.push(`≤$${lastRankedConstraints.max_cost_input}`);
+      }
+      const defaultName = `${parts.join(' · ')} — ${dateStr}`;
+
+      const name = prompt('Name this ranking:', defaultName);
+      if (!name) return;
+
+      const ranking = {
+        name: name,
+        timestamp: now.toISOString(),
+        use_case: useCase,
+        constraints: lastRankedConstraints || {},
+        results: lastRankedResults.map(r => ({
+          model_id: r.model_id,
+          display_name: r.display_name,
+          score: r.score,
+          model_type: r.model_type,
+          rank: r.rank,
+        })),
+      };
+
+      const rankings = getSavedRankings();
+      rankings.unshift(ranking);  // newest first
+      if (rankings.length > 50) rankings.length = 50;  // cap at 50
+      setSavedRankings(rankings);
+      populateSavedRankingsDropdown();
+      alert(`Saved "${name}" with ${ranking.results.length} models.\n\nThis ranking is also available on the 3D Graph page under "Saved Rankings".`);
+    }
+
+    function loadSavedRanking() {
+      const select = document.getElementById('saved-rankings');
+      const idx = parseInt(select.value);
+      if (isNaN(idx)) return;
+
+      const rankings = getSavedRankings();
+      const ranking = rankings[idx];
+      if (!ranking) return;
+
+      // Restore the use case
+      if (ranking.use_case) {
+        // Try to click the matching use-case chip
+        document.querySelectorAll('.use-case-btn').forEach(btn => {
+          if (btn.dataset.usecase === ranking.use_case) btn.click();
+        });
+      }
+
+      // Restore constraints
+      const c = ranking.constraints || {};
+      if (c.open_weights) document.getElementById('toggle-open')?.click();
+      if (c.reasoning) document.getElementById('toggle-reasoning')?.click();
+      if (c.tool_use) document.getElementById('toggle-tools')?.click();
+      if (c.vision) document.getElementById('toggle-vision')?.click();
+      if (c.openai_compatible) document.getElementById('toggle-openai-compat')?.click();
+      if (c.model_type) document.getElementById('filter-type').value = c.model_type;
+      if (c.max_cost_input) document.getElementById('filter-max-cost').value = c.max_cost_input;
+
+      // Render the saved results directly
+      renderResults(ranking.results, ranking.use_case);
+      document.getElementById('result-count').textContent =
+        `Loaded "${ranking.name}" — ${ranking.results.length} models`;
+      document.getElementById('save-btn').style.display = 'none';
+
+      // Stash for potential re-save
+      lastRankedResults = ranking.results;
+      lastRankedUseCase = ranking.use_case;
+      lastRankedConstraints = ranking.constraints;
+    }
+
+    function deleteSavedRanking() {
+      const select = document.getElementById('saved-rankings');
+      const idx = parseInt(select.value);
+      if (isNaN(idx)) return;
+
+      const rankings = getSavedRankings();
+      const name = rankings[idx]?.name || 'this ranking';
+      if (!confirm(`Delete "${name}"?`)) return;
+
+      rankings.splice(idx, 1);
+      setSavedRankings(rankings);
+      populateSavedRankingsDropdown();
+    }
+
     // ─── Init ────────────────────────────────────────────────
 
     loadProviders();
+    populateSavedRankingsDropdown();
 
     // Run on Enter key in any input
     document.querySelectorAll('input').forEach(input => {
