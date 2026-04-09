@@ -92,9 +92,9 @@ modalities:
     json_mode: null
     system_prompt: null
   vision:
-    supported: false
-    ocr: false
-    chart_reading: false
+    supported: true
+    ocr: true
+    chart_reading: true
     spatial_reasoning: false
     handwriting: false
     object_detection: false
