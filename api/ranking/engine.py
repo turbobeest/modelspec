@@ -102,6 +102,20 @@ BENCHMARK_RANGES: dict[str, tuple[float, float]] = {
     "graphwalks_parents_256k_1m": (0.0, 100.0),
     # Math (competition)
     "usamo_2026":       (0.0, 100.0),
+    "ipho_2025_theory": (0.0, 100.0),
+    # Agentic research
+    "deepsearchqa":             (0.0, 80.0),
+    "frontierscience_research": (0.0, 50.0),
+    # Health / Medical (advanced)
+    "healthbench_hard":         (0.0, 50.0),
+    "medxpertqa_multimodal":    (20.0, 85.0),
+    # Visual reasoning
+    "zerobench":        (0.0, 50.0),
+    "ai2d":             (40.0, 100.0),
+    "ocrbench":         (0.0, 100.0),
+    "realworldqa":      (30.0, 90.0),
+    # AGI benchmarks
+    "arc_agi_2":        (0.0, 80.0),
     # Multilingual knowledge
     "mmmlu":            (40.0, 95.0),
     # Per-language MultiPL-E (percentage-based, 0-100)
