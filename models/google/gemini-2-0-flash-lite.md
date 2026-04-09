@@ -17,7 +17,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 10000000000
   active_parameters: null
   num_experts: null
   experts_per_token: null
