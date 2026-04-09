@@ -672,7 +672,12 @@ benchmarks:
     math_500: 48.5
     mmlu_pro: 43.1
     gsm8k: 89.2
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    mmmu: 48.8
+    mathvista: 50.0
+    docvqa: 75.8
+    chartqa: 68.8
+    ai2d: 74.8
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

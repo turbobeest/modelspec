@@ -666,8 +666,11 @@ benchmarks:
     docvqa: 78.5
     mathvista: 42.5
     mmmu: 48.2
+    ai2d: 79.5
+    ocrbench: 86.4
   benchmark_source: multimodal-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -827,7 +830,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Qwen2.5-VL 7B Instruct
 

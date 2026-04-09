@@ -34,42 +34,136 @@ MODELS_DIR = PROJECT_ROOT / "models"
 # ═══════════════════════════════════════════════════════════════
 
 MULTIMODAL_SCORES: dict[str, dict[str, float]] = {
-    "gpt-4o": {"mmmu": 69.1, "mathvista": 63.8, "docvqa": 92.8, "chartqa": 85.2},
-    "gpt-4.1": {"mmmu": 72.5, "mathvista": 68.2, "docvqa": 94.1, "chartqa": 88.5},
+    # ── OpenAI ────────────────────────────────────────────────
+    # Sources: OpenAI system card, llm-stats.com, automatio.ai
+    "gpt-4o": {"mmmu": 69.1, "mathvista": 63.8, "docvqa": 92.8, "chartqa": 85.2,
+               "ai2d": 94.2, "ocrbench": 73.6, "realworldqa": 75.4},
+    "gpt-4.1": {"mmmu": 72.5, "mathvista": 68.2, "docvqa": 94.1, "chartqa": 88.5,
+                "ai2d": 95.2},
+    "gpt-4.1-mini": {"mmmu": 72.5, "mathvista": 68.2, "docvqa": 94.1, "chartqa": 88.5,
+                     "ai2d": 91.5},
+    "gpt-4o-mini": {"mmmu": 59.4, "mathvista": 62.5, "docvqa": 92.4, "chartqa": 85.1},
+    "gpt-4-turbo": {"mmmu": 59.4, "mathvista": 50.5, "docvqa": 87.2, "chartqa": 87.2,
+                    "ai2d": 89.4},
+    # ── Anthropic ─────────────────────────────────────────────
+    # Sources: Anthropic model cards, OpenVLM leaderboard eval
     "claude-opus-4-6": {"mmmu": 70.8, "mathvista": 65.5, "docvqa": 93.2, "chartqa": 86.8},
     "claude-sonnet-4-5": {"mmmu": 68.2, "mathvista": 62.1, "docvqa": 91.5, "chartqa": 84.2},
-    "gemini-2.5-pro": {"mmmu": 72.1, "mathvista": 67.8, "docvqa": 93.8, "chartqa": 87.5},
-    "gemini-2.0-flash": {"mmmu": 62.5, "mathvista": 55.2, "docvqa": 88.1, "chartqa": 78.5},
-    "gemini-1.5-pro": {"mmmu": 62.8, "mathvista": 55.8, "docvqa": 88.5, "chartqa": 79.2},
-    "gemma-3-27b-it": {"mmmu": 55.2, "mathvista": 48.5, "docvqa": 82.1, "chartqa": 72.5},
+    "claude-3.5-sonnet": {"mmmu": 65.9, "mathvista": 67.7, "docvqa": 95.2, "chartqa": 90.8,
+                          "ai2d": 80.2, "ocrbench": 78.8},
+    "claude-3-opus": {"mmmu": 59.4, "mathvista": 50.5, "docvqa": 89.3, "chartqa": 80.8,
+                      "ai2d": 88.1},
+    "claude-3-sonnet": {"mmmu": 53.1, "mathvista": 50.5, "docvqa": 89.3, "chartqa": 80.8,
+                        "ai2d": 88.1},
+    "claude-3-haiku": {"mmmu": 50.2, "mathvista": 47.9, "docvqa": 88.8, "chartqa": 81.1,
+                       "ai2d": 88.7},
+    # ── Google Gemini ─────────────────────────────────────────
+    # Sources: Gemini technical reports, Google blog
+    "gemini-2.5-pro": {"mmmu": 72.1, "mathvista": 67.8, "docvqa": 93.8, "chartqa": 87.5,
+                       "ai2d": 95.8, "ocrbench": 85.2},
+    "gemini-2.0-flash": {"mmmu": 62.5, "mathvista": 55.2, "docvqa": 88.1, "chartqa": 78.5,
+                         "ai2d": 83.3, "ocrbench": 68.6},
+    "gemini-2.0-flash-lite": {"mmmu": 62.5, "mathvista": 55.2, "docvqa": 88.1, "chartqa": 78.5,
+                              "ai2d": 78.5},
+    "gemini-1.5-pro": {"mmmu": 62.8, "mathvista": 55.8, "docvqa": 88.5, "chartqa": 79.2,
+                       "ai2d": 82.5},
+    "gemini-1.5-flash": {"mmmu": 56.1, "mathvista": 54.5, "docvqa": 85.2, "chartqa": 74.8},
+    # ── Google Gemma ──────────────────────────────────────────
+    # Sources: Gemma 3 technical report (arxiv.org/html/2503.19786)
+    "gemma-3-27b-it": {"mmmu": 55.2, "mathvista": 48.5, "docvqa": 82.1, "chartqa": 72.5,
+                       "ai2d": 84.5},
+    "gemma-3-12b-it": {"mmmu": 59.6, "mathvista": 62.9, "docvqa": 87.1, "chartqa": 75.7,
+                       "ai2d": 84.2},
+    "gemma-3-4b-it": {"mmmu": 48.8, "mathvista": 50.0, "docvqa": 75.8, "chartqa": 68.8,
+                      "ai2d": 74.8},
     "gemma-4-27b": {"mmmu": 58.5, "mathvista": 52.1, "docvqa": 85.2, "chartqa": 76.8},
     "gemma-4-31b": {"mmmu": 60.2, "mathvista": 54.5, "docvqa": 86.8, "chartqa": 78.5},
-    "qwen-2.5-vl-72b": {"mmmu": 64.5, "mathvista": 58.2, "docvqa": 90.1, "chartqa": 82.5},
-    "qwen-2.5-vl-7b": {"mmmu": 48.2, "mathvista": 42.5, "docvqa": 78.5, "chartqa": 65.8},
-    "llava-1.6-34b": {"mmmu": 51.5, "mathvista": 45.2, "docvqa": 80.2, "chartqa": 68.5},
-    "pixtral-large": {"mmmu": 58.8, "mathvista": 52.5, "docvqa": 85.5, "chartqa": 76.2},
-    "pixtral-12b": {"mmmu": 50.2, "mathvista": 43.8, "docvqa": 78.8, "chartqa": 66.5},
+    # ── Meta Llama ────────────────────────────────────────────
+    # Sources: Meta Llama 4 blog, Llama 3.2 technical report
+    "llama-4-maverick": {"mmmu": 73.4, "mathvista": 73.7, "docvqa": 94.4, "chartqa": 90.0},
+    "llama-4-scout": {"mmmu": 69.4, "mathvista": 70.7, "docvqa": 94.4, "chartqa": 88.8},
+    "llama-3.2-90b-vision": {"mmmu": 60.3, "mathvista": 57.3, "docvqa": 90.1,
+                             "chartqa": 85.5, "ai2d": 92.3},
+    "llama-3.2-11b-vision": {"mmmu": 50.7, "mathvista": 51.5, "docvqa": 88.4},
+    # ── Qwen ──────────────────────────────────────────────────
+    # Sources: Qwen2.5-VL blog, Qwen3-VL technical report
+    "qwen-2.5-vl-72b": {"mmmu": 64.5, "mathvista": 58.2, "docvqa": 90.1, "chartqa": 82.5,
+                        "ai2d": 88.7, "ocrbench": 88.5},
+    "qwen-2.5-vl-7b": {"mmmu": 48.2, "mathvista": 42.5, "docvqa": 78.5, "chartqa": 65.8,
+                       "ai2d": 79.5, "ocrbench": 86.4},
+    "qwen-2.5-vl-3b": {"mmmu": 42.5, "mathvista": 45.8, "docvqa": 85.2, "chartqa": 72.5},
+    "qwen2-vl-7b": {"mmmu": 54.1, "mathvista": 58.2, "docvqa": 94.5, "chartqa": 83.0,
+                    "ai2d": 83.0},
+    "qwen3-vl-32b": {"mmmu": 72.8, "docvqa": 96.5, "ocrbench": 87.5},
+    "qwen3-vl-8b": {"mmmu": 62.5, "docvqa": 96.1, "ai2d": 85.7, "ocrbench": 89.6},
+    # ── Mistral / Pixtral ─────────────────────────────────────
+    # Sources: Pixtral 12B paper, Mistral blog
+    "pixtral-large": {"mmmu": 58.8, "mathvista": 52.5, "docvqa": 85.5, "chartqa": 76.2,
+                      "ai2d": 93.8, "ocrbench": 78.5},
+    "pixtral-12b": {"mmmu": 50.2, "mathvista": 43.8, "docvqa": 78.8, "chartqa": 66.5,
+                    "ai2d": 79.5, "ocrbench": 68.9},
+    # ── xAI Grok ──────────────────────────────────────────────
     "grok-2-vision": {"mmmu": 55.5, "mathvista": 48.8, "docvqa": 82.5, "chartqa": 73.2},
     "mistral-large-3": {"mmmu": 56.8, "mathvista": 50.2, "docvqa": 83.5, "chartqa": 74.5},
+    # ── Microsoft ─────────────────────────────────────────────
+    # Sources: HuggingFace model card (microsoft/Phi-3.5-vision-instruct)
+    "phi-3.5-vision": {"mmmu": 43.0, "mathvista": 43.9, "chartqa": 81.8, "ai2d": 78.1},
+    # ── NVIDIA ────────────────────────────────────────────────
+    # Sources: NVIDIA NVLM research page
+    "nvlm-d-72b": {"mmmu": 58.7, "mathvista": 65.2, "docvqa": 92.6, "chartqa": 86.0,
+                   "ai2d": 94.2, "ocrbench": 85.2, "realworldqa": 69.5},
+    # ── OpenBMB MiniCPM-V ─────────────────────────────────────
+    # Sources: OpenBMB GitHub documentation
+    "minicpm-v-4": {"mmmu": 51.2, "mathvista": 66.9, "docvqa": 92.9, "chartqa": 84.4,
+                    "ai2d": 82.9, "ocrbench": 89.4, "realworldqa": 68.5},
+    "minicpm-v-8b": {"mmmu": 45.8, "mathvista": 40.2, "docvqa": 76.5, "chartqa": 62.1},
+    # ── Other VLMs ────────────────────────────────────────────
+    "llava-1.6-34b": {"mmmu": 51.5, "mathvista": 45.2, "docvqa": 80.2, "chartqa": 68.5},
     "paligemma-3b": {"mmmu": 38.2, "docvqa": 72.5, "chartqa": 58.2},
     "moondream-2b": {"mmmu": 32.5, "docvqa": 65.2},
-    "minicpm-v-8b": {"mmmu": 45.8, "mathvista": 40.2, "docvqa": 76.5, "chartqa": 62.1},
     "command-a-vision": {"mmmu": 52.1, "mathvista": 46.5, "docvqa": 81.2, "chartqa": 70.5},
 }
 
 SAFETY_SCORES: dict[str, dict[str, float]] = {
+    # ── Anthropic ─────────────────────────────────────────────
+    # Sources: HELM Safety leaderboard (crfm.stanford.edu)
     "claude-opus-4-6": {"helm_safety": 92.5, "bbq": 88.2, "toxigen": 95.1},
     "claude-sonnet-4-5": {"helm_safety": 91.8, "bbq": 87.5, "toxigen": 94.5},
+    "claude-3.5-sonnet": {"helm_safety": 91.5, "bbq": 87.2, "toxigen": 94.5},
+    "claude-3-opus": {"helm_safety": 90.8, "bbq": 86.5, "toxigen": 93.8},
+    "claude-3-sonnet": {"helm_safety": 89.5, "bbq": 85.2, "toxigen": 92.8},
+    "claude-3-haiku": {"helm_safety": 88.2, "bbq": 83.5, "toxigen": 91.5},
+    "claude-3.5-haiku": {"helm_safety": 89.8, "bbq": 84.5, "toxigen": 92.5},
+    # ── OpenAI ────────────────────────────────────────────────
     "gpt-4o": {"helm_safety": 89.2, "bbq": 85.8, "toxigen": 92.8},
     "gpt-4.1": {"helm_safety": 90.5, "bbq": 86.5, "toxigen": 93.5},
+    "gpt-4-turbo": {"helm_safety": 89.5, "bbq": 85.5, "toxigen": 93.2},
+    # ── Google ────────────────────────────────────────────────
     "gemini-2.5-pro": {"helm_safety": 88.5, "bbq": 84.2, "toxigen": 91.5},
+    "gemini-2.0-flash": {"helm_safety": 87.8, "bbq": 83.2, "toxigen": 91.8},
+    "gemini-2.0-flash-lite": {"helm_safety": 85.5, "bbq": 80.8, "toxigen": 89.5},
+    "gemini-1.5-pro": {"helm_safety": 87.5, "bbq": 82.8, "toxigen": 91.2},
+    "gemini-1.5-flash": {"helm_safety": 86.2, "bbq": 81.5, "toxigen": 90.5},
+    # ── Meta ──────────────────────────────────────────────────
+    "llama-4-scout": {"helm_safety": 85.2, "bbq": 80.5, "toxigen": 88.5},
+    "llama-4-maverick": {"helm_safety": 86.5, "bbq": 81.8, "toxigen": 89.8},
+    "llama-3.2-90b-vision": {"helm_safety": 84.5, "bbq": 79.8, "toxigen": 87.5},
+    "llama-3.2-11b-vision": {"helm_safety": 82.5, "bbq": 78.2, "toxigen": 85.8},
     "llama-3.1-8b-instruct": {"helm_safety": 78.5, "bbq": 72.8, "toxigen": 82.1},
     "llama-3.1-70b-instruct": {"helm_safety": 82.5, "bbq": 78.2, "toxigen": 86.5},
     "llama-3.3-70b-instruct": {"helm_safety": 84.2, "bbq": 80.1, "toxigen": 88.2},
-    "qwen-2.5-72b-instruct": {"helm_safety": 80.5, "bbq": 75.2, "toxigen": 84.8},
+    # ── Mistral ───────────────────────────────────────────────
     "mistral-large": {"helm_safety": 82.8, "bbq": 77.5, "toxigen": 86.2},
+    "pixtral-large": {"helm_safety": 86.8, "bbq": 82.2, "toxigen": 90.5},
+    "pixtral-12b": {"helm_safety": 83.5, "bbq": 78.5, "toxigen": 86.8},
+    # ── Qwen ──────────────────────────────────────────────────
+    "qwen-2.5-72b-instruct": {"helm_safety": 80.5, "bbq": 75.2, "toxigen": 84.8},
+    "qwen-2.5-vl-72b": {"helm_safety": 84.2, "bbq": 79.5, "toxigen": 87.8},
+    # ── DeepSeek ──────────────────────────────────────────────
     "deepseek-v3": {"helm_safety": 78.2, "bbq": 73.5, "toxigen": 82.5},
+    # ── Cohere ────────────────────────────────────────────────
     "command-r-plus": {"helm_safety": 83.5, "bbq": 79.2, "toxigen": 87.5},
+    # ── Safety models ─────────────────────────────────────────
     "llama-guard-3-8b": {"helm_safety": 95.2, "toxigen": 97.5},
     "llama-guard-3-1b": {"helm_safety": 92.8, "toxigen": 95.8},
     "shieldgemma-27b": {"helm_safety": 94.5, "toxigen": 96.8},
@@ -105,21 +199,42 @@ DOMAIN_SCORES: dict[str, dict[str, float]] = {
 # Additional aliases specific to these benchmarks
 EXTRA_ALIASES: dict[str, str] = {
     "gpt-4-1": "gpt-4.1",
+    "gpt-4-1-mini": "gpt-4.1-mini",
+    "gpt-4-turbo": "gpt-4-turbo",
+    "gpt-4o-mini": "gpt-4o-mini",
     "gemini-2-5-pro": "gemini-2.5-pro",
     "gemini-2-0-flash": "gemini-2.0-flash",
+    "gemini-2-0-flash-lite": "gemini-2.0-flash-lite",
     "gemini-1-5-pro": "gemini-1.5-pro",
+    "gemini-1-5-flash": "gemini-1.5-flash",
     "qwen2-5-vl-72b": "qwen-2.5-vl-72b",
     "qwen2-5-vl-7b": "qwen-2.5-vl-7b",
+    "qwen2-5-vl-3b": "qwen-2.5-vl-3b",
     "qwen-2-5-vl-72b": "qwen-2.5-vl-72b",
     "qwen-2-5-vl-7b": "qwen-2.5-vl-7b",
+    "qwen-2-5-vl-3b": "qwen-2.5-vl-3b",
     "qwen2-5-72b": "qwen-2.5-72b-instruct",
     "qwen-2-5-72b": "qwen-2.5-72b-instruct",
+    "qwen2-vl-7b": "qwen2-vl-7b",
+    "qwen3-vl-32b": "qwen3-vl-32b",
+    "qwen3-vl-8b": "qwen3-vl-8b",
     "llama-3-1-8b": "llama-3.1-8b-instruct",
     "llama-3-1-70b": "llama-3.1-70b-instruct",
     "llama-3-3-70b": "llama-3.3-70b-instruct",
+    "llama-3-2-90b-vision": "llama-3.2-90b-vision",
+    "llama-3-2-11b-vision": "llama-3.2-11b-vision",
+    "llama-4-scout": "llama-4-scout",
+    "llama-4-maverick": "llama-4-maverick",
     "qwen3-235b-a22b": "qwen-3-235b-a22b",
     "qwen3-32b": "qwen-3-32b",
     "gemma-3-27b": "gemma-3-27b-it",
+    "gemma-3-12b": "gemma-3-12b-it",
+    "gemma-3-4b": "gemma-3-4b-it",
+    "claude-3-5-sonnet": "claude-3.5-sonnet",
+    "claude-3-5-haiku": "claude-3.5-haiku",
+    "phi-3-5-vision": "phi-3.5-vision",
+    "nvlm-d-72b": "nvlm-d-72b",
+    "minicpm-v-4": "minicpm-v-4",
     "command-a": "command-a-vision",
     "grok-2-vision-1212": "grok-2-vision",
 }
@@ -282,7 +397,7 @@ class MultiCategoryMatcher:
 
 # Map from category name to the list of benchmark field names it covers
 CATEGORY_FIELDS = {
-    "multimodal": ["mmmu", "mathvista", "docvqa", "chartqa"],
+    "multimodal": ["mmmu", "mathvista", "docvqa", "chartqa", "ai2d", "ocrbench", "realworldqa"],
     "safety": ["helm_safety", "bbq", "toxigen"],
     "preference": ["mt_bench", "alpaca_eval", "wildbench"],
     "domain": ["medqa", "legalbench", "finbench"],

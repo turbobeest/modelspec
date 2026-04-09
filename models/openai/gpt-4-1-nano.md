@@ -665,10 +665,14 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 8.9
     alpaca_eval: 52.1
     arena_elo_coding: 1260.0
+    arena_elo_hard_prompts: 1332.8
     arena_elo_math: 1240.0
     arena_elo_overall: 1250.0
+    arena_elo_style_control: 1321.4
+    arena_elo_vision: 1088.9
     artificial_analysis_quality_index: 65.0
     artificial_analysis_speed_index: 94.0
     bbq: 86.5
@@ -678,26 +682,26 @@ benchmarks:
     helm_safety: 90.5
     humaneval: 78.5
     ifeval: 78.0
+    live_code_bench: 48.3
     math_500: 70.5
     mathvista: 68.2
     mmlu_pro: 64.1
     mmmu: 72.5
     mt_bench: 9.3
+    multipl_e_csharp: 76.5
+    multipl_e_julia: 56.2
+    multipl_e_kotlin: 68.2
+    multipl_e_lua: 50.8
+    multipl_e_perl: 46.5
+    multipl_e_php: 74.2
+    multipl_e_r: 52.8
+    multipl_e_ruby: 62.5
+    multipl_e_scala: 56.8
+    multipl_e_swift: 61.5
+    swe_bench_verified: 54.6
     toxigen: 93.5
     wildbench: 80.5
-    multipl_e_csharp: 76.5
-    multipl_e_php: 74.2
-    multipl_e_ruby: 62.5
-    multipl_e_swift: 61.5
-    multipl_e_r: 52.8
-    multipl_e_julia: 56.2
-    multipl_e_perl: 46.5
-    multipl_e_lua: 50.8
-    multipl_e_scala: 56.8
-    multipl_e_kotlin: 68.2
-    live_code_bench: 48.3
-    aider_polyglot: 8.9
-    swe_bench_verified: 54.6
+    ai2d: 95.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
@@ -861,7 +865,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # GPT-4.1 nano
 

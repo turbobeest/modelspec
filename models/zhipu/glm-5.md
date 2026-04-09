@@ -662,7 +662,12 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    arena_elo_coding: 1488.6
+    arena_elo_hard_prompts: 1475.9
+    arena_elo_math: 1458.3
+    arena_elo_overall: 1455.6
+    arena_elo_style_control: 1455.6
 deployment:
   api_only: false
   local_inference: true

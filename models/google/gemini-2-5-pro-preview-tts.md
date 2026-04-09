@@ -691,6 +691,8 @@ benchmarks:
     toxigen: 91.5
     wildbench: 79.8
     aider_polyglot: 72.9
+    ai2d: 95.8
+    ocrbench: 85.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals
   benchmark_as_of: 2026-04
@@ -854,7 +856,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemini 2.5 Pro Preview TTS
 

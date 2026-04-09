@@ -663,20 +663,22 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1210.0
+    arena_elo_hard_prompts: 1284.3
     arena_elo_math: 1200.0
     arena_elo_overall: 1220.0
+    arena_elo_style_control: 1273.5
     artificial_analysis_quality_index: 68.0
     artificial_analysis_speed_index: 82.0
     multipl_e_csharp: 65.2
-    multipl_e_php: 62.5
-    multipl_e_ruby: 48.5
-    multipl_e_swift: 48.8
-    multipl_e_r: 40.5
     multipl_e_julia: 44.2
-    multipl_e_perl: 35.2
-    multipl_e_lua: 40.5
-    multipl_e_scala: 43.2
     multipl_e_kotlin: 55.5
+    multipl_e_lua: 40.5
+    multipl_e_perl: 35.2
+    multipl_e_php: 62.5
+    multipl_e_r: 40.5
+    multipl_e_ruby: 48.5
+    multipl_e_scala: 43.2
+    multipl_e_swift: 48.8
   benchmark_source: lmarena.ai
   benchmark_as_of: 2026-04
   benchmark_notes: ''

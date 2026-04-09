@@ -662,7 +662,12 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    medmcqa: 55.7
+    medqa: 64.4
+    pubmedqa: 73.4
+  benchmark_source: domain-evals
+  benchmark_as_of: 2026-04
 deployment:
   api_only: false
   local_inference: true

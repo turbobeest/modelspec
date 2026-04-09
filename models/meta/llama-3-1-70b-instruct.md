@@ -671,9 +671,12 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    alpaca_eval: 38.1
     arena_elo_coding: 1230.0
+    arena_elo_hard_prompts: 1297.6
     arena_elo_math: 1220.0
     arena_elo_overall: 1240.0
+    arena_elo_style_control: 1292.8
     artificial_analysis_quality_index: 75.0
     artificial_analysis_speed_index: 72.0
     bbh: 55.8
@@ -684,6 +687,7 @@ benchmarks:
     humaneval: 76.2
     ifeval: 76.0
     legalbench: 58.5
+    live_code_bench: 23.2
     math_500: 64.5
     medqa: 65.2
     mmlu_astronomy: 70.2
@@ -699,25 +703,24 @@ benchmarks:
     mmlu_professional_law: 67.5
     multipl_e: 70.8
     multipl_e_cpp: 70.5
+    multipl_e_csharp: 70.2
     multipl_e_go: 66.8
     multipl_e_java: 75.8
     multipl_e_javascript: 73.5
+    multipl_e_julia: 50.5
+    multipl_e_kotlin: 60.5
+    multipl_e_lua: 43.8
+    multipl_e_perl: 38.5
+    multipl_e_php: 68.5
     multipl_e_python: 78.5
+    multipl_e_r: 46.5
+    multipl_e_ruby: 53.5
     multipl_e_rust: 58.2
+    multipl_e_scala: 48.2
+    multipl_e_swift: 53.2
     multipl_e_typescript: 72.5
     musr: 22.7
     toxigen: 86.5
-    multipl_e_csharp: 70.2
-    multipl_e_php: 68.5
-    multipl_e_ruby: 53.5
-    multipl_e_swift: 53.2
-    multipl_e_r: 46.5
-    multipl_e_julia: 50.5
-    multipl_e_perl: 38.5
-    multipl_e_lua: 43.8
-    multipl_e_scala: 48.2
-    multipl_e_kotlin: 60.5
-    live_code_bench: 23.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, domain-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''

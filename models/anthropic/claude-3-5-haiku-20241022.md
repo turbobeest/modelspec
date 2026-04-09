@@ -664,29 +664,36 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 28.0
     arena_elo_coding: 1270.0
+    arena_elo_hard_prompts: 1343.3
     arena_elo_math: 1250.0
     arena_elo_overall: 1260.0
+    arena_elo_style_control: 1322.4
+    arena_elo_vision: 1126.8
     gpqa_diamond: 51.2
     humaneval: 82.5
     ifeval: 80.5
-    math_500: 69.5
-    mmlu_pro: 65.3
-    mgsm: 85.6
-    multipl_e_csharp: 72.5
-    multipl_e_php: 68.8
-    multipl_e_ruby: 58.2
-    multipl_e_swift: 56.5
-    multipl_e_r: 48.5
-    multipl_e_julia: 51.8
-    multipl_e_perl: 42.5
-    multipl_e_lua: 46.8
-    multipl_e_scala: 52.5
-    multipl_e_kotlin: 62.8
     live_code_bench: 28.8
-    aider_polyglot: 28.0
+    math_500: 69.5
+    medqa: 77.8
+    mgsm: 85.6
+    mmlu_pro: 65.3
+    multipl_e_csharp: 72.5
+    multipl_e_julia: 51.8
+    multipl_e_kotlin: 62.8
+    multipl_e_lua: 46.8
+    multipl_e_perl: 42.5
+    multipl_e_php: 68.8
+    multipl_e_r: 48.5
+    multipl_e_ruby: 58.2
+    multipl_e_scala: 52.5
+    multipl_e_swift: 56.5
     swe_bench_verified: 40.6
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    helm_safety: 89.8
+    bbq: 84.5
+    toxigen: 92.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -848,7 +855,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Haiku 3.5
 

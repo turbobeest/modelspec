@@ -663,33 +663,35 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 40.0
     alpaca_eval: 38.2
     arena_elo_coding: 1320.0
+    arena_elo_hard_prompts: 1367.6
     arena_elo_math: 1330.0
     arena_elo_overall: 1310.0
+    arena_elo_style_control: 1347.0
     artificial_analysis_quality_index: 76.0
     artificial_analysis_speed_index: 70.0
     bbh: 62.8
     gpqa_diamond: 62.5
     humaneval: 85.2
     ifeval: 84.0
+    live_code_bench: 54.6
     math_500: 88.5
     mmlu_pro: 74.8
     mt_bench: 8.5
+    multipl_e_csharp: 78.2
+    multipl_e_julia: 59.2
+    multipl_e_kotlin: 70.5
+    multipl_e_lua: 53.5
+    multipl_e_perl: 48.5
+    multipl_e_php: 75.8
+    multipl_e_r: 55.5
+    multipl_e_ruby: 63.5
+    multipl_e_scala: 58.2
+    multipl_e_swift: 63.8
     musr: 30.1
     wildbench: 65.5
-    multipl_e_csharp: 78.2
-    multipl_e_php: 75.8
-    multipl_e_ruby: 63.5
-    multipl_e_swift: 63.8
-    multipl_e_r: 55.5
-    multipl_e_julia: 59.2
-    multipl_e_perl: 48.5
-    multipl_e_lua: 53.5
-    multipl_e_scala: 58.2
-    multipl_e_kotlin: 70.5
-    live_code_bench: 54.6
-    aider_polyglot: 40.0
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''

@@ -665,13 +665,16 @@ benchmarks:
   scores:
     alpaca_eval: 35.2
     arena_elo_coding: 1220.0
+    arena_elo_hard_prompts: 1259.3
     arena_elo_math: 1210.0
     arena_elo_overall: 1230.0
+    arena_elo_style_control: 1275.5
     artificial_analysis_quality_index: 73.0
     artificial_analysis_speed_index: 55.0
     bbh: 47.3
     bbq: 79.2
     gpqa_diamond: 42.5
+    gsm8k: 70.7
     helm_safety: 83.5
     humaneval: 72.5
     ifeval: 75.0
@@ -681,7 +684,6 @@ benchmarks:
     musr: 17.3
     toxigen: 87.5
     wildbench: 60.5
-    gsm8k: 70.7
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04

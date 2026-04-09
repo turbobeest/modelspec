@@ -665,8 +665,10 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1260
+    arena_elo_hard_prompts: 1367.9
     arena_elo_math: 1250
     arena_elo_overall: 1270
+    arena_elo_style_control: 1353.4
     artificial_analysis_quality_index: 78
     artificial_analysis_speed_index: 58
     gpqa_diamond: 48.2

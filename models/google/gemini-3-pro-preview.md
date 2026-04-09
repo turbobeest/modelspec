@@ -666,7 +666,8 @@ availability:
 benchmarks:
   scores:
     live_code_bench: 91.7
-  benchmark_source: livecodebench, aider, swe-bench, terminal-bench, provider-reports
+    legalbench: 87.0
+  benchmark_source: livecodebench, aider, swe-bench, terminal-bench, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

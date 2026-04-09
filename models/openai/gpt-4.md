@@ -699,6 +699,7 @@ benchmarks:
     live_code_bench: 48.3
     aider_polyglot: 52.4
     swe_bench_verified: 54.6
+    ai2d: 95.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
@@ -862,7 +863,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # GPT-4
 

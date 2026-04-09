@@ -671,7 +671,8 @@ benchmarks:
     gpqa_diamond: 27.9
     musr: 35.3
     mmlu_pro: 31.9
-  benchmark_source: llm-stats, open-llm-leaderboard-v2
+    medqa: 52.6
+  benchmark_source: llm-stats, open-llm-leaderboard-v2, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

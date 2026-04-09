@@ -663,19 +663,24 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1240.0
+    arena_elo_hard_prompts: 1401.1
     arena_elo_math: 1230.0
     arena_elo_overall: 1250.0
+    arena_elo_style_control: 1386.2
+    arena_elo_vision: 1156.6
+    legalbench: 89.4
+    medqa: 79.1
     multipl_e_csharp: 72.5
-    multipl_e_php: 70.2
-    multipl_e_ruby: 56.5
-    multipl_e_swift: 56.8
-    multipl_e_r: 48.5
     multipl_e_julia: 52.5
-    multipl_e_perl: 42.5
-    multipl_e_lua: 47.2
-    multipl_e_scala: 51.2
     multipl_e_kotlin: 63.5
-  benchmark_source: lmarena.ai
+    multipl_e_lua: 47.2
+    multipl_e_perl: 42.5
+    multipl_e_php: 70.2
+    multipl_e_r: 48.5
+    multipl_e_ruby: 56.5
+    multipl_e_scala: 51.2
+    multipl_e_swift: 56.8
+  benchmark_source: lmarena.ai, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

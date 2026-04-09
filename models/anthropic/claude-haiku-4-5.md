@@ -685,7 +685,8 @@ benchmarks:
     live_code_bench: 51.1
     swe_bench_verified: 73.3
     terminal_bench: 41.0
-  benchmark_source: lmarena.ai, provider-reports
+    medqa: 77.8
+  benchmark_source: lmarena.ai, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

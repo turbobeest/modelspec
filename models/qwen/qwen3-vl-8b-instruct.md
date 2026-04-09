@@ -662,7 +662,14 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    mmmu: 62.5
+    docvqa: 96.1
+    ai2d: 85.7
+    ocrbench: 89.6
+  benchmark_source: multimodal-evals
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

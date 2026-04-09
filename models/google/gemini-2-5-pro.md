@@ -678,15 +678,23 @@ benchmarks:
     aime_2025: 86.7
     alpaca_eval: 51.5
     arena_elo_coding: 1370.0
+    arena_elo_hard_prompts: 1460.5
     arena_elo_math: 1400.0
     arena_elo_overall: 1380.0
+    arena_elo_style_control: 1448.2
+    arena_elo_vision: 1246.0
     artificial_analysis_quality_index: 85.0
     artificial_analysis_speed_index: 71.0
     bbq: 84.2
     chartqa: 87.5
     docvqa: 93.8
     finbench: 69.8
+    flores_en_de: 63.2
+    flores_en_es: 68.1
+    flores_en_ja: 58.1
+    flores_en_zh: 56.8
     gpqa_diamond: 80.5
+    gsm8k: 90.8
     helm_safety: 88.5
     humaneval: 91.2
     ifeval: 91.0
@@ -695,6 +703,7 @@ benchmarks:
     math_500: 95.2
     mathvista: 67.8
     medqa: 80.2
+    mgsm: 87.5
     mmlu_astronomy: 79.8
     mmlu_biology: 87.2
     mmlu_business_ethics: 81.2
@@ -710,11 +719,21 @@ benchmarks:
     mt_bench: 9.2
     multipl_e: 84.9
     multipl_e_cpp: 84.2
+    multipl_e_csharp: 84.8
     multipl_e_go: 81.2
     multipl_e_java: 87.8
     multipl_e_javascript: 87.5
+    multipl_e_julia: 67.2
+    multipl_e_kotlin: 79.2
+    multipl_e_lua: 61.8
+    multipl_e_perl: 58.5
+    multipl_e_php: 82.5
     multipl_e_python: 91.8
+    multipl_e_r: 64.8
+    multipl_e_ruby: 74.2
     multipl_e_rust: 75.5
+    multipl_e_scala: 68.5
+    multipl_e_swift: 72.5
     multipl_e_typescript: 86.5
     swe_bench_agent: 55.5
     swe_bench_verified: 63.8
@@ -722,22 +741,8 @@ benchmarks:
     terminal_bench: 45.5
     toxigen: 91.5
     wildbench: 79.8
-    mgsm: 87.5
-    gsm8k: 90.8
-    flores_en_es: 68.1
-    flores_en_de: 63.2
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
-    multipl_e_csharp: 84.8
-    multipl_e_php: 82.5
-    multipl_e_ruby: 74.2
-    multipl_e_swift: 72.5
-    multipl_e_r: 64.8
-    multipl_e_julia: 67.2
-    multipl_e_perl: 58.5
-    multipl_e_lua: 61.8
-    multipl_e_scala: 68.5
-    multipl_e_kotlin: 79.2
+    ai2d: 95.8
+    ocrbench: 85.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
@@ -901,7 +906,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemini 2.5 Pro
 

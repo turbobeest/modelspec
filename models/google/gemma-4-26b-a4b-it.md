@@ -667,8 +667,10 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1290.0
+    arena_elo_hard_prompts: 1461.1
     arena_elo_math: 1270.0
     arena_elo_overall: 1280.0
+    arena_elo_style_control: 1437.9
     gpqa_diamond: 65.2
     humaneval: 82.5
     ifeval: 81.5

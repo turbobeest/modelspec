@@ -665,16 +665,27 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1170.0
+    arena_elo_hard_prompts: 1263.2
     arena_elo_math: 1160.0
     arena_elo_overall: 1180.0
+    arena_elo_style_control: 1259.9
+    arena_elo_vision: 1000.8
     gpqa_diamond: 41.2
+    gsm8k: 88.9
     humaneval: 75.9
     ifeval: 72.0
     math_500: 50.3
-    mmlu_pro: 55.8
     mgsm: 75.1
-    gsm8k: 88.9
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    mmlu_pro: 55.8
+    mmmu: 50.2
+    mathvista: 47.9
+    docvqa: 88.8
+    chartqa: 81.1
+    ai2d: 88.7
+    helm_safety: 88.2
+    bbq: 83.5
+    toxigen: 91.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -836,7 +847,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Haiku 3
 

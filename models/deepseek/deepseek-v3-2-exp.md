@@ -668,39 +668,41 @@ benchmarks:
     aider_polyglot: 58.5
     alpaca_eval: 42.8
     arena_elo_coding: 1350.0
+    arena_elo_hard_prompts: 1447.7
     arena_elo_math: 1330.0
     arena_elo_overall: 1340.0
+    arena_elo_style_control: 1422.8
     artificial_analysis_quality_index: 80.0
     artificial_analysis_speed_index: 70.0
     bbh: 64.1
     bbq: 73.5
     gpqa_diamond: 64.5
+    gsm8k: 89.3
     helm_safety: 78.2
     humaneval: 88.5
     ifeval: 87.0
+    live_code_bench: 55.4
     math_500: 92.5
     mmlu_pro: 78.8
     mt_bench: 8.8
+    multipl_e_csharp: 83.2
+    multipl_e_julia: 65.5
+    multipl_e_kotlin: 76.5
+    multipl_e_lua: 59.2
+    multipl_e_perl: 53.8
+    multipl_e_php: 80.8
+    multipl_e_r: 61.5
+    multipl_e_ruby: 69.5
+    multipl_e_scala: 64.5
+    multipl_e_swift: 69.8
     musr: 29.8
     swe_bench_agent: 35.8
     swe_bench_verified: 42.5
     tau_bench: 41.2
-    toxigen: 82.5
-    wildbench: 70.2
-    gsm8k: 89.3
-    multipl_e_csharp: 83.2
-    multipl_e_php: 80.8
-    multipl_e_ruby: 69.5
-    multipl_e_swift: 69.8
-    multipl_e_r: 61.5
-    multipl_e_julia: 65.5
-    multipl_e_perl: 53.8
-    multipl_e_lua: 59.2
-    multipl_e_scala: 64.5
-    multipl_e_kotlin: 76.5
-    live_code_bench: 55.4
     terminal_bench: 37.7
     terminal_bench_2: 46.4
+    toxigen: 82.5
+    wildbench: 70.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04

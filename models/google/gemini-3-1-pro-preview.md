@@ -672,7 +672,9 @@ benchmarks:
     usamo_2026: 74.4
     hle: 44.4
     hle_tools: 51.4
-  benchmark_source: anthropic-system-card-mythos
+    legalbench: 87.4
+    medqa: 96.4
+  benchmark_source: anthropic-system-card-mythos, domain-evals
   benchmark_as_of: 2026-04
 deployment:
   api_only: false

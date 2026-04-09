@@ -666,27 +666,36 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    ai2d: 82.5
+    alpaca_eval: 24.4
     arena_elo_coding: 1250.0
+    arena_elo_hard_prompts: 1350.2
     arena_elo_math: 1240.0
     arena_elo_overall: 1260.0
+    arena_elo_style_control: 1350.6
+    arena_elo_vision: 1178.6
     artificial_analysis_quality_index: 78.0
     artificial_analysis_speed_index: 68.0
+    bbq: 82.8
     chartqa: 79.2
     docvqa: 88.5
+    flores_en_de: 63.2
+    flores_en_es: 68.1
+    flores_en_ja: 58.1
+    flores_en_zh: 56.8
     gpqa_diamond: 55.8
+    gsm8k: 90.8
+    helm_safety: 87.5
     humaneval: 84.1
     ifeval: 82.0
     math_500: 74.3
     mathvista: 55.8
+    mgsm: 87.5
     mmlu_pro: 72.0
     mmmu: 62.8
-    mgsm: 87.5
-    gsm8k: 90.8
-    flores_en_es: 68.1
-    flores_en_de: 63.2
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull
+    toxigen: 91.2
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull,
+    safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -848,7 +857,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemini 1.5 Pro
 

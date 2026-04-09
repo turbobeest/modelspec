@@ -666,6 +666,11 @@ availability:
 benchmarks:
   scores:
     aime_2025: 95.3
+    arena_elo_coding: 1520.3
+    arena_elo_hard_prompts: 1494.3
+    arena_elo_math: 1457.4
+    arena_elo_overall: 1467.4
+    arena_elo_style_control: 1467.4
     browsecomp: 68.0
     gpqa_diamond: 86.2
     hle: 31.0

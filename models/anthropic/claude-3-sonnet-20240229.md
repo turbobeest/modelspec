@@ -664,17 +664,29 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    ai2d: 88.1
+    alpaca_eval: 34.9
     arena_elo_coding: 1190.0
+    arena_elo_hard_prompts: 1280.5
     arena_elo_math: 1180.0
     arena_elo_overall: 1200.0
+    arena_elo_style_control: 1279.8
+    arena_elo_vision: 1017.7
+    bbq: 85.2
+    chartqa: 80.8
+    docvqa: 89.3
     gpqa_diamond: 45.5
+    gsm8k: 92.3
+    helm_safety: 89.5
     humaneval: 73.0
     ifeval: 75.5
     math_500: 55.7
-    mmlu_pro: 60.1
+    mathvista: 50.5
     mgsm: 83.5
-    gsm8k: 92.3
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    mmlu_pro: 60.1
+    mmmu: 53.1
+    toxigen: 92.8
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -836,7 +848,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Sonnet 3
 

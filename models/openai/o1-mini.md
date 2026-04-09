@@ -663,17 +663,19 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 32.9
     arena_elo_coding: 1310.0
+    arena_elo_hard_prompts: 1360.5
     arena_elo_math: 1330.0
     arena_elo_overall: 1300.0
+    arena_elo_style_control: 1336.6
     gpqa_diamond: 60.0
+    gsm8k: 97.1
     humaneval: 85.0
     ifeval: 82.0
     math_500: 90.0
-    mmlu_pro: 72.5
     mgsm: 89.3
-    gsm8k: 97.1
-    aider_polyglot: 32.9
+    mmlu_pro: 72.5
   benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''

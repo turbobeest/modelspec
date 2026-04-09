@@ -675,8 +675,11 @@ benchmarks:
     aider_polyglot: 75.5
     alpaca_eval: 50.8
     arena_elo_coding: 1390.0
+    arena_elo_hard_prompts: 1430.5
     arena_elo_math: 1370.0
     arena_elo_overall: 1380.0
+    arena_elo_style_control: 1398.5
+    arena_elo_vision: 1207.0
     artificial_analysis_quality_index: 85.0
     artificial_analysis_speed_index: 73.0
     bbq: 87.5
@@ -686,6 +689,7 @@ benchmarks:
     helm_safety: 91.8
     humaneval: 91.5
     ifeval: 90.4
+    live_code_bench: 59.0
     math_500: 93.8
     mathvista: 62.1
     mmlu_astronomy: 77.8
@@ -703,30 +707,29 @@ benchmarks:
     mt_bench: 9.2
     multipl_e: 86.7
     multipl_e_cpp: 85.8
+    multipl_e_csharp: 85.5
     multipl_e_go: 82.8
     multipl_e_java: 89.1
     multipl_e_javascript: 89.5
+    multipl_e_julia: 67.5
+    multipl_e_kotlin: 79.8
+    multipl_e_lua: 62.1
+    multipl_e_perl: 58.8
+    multipl_e_php: 82.2
     multipl_e_python: 93.2
+    multipl_e_r: 65.2
+    multipl_e_ruby: 75.2
     multipl_e_rust: 78.5
+    multipl_e_scala: 68.5
+    multipl_e_swift: 73.5
     multipl_e_typescript: 88.2
     swe_bench_agent: 55.8
     swe_bench_verified: 65.3
     tau_bench: 61.5
     terminal_bench: 48.2
+    terminal_bench_2: 59.1
     toxigen: 94.5
     wildbench: 78.2
-    multipl_e_csharp: 85.5
-    multipl_e_php: 82.2
-    multipl_e_ruby: 75.2
-    multipl_e_swift: 73.5
-    multipl_e_r: 65.2
-    multipl_e_julia: 67.5
-    multipl_e_perl: 58.8
-    multipl_e_lua: 62.1
-    multipl_e_scala: 68.5
-    multipl_e_kotlin: 79.8
-    live_code_bench: 59.0
-    terminal_bench_2: 59.1
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals
   benchmark_as_of: 2026-04

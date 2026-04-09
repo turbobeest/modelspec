@@ -680,19 +680,22 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1290.0
+    arena_elo_hard_prompts: 1345.6
     arena_elo_math: 1300.0
     arena_elo_overall: 1280.0
+    arena_elo_style_control: 1327.3
     artificial_analysis_quality_index: 74.0
     artificial_analysis_speed_index: 88.0
     bbh: 50.5
     gpqa_diamond: 55.2
     humaneval: 80.5
     ifeval: 80.0
+    live_code_bench: 62.6
     math_500: 84.2
     mmlu_pro: 68.5
     musr: 21.3
-    live_code_bench: 62.6
-  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
+    medqa: 85.3
+  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

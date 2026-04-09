@@ -676,8 +676,11 @@ benchmarks:
     aider_polyglot: 68.5
     alpaca_eval: 52.1
     arena_elo_coding: 1360.0
+    arena_elo_hard_prompts: 1430.8
     arena_elo_math: 1320.0
     arena_elo_overall: 1340.0
+    arena_elo_style_control: 1413.0
+    arena_elo_vision: 1213.5
     artificial_analysis_quality_index: 84.0
     artificial_analysis_speed_index: 76.0
     bbq: 86.5
@@ -687,8 +690,10 @@ benchmarks:
     helm_safety: 90.5
     humaneval: 90.2
     ifeval: 89.5
+    live_code_bench: 48.3
     math_500: 89.4
     mathvista: 68.2
+    medqa: 89.7
     mmlu_astronomy: 79.5
     mmlu_biology: 87.5
     mmlu_business_ethics: 81.5
@@ -704,11 +709,21 @@ benchmarks:
     mt_bench: 9.3
     multipl_e: 85.7
     multipl_e_cpp: 85.1
+    multipl_e_csharp: 85.2
     multipl_e_go: 82.1
     multipl_e_java: 88.5
     multipl_e_javascript: 88.2
+    multipl_e_julia: 65.8
+    multipl_e_kotlin: 78.5
+    multipl_e_lua: 61.5
+    multipl_e_perl: 58.2
+    multipl_e_php: 82.8
     multipl_e_python: 92.5
+    multipl_e_r: 63.5
+    multipl_e_ruby: 73.5
     multipl_e_rust: 76.2
+    multipl_e_scala: 67.2
+    multipl_e_swift: 71.8
     multipl_e_typescript: 87.1
     swe_bench_agent: 48.5
     swe_bench_verified: 54.6
@@ -716,19 +731,9 @@ benchmarks:
     terminal_bench: 42.1
     toxigen: 93.5
     wildbench: 80.5
-    multipl_e_csharp: 85.2
-    multipl_e_php: 82.8
-    multipl_e_ruby: 73.5
-    multipl_e_swift: 71.8
-    multipl_e_r: 63.5
-    multipl_e_julia: 65.8
-    multipl_e_perl: 58.2
-    multipl_e_lua: 61.5
-    multipl_e_scala: 67.2
-    multipl_e_kotlin: 78.5
-    live_code_bench: 48.3
+    ai2d: 95.2
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
-    preference-evals, llm-stats, intlpull
+    domain-evals preference-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -890,7 +895,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # GPT-4.1
 

@@ -686,7 +686,11 @@ benchmarks:
     live_code_bench: 28.8
     aider_polyglot: 28.0
     swe_bench_verified: 40.6
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    medqa: 77.8
+    helm_safety: 89.8
+    bbq: 84.5
+    toxigen: 92.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -848,7 +852,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Haiku 3.5 (latest)
 

@@ -662,18 +662,19 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    alpaca_eval: 25.4
     arena_elo_coding: 1100.0
     arena_elo_math: 1080.0
     arena_elo_overall: 1110.0
     artificial_analysis_quality_index: 60.0
     artificial_analysis_speed_index: 92.0
     gpqa_diamond: 28.3
+    gsm8k: 80.0
     humaneval: 48.1
     ifeval: 60.5
     math_500: 32.8
-    mmlu_pro: 40.2
     mgsm: 56.3
-    gsm8k: 80.0
+    mmlu_pro: 40.2
   benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''

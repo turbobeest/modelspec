@@ -667,36 +667,39 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 55.1
     aime_2025: 73.3
     arena_elo_coding: 1330.0
+    arena_elo_hard_prompts: 1420.0
     arena_elo_math: 1350.0
     arena_elo_overall: 1340.0
+    arena_elo_style_control: 1411.0
+    arena_elo_vision: 1213.4
     artificial_analysis_quality_index: 80.0
     artificial_analysis_speed_index: 87.0
-    gpqa_diamond: 70.2
-    humaneval: 88.8
-    ifeval: 87.5
-    math_500: 90.5
-    mmlu_pro: 78.2
-    swe_bench_verified: 49.2
-    mgsm: 82.6
-    gsm8k: 86.2
-    flores_en_es: 68.1
     flores_en_de: 63.2
+    flores_en_es: 68.1
     flores_en_ja: 58.1
     flores_en_zh: 56.8
-    multipl_e_csharp: 78.5
-    multipl_e_php: 76.2
-    multipl_e_ruby: 64.5
-    multipl_e_swift: 64.8
-    multipl_e_r: 56.2
-    multipl_e_julia: 60.5
-    multipl_e_perl: 49.5
-    multipl_e_lua: 53.8
-    multipl_e_scala: 58.8
-    multipl_e_kotlin: 71.5
+    gpqa_diamond: 70.2
+    gsm8k: 86.2
+    humaneval: 88.8
+    ifeval: 87.5
     live_code_bench: 49.5
-    aider_polyglot: 55.1
+    math_500: 90.5
+    mgsm: 82.6
+    mmlu_pro: 78.2
+    multipl_e_csharp: 78.5
+    multipl_e_julia: 60.5
+    multipl_e_kotlin: 71.5
+    multipl_e_lua: 53.8
+    multipl_e_perl: 49.5
+    multipl_e_php: 76.2
+    multipl_e_r: 56.2
+    multipl_e_ruby: 64.5
+    multipl_e_scala: 58.8
+    multipl_e_swift: 64.8
+    swe_bench_verified: 49.2
   benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
   benchmark_as_of: 2026-04
   benchmark_notes: ''

@@ -662,7 +662,14 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    mmmu: 42.5
+    mathvista: 45.8
+    docvqa: 85.2
+    chartqa: 72.5
+  benchmark_source: multimodal-evals
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

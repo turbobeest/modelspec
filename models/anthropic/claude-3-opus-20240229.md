@@ -665,27 +665,39 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    ai2d: 88.1
+    alpaca_eval: 40.5
     arena_elo_coding: 1250.0
+    arena_elo_hard_prompts: 1327.0
     arena_elo_math: 1240.0
     arena_elo_overall: 1260.0
+    arena_elo_style_control: 1320.7
+    arena_elo_vision: 1062.6
+    bbq: 86.5
+    chartqa: 80.8
+    docvqa: 89.3
     gpqa_diamond: 59.4
+    gsm8k: 95.0
+    helm_safety: 90.8
     humaneval: 84.9
     ifeval: 81.0
     math_500: 60.1
-    mmlu_pro: 68.5
+    mathvista: 50.5
     mgsm: 90.7
-    gsm8k: 95.0
+    mmlu_pro: 68.5
+    mmmu: 59.4
     multipl_e_csharp: 75.5
-    multipl_e_php: 72.8
-    multipl_e_ruby: 62.5
-    multipl_e_swift: 60.5
-    multipl_e_r: 52.5
     multipl_e_julia: 55.8
-    multipl_e_perl: 46.2
-    multipl_e_lua: 50.5
-    multipl_e_scala: 56.2
     multipl_e_kotlin: 67.5
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    multipl_e_lua: 50.5
+    multipl_e_perl: 46.2
+    multipl_e_php: 72.8
+    multipl_e_r: 52.5
+    multipl_e_ruby: 62.5
+    multipl_e_scala: 56.2
+    multipl_e_swift: 60.5
+    toxigen: 93.8
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -847,7 +859,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Opus 3
 

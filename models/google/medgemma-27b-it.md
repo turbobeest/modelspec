@@ -664,6 +664,8 @@ availability:
 benchmarks:
   scores:
     medqa: 88.5
+    medmcqa: 74.2
+    pubmedqa: 76.8
   benchmark_source: domain-evals
   benchmark_as_of: 2026-04
 deployment:

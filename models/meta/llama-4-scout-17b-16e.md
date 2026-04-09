@@ -685,7 +685,14 @@ benchmarks:
     multipl_e_scala: 50.8
     multipl_e_kotlin: 63.2
     live_code_bench: 29.9
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    mmmu: 69.4
+    mathvista: 70.7
+    docvqa: 94.4
+    chartqa: 88.8
+    helm_safety: 85.2
+    bbq: 80.5
+    toxigen: 88.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -847,7 +854,6 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Llama 4 Scout 17B 16E
 

@@ -665,28 +665,40 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 15.6
     arena_elo_coding: 1320.0
+    arena_elo_hard_prompts: 1338.0
     arena_elo_math: 1300.0
     arena_elo_overall: 1310.0
+    arena_elo_style_control: 1326.6
+    arena_elo_vision: 1146.5
     gpqa_diamond: 62.5
     humaneval: 85.5
     ifeval: 83.0
-    math_500: 82.2
-    mmlu_pro: 73.5
-    mgsm: 92.3
-    multipl_e_csharp: 75.5
-    multipl_e_php: 73.2
-    multipl_e_ruby: 60.2
-    multipl_e_swift: 59.8
-    multipl_e_r: 52.2
-    multipl_e_julia: 55.8
-    multipl_e_perl: 44.5
-    multipl_e_lua: 49.8
-    multipl_e_scala: 54.5
-    multipl_e_kotlin: 66.8
     live_code_bench: 39.7
-    aider_polyglot: 15.6
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    math_500: 82.2
+    medqa: 78.4
+    mgsm: 92.3
+    mmlu_pro: 73.5
+    multipl_e_csharp: 75.5
+    multipl_e_julia: 55.8
+    multipl_e_kotlin: 66.8
+    multipl_e_lua: 49.8
+    multipl_e_perl: 44.5
+    multipl_e_php: 73.2
+    multipl_e_r: 52.2
+    multipl_e_ruby: 60.2
+    multipl_e_scala: 54.5
+    multipl_e_swift: 59.8
+    mmmu: 73.4
+    mathvista: 73.7
+    docvqa: 94.4
+    chartqa: 90.0
+    helm_safety: 86.5
+    bbq: 81.8
+    toxigen: 89.8
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals, multimodal-evals,
+    safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -848,7 +860,6 @@ card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Llama 4 Maverick 17B 128E Instruct
 

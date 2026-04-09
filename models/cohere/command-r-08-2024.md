@@ -663,8 +663,10 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1190
+    arena_elo_hard_prompts: 1254.6
     arena_elo_math: 1180
     arena_elo_overall: 1200
+    arena_elo_style_control: 1249.1
     artificial_analysis_quality_index: 64
     artificial_analysis_speed_index: 78
     bbh: 38.5

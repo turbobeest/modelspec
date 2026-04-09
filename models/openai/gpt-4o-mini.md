@@ -676,22 +676,32 @@ benchmarks:
     aider_polyglot: 58.2
     alpaca_eval: 48.5
     arena_elo_coding: 1260.0
+    arena_elo_hard_prompts: 1311.1
     arena_elo_math: 1240.0
     arena_elo_overall: 1250.0
+    arena_elo_style_control: 1317.2
+    arena_elo_vision: 1097.8
     artificial_analysis_quality_index: 72.0
     artificial_analysis_speed_index: 90.0
     bbq: 85.8
     chartqa: 85.2
     docvqa: 92.8
     finbench: 68.5
+    flores_en_de: 67.3
+    flores_en_es: 71.2
+    flores_en_ja: 61.4
+    flores_en_zh: 59.7
     gpqa_diamond: 46.1
+    gsm8k: 92.0
     helm_safety: 89.2
     humaneval: 87.2
     ifeval: 80.5
     legalbench: 72.1
+    live_code_bench: 23.4
     math_500: 70.2
     mathvista: 63.8
     medqa: 78.5
+    mgsm: 87.0
     mmlu_astronomy: 78.2
     mmlu_biology: 86.8
     mmlu_business_ethics: 80.2
@@ -707,11 +717,21 @@ benchmarks:
     mt_bench: 9.1
     multipl_e: 83.0
     multipl_e_cpp: 82.5
+    multipl_e_csharp: 72.5
     multipl_e_go: 79.1
     multipl_e_java: 86.5
     multipl_e_javascript: 85.8
+    multipl_e_julia: 53.5
+    multipl_e_kotlin: 65.2
+    multipl_e_lua: 48.5
+    multipl_e_perl: 44.2
+    multipl_e_php: 70.2
     multipl_e_python: 90.2
+    multipl_e_r: 50.2
+    multipl_e_ruby: 58.5
     multipl_e_rust: 72.8
+    multipl_e_scala: 52.8
+    multipl_e_swift: 58.5
     multipl_e_typescript: 84.2
     swe_bench_agent: 32.1
     swe_bench_verified: 38.5
@@ -719,23 +739,6 @@ benchmarks:
     terminal_bench: 35.2
     toxigen: 92.8
     wildbench: 75.8
-    mgsm: 87.0
-    gsm8k: 92.0
-    flores_en_es: 71.2
-    flores_en_de: 67.3
-    flores_en_ja: 61.4
-    flores_en_zh: 59.7
-    multipl_e_csharp: 72.5
-    multipl_e_php: 70.2
-    multipl_e_ruby: 58.5
-    multipl_e_swift: 58.5
-    multipl_e_r: 50.2
-    multipl_e_julia: 53.5
-    multipl_e_perl: 44.2
-    multipl_e_lua: 48.5
-    multipl_e_scala: 52.8
-    multipl_e_kotlin: 65.2
-    live_code_bench: 23.4
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04

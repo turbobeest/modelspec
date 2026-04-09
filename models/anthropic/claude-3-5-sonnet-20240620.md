@@ -665,34 +665,48 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    ai2d: 80.2
+    aider_polyglot: 51.6
+    alpaca_eval: 52.4
     arena_elo_coding: 1310.0
+    arena_elo_hard_prompts: 1358.7
     arena_elo_math: 1290.0
     arena_elo_overall: 1300.0
-    gpqa_diamond: 65.0
-    humaneval: 86.8
-    ifeval: 85.4
-    math_500: 78.3
-    mmlu_pro: 76.2
-    swe_bench_verified: 49.0
-    mgsm: 91.6
-    gsm8k: 96.4
-    flores_en_es: 70.8
+    arena_elo_style_control: 1341.3
+    arena_elo_vision: 1145.5
+    bbq: 87.2
+    chartqa: 90.8
+    docvqa: 95.2
     flores_en_de: 66.9
+    flores_en_es: 70.8
     flores_en_ja: 60.8
     flores_en_zh: 59.2
-    multipl_e_csharp: 80.2
-    multipl_e_php: 77.5
-    multipl_e_ruby: 68.5
-    multipl_e_swift: 66.5
-    multipl_e_r: 58.2
-    multipl_e_julia: 61.5
-    multipl_e_perl: 52.2
-    multipl_e_lua: 55.8
-    multipl_e_scala: 62.5
-    multipl_e_kotlin: 72.8
+    gpqa_diamond: 65.0
+    gsm8k: 96.4
+    helm_safety: 91.5
+    humaneval: 86.8
+    ifeval: 85.4
     live_code_bench: 38.1
-    aider_polyglot: 51.6
-  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
+    math_500: 78.3
+    mathvista: 67.7
+    mgsm: 91.6
+    mmlu_pro: 76.2
+    mmmu: 65.9
+    multipl_e_csharp: 80.2
+    multipl_e_julia: 61.5
+    multipl_e_kotlin: 72.8
+    multipl_e_lua: 55.8
+    multipl_e_perl: 52.2
+    multipl_e_php: 77.5
+    multipl_e_r: 58.2
+    multipl_e_ruby: 68.5
+    multipl_e_scala: 62.5
+    multipl_e_swift: 66.5
+    ocrbench: 78.8
+    swe_bench_verified: 49.0
+    toxigen: 94.5
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals,
+    safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -854,7 +868,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Claude Sonnet 3.5
 

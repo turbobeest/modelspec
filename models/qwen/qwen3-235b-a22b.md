@@ -666,14 +666,20 @@ benchmarks:
     aider_polyglot: 68.2
     alpaca_eval: 44.5
     arena_elo_coding: 1350.0
+    arena_elo_hard_prompts: 1440.4
     arena_elo_math: 1360.0
     arena_elo_overall: 1340.0
+    arena_elo_style_control: 1415.8
+    arena_elo_vision: 1214.6
     artificial_analysis_quality_index: 82.0
     artificial_analysis_speed_index: 55.0
     gpqa_diamond: 71.1
+    gsm8k: 94.4
     humaneval: 89.5
     ifeval: 88.5
+    live_code_bench: 62.2
     math_500: 93.5
+    mgsm: 83.5
     mmlu_astronomy: 75.8
     mmlu_biology: 83.8
     mmlu_business_ethics: 76.5
@@ -686,24 +692,22 @@ benchmarks:
     mmlu_professional_accounting: 67.5
     mmlu_professional_law: 71.8
     mt_bench: 8.9
+    multipl_e_csharp: 83.5
+    multipl_e_julia: 65.8
+    multipl_e_kotlin: 76.8
+    multipl_e_lua: 58.8
+    multipl_e_perl: 55.2
+    multipl_e_php: 81.2
+    multipl_e_r: 62.5
+    multipl_e_ruby: 70.5
+    multipl_e_scala: 65.2
+    multipl_e_swift: 70.2
     swe_bench_agent: 45.5
     swe_bench_verified: 55.8
     tau_bench: 50.2
     wildbench: 73.8
-    mgsm: 83.5
-    gsm8k: 94.4
-    multipl_e_csharp: 83.5
-    multipl_e_php: 81.2
-    multipl_e_ruby: 70.5
-    multipl_e_swift: 70.2
-    multipl_e_r: 62.5
-    multipl_e_julia: 65.8
-    multipl_e_perl: 55.2
-    multipl_e_lua: 58.8
-    multipl_e_scala: 65.2
-    multipl_e_kotlin: 76.8
-    live_code_bench: 62.2
-  benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats
+    medqa: 84.8
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

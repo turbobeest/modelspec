@@ -675,8 +675,11 @@ benchmarks:
     aime_2025: 82.0
     alpaca_eval: 55.2
     arena_elo_coding: 1420.0
+    arena_elo_hard_prompts: 1455.5
     arena_elo_math: 1400.0
     arena_elo_overall: 1410.0
+    arena_elo_style_control: 1423.7
+    arena_elo_vision: 1207.5
     bbq: 88.2
     chartqa: 86.8
     docvqa: 93.2
@@ -705,29 +708,29 @@ benchmarks:
     mt_bench: 9.4
     multipl_e: 89.3
     multipl_e_cpp: 88.5
+    multipl_e_csharp: 88.2
     multipl_e_go: 85.5
     multipl_e_java: 91.2
     multipl_e_javascript: 91.5
+    multipl_e_julia: 70.2
+    multipl_e_kotlin: 82.5
+    multipl_e_lua: 65.8
+    multipl_e_perl: 62.5
+    multipl_e_php: 85.5
     multipl_e_python: 95.5
+    multipl_e_r: 68.5
+    multipl_e_ruby: 78.5
     multipl_e_rust: 82.1
+    multipl_e_scala: 72.2
+    multipl_e_swift: 76.8
     multipl_e_typescript: 90.8
     swe_bench_agent: 62.5
     swe_bench_verified: 72.7
     tau_bench: 68.2
     terminal_bench: 55.8
+    terminal_bench_2: 65.4
     toxigen: 95.1
     wildbench: 82.5
-    multipl_e_csharp: 88.2
-    multipl_e_php: 85.5
-    multipl_e_ruby: 78.5
-    multipl_e_swift: 76.8
-    multipl_e_r: 68.5
-    multipl_e_julia: 70.2
-    multipl_e_perl: 62.5
-    multipl_e_lua: 65.8
-    multipl_e_scala: 72.2
-    multipl_e_kotlin: 82.5
-    terminal_bench_2: 65.4
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals
   benchmark_as_of: 2026-04

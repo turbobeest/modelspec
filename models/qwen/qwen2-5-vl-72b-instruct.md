@@ -666,8 +666,14 @@ benchmarks:
     docvqa: 90.1
     mathvista: 58.2
     mmmu: 64.5
-  benchmark_source: multimodal-evals
+    ai2d: 88.7
+    ocrbench: 88.5
+    helm_safety: 84.2
+    bbq: 79.5
+    toxigen: 87.8
+  benchmark_source: multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -827,7 +833,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Qwen2.5-VL 72B Instruct
 

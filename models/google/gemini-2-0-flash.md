@@ -669,27 +669,37 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1300.0
+    arena_elo_hard_prompts: 1360.4
     arena_elo_math: 1290.0
     arena_elo_overall: 1310.0
+    arena_elo_style_control: 1360.0
+    arena_elo_vision: 1170.6
     artificial_analysis_quality_index: 77.0
     artificial_analysis_speed_index: 89.0
     chartqa: 78.5
     docvqa: 88.1
-    gpqa_diamond: 60.1
-    humaneval: 85.5
-    ifeval: 84.0
-    math_500: 82.3
-    mathvista: 55.2
-    mmlu_pro: 73.5
-    mmmu: 62.5
-    mgsm: 82.6
-    gsm8k: 86.2
-    flores_en_es: 68.1
     flores_en_de: 63.2
+    flores_en_es: 68.1
     flores_en_ja: 58.1
     flores_en_zh: 56.8
+    gpqa_diamond: 60.1
+    gsm8k: 86.2
+    humaneval: 85.5
+    ifeval: 84.0
     live_code_bench: 35.1
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull
+    math_500: 82.3
+    mathvista: 55.2
+    medqa: 83.2
+    mgsm: 82.6
+    mmlu_pro: 73.5
+    mmmu: 62.5
+    ai2d: 83.3
+    ocrbench: 68.6
+    helm_safety: 87.8
+    bbq: 83.2
+    toxigen: 91.8
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull,
+    domain-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -851,7 +861,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemini 2.0 Flash
 

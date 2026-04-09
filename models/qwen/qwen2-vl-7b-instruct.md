@@ -669,7 +669,12 @@ benchmarks:
     gpqa_diamond: 32.0
     musr: 43.8
     mmlu_pro: 40.9
-  benchmark_source: open-llm-leaderboard-v2
+    mmmu: 54.1
+    mathvista: 58.2
+    docvqa: 94.5
+    chartqa: 83.0
+    ai2d: 83.0
+  benchmark_source: open-llm-leaderboard-v2, multimodal-evals
   benchmark_as_of: 2025-03
   benchmark_notes: ''
 deployment:

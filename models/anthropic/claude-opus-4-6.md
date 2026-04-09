@@ -676,18 +676,29 @@ benchmarks:
     aime_2025: 82.0
     alpaca_eval: 55.2
     arena_elo_coding: 1420.0
+    arena_elo_hard_prompts: 1534.7
     arena_elo_math: 1400.0
     arena_elo_overall: 1410.0
+    arena_elo_style_control: 1502.8
+    arena_elo_vision: 1295.0
     artificial_analysis_quality_index: 88.0
     artificial_analysis_speed_index: 62.0
     bbq: 88.2
+    browsecomp: 83.7
     chartqa: 86.8
+    charxiv_reasoning: 61.5
+    charxiv_reasoning_tools: 78.9
     docvqa: 93.2
     finbench: 71.2
-    gpqa_diamond: 78.4
+    gpqa_diamond: 91.3
+    graphwalks_bfs_256k_1m: 38.7
     helm_safety: 92.5
+    hle: 40.0
+    hle_tools: 53.1
     humaneval: 93.2
     ifeval: 92.1
+    lab_bench_figqa: 58.5
+    lab_bench_figqa_tools: 75.1
     legalbench: 75.5
     live_code_bench: 62.4
     math_500: 96.4
@@ -704,51 +715,41 @@ benchmarks:
     mmlu_pro: 85.2
     mmlu_professional_accounting: 72.5
     mmlu_professional_law: 78.2
+    mmmlu: 91.1
     mmmu: 70.8
     mt_bench: 9.4
     multipl_e: 89.3
     multipl_e_cpp: 88.5
+    multipl_e_csharp: 88.2
     multipl_e_go: 85.5
     multipl_e_java: 91.2
     multipl_e_javascript: 91.5
-    multipl_e_python: 95.5
-    multipl_e_rust: 82.1
-    multipl_e_typescript: 90.8
-    swe_bench_agent: 62.5
-    swe_bench_verified: 72.7
-    tau_bench: 68.2
-    terminal_bench: 55.8
-    toxigen: 95.1
-    wildbench: 82.5
-    multipl_e_csharp: 88.2
-    multipl_e_php: 85.5
-    multipl_e_ruby: 78.5
-    multipl_e_swift: 76.8
-    multipl_e_r: 68.5
     multipl_e_julia: 70.2
-    multipl_e_perl: 62.5
-    multipl_e_lua: 65.8
-    multipl_e_scala: 72.2
     multipl_e_kotlin: 82.5
-    terminal_bench_2: 65.4
-    swe_bench_verified: 80.8
-    swe_bench_pro: 53.4
-    swe_bench_multilingual: 77.8
-    swe_bench_multimodal: 27.1
-    gpqa_diamond: 91.3
-    mmmlu: 91.1
-    usamo_2026: 42.3
-    graphwalks_bfs_256k_1m: 38.7
-    hle: 40.0
-    hle_tools: 53.1
-    browsecomp: 83.7
-    charxiv_reasoning: 61.5
-    charxiv_reasoning_tools: 78.9
+    multipl_e_lua: 65.8
+    multipl_e_perl: 62.5
+    multipl_e_php: 85.5
+    multipl_e_python: 95.5
+    multipl_e_r: 68.5
+    multipl_e_ruby: 78.5
+    multipl_e_rust: 82.1
+    multipl_e_scala: 72.2
+    multipl_e_swift: 76.8
+    multipl_e_typescript: 90.8
     osworld: 72.7
-    lab_bench_figqa: 58.5
-    lab_bench_figqa_tools: 75.1
     screenspot_pro: 57.7
     screenspot_pro_tools: 83.1
+    swe_bench_agent: 62.5
+    swe_bench_multilingual: 77.8
+    swe_bench_multimodal: 27.1
+    swe_bench_pro: 53.4
+    swe_bench_verified: 80.8
+    tau_bench: 68.2
+    terminal_bench: 55.8
+    terminal_bench_2: 65.4
+    toxigen: 95.1
+    usamo_2026: 42.3
+    wildbench: 82.5
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals, anthropic-system-card-mythos
   benchmark_as_of: 2026-04

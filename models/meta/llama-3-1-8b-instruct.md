@@ -663,9 +663,12 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    alpaca_eval: 22.9
     arena_elo_coding: 1160
+    arena_elo_hard_prompts: 1221.8
     arena_elo_math: 1150
     arena_elo_overall: 1170
+    arena_elo_style_control: 1211.0
     artificial_analysis_quality_index: 62
     artificial_analysis_speed_index: 92
     bbh: 39.2

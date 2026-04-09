@@ -665,20 +665,28 @@ availability:
 benchmarks:
   scores:
     arena_elo_coding: 1240.0
+    arena_elo_hard_prompts: 1331.5
     arena_elo_math: 1220.0
     arena_elo_overall: 1230.0
+    arena_elo_style_control: 1341.4
     artificial_analysis_quality_index: 65.0
     artificial_analysis_speed_index: 88.0
     bbh: 48.7
     gpqa_diamond: 45.5
+    gsm8k: 94.4
     humaneval: 72.0
     ifeval: 73.0
+    live_code_bench: 24.6
     math_500: 65.3
     mmlu_pro: 58.2
     musr: 20.8
-    gsm8k: 94.4
-    live_code_bench: 24.6
-  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2, llm-stats
+    mmmu: 59.6
+    mathvista: 62.9
+    docvqa: 87.1
+    chartqa: 75.7
+    ai2d: 84.2
+  benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2, llm-stats,
+    multimodal-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -840,7 +848,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemma 3 12B
 

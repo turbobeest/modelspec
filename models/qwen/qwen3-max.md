@@ -660,7 +660,10 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    medqa: 85.5
+  benchmark_source: domain-evals
+  benchmark_as_of: 2026-04
 deployment:
   api_only: false
   local_inference: false

@@ -665,34 +665,47 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    ai2d: 89.4
+    alpaca_eval: 55.0
     arena_elo_coding: 1270.0
+    arena_elo_hard_prompts: 1315.4
     arena_elo_math: 1250.0
     arena_elo_overall: 1260.0
+    arena_elo_style_control: 1323.4
+    arena_elo_vision: 1112.5
     artificial_analysis_quality_index: 79.0
     artificial_analysis_speed_index: 65.0
-    gpqa_diamond: 49.3
-    humaneval: 87.8
-    ifeval: 82.0
-    math_500: 72.2
-    mmlu_pro: 67.4
-    mgsm: 88.5
-    gsm8k: 93.0
-    flores_en_es: 71.2
+    bbq: 85.5
+    chartqa: 87.2
+    docvqa: 87.2
     flores_en_de: 67.3
+    flores_en_es: 71.2
     flores_en_ja: 61.4
     flores_en_zh: 59.7
-    multipl_e_csharp: 80.5
-    multipl_e_php: 78.2
-    multipl_e_ruby: 68.5
-    multipl_e_swift: 66.5
-    multipl_e_r: 58.2
-    multipl_e_julia: 61.8
-    multipl_e_perl: 52.5
-    multipl_e_lua: 56.8
-    multipl_e_scala: 62.8
-    multipl_e_kotlin: 73.8
+    gpqa_diamond: 49.3
+    gsm8k: 93.0
+    helm_safety: 89.5
+    humaneval: 87.8
+    ifeval: 82.0
     live_code_bench: 29.1
-  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
+    math_500: 72.2
+    mathvista: 50.5
+    mgsm: 88.5
+    mmlu_pro: 67.4
+    mmmu: 59.4
+    multipl_e_csharp: 80.5
+    multipl_e_julia: 61.8
+    multipl_e_kotlin: 73.8
+    multipl_e_lua: 56.8
+    multipl_e_perl: 52.5
+    multipl_e_php: 78.2
+    multipl_e_r: 58.2
+    multipl_e_ruby: 68.5
+    multipl_e_scala: 62.8
+    multipl_e_swift: 66.5
+    toxigen: 93.2
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals,
+    safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -854,7 +867,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # GPT-4 Turbo
 

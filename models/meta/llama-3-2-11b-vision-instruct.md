@@ -662,7 +662,16 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores: {}
+  scores:
+    mmmu: 50.7
+    mathvista: 51.5
+    docvqa: 88.4
+    helm_safety: 82.5
+    bbq: 78.2
+    toxigen: 85.8
+  benchmark_source: multimodal-evals, safety-evals
+  benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: true

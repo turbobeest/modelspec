@@ -685,7 +685,14 @@ benchmarks:
     multipl_e_kotlin: 66.8
     live_code_bench: 39.7
     aider_polyglot: 15.6
-  benchmark_source: lmarena.ai, provider-reports, llm-stats
+    mmmu: 73.4
+    mathvista: 73.7
+    docvqa: 94.4
+    chartqa: 90.0
+    helm_safety: 86.5
+    bbq: 81.8
+    toxigen: 89.8
+  benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -847,7 +854,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Llama-4-Maverick-17B-128E-Instruct-FP8
 

@@ -666,28 +666,31 @@ benchmarks:
   scores:
     aider_polyglot: 72.1
     arena_elo_coding: 1350.0
+    arena_elo_hard_prompts: 1401.8
     arena_elo_math: 1330.0
     arena_elo_overall: 1340.0
+    arena_elo_style_control: 1389.5
+    arena_elo_vision: 1181.9
     gpqa_diamond: 68.2
     humaneval: 88.5
     ifeval: 88.0
+    live_code_bench: 83.8
     math_500: 89.1
     mmlu_pro: 79.5
+    multipl_e_csharp: 88.5
+    multipl_e_julia: 70.5
+    multipl_e_kotlin: 82.8
+    multipl_e_lua: 65.5
+    multipl_e_perl: 62.8
+    multipl_e_php: 85.2
+    multipl_e_r: 68.2
+    multipl_e_ruby: 78.2
+    multipl_e_scala: 72.5
+    multipl_e_swift: 76.5
     swe_bench_agent: 55.2
     swe_bench_verified: 62.8
     tau_bench: 58.5
     terminal_bench: 48.8
-    multipl_e_csharp: 88.5
-    multipl_e_php: 85.2
-    multipl_e_ruby: 78.2
-    multipl_e_swift: 76.5
-    multipl_e_r: 68.2
-    multipl_e_julia: 70.5
-    multipl_e_perl: 62.8
-    multipl_e_lua: 65.5
-    multipl_e_scala: 72.5
-    multipl_e_kotlin: 82.8
-    live_code_bench: 83.8
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

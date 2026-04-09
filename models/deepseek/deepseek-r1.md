@@ -675,8 +675,10 @@ benchmarks:
     aime_2025: 79.8
     alpaca_eval: 45.2
     arena_elo_coding: 1370.0
+    arena_elo_hard_prompts: 1418.1
     arena_elo_math: 1400.0
     arena_elo_overall: 1360.0
+    arena_elo_style_control: 1397.5
     artificial_analysis_quality_index: 84.0
     artificial_analysis_speed_index: 40.0
     bbh: 68.7
@@ -685,6 +687,7 @@ benchmarks:
     ifeval: 86.5
     live_code_bench: 52.1
     math_500: 97.3
+    medqa: 92.1
     mmlu_astronomy: 76.5
     mmlu_biology: 84.2
     mmlu_business_ethics: 77.8
@@ -699,29 +702,29 @@ benchmarks:
     mt_bench: 9.0
     multipl_e: 84.6
     multipl_e_cpp: 83.5
+    multipl_e_csharp: 80.5
     multipl_e_go: 80.5
     multipl_e_java: 87.2
     multipl_e_javascript: 86.8
+    multipl_e_julia: 62.1
+    multipl_e_kotlin: 72.5
+    multipl_e_lua: 55.8
+    multipl_e_perl: 50.2
+    multipl_e_php: 77.8
     multipl_e_python: 92.8
+    multipl_e_r: 58.5
+    multipl_e_ruby: 65.5
     multipl_e_rust: 75.1
+    multipl_e_scala: 60.2
+    multipl_e_swift: 65.2
     multipl_e_typescript: 86.1
     musr: 33.5
     swe_bench_agent: 42.5
     swe_bench_verified: 49.2
     tau_bench: 48.8
-    wildbench: 72.5
-    multipl_e_csharp: 80.5
-    multipl_e_php: 77.8
-    multipl_e_ruby: 65.5
-    multipl_e_swift: 65.2
-    multipl_e_r: 58.5
-    multipl_e_julia: 62.1
-    multipl_e_perl: 50.2
-    multipl_e_lua: 55.8
-    multipl_e_scala: 60.2
-    multipl_e_kotlin: 72.5
     terminal_bench: 5.7
-  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
+    wildbench: 72.5
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

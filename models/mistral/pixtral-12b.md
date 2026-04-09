@@ -666,8 +666,14 @@ benchmarks:
     docvqa: 78.8
     mathvista: 43.8
     mmmu: 50.2
-  benchmark_source: multimodal-evals
+    ai2d: 79.5
+    ocrbench: 68.9
+    helm_safety: 83.5
+    bbq: 78.5
+    toxigen: 86.8
+  benchmark_source: multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -827,7 +833,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Pixtral 12B
 

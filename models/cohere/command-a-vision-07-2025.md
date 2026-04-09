@@ -667,7 +667,8 @@ benchmarks:
     docvqa: 81.2
     mathvista: 46.5
     mmmu: 52.1
-  benchmark_source: multimodal-evals
+    medqa: 73.3
+  benchmark_source: multimodal-evals, domain-evals
   benchmark_as_of: 2026-04
 deployment:
   api_only: false

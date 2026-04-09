@@ -665,27 +665,34 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
+    aider_polyglot: 4.9
     arena_elo_coding: 1270.0
+    arena_elo_hard_prompts: 1364.9
     arena_elo_math: 1250.0
     arena_elo_overall: 1260.0
+    arena_elo_style_control: 1365.1
+    arena_elo_vision: 1157.3
     artificial_analysis_quality_index: 70.0
     artificial_analysis_speed_index: 82.0
     bbh: 56.2
     chartqa: 72.5
     docvqa: 82.1
     gpqa_diamond: 58.2
+    gsm8k: 95.9
     humaneval: 79.5
     ifeval: 79.0
+    live_code_bench: 29.7
     math_500: 77.8
     mathvista: 48.5
     mmlu_pro: 67.5
     mmmu: 55.2
     musr: 25.2
-    gsm8k: 95.9
-    live_code_bench: 29.7
-    aider_polyglot: 4.9
-  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2,
-    llm-stats
+    medmcqa: 62.6
+    medqa: 74.9
+    pubmedqa: 73.4
+    ai2d: 84.5
+  benchmark_source: lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2,,
+    domain-evals llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:
@@ -847,7 +854,6 @@ card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
 ---
-
 
 # Gemma 3 27B
 
