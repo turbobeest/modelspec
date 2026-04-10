@@ -84,6 +84,20 @@
     }
     .legend-icon { width: 14px; height: 14px; flex-shrink: 0; }
 
+    /* Visibility tree */
+    .vis-row {
+      display: flex; align-items: center; gap: 4px; padding: 2px 0;
+      cursor: pointer; user-select: none;
+    }
+    .vis-row:hover { background: rgba(100,116,139,0.08); border-radius: 4px; }
+    .vis-eye { width: 16px; text-align: center; font-size: 12px; opacity: 0.7; }
+    .vis-eye.hidden { opacity: 0.25; }
+    .vis-label { flex: 1; color: #94a3b8; font-size: 11px; }
+    .vis-count { font-size: 9px; color: #475569; min-width: 24px; text-align: right; }
+    .vis-expand { width: 14px; text-align: center; font-size: 10px; color: #475569; cursor: pointer; }
+    .vis-sub { padding-left: 20px; }
+    .vis-sub .vis-label { font-size: 10px; color: #64748b; }
+
     /* Stats bar */
     #stats { position: fixed; bottom: 16px; left: 16px; z-index: 100; }
     .stat-row {
@@ -218,16 +232,13 @@
           </optgroup>
         </select>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:10px;color:#64748b;white-space:nowrap;">Strength</label>
-        <input type="range" id="gravity-strength" min="0" max="100" value="70"
-          style="flex:1;accent-color:#6366f1;height:4px;">
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-        <label style="font-size:10px;color:#64748b;white-space:nowrap;">Curve</label>
-        <input type="range" id="gravity-curve" min="10" max="50" value="20"
-          style="flex:1;accent-color:#a855f7;height:4px;">
-        <span id="gravity-curve-label" style="font-size:9px;color:#64748b;min-width:20px;">x2.0</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+        <span style="font-size:8px;color:#475569">OFF</span>
+        <input type="range" id="gravity-slider" min="0" max="100" value="0"
+          style="flex:1;accent-color:#6366f1;height:4px;"
+          oninput="updateGravitySlider(this.value)">
+        <span style="font-size:8px;color:#475569">MAX</span>
+        <span id="gravity-val" style="font-size:11px;color:#64748b;font-weight:600;min-width:28px;text-align:right">0%</span>
       </div>
       <div id="gravity-status" style="font-size:10px;color:#475569;margin-top:4px;"></div>
     </div>
@@ -247,6 +258,16 @@
     <div class="panel" id="legend-panel">
       <h2>3moticons</h2>
       <div id="legend"></div>
+    </div>
+
+    <div class="panel" id="visibility-panel">
+      <h2>Node Types</h2>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button class="view-btn" onclick="showAllTypes()" style="flex:1;font-size:10px;">All</button>
+        <button class="view-btn" onclick="hideAllTypes()" style="flex:1;font-size:10px;">None</button>
+        <button class="view-btn" onclick="modelsOnlyTypes()" style="flex:1;font-size:10px;">Models</button>
+      </div>
+      <div id="visibility-tree" style="font-size:11px;"></div>
     </div>
   </div>
 
@@ -865,12 +886,6 @@
       document.getElementById('gravity-metric').addEventListener('change', () => {
         if (gravityActive) onGravityChange();
       });
-      document.getElementById('gravity-strength').addEventListener('input', onGravityStrengthChange);
-      document.getElementById('gravity-curve').addEventListener('input', () => {
-        const val = parseInt(document.getElementById('gravity-curve').value) / 10;
-        document.getElementById('gravity-curve-label').textContent = `x${val.toFixed(1)}`;
-        if (gravityActive) applyGravityForce();
-      });
 
       // Saved Rankings — populate dropdown from localStorage
       populateSavedRankings();
@@ -1016,27 +1031,34 @@
       applyGravityForce();
     }
 
-    function onGravityStrengthChange() {
+    // Exponential slider mapping (from beestgraph)
+    // Low end is fine-grained, high end ramps aggressively
+    function expScale(sliderVal) {
+      if (sliderVal === 0) return 0;
+      return (Math.exp(sliderVal / 25) - 1) / (Math.exp(4) - 1);
+    }
+
+    let gravitySliderVal = 0;
+
+    function updateGravitySlider(val) {
+      gravitySliderVal = Number(val);
+      const pct = Math.round(expScale(gravitySliderVal) * 100);
+      document.getElementById('gravity-val').textContent = pct + '%';
       if (gravityActive) applyGravityForce();
     }
 
     function applyGravityForce() {
-      const strength = parseInt(document.getElementById('gravity-strength').value) / 100;
-      const curve = parseInt(document.getElementById('gravity-curve').value) / 10;  // 1.0 to 5.0
+      const strength = expScale(gravitySliderVal);
       const wellX = GRAVITY_WELL_POS.x, wellY = GRAVITY_WELL_POS.y, wellZ = GRAVITY_WELL_POS.z;
       graph3d.d3Force('gravity', (alpha) => {
         graphData.nodes.forEach(n => {
           const rawScore = gravityScores[n.id];
           if (rawScore != null && rawScore > 0) {
-            // Apply exponential curve: score^curve amplifies differences
-            const score = Math.pow(rawScore, curve);
-            // 10X base strength for dramatic visual separation
-            const pull = alpha * strength * score * 200.0;
+            const pull = alpha * strength * rawScore * 200.0;
             n.vx += (wellX - n.x) * pull * 0.01;
             n.vy += (wellY - n.y) * pull * 0.01;
             n.vz += (wellZ - n.z) * pull * 0.01;
           } else if (n.label === 'Model') {
-            // Push unscored models away — also 10X'd
             const push = alpha * strength * 30.0;
             const dx = n.x - wellX, dy = n.y - wellY, dz = n.z - wellZ;
             const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy + dz*dz));
@@ -1047,6 +1069,146 @@
         });
       });
       graph3d.d3ReheatSimulation();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NODE VISIBILITY TOGGLES
+    // ═══════════════════════════════════════════════════════════════
+
+    let visibleLabels = new Set();  // Which node types are visible
+    let hiddenSubs = new Set();     // "Model:llm-chat" = hidden subcategory
+    let fullGraphData = null;       // Unfiltered copy of graph data
+
+    function getNodeSub(node) {
+      if (node.label === 'Model') return node.model_type || null;
+      return null;
+    }
+
+    function isNodeVisible(node) {
+      if (!visibleLabels.has(node.label)) return false;
+      const sub = getNodeSub(node);
+      if (sub && hiddenSubs.has(node.label + ':' + sub)) return false;
+      return true;
+    }
+
+    function computeCategoryTree() {
+      if (!fullGraphData) return {};
+      const tree = {};
+      fullGraphData.nodes.forEach(n => {
+        if (!tree[n.label]) tree[n.label] = { total: 0, subs: {} };
+        tree[n.label].total++;
+        const sub = getNodeSub(n);
+        if (sub) {
+          tree[n.label].subs[sub] = (tree[n.label].subs[sub] || 0) + 1;
+        }
+      });
+      // Only keep subs if 2+ distinct
+      for (const label in tree) {
+        if (Object.keys(tree[label].subs).length < 2) tree[label].subs = {};
+      }
+      return tree;
+    }
+
+    function renderVisibilityTree() {
+      const tree = computeCategoryTree();
+      const container = document.getElementById('visibility-tree');
+      if (!container) return;
+
+      const labelOrder = ['Model', 'Provider', 'Platform', 'Benchmark', 'Capability', 'Hardware', 'License', 'Tag'];
+      const labels = labelOrder.filter(l => tree[l]);
+      // Add any not in the order
+      Object.keys(tree).forEach(l => { if (!labels.includes(l)) labels.push(l); });
+
+      let html = '';
+      labels.forEach(label => {
+        const info = tree[label];
+        const visible = visibleLabels.has(label);
+        const hasSubs = Object.keys(info.subs).length > 0;
+        const eyeClass = visible ? 'vis-eye' : 'vis-eye hidden';
+        const eyeIcon = visible ? '&#128065;' : '&#128065;';
+        const color = LABEL_COLORS[label] || '#64748b';
+
+        html += `<div class="vis-row" onclick="toggleVisibility('${label}')">
+          <span class="${eyeClass}">${eyeIcon}</span>
+          <span class="vis-label" style="color:${color}">${label}</span>
+          <span class="vis-count">${info.total}</span>
+          ${hasSubs ? `<span class="vis-expand" onclick="event.stopPropagation();toggleSubExpand('${label}')">&#9660;</span>` : ''}
+        </div>`;
+
+        if (hasSubs) {
+          const sorted = Object.entries(info.subs).sort((a, b) => b[1] - a[1]);
+          html += `<div class="vis-sub" id="vis-subs-${label}" style="display:none">`;
+          sorted.forEach(([sub, count]) => {
+            const key = label + ':' + sub;
+            const subVisible = visible && !hiddenSubs.has(key);
+            const subEyeClass = subVisible ? 'vis-eye' : 'vis-eye hidden';
+            const subColor = (label === 'Model' && TYPE_COLORS[sub]) ? TYPE_COLORS[sub] : color;
+            html += `<div class="vis-row" onclick="event.stopPropagation();toggleSubVisibility('${key}')">
+              <span class="${subEyeClass}">&#128065;</span>
+              <span class="vis-label" style="color:${subColor}">${sub.replace(/-/g, ' ')}</span>
+              <span class="vis-count">${count}</span>
+            </div>`;
+          });
+          html += '</div>';
+        }
+      });
+
+      container.innerHTML = html;
+    }
+
+    function toggleSubExpand(label) {
+      const el = document.getElementById('vis-subs-' + label);
+      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleVisibility(label) {
+      if (visibleLabels.has(label)) visibleLabels.delete(label);
+      else visibleLabels.add(label);
+      applyVisibilityFilter();
+    }
+
+    function toggleSubVisibility(key) {
+      if (hiddenSubs.has(key)) hiddenSubs.delete(key);
+      else hiddenSubs.add(key);
+      applyVisibilityFilter();
+    }
+
+    function showAllTypes() {
+      if (!fullGraphData) return;
+      visibleLabels = new Set(fullGraphData.nodes.map(n => n.label));
+      hiddenSubs.clear();
+      applyVisibilityFilter();
+    }
+
+    function hideAllTypes() {
+      visibleLabels.clear();
+      applyVisibilityFilter();
+    }
+
+    function modelsOnlyTypes() {
+      visibleLabels = new Set(['Model']);
+      hiddenSubs.clear();
+      applyVisibilityFilter();
+    }
+
+    function applyVisibilityFilter() {
+      if (!fullGraphData) return;
+
+      const visibleNodes = fullGraphData.nodes.filter(n => isNodeVisible(n));
+      const visibleIds = new Set(visibleNodes.map(n => n.id));
+      const visibleLinks = fullGraphData.links.filter(e => {
+        const srcId = e.source?.id || e.source;
+        const tgtId = e.target?.id || e.target;
+        return visibleIds.has(srcId) && visibleIds.has(tgtId);
+      });
+
+      graphData = { nodes: visibleNodes, links: visibleLinks };
+      graph3d.graphData(graphData);
+
+      document.getElementById('stat-nodes').textContent = visibleNodes.length;
+      document.getElementById('stat-edges').textContent = visibleLinks.length;
+
+      renderVisibilityTree();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1180,11 +1342,19 @@
         })),
       };
 
+      // Store full data for visibility filtering
+      fullGraphData = { nodes: [...graphData.nodes], links: [...graphData.links] };
+      // Initialize all types as visible
+      visibleLabels = new Set(graphData.nodes.map(n => n.label));
+      hiddenSubs.clear();
+
       graph3d.graphData(graphData);
 
       document.getElementById('stat-nodes').textContent = data.nodes.length;
       document.getElementById('stat-edges').textContent = data.edges.length;
       document.getElementById('stat-view').textContent = viewId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+      renderVisibilityTree();
 
       updateLegend(data.nodes);
     }
