@@ -1,0 +1,5 @@
+/*.png
+  Cache-Control: public, max-age=604800
+/*
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
