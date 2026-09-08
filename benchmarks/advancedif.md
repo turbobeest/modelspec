@@ -138,28 +138,27 @@ freshness:
 ## What it measures
 
 AdvancedIF targets instruction-following capabilities that mechanically-checked benchmarks such as
-`ifeval` and `ifbench` are structurally unable to cover, because their entire design requires constraints
-a program can verify. AdvancedIF instead uses expert-written prompts and expert-curated rubrics across
+`ifeval` and `ifbench` are structurally unable to cover, because their design requires constraints a
+program can verify. AdvancedIF instead uses expert-written prompts and expert-curated rubrics across
 three subsets: complex single-turn instructions, where each prompt layers six or more simultaneous
-constraints across tone, format, style, structure, length, negative constraints, spelling and instructions
-that depend on each other; multi-turn carried context, testing whether a model keeps honouring an earlier
-instruction once a conversation has moved past it; and system-prompt steerability, testing whether a model
-follows persona, scope and behavioural rules placed in the system prompt rather than the user turn. Many
-of the resulting rubric questions -- did the response stay in character, was the tone appropriately
-snarky, did an explanation of prior reasoning actually match what was said earlier -- have no mechanical
-check, which is the paper's stated reason for grading with an LLM judge rather than verification code.
+constraints across tone, format, style, structure, length, negative constraints, spelling and
+inter-dependent instructions; multi-turn carried context, testing whether a model keeps honouring an
+earlier instruction once a conversation has moved past it; and system-prompt steerability, testing
+whether a model follows persona, scope and behavioural rules placed in the system prompt rather than the
+user turn. Many resulting rubric questions -- did the response stay in character, was the tone
+appropriately snarky -- have no mechanical check, the paper's stated reason for grading with an LLM judge
+rather than verification code.
 
 ## How it is scored
 
-Each prompt carries its own rubric, a checklist of specific yes/no questions written by the same experts
-who wrote the prompt. An LLM judge reads the conversation, the model's response and the rubric, answers
-every question, and the response counts as a pass only if it satisfies all of them -- an all-or-nothing
-standard in the spirit of IFEval's strict, prompt-level accuracy, but applied to constraints a program
-cannot check. Because judge quality directly determines how trustworthy a reported score is, the paper
-validates several judges against human-labelled agreement: a fine-tuned rubric verifier reached an F1 of
-0.728 against human judgments, its recommended general-purpose judge (o3-mini) reached 0.723, and an
-unmodified Llama 4 Maverick judge managed only 0.515 -- a reminder that an AdvancedIF score is only as
-reliable as the judge that produced it.
+Each prompt carries its own rubric, a checklist of yes/no questions written by the same experts who wrote
+the prompt. An LLM judge reads the conversation, the response and the rubric, answers every question, and
+the response passes only if it satisfies all of them -- an all-or-nothing standard in the spirit of
+IFEval's strict, prompt-level accuracy, applied to constraints a program cannot check. Because judge
+quality directly determines how trustworthy a score is, the paper validates several judges against
+human-labelled agreement: a fine-tuned rubric verifier reached an F1 of 0.728, its recommended
+general-purpose judge (o3-mini) reached 0.723, and an unmodified Llama 4 Maverick judge managed only
+0.515 -- a reminder that an AdvancedIF score is only as reliable as the judge that produced it.
 
 ## Dataset and licence
 
@@ -179,15 +178,14 @@ prompts in the linked GitHub repository.
 ## Lineage
 
 AdvancedIF is not a formal successor of `ifeval` or `ifbench` in this repository's catalogue, but the
-paper positions it directly against both: it argues that IFEval-style benchmarks rely on synthetic,
-templated prompts and a fixed, narrow set of mechanically verifiable constraints, and offers "pure
-expert-written prompts and rubrics for more realistic and aligned evaluation" instead. Where `ifbench`
-responded to the same overfitting concern by adding new constraint types that are still mechanically
-checkable, AdvancedIF goes further by including constraints -- persona consistency, cross-turn coherence,
-system-prompt compliance -- that no verification function can check at all, which is why it requires an
-LLM judge rather than extending the checkable-constraint paradigm. The paper also compares its approach
-against MultiChallenge, a related multi-turn instruction-following benchmark not yet catalogued in this
-repository.
+paper positions it directly against both: it argues IFEval-style benchmarks rely on synthetic, templated
+prompts and a fixed, narrow set of mechanically verifiable constraints, and offers "pure expert-written
+prompts and rubrics for more realistic and aligned evaluation" instead. Where `ifbench` responded to the
+same overfitting concern with new but still mechanically checkable constraint types, AdvancedIF goes
+further by including constraints -- persona consistency, cross-turn coherence, system-prompt compliance
+-- no verification function can check at all, which is why it requires an LLM judge rather than extending
+the checkable-constraint paradigm. The paper also compares against MultiChallenge, a related multi-turn
+benchmark not yet catalogued here.
 
 ## Saturation and contamination
 

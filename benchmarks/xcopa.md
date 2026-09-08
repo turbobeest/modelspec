@@ -129,41 +129,38 @@ freshness:
 
 ## What it measures
 
-XCOPA tests causal commonsense reasoning in 11 languages at once, using the same task the English-only
-COPA benchmark set: given a one-sentence premise and a prompt asking for its cause or its result, pick
-the more plausible of two alternative sentences ("The girl found a bug in her cereal" -> result: "She
-poured milk in the bowl" versus "She lost her appetite"). XCOPA's contribution is translating and
-re-annotating COPA's validation and test items, by a native speaker per language, into Estonian, Haitian
-Creole, Indonesian, Italian, Eastern Apurímac Quechua, Swahili, Tamil, Thai, Turkish, Vietnamese and
-Mandarin Chinese -- 11 languages chosen for typological diversity (11 different language families) rather
-than for being the world's most widely spoken. Because it ships no training data of its own, it is meant
-to be run zero-shot: a system trained on English commonsense data is evaluated directly against each
-target language, so the score mixes two things at once -- whether the model can reason about cause and
-effect at all, and whether that reasoning survives being applied in a language the model was not
-specifically trained on.
+XCOPA tests causal commonsense reasoning in 11 languages at once, using the same task English-only COPA
+set: given a one-sentence premise and a prompt asking for its cause or result, pick the more plausible of
+two alternative sentences ("The girl found a bug in her cereal" -> result: "She poured milk in the bowl"
+versus "She lost her appetite"). XCOPA's contribution is translating and re-annotating COPA's validation
+and test items, by a native speaker per language, into Estonian, Haitian Creole, Indonesian, Italian,
+Eastern Apurímac Quechua, Swahili, Tamil, Thai, Turkish, Vietnamese and Mandarin Chinese -- 11 languages
+chosen for typological diversity rather than for being the world's most widely spoken. Because it ships
+no training data of its own, it is meant to be run zero-shot: a system trained on English commonsense
+data is evaluated directly against each target language, so the score mixes whether the model can reason
+about cause and effect at all, and whether that reasoning survives being applied in an untrained-for
+language.
 
 ## How it is scored
 
-Plain two-way accuracy: each item has exactly one correct alternative, and there is no partial credit.
-Binary choice gives a 50% random baseline. The paper's own human evaluation reached 97.60% averaged
-across the 11 languages, ranging from 94.8% (Quechua) to a perfect 100.0% (Indonesian) in its
-per-language breakdown, and is the closest thing this benchmark has to a ceiling. Two evaluation
-protocols are common in the literature: "zero-shot transfer," where a multilingual model is fine-tuned
-only on English data (COPA, sometimes with Social IQa added) and evaluated directly in each target
-language, and "translate-test," where the target-language input is machine-translated into English first
-and scored with an English-only model. The two protocols are not directly comparable, since translate-test
-performance is bounded by machine-translation quality rather than purely by the model's own multilingual
-reasoning.
+Plain two-way accuracy: each item has exactly one correct alternative, with no partial credit. Binary
+choice gives a 50% random baseline. The paper's own human evaluation reached 97.60% averaged across the
+11 languages, ranging from 94.8% (Quechua) to a perfect 100.0% (Indonesian), and is the closest thing this
+benchmark has to a ceiling. Two evaluation protocols are common: "zero-shot transfer," where a
+multilingual model is fine-tuned only on English data (COPA, sometimes with Social IQa added) and
+evaluated directly in each target language, and "translate-test," where the target-language input is
+machine-translated into English first and scored with an English-only model. The two are not directly
+comparable, since translate-test performance is bounded by machine-translation quality rather than purely
+by the model's own multilingual reasoning.
 
 ## Dataset and licence
 
 6,600 items total: 11 languages, each with 100 validation and 500 test instances and no training split,
 confirmed from the Hugging Face datasets-server's per-config split sizes. The dataset is released under a
-CC BY 4.0 licence. Inter-translator agreement, measured by Fleiss' kappa across the translation and
-re-annotation process, was 0.921 on the validation portion and 0.911 on test, which the authors report as
-evidence the translations preserved the intended causal relationship rather than drifting during
-adaptation. A separate machine-translated "translate-test" version of 10 of the 11 languages (all but
-Quechua) is also distributed, for the translate-then-classify baseline described above.
+CC BY 4.0 licence. Inter-translator agreement (Fleiss' kappa) was 0.921 on validation and 0.911 on test,
+which the authors report as evidence the translations preserved the intended causal relationship rather
+than drifting during adaptation. A separate machine-translated "translate-test" version of 10 of the 11
+languages (all but Quechua) is also distributed, for the translate-then-classify baseline above.
 
 ## Who publishes it
 
@@ -185,13 +182,12 @@ task into many languages) that this repository does not yet catalogue under this
 ## Saturation and contamination
 
 No actively maintained leaderboard reflecting current models was found -- the authors' own leaderboard on
-GitHub is unchanged since February 2021. What the historical record shows is a substantial, clearly
-unsaturated gap as of 2020: human performance averaged 97.60%, while the paper's strongest tested model,
-XLM-R Large, reached 68.69% zero-shot (translate-test RoBERTa Large scored 76.05%, and MAD-X Base scored
-60.94%). No 2025-2026 frontier-model score was confirmed from a source read for this page, so a current
-saturation state is not established here. Contamination risk is high: the full test set, in all 11
-languages, has been public and unchanged for more than five years and is widely mirrored across major
-evaluation harnesses.
+GitHub is unchanged since February 2021. The historical record shows a substantial, clearly unsaturated
+gap as of 2020: human performance averaged 97.60%, while the paper's strongest tested model, XLM-R Large,
+reached 68.69% zero-shot (translate-test RoBERTa Large scored 76.05%, MAD-X Base 60.94%). No 2025-2026
+frontier-model score was confirmed for this page, so a current saturation state is not established.
+Contamination risk is high: the full test set, in all 11 languages, has been public and unchanged for
+more than five years and is widely mirrored across major evaluation harnesses.
 
 ## How to run it
 

@@ -168,3 +168,22 @@ reported 537 test + 25 validation exactly, and matches the original `exams-qa` r
 its `aliases`; `aexams` was skipped as a separate id rather than getting its own page.
 Action: add `aexams: arabic_exams` to `_census/aliases.yaml` so the fold is picked up automatically for any future
 census pass, the way `arc_c`/`arc_e` already are.
+
+## 2026-09-08: `autobencher_capabilities` and `autobencher_safety` hints carry an identical, unverifiable `score`
+
+Both hint records in `_census/next_batch.json` carry `"score": 18.0` — exactly the same value, to one decimal
+place, for two different HELM scenarios that measure different things on different scales (capabilities is
+model-judged QA correctness; safety is effectively a refusal rate). Neither `autobencher_capabilities_scenario.py`
+nor `autobencher_safety_scenario.py` on GitHub, nor HELM's `schema_autobencher.yaml`, nor HELM's own homepage list
+of hosted leaderboards, nor the direct `crfm.stanford.edu/helm/autobencher/latest/` URL (which 404s), turned up any
+rendered source with a score for either scenario — so 18.0 could not be traced to anything for this research, for
+either id. An identical score across two unrelated metrics is the signature of a harvester bug (for example, both
+records inheriting one shared/aggregate number from HELM's parent `autobencher_scenarios` run-group instead of
+each child scenario's own figure, if such a figure exists anywhere) rather than two coincidentally-equal
+measurements. Both `benchmarks/autobencher_capabilities.md` and `benchmarks/autobencher_safety.md` leave
+`saturation.top_score` empty and say why in prose, rather than repeating this figure.
+Action: whatever harvester populates `score` for HELM-sourced hints should confirm it is reading each child
+run-group's own number rather than a parent group's, and should drop the field (or flag it) when the same value
+recurs identically across sibling ids with different metrics. Re-check other multi-scenario HELM run-groups
+(`schema_autobencher.yaml`'s pattern of one parent group with named subgroups is not unique to AutoBencher) for
+the same failure mode.

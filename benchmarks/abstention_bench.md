@@ -144,39 +144,36 @@ freshness:
 AbstentionBench asks a different question from most benchmarks: not whether a model can answer
 correctly, but whether it recognises when it should not attempt a confident answer at all. It aggregates
 questions across six scenarios chosen to make abstention the appropriate response -- the true answer is
-unknown or undocumented, the question rests on a false premise, the question concerns events past the
-model's knowledge cutoff (stale), the question is inherently subjective, the question's context is
-underspecified, or the user's underlying intent is underspecified. Most of its 20 source datasets are
-existing benchmarks (among them BBQ, FreshQA, SQuAD 2.0, MuSiQue, QASPER, CoCoNot, MoralChoice, WorldSense
-and UMWP) repurposed or filtered for one of these properties; three -- GPQA-Abstain, GSM8K-Abstain and
-MMLU-Math-Abstain -- are new variants the authors built themselves by editing established math and
-science benchmark items to strip out information a confident answer would require. The paper's central,
-concerning finding is that abstention is still unsolved even in frontier models, that scaling barely
-helps, and that reasoning-focused fine-tuning specifically makes models more confidently wrong rather
-than more appropriately cautious.
+unknown or undocumented, the question rests on a false premise, it concerns events past the model's
+knowledge cutoff (stale), it is inherently subjective, its context is underspecified, or the user's
+underlying intent is underspecified. Most of its 20 source datasets are existing benchmarks (among them
+BBQ, FreshQA, SQuAD 2.0, MuSiQue, QASPER, CoCoNot, MoralChoice, WorldSense and UMWP) repurposed or
+filtered for one of these properties; three -- GPQA-Abstain, GSM8K-Abstain and MMLU-Math-Abstain -- are
+new variants the authors built by editing established math and science benchmark items to strip out
+information a confident answer would require. The paper's central finding is that abstention is still
+unsolved even in frontier models, scaling barely helps, and reasoning-focused fine-tuning specifically
+makes models more confidently wrong rather than appropriately cautious.
 
 ## How it is scored
 
 Because responses are free text rather than multiple choice, scoring uses an LLM judge -- Llama 3.1 8B
 Instruct by default -- to classify each response as abstaining or attempting a direct answer; the authors
-validated this judge against 300 manually annotated response pairs (drawn from GPT-4o and Llama 3.1 70B
-outputs) and report 88% agreement with the human labels. The primary reported number is abstention
-recall: the share of should-abstain items where the model actually abstained. Because recall alone cannot
-distinguish genuine calibration from a model that simply refuses everything, the paper also reports
-precision and F1 to penalise over-abstention, plus a separate response-accuracy check on the subset of
-items that are answerable, so a model's behaviour is characterised by the full set of numbers rather than
-any one of them alone.
+validated this judge against 300 manually annotated response pairs (from GPT-4o and Llama 3.1 70B
+outputs) and report 88% agreement with the human labels. The primary number is abstention recall: the
+share of should-abstain items where the model actually abstained. Because recall alone cannot distinguish
+genuine calibration from a model that simply refuses everything, the paper also reports precision and F1
+to penalise over-abstention, plus a separate accuracy check on the answerable subset, so behaviour is
+characterised by the full set of numbers rather than any one alone.
 
 ## Dataset and licence
 
-The paper describes the aggregate size only as "over 35k" questions without giving one exact total. It
-spans 20 source datasets across the six abstention scenarios: most are existing published benchmarks
-repurposed or filtered for abstention-relevant properties, and three (GPQA-Abstain, GSM8K-Abstain,
-MMLU-Math-Abstain) are new constructions the authors built for this benchmark by editing GPQA, GSM8K and
-MMLU items. The aggregated dataset and pipeline are released under a CC BY-NC 4.0 licence (a
-non-commercial restriction, distinct from most benchmarks in this repository) and published both on
-GitHub and as `facebook/AbstentionBench` on Hugging Face; some source datasets are capped at a maximum
-sample count during aggregation rather than included in full.
+The paper describes the aggregate size only as "over 35k" questions without one exact total. It spans 20
+source datasets across the six scenarios: most are existing published benchmarks repurposed or filtered
+for abstention-relevant properties, and three (GPQA-Abstain, GSM8K-Abstain, MMLU-Math-Abstain) are new
+constructions built by editing GPQA, GSM8K and MMLU items. The aggregated dataset and pipeline are
+released under a CC BY-NC 4.0 licence (non-commercial, unlike most benchmarks in this repository) and
+published on GitHub and as `facebook/AbstentionBench` on Hugging Face; some source datasets are capped at
+a maximum sample count during aggregation rather than included in full.
 
 ## Who publishes it
 
@@ -187,47 +184,43 @@ Hugging Face in mid-2025.
 
 ## Lineage
 
-AbstentionBench does not extend a single predecessor; it is an aggregation and extension of roughly 20
-existing datasets (several themselves built for adjacent purposes, such as CoCoNot's work on contextual
-non-compliance and FreshQA's stale-answer questions) into one holistic evaluation, plus three newly
-constructed abstention variants of GPQA, GSM8K and MMLU. It is not catalogued as part of a family in this
-repository and has no confirmed successor. It probes a related but distinct failure mode from
-over-refusal benchmarks such as `xstest`: XSTest checks whether a model wrongly refuses a genuinely safe
-request, while AbstentionBench checks whether a model wrongly answers a request it should have declined
-or hedged on -- opposite directions of the same underlying calibration question.
+AbstentionBench does not extend a single predecessor; it aggregates roughly 20 existing datasets (several
+built for adjacent purposes, such as CoCoNot's contextual non-compliance work and FreshQA's stale-answer
+questions) into one holistic evaluation, plus three newly constructed abstention variants of GPQA, GSM8K
+and MMLU. It is not catalogued as part of a family here and has no confirmed successor. It probes a
+related but distinct failure mode from over-refusal benchmarks such as `xstest`: XSTest checks whether a
+model wrongly refuses a genuinely safe request, while AbstentionBench checks whether a model wrongly
+answers a request it should have declined -- opposite directions of the same calibration question.
 
 ## Saturation and contamination
 
 No exact top-model scores were found in the sources read for this page, but the paper's own framing rules
 out a saturated reading: it states plainly that "abstention remains a key problem even for frontier LLMs,
-with model scale having almost no effect," naming GPT-4o and Qwen 2.5 32B as the strongest of roughly 20
-models tested. It further reports that reasoning-focused fine-tuning drives an average 24% drop in
-abstention rate compared to non-reasoning counterparts, evidence that training choices move scores
-substantially in both directions rather than everything clustering near a ceiling -- consistent with an
-open, still-separating benchmark. Contamination risk is medium: several source datasets are old and
-widely known, but AbstentionBench's own abstention labels and its three new variants have been public for
-only around a year as of this research, with no private holdout, tempered somewhat by LLM-judge grading
-that does not directly reward memorising one fixed correct string.
+with model scale having almost no effect," naming GPT-4o and Qwen 2.5 32B as strongest of roughly 20
+models tested. It further reports reasoning-focused fine-tuning drives an average 24% drop in abstention
+rate versus non-reasoning counterparts -- evidence training choices move scores substantially in both
+directions rather than clustering near a ceiling, consistent with an open, still-separating benchmark.
+Contamination risk is medium: several source datasets are old and widely known, but AbstentionBench's own
+labels and its three new variants have been public for only around a year, with no private holdout,
+tempered by LLM-judge grading that does not directly reward memorising one fixed string.
 
 ## How to run it
 
 inspect_evals implements the benchmark as `abstention_bench`, but ships it with its own isolated
-dependency environment under `packages/abstention_bench/` because its requirements conflict with the rest
-of that repository -- installing and running it needs a separate `uv sync` from that subdirectory rather
-than the shared inspect_evals environment. The authors' own pipeline, including the reference LLM judge,
-is at github.com/facebookresearch/AbstentionBench, with pre-computed results explorable directly from a
-CSV in that repository without rerunning models. No lm-evaluation-harness, HELM, OpenCompass or BIG-bench
-implementation was confirmed. Because scoring depends on an LLM judge, reported numbers shift with which
-judge model is used and how it is prompted; check which judge produced a given figure before comparing it
-to another source.
+dependency environment under `packages/abstention_bench/`, because its requirements conflict with the
+rest of that repository -- installing it needs a separate `uv sync` from that subdirectory rather than
+the shared inspect_evals environment. The authors' own pipeline, including the reference LLM judge, is at
+github.com/facebookresearch/AbstentionBench, with pre-computed results explorable from a CSV in that
+repository without rerunning models. No lm-evaluation-harness, HELM, OpenCompass or BIG-bench
+implementation was confirmed. Because scoring depends on an LLM judge, reported numbers shift with the
+judge model and its prompt; check which judge produced a given figure before comparing sources.
 
 ## Reading the numbers
 
 A high abstention recall is only meaningful alongside precision and response accuracy on answerable
-items -- taken alone, it cannot distinguish a well-calibrated model from one that simply hedges on
-everything, the mirror image of the problem XSTest is built to catch for over-refusal. The paper's
-finding that reasoning-focused fine-tuning measurably reduces abstention is a useful specific thing to
-check for any reasoning-tuned model: a strong score on math or reasoning benchmarks does not imply the
-model knows when to stop and say it does not know. Treat AbstentionBench as a check on epistemic
-calibration across six specific scenario types, not a general hallucination or factuality score, and note
-its non-commercial (CC BY-NC 4.0) licence if reuse terms matter for your purposes.
+items -- alone, it cannot distinguish a well-calibrated model from one that simply hedges on everything,
+the mirror image of the problem XSTest is built to catch for over-refusal. The finding that
+reasoning-focused fine-tuning measurably reduces abstention is worth checking for any reasoning-tuned
+model: a strong math or reasoning score does not imply the model knows when to say it does not know.
+Treat AbstentionBench as a check on epistemic calibration across six scenario types, not a general
+hallucination score, and note its non-commercial (CC BY-NC 4.0) licence if reuse terms matter.
