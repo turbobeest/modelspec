@@ -86,12 +86,23 @@ Length: a benchmark page runs 350 to 900 words in the body; a subset page 120 to
 
 ## Tools you have
 
-- Web search and web fetch for papers, repositories, dataset cards, leaderboards.
+- Web fetch for papers, repositories, dataset cards and leaderboards. Web search has a session-wide budget that
+  earlier agents may already have spent, so do not depend on it: go straight to the sources you can name
+  (arxiv.org/abs/<id>, ar5iv.org/abs/<id> for HTML when the PDF will not read, the GitHub repository, the
+  Hugging Face dataset card, `huggingface.co/api/datasets/<id>` and the datasets-server for exact split counts,
+  the publisher's leaderboard).
 - `python3 scripts/benchmarks/fetch.py <url>` renders JavaScript-heavy pages (leaderboards,
   Hugging Face spaces) to Markdown through Firecrawl, cached locally. `--links` lists a page's links.
 - The model cards in `models/` show which models report the benchmark and where those scores came
   from (`benchmarks.benchmark_source`, `benchmarks.benchmark_notes`); `grep -rl "<id>:" models/`
   finds them. Use that to learn which leaderboards carry the benchmark, not as a citation.
+
+## Recording a number you cannot verify
+
+If a leaderboard will not render, a licence is stated two different ways, or two sources disagree, that is a
+finding, not a blocker. Leave the field empty, say both readings in the prose with their sources, and put a
+line in `benchmarks/_census/DATA-QUALITY.md` if the problem is in this repository's own data rather than in
+the world. A page that says "not established" with its evidence is worth more than a confident wrong number.
 
 ## Before you finish
 
