@@ -1,0 +1,280 @@
+---
+id: galician_bench
+name: "GalicianBench"
+aliases: []
+page_kind: benchmark
+category: composite
+subcategory: "Galician-language multitask suite: linguistic acceptability, QA, NLI, paraphrase, summarisation, commonsense reasoning, math and translation"
+status: active
+summary: "The IberoBench suite for Galician: 11 lm-evaluation-harness task groups mixing three natively built Galician resources with eight translated from English or multilingual sources."
+measures: >
+  GalicianBench is the Galician-language slice of IberoBench, the same project behind this
+  repository's CatalanBench and BasqueBench pages, covering the official languages of the Iberian
+  peninsula. It bundles 11 top-level lm-evaluation-harness task groups (one of which, flores_gl,
+  itself expands into 16 directional translation subtasks). Unlike some sibling suites, provenance
+  splits cleanly and was confirmed dataset by dataset: GalCoLA (linguistic acceptability, 17,088
+  sentences), summarization_gl (80,829 native news-article/summary pairs from three Galician outlets)
+  and parafrases_gl (a purpose-built, three-way-annotated paraphrase set drawn from Galician source
+  text) were built directly in Galician; openbookqa_gl, mgsm_direct_gl, xstorycloze_gl, truthfulqa_gl,
+  xnli_gl and paws_gl are explicit translations of their English originals (OpenBookQA, MGSM,
+  StoryCloze, TruthfulQA, XNLI, PAWS); and belebele_glg_Latn and flores_gl are Galician configurations
+  of professionally translated multilingual suites (Belebele, FLORES).
+task_format: >
+  Mixed by sub-task: four-option multiple-choice for openbookqa_gl; binary acceptability
+  classification for galcola; three-way paraphrase classification for parafrases_gl and binary for
+  paws_gl; three-way natural-language-inference classification for xnli_gl; two-ending narrative
+  completion for xstorycloze_gl; free-form generation for truthfulqa_gl's generation split and
+  summarization_gl; free-form grade-school math word problems for mgsm_direct_gl; multiple-choice
+  reading comprehension for belebele_glg_Latn; and bidirectional machine translation between Galician
+  and eight other languages for flores_gl.
+metric:
+  name: "task-dependent: accuracy for most multiple-choice, NLI and classification tasks; ROUGE for summarisation; BLEU/ChrF-family scores for flores_gl"
+  direction: higher_is_better
+  unit: "%"
+  max_score: null
+  random_baseline: null
+  human_baseline: null
+  baseline_note: >
+    No single random-guess figure applies across a suite this heterogeneous: multiple-choice sub-tasks
+    vary in option count, translation sub-tasks are scored on continuous metrics rather than accuracy,
+    and the IberoBench paper reports its own comparisons using a Normalized Preferred Metric (NPM) that
+    rescales each task so a random guess maps to 0 and the maximum possible score maps to 100 -- the
+    mechanism that lets the paper average differently-scaled tasks into one per-language figure. No
+    human baseline is reported.
+dataset:
+  size: null
+  size_note: >
+    GalicianBench aggregates independently sized source datasets rather than one fixed item pool.
+    Sizes confirmed directly from component dataset cards: GalCoLA 17,088 sentences, summarization_gl
+    80,829 news/summary pairs, openbookqa_gl 500 validation + 500 test, mgsm_gl 8 train + 250 test, and
+    xstorycloze_gl 360 train + 1,511 test. Separately, the IberoBench paper's own per-language
+    score-aggregation table uses "14 [tasks] in Galician" (against 27 for Catalan, 17 for Spanish, 14
+    for Basque and 4 for Portuguese) -- a fixed subset for that comparison, not necessarily every task
+    available; lm-evaluation-harness's galician_bench.yaml lists 11 top-level entries, one of which
+    (flores_gl) expands into 16 directional translation subtasks on its own.
+  url: "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/galician_bench"
+  license: >
+    Mostly CC BY 4.0 (galcola, summarization_gl, parafrases_gl, PAWS-gl, openbookqa_gl, mgsm_gl,
+    xstorycloze_gl and belebele_gl, confirmed individually via the Hugging Face API), with two
+    exceptions: truthfulqa_gl is Apache-2.0 and xnli_gl is CC BY-NC 4.0. This page did not check every
+    component individually, so treat any single suite-wide licence claim with caution.
+  languages:
+    - gl
+  modalities:
+    - text
+  splits: "aggregates each source dataset's own splits; most components ship train/validation/test or train/test splits documented on their individual Hugging Face cards"
+  public_test_set: true
+publisher:
+  org: "Proxecto Nos (Galician-language AI initiative run through the Xunta de Galicia and the CiTIUS research centre at the Universidade de Santiago de Compostela), within the IberoBench project led by the Barcelona Supercomputing Center (BSC-CNS)"
+  authors:
+    - "Irene Baucells"
+    - "Javier Aula-Blasco"
+    - "Iria de-Dios-Flores"
+    - "Silvia Paniagua Suárez"
+    - "Naiara Perez"
+    - "Anna Salles"
+    - "Susana Sotelo Docio"
+    - "Júlia Falcão"
+    - "Jose Javier Saiz"
+    - "Robiert Sepulveda Torres"
+    - "Jeremy Barnes"
+    - "Pablo Gamallo"
+    - "Aitor Gonzalez-Agirre"
+    - "German Rigau"
+    - "Marta Villegas"
+  url: "https://huggingface.co/proxectonos"
+paper:
+  title: "IberoBench: A Benchmark for LLM Evaluation in Iberian Languages"
+  arxiv: ""
+  url: "https://aclanthology.org/2025.coling-main.699"
+  year: 2025
+leaderboard_url: ""
+repo_url: "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/galician_bench"
+released: "2025-01"
+last_updated: "2026-01"
+lineage:
+  family: ""
+  predecessor: ""
+  successors: []
+  variants: []
+saturation:
+  status: open
+  top_score: null
+  as_of: ""
+  note: >
+    No maintained leaderboard specific to GalicianBench was found. The shared IberoBench paper
+    evaluated 33 base models under 0-shot and 5-shot prompting and states that "model performance in
+    Iberian languages still is behind state-of-the-art results," which this page reads as evidence of
+    real headroom rather than saturation; no GalicianBench-only top_score was confirmed from a source
+    read directly for this page.
+contamination:
+  risk: medium
+  note: >
+    Exposure varies by component: translated sets built on long-established multilingual resources
+    (XNLI, PAWS, Belebele, FLORES, OpenBookQA, StoryCloze, TruthfulQA) have underlying English or
+    multilingual originals that have been public for years, while the natively Galician components
+    (GalCoLA, summarization_gl, parafrases_gl) and the Galician translations themselves are newer and
+    specific to this project. No publisher statement or independent contamination study covering the
+    suite as a whole was found.
+harness:
+  lm_eval: "galician_bench (group); constituent tasks/groups: belebele_glg_Latn, flores_gl (plus 16 directional variants), galcola, summarization_gl, parafrases_gl, paws_gl, openbookqa_gl, mgsm_direct_gl, truthfulqa_gl, xnli_gl, xstorycloze_gl"
+  inspect_evals: ""
+  helm: ""
+  opencompass: ""
+  bigbench: ""
+  other: >
+    lm-evaluation-harness's galician_bench.yaml lists 11 top-level entries; its own changelog records
+    a v1.1 update on 2026-01-16 that excluded line breaks from stop criteria in mgsm_direct_gl. The
+    README's task table mistakenly labels the math task's homepage row "MGSM_ca" rather than
+    "MGSM_gl" -- an apparent copy-paste carry-over from the CatalanBench README rather than a change
+    in what the task actually evaluates.
+tags:
+  - composite
+  - galician
+  - iberobench
+  - multilingual
+  - low-resource
+  - nli
+  - translation
+  - question-answering
+sources:
+  - url: "https://raw.githubusercontent.com/EleutherAI/lm-evaluation-harness/main/lm_eval/tasks/galician_bench/README.md"
+    title: "lm-evaluation-harness galician_bench task group README"
+    accessed: "2026-09-08"
+  - url: "https://raw.githubusercontent.com/EleutherAI/lm-evaluation-harness/main/lm_eval/tasks/galician_bench/galician_bench.yaml"
+    title: "lm-evaluation-harness galician_bench.yaml (11-entry group definition)"
+    accessed: "2026-09-08"
+  - url: "https://aclanthology.org/2025.coling-main.699.pdf"
+    title: "Baucells et al. (2025). IberoBench: A Benchmark for LLM Evaluation in Iberian Languages. COLING 2025, full PDF"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/galcola/raw/main/README.md"
+    title: "proxectonos/galcola dataset card (17,088 sentences, PROPOR 2022 / ACL 2023 sources)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/summarization_gl/raw/main/README.md"
+    title: "proxectonos/summarization_gl dataset card (80,829 native Galician news/summary pairs)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/parafrases_gl/raw/main/README.md"
+    title: "proxectonos/parafrases_gl dataset card (native Galician text selection, 3-way annotation)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/openbookqa_gl/raw/main/README.md"
+    title: "proxectonos/openbookqa_gl dataset card (translated from English OpenBookQA)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/mgsm_gl/raw/main/README.md"
+    title: "proxectonos/mgsm_gl dataset card (translated from English MGSM)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/xstorycloze_gl/raw/main/README.md"
+    title: "proxectonos/xstorycloze_gl dataset card (translated from English StoryCloze)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/truthfulqa_gl/raw/main/README.md"
+    title: "proxectonos/truthfulqa_gl dataset card (Galician version of TruthfulQA)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/xnli_gl/raw/main/README.md"
+    title: "proxectonos/xnli_gl dataset card (extension of XNLI, translated to Galician)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/proxectonos/PAWS-gl/raw/main/README.md"
+    title: "proxectonos/PAWS-gl dataset card (translation of English PAWS)"
+    accessed: "2026-09-08"
+  - url: "https://huggingface.co/api/datasets/proxectonos/belebele_gl"
+    title: "proxectonos/belebele_gl dataset metadata, Hugging Face API (licence cc-by-sa-4.0)"
+    accessed: "2026-09-08"
+freshness:
+  researched: "2026-09-08"
+  researched_by: "sonnet-5 agent, batch 6, slice C"
+  reviewed: ""
+  reviewed_by: ""
+---
+
+## What it measures
+
+GalicianBench is the Galician-language slice of IberoBench, the multilingual, multi-task project that
+also produced this repository's [CatalanBench](catalan_bench.md) and [BasqueBench](basque_bench.md)
+pages, one same-shaped suite per official language of the Iberian peninsula. It bundles 11 top-level
+lm-evaluation-harness task groups, one of which (flores_gl) itself expands into 16 directional
+translation subtasks. Provenance splits cleanly across the suite, confirmed dataset by dataset rather
+than assumed: GalCoLA (linguistic acceptability, 17,088 sentences drawn from PROPOR 2022 and ACL 2023
+Galician syntax research), summarization_gl (80,829 native news-article/summary pairs from three
+Galician outlets -- Nos Diario, Que Pasa na Costa, Praza Publica) and parafrases_gl (a purpose-built,
+three-way-annotated paraphrase set drawn from selected Galician source text) were built directly in
+Galician. By contrast, openbookqa_gl, mgsm_direct_gl, xstorycloze_gl, truthfulqa_gl, xnli_gl and
+paws_gl are explicit translations of their English originals (OpenBookQA, MGSM, StoryCloze, TruthfulQA,
+XNLI, PAWS respectively, each dataset card states this directly), and belebele_glg_Latn and flores_gl
+are Galician configurations of already-multilingual, professionally translated suites.
+
+## How it is scored
+
+Scoring is task-dependent, the norm for a composite suite this broad: multiple-choice and
+narrative-completion tasks (openbookqa_gl, xstorycloze_gl, belebele_glg_Latn) score by accuracy;
+classification tasks (galcola, parafrases_gl, paws_gl, xnli_gl) score by accuracy or F1 over two or
+three label classes; mgsm_direct_gl scores free-form numeric exact match; summarization_gl and
+truthfulqa_gl's generation split score by ROUGE or similar text-overlap metrics; and flores_gl's 16
+translation directions score on continuous machine-translation metrics. Because of this mix, the
+IberoBench paper reports its own headline numbers as a Normalized Preferred Metric (NPM), rescaling
+each task so a random guess maps to 0 and the maximum possible score maps to 100, evaluated under both
+0-shot and 5-shot prompting across 33 base models. The paper's own per-language aggregation table uses
+a fixed 14-task subset for Galician specifically, not the full 11-group-plus-flores-directions harness
+listing.
+
+## Dataset and licence
+
+GalicianBench has no single dataset size, since it aggregates independently sized, independently
+sourced datasets. Confirmed component sizes: GalCoLA 17,088 sentences, summarization_gl 80,829
+news/summary pairs, openbookqa_gl 500 validation + 500 test, mgsm_gl 8 train + 250 test, and
+xstorycloze_gl 360 train + 1,511 test. Licensing is mostly but not entirely uniform: CC BY 4.0 covers
+galcola, summarization_gl, parafrases_gl, PAWS-gl, openbookqa_gl, mgsm_gl, xstorycloze_gl and
+belebele_gl (each confirmed individually), while truthfulqa_gl is Apache-2.0 and xnli_gl is CC BY-NC
+4.0 -- meaning no single licence covers GalicianBench as a whole.
+
+## Who publishes it
+
+GalicianBench's Galician-specific datasets are published under Proxecto Nos, the Galician-language AI
+initiative coordinated through the Xunta de Galicia and the CiTIUS research centre at the Universidade
+de Santiago de Compostela. The suite sits within the wider IberoBench project, published by Irene
+Baucells and fourteen co-authors at COLING 2025 (Abu Dhabi, January 2025) -- the same paper and author
+group behind CatalanBench and BasqueBench. The task group itself is maintained inside EleutherAI's
+lm-evaluation-harness, with a changelog showing an update as recent as January 2026.
+
+## Lineage
+
+GalicianBench is one of five same-shaped IberoBench suites, sharing its construction approach and NPM
+scoring with [CatalanBench](catalan_bench.md) and [BasqueBench](basque_bench.md), both catalogued in
+this repository, plus PortugueseBench and SpanishBench, which are not. A reader comparing GalicianBench
+scores against CatalanBench or BasqueBench scores is comparing siblings built by the same team under
+the same methodology, not unrelated projects. Within GalicianBench itself, note that parafrases_gl and
+PAWS-gl are two distinct paraphrase-detection tasks rather than duplicates: parafrases_gl is natively
+built from selected Galician text with three-way annotation, while PAWS-gl is a translation of the
+English PAWS dataset with binary labels -- the same native/translated split CatalanBench draws between
+its own Parafraseja and PAWS-ca tasks. GalicianBench has no other predecessor or successor tracked here.
+
+## Saturation and contamination
+
+No maintained leaderboard specific to GalicianBench was found, so saturation is recorded as "open"
+rather than "saturated," on the strength of the shared IberoBench paper's finding that "model
+performance in Iberian languages still is behind state-of-the-art results" across the 33 base models it
+evaluated. Contamination risk is medium and uneven: the English or multilingual originals behind
+GalicianBench's translated components (XNLI, PAWS, Belebele, FLORES, OpenBookQA, StoryCloze,
+TruthfulQA) have been public for years, while the natively Galician components and the Galician
+translations themselves are newer and specific to this project, with no publisher statement or
+independent contamination study covering the suite as a whole.
+
+## How to run it
+
+lm-evaluation-harness implements GalicianBench as the `galician_bench` group, aggregating 11
+sub-task/group YAML files (for example `galcola`, `openbookqa_gl`, `xnli_gl`, `flores_gl`); a
+changelog entry dated 2026-01-16 (v1.1) excluded line breaks from stop criteria in `mgsm_direct_gl`.
+The README's own task table mislabels the math task's homepage row "MGSM_ca," an apparent
+copy-paste artifact from the CatalanBench README rather than a change to what the task measures. No
+HELM, OpenCompass or inspect_evals implementation of the group was found. Because the suite mixes
+accuracy-, F1-, ROUGE- and translation-metric-scored tasks, an aggregate "GalicianBench score" is not
+directly comparable to a single-metric benchmark; compare at the level of individual tasks or
+categories, matching how the IberoBench paper itself reports results.
+
+## Reading the numbers
+
+GalicianBench is best read task by task rather than as one blended score, given how many skills and
+metrics it bundles. Because three of its eleven components were purpose-built in Galician while the
+rest are translations, a strong overall showing does not by itself say whether a model is strong on
+genuinely native Galician content or mainly on translated material -- check the native components
+(GalCoLA, summarization_gl, parafrases_gl) separately if that distinction matters for your use case.
+As with its CatalanBench and BasqueBench siblings, no combined public leaderboard exists, so treat any
+single reported "GalicianBench" number as one reporter's own aggregation choice and check which
+sub-tasks and shot-count it used before comparing it to another.

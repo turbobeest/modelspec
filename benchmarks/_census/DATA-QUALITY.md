@@ -195,3 +195,22 @@ census computes for a candidate name (source count, whether a curated source vou
 like a benchmark, and dataset downloads), so two unrelated benchmarks vouched for by the same kinds of sources will
 often tie. The field is now emitted as `census_rank_score` with a note attached, so no writer mistakes it for a
 result again. Nothing in the AutoBencher pages needs changing.
+
+## 2026-09-08: `humaneval_multi` is OpenCompass's name for MultiPL-E's HumanEval-derived subset, not a separate benchmark
+
+Assigned as one of six `humaneval_*` ids in this batch, alongside a hint pointing at OpenCompass's `humaneval_multi`
+config directory. Reading `opencompass/configs/datasets/humaneval_multi/humaneval_multi_gen_82cf85.py` shows it is
+not an independent benchmark: its dataset path is `./data/multi-data/humaneval_multipl-e/`, its docstring is copied
+verbatim from nuprl/MultiPL-E's own Hugging Face dataset card (the "SRCDATA-LANG-keep / -transform / -reworded /
+-removed" prompt-variant language, confirmed by diffing against `huggingface.co/datasets/nuprl/MultiPL-E`'s
+README), and it runs the "reworded" variant across the same ~19 MultiPL-E language codes (cpp, cs, d, go, java, jl,
+js, lua, php, pl, py, r, rb, rkt, rs, scala, sh, swift, ts) already covered by this repository's `multipl_e` family
+page. It also does not report under one aggregate name: each language gets its own column,
+`humaneval_multiple-<lang>`, the same shape as `multipl_e`'s own per-language subset pages. Per this batch's
+instructions, no `benchmarks/humaneval_multi.md` page was written; it is the same benchmark as `multipl_e`,
+restricted to the HumanEval-derived (not MBPP-derived) half of that family and the "reworded" prompt variant
+specifically.
+Action: `humaneval_multi: multipl_e` added to `_census/aliases.yaml` so the fold is picked up automatically for any
+future census pass. `multipl_e.md`'s own `aliases` field was not edited by this batch (out of scope: it was not one
+of this batch's assigned ids), so a future pass on that page should add `humaneval_multi` there too, and may want to
+note in its Lineage section that OpenCompass reports the HumanEval-derived half of the family under that name.

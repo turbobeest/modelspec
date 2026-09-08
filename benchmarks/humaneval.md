@@ -70,6 +70,11 @@ lineage:
   variants:
     - multipl_e
     - humaneval_plus
+    - humanevalx
+    - humaneval_infilling
+    - humaneval_cn
+    - humaneval_pro
+    - humaneval_plus
 saturation:
   status: watch
   top_score: 89.0
@@ -188,12 +193,17 @@ trackers such as EvalPlus republish scores.
 ## Lineage
 
 HumanEval has no direct predecessor; the paper introduces it as a new, hand-written evaluation set
-built to reduce the chance of test-set leakage from public GitHub code. Two documented descendants
-exist. MultiPL-E translates HumanEval's (and MBPP's) problems into 18 other programming languages
-so the same tasks can test non-Python code generation; this repository does not yet have a
-multipl_e page. EvalPlus built HumanEval+ by extending the original test suites roughly 80-fold
-after finding the originals let some incorrect solutions pass; that page (humaneval_plus) does not
-exist yet either. LiveCodeBench (live_code_bench in this repository) names HumanEval and MBPP
+built to reduce the chance of test-set leakage from public GitHub code. Its descendants are
+numerous, and this is the practical problem with the name: a score reported as "HumanEval" is often
+a score on one of them. MultiPL-E (multipl_e) translates HumanEval's and MBPP's problems into other
+programming languages so the same tasks can test non-Python generation, and OpenCompass reports that
+translation under the name humaneval_multi. EvalPlus built HumanEval+ (humaneval_plus) by extending
+the original test suites roughly 80-fold after finding the originals let some incorrect solutions
+pass, which cuts reported pass rates materially. HumanEval-X (humanevalx) is a separate multilingual
+set with problems hand-written per language rather than translated. The infilling variant
+(humaneval_infilling) reshapes the problems into fill-in-the-middle tasks. A Chinese-instruction
+variant (humaneval_cn) and a harder self-invoking successor (humaneval_pro) also exist. Check which
+one produced a number before comparing it. LiveCodeBench (live_code_bench in this repository) names HumanEval and MBPP
 directly as benchmarks whose static, fully public problem sets are no longer sufficient once
 training data could include them, and was built to collect fresh, dated problems instead -- a
 response to HumanEval's limitations rather than a formal replacement, since HumanEval is still

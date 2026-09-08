@@ -28,9 +28,17 @@ aliases:
   gpqa_extended: gpqa
   bigbench: big_bench
   bbh_zeroshot: bbh
+  humaneval_multi: multipl_e
 
 # EvalPlus's HumanEval+ and MBPP+, and MMLU-Pro+, are separate benchmarks with their own item sets and
 # pass rates, not spellings of their parents. They stay in the queue and get their own pages.
+#
+# humaneval_multi is OpenCompass's own name for MultiPL-E's HumanEval-derived, "reworded"-variant
+# translations (opencompass/configs/datasets/humaneval_multi points at a directory literally named
+# humaneval_multipl-e and copies MultiPL-E's own dataset-card wording); it folds into multipl_e above.
+# See _census/DATA-QUALITY.md, 2026-09-08, for the evidence. humanevalx (CodeGeeX's HumanEval-X, 5
+# hand-written languages) and humaneval_cn (OpenCompass's Chinese-instruction HumanEval) are each a
+# different benchmark from multipl_e and from each other, and are not in this alias map.
 
 rename:
   arc_e: arc_easy
