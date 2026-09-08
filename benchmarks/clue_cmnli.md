@@ -131,20 +131,19 @@ Part of the [CLUE](clue.md) family.
 
 CMNLI asks a model to judge whether a Chinese premise entails, contradicts, or is neutral toward a
 second Chinese sentence. Unlike most of this batch, it was not collected in Chinese: the CLUE team
-built it by machine-translating two English NLI corpora, MultiNLI and XNLI, then merging them --
-MultiNLI's training data becomes CMNLI's training set, XNLI's dev plus MultiNLI's matched dev
-(shuffled) becomes CMNLI's dev, and XNLI's test plus MultiNLI's mismatched test (shuffled) becomes
-CMNLI's test. No paper, including CLUE's own (checked in full), documents CMNLI directly; it exists
-only in the CLUE GitHub README, which states plainly that this task "has been replaced on the
-leaderboard by the native Chinese OCNLI" ([clue_ocnli](clue_ocnli.md)), a separate, non-translated
-dataset built afterward.
+built it by machine-translating MultiNLI and XNLI, then merging them -- MultiNLI's training data
+becomes CMNLI's training set; XNLI's dev plus MultiNLI's matched dev, shuffled, becomes CMNLI's dev;
+XNLI's test plus MultiNLI's mismatched test, shuffled, becomes CMNLI's test. No paper, including
+CLUE's own (read in full), documents CMNLI directly; it exists only in the CLUE README, which states
+plainly that this task "has been replaced on the leaderboard by the native Chinese OCNLI"
+([clue_ocnli](clue_ocnli.md)), a separate, non-translated dataset built afterward.
 
 ## Reading the numbers
 
 The Hugging Face mirror holds 391,783 training, 12,241 validation and 13,880 test pairs; the CLUE
-README instead states 391,782 / 12,426 / 13,880 -- train and test agree, validation differs by 185
-examples. Test labels are withheld (every test row carries a dummy label of -1 in the public mirror), so OpenCompass and
-most current papers score the public validation split. No human baseline or current top score was
-confirmed for CMNLI specifically, since CLUE's live leaderboard no longer scores it. Because it is a
-translated stand-in rather than OCNLI's non-translated construction, compare a CMNLI score only
-against other CMNLI scores, not against OCNLI's, despite the shared three-way label set.
+README instead states 391,782 / 12,426 / 13,880 -- train and test agree, validation differs by 185.
+Test labels are withheld (dummy label of -1 throughout the mirror), so OpenCompass and most current
+papers score the public validation split. No human baseline or current top score was confirmed for
+CMNLI specifically, since CLUE's live leaderboard no longer scores it. Because it is a translated
+stand-in rather than OCNLI's native construction, compare a CMNLI score only against other CMNLI
+scores, not OCNLI's, despite the shared label set.

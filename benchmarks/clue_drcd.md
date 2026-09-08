@@ -103,17 +103,17 @@ DRCD gives a model a Traditional Chinese Wikipedia paragraph and a question, req
 answer span -- the same SQuAD-style format as [CMRC2018](clue_cmrc.md), but in Traditional rather
 than Simplified characters and drawn from an entirely separate dataset. CLUE adopted DRCD unchanged
 from the Delta Reading Comprehension Dataset, published by a Delta Research Center team with no
-author overlap with the CLUE team -- the cleanest case of external adoption in this batch, unlike
-CMRC2018 and C3 where the original authors also co-authored CLUE's paper. CLUE provides its own
-traditional-to-simplified conversion tool for models evaluated in simplified Chinese, and DRCD is
-not one of the paper's nine core tasks and is not a scored column on CLUE's live leaderboard; it
-circulates mainly through CLUE's downloads and OpenCompass rather than a maintained ranking.
+author overlap with the CLUE team -- the cleanest external adoption in this batch, unlike CMRC2018
+and C3 where the original authors also co-authored CLUE's paper. CLUE supplies its own
+traditional-to-simplified conversion tool for models evaluated in simplified Chinese. DRCD is not
+one of the paper's nine core tasks and is not a scored column on CLUE's live leaderboard; it
+circulates mainly through CLUE's downloads and OpenCompass, not a maintained ranking.
 
 ## Reading the numbers
 
 The data holds 26,936 training, 3,524 development and 3,493 test questions (about 34,000 total,
 close to the original paper's "30,000+" claim), confirmed identically by the CLUE README and the
-Hugging Face mirror. Test answers are withheld (dummy text such as "FAKE_ANSWER_1" in the public mirror). DRCD's own
-paper reports a baseline F1 of 89.59% against 93.30% human F1 -- figures from the original dataset's
-own evaluation, not a CLUE leaderboard number, since CLUE does not score this task live. Compare a
-DRCD score only against other DRCD scores, not against CMRC2018's, despite the shared format.
+Hugging Face mirror. Test answers are withheld (dummy text in the public mirror). DRCD's own paper
+reports a baseline F1 of 89.59% against 93.30% human F1 -- figures from the original dataset's own
+evaluation, not a CLUE leaderboard number, since CLUE does not score this task live. Compare a DRCD
+score only against other DRCD scores, not CMRC2018's, despite the shared format.
