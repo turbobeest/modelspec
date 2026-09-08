@@ -26,3 +26,18 @@ on the live site. The page documents the Intelligence Index under this id with a
 Action: confirm which figure the cards actually carry, then either re-key to `artificial_analysis_intelligence_index`
 or record the alias in the card schema. Related: `artificial_analysis_speed_index` — AA publishes no single blended
 speed index either; the page documents Output Speed (tokens per second) as the closest published figure.
+
+## 2026-09-08: `charm` hint in `_census/next_batch.json` points at the wrong paper
+
+The `charm` entry's `urls` list in `benchmarks/_census/next_batch.json` cites `https://arxiv.org/abs/2609.01352v1`.
+That id resolves, but to an unrelated September 2026 paper, "CHARM: Character Hallucination for Multicultural Role
+Play Benchmark" (Sunkyung Han et al.), a role-play-hallucination benchmark that only shares the acronym CHARM with
+the batch's actual target. The task instructions for this batch separately named the correct paper directly —
+"Benchmarking Chinese Commonsense Reasoning of LLMs: From Chinese-Specifics to Reasoning-Memorization Correlations"
+(Sun et al., arXiv:2403.14112, opendatalab/CHARM on GitHub, ACL 2024) — which `benchmarks/charm.md` documents. The
+harness hint (`opencompass: "CHARM"`) is correct and matches the intended benchmark's own OpenCompass configs.
+Action: whatever harvester populated this hint (likely a keyword search on "CHARM" with no disambiguation against
+the `opencompass`/`arxiv` source pairing already present in the same record) should prefer the arXiv id implied by
+a matching harness source over a bare name search, or at minimum flag a mismatch when a hint's own `sources` list
+carries other, disagreeing signals. Re-check other `_census` hint records for the same failure mode, especially
+short, generic, or reused acronyms.
