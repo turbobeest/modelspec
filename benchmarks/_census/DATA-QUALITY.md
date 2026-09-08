@@ -130,3 +130,41 @@ benchmark keys and cross-page links that reference whichever id(s) change.
 The series now uses one convention, `aime_2024` / `aime_2025` / `aime_2026`, matching the `aime_2025` key the model
 cards already carry (29 cards). The harness spellings `aime2024` and `aime2026` are kept as aliases on their pages,
 and the slicer's variant collapsing means the aliased spellings will not be re-queued as separate benchmarks.
+
+## 2026-09-08: Bangla task hints in `_census/next_batch.json` point at nonexistent per-task URLs and the wrong harness ids
+
+The `bangla_boolqa`, `bangla_commonsenseqa`, `bangla_piqa` and `bangla_openbookqa` entries' `urls` fields each name
+a task-specific GitHub directory (for example `.../lm_eval/tasks/bangla_boolQA`) that returns 404. The live
+`EleutherAI/lm-evaluation-harness` repository has never had per-task directories for these four tasks: the PR that
+added them (#3454, "Multiple Bangla Benchmark datasets added," merged 2026-01-13) placed all five Bangla task YAMLs
+(including `bangla_mmlu`, not in this batch) directly in one shared `lm_eval/tasks/bangla/` directory from the
+start — confirmed both by reading that PR's file list and by an empty commit history for every one of the hinted
+per-task paths. The hints' `name` and `harness.lm_eval` fields (`bangla_boolQA`, `bangla_commonsenseQA`,
+`bangla_piQA`, `bangla_poenbookQA`) trace instead to the harness's own top-level `lm_eval/tasks/README.md`
+registry table, which uses those same camelCase labels (including the `poenbookQA` typo) as link text pointing at
+`bangla/README.md` — but none of the four is the task's actual runnable `--tasks` name. Each task's own YAML gives
+the real names as `boolqa_bn`, `bangla_commonsenseqa`, `piqa_bn` and `openbookqa_bn` respectively; only the
+CommonsenseQA one happens to match its hint. A harvester that takes a harness README's display label as both the
+runnable task name and a valid directory-listing URL will reproduce this failure for any other harness task that
+lives in a shared, multi-task directory rather than one of its own.
+Action: whatever harvester populates `harness.lm_eval` and `urls` for lm-evaluation-harness-sourced hints should
+read each task's own YAML `task:` field rather than a top-level README's display label, and should confirm a
+`urls` entry actually resolves before writing it. The four `bangla_*` pages in this repository already record the
+correct runnable names and the registry typo directly; this note is so the next harvest pass fixes the hint file
+itself instead of repeating the error for a future id.
+
+## 2026-09-08: `aexams` and `arabic_exams` are the same benchmark under two harness names
+
+Both hints named a batch-4 id each, `aexams` (lm-evaluation-harness) and `arabic_exams` (HELM), with no indication
+in `_census/next_batch.json` that they were related. Reading both task definitions confirmed they are the same
+benchmark. lm-evaluation-harness's `aexams` group loads `Hennara/aexams`, whose own loading script names its
+homepage as `github.com/FreedomIntelligence/AceGPT/.../EXAMS_Arabic`. HELM's `arabic_exams` scenario loads
+`OALL/Arabic_EXAMS`, whose docstring describes it as "the Open Arabic LLM Leaderboard (OALL) version mirror of the
+Arabic subset of EXAMS, which is in turn based on the AceGPT version" — the same AceGPT source. Both cover the
+identical five subjects (Islamic Studies, Biology, Physics, Science, Social). Unzipping `Hennara/aexams`'s
+underlying data file and counting items directly gave 537 test + 25 dev = 562, which matches `OALL/Arabic_EXAMS`'s
+reported 537 test + 25 validation exactly, and matches the original `exams-qa` repository's own per-language table
+(Arabic: 562). Per this batch's instructions, one page was written under `arabic_exams`, with `aexams` recorded in
+its `aliases`; `aexams` was skipped as a separate id rather than getting its own page.
+Action: add `aexams: arabic_exams` to `_census/aliases.yaml` so the fold is picked up automatically for any future
+census pass, the way `arc_c`/`arc_e` already are.

@@ -103,7 +103,9 @@ Length: a benchmark page runs 350 to 900 words in the body; a subset page 120 to
 name matching across registries, papers and lists. Names collide: two unrelated papers can share an acronym, and
 a hint's arXiv id may belong to the wrong one. Open the source and confirm it actually describes the benchmark
 your id names before you cite it. When two projects share a name, say so in Lineage and name the one your page
-documents. Never cite a hint url you did not open.
+documents. Never cite a hint url you did not open. A hint's harness task name is the name in a registry table,
+not necessarily a directory: several harness tasks share one directory, and the task's own `task:` field in its
+YAML is the runnable name. Confirm both from the harness repository before you record them.
 
 ## Recording a number you cannot verify
 

@@ -5,57 +5,57 @@
    "bangla_boolqa",
    "bangla_commonsenseqa",
    "bangla_piqa",
-   "bangla_poenbookqa",
+   "bangla_openbookqa",
    "arabic_leaderboard_complete",
    "arabic_leaderboard_light"
   ],
   "B": [
-   "arc_c",
-   "arc_e",
    "autobencher_capabilities",
    "autobencher_safety",
    "qasper",
    "race",
-   "scicode"
+   "scicode",
+   "squad",
+   "storycloze"
   ],
   "C": [
-   "squad",
-   "storycloze",
    "swe_lancer",
-   "unitxt",
    "wikitext",
    "wmdp",
-   "xcopa"
-  ],
-  "D": [
+   "xcopa",
    "abstention_bench",
    "acp_bench_hard",
-   "advancedif",
+   "advancedif"
+  ],
+  "D": [
    "aexams",
    "agent_bench",
    "agent_threat_bench",
-   "anthropics_evals"
-  ],
-  "E": [
    "arabic_exams",
    "aradice",
-   "arc_prize_public_evaluation",
+   "arc_easy",
+   "arc_prize_public_evaluation"
+  ],
+  "E": [
    "arxivrollbench",
    "assistant_bench",
    "babi_qa",
-   "basque_bench"
-  ],
-  "F": [
+   "basque_bench",
    "bertaqa",
    "beyondaime",
-   "bridging_anaphora_resolution_barqa",
+   "bridging_anaphora_resolution_barqa"
+  ],
+  "F": [
    "buysidefinbench",
    "cardbiomedbench",
    "careqa",
-   "catalan_bench"
+   "catalan_bench",
+   "chem_exam",
+   "chinese_simpleqa",
+   "ci_mcqa"
   ],
   "G": [
-   "chem_exam"
+   "cibench"
   ]
  },
  "hints": {
@@ -75,7 +75,8 @@
     "opencompass": "qasper"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "qasper"
   },
   "race": {
    "name": "race",
@@ -93,7 +94,8 @@
     "opencompass": "race"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "race"
   },
   "scicode": {
    "name": "scicode",
@@ -111,7 +113,8 @@
     "opencompass": "scicode"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "scicode"
   },
   "squad": {
    "name": "squad",
@@ -130,7 +133,8 @@
     "inspect_evals": "squad"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "squad"
   },
   "storycloze": {
    "name": "storycloze",
@@ -148,7 +152,8 @@
     "opencompass": "storycloze"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "storycloze"
   },
   "swe_lancer": {
    "name": "swe_lancer",
@@ -167,25 +172,8 @@
     "inspect_evals": "swe_lancer"
    },
    "category_hint": "",
-   "score": 25.0
-  },
-  "unitxt": {
-   "name": "unitxt",
-   "aliases": [],
-   "sources": [
-    "helm",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/unitxt",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/unitxt_scenario.py"
-   ],
-   "harness": {
-    "lm_eval": "unitxt",
-    "helm": "unitxt"
-   },
-   "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "swe_lancer"
   },
   "wikitext": {
    "name": "wikitext",
@@ -203,7 +191,8 @@
     "opencompass": "wikitext"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "wikitext"
   },
   "wmdp": {
    "name": "wmdp",
@@ -221,7 +210,8 @@
     "inspect_evals": "wmdp"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "wmdp"
   },
   "xcopa": {
    "name": "xcopa",
@@ -241,7 +231,8 @@
     "opencompass": "XCOPA"
    },
    "category_hint": "",
-   "score": 25.0
+   "score": 25.0,
+   "census_slug": "xcopa"
   },
   "abstention_bench": {
    "name": "abstention_bench",
@@ -256,7 +247,8 @@
     "inspect_evals": "abstention_bench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "abstention_bench"
   },
   "acp_bench_hard": {
    "name": "acp_bench_hard",
@@ -271,7 +263,8 @@
     "lm_eval": "acp_bench_hard"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "acp_bench_hard"
   },
   "advancedif": {
    "name": "advancedIF",
@@ -286,7 +279,8 @@
     "opencompass": "advancedIF"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "advancedif"
   },
   "aexams": {
    "name": "aexams",
@@ -301,7 +295,8 @@
     "lm_eval": "aexams"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "aexams"
   },
   "agent_bench": {
    "name": "agent_bench",
@@ -316,7 +311,8 @@
     "inspect_evals": "agent_bench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "agent_bench"
   },
   "agent_threat_bench": {
    "name": "agent_threat_bench",
@@ -331,22 +327,8 @@
     "inspect_evals": "agent_threat_bench"
    },
    "category_hint": "",
-   "score": 18.0
-  },
-  "anthropics_evals": {
-   "name": "anthropics_evals",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/anthropics_evals"
-   ],
-   "harness": {
-    "opencompass": "anthropics_evals"
-   },
-   "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "agent_threat_bench"
   },
   "arabic_exams": {
    "name": "arabic_exams",
@@ -361,7 +343,8 @@
     "helm": "arabic_exams"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arabic_exams"
   },
   "arabic_leaderboard_complete": {
    "name": "arabic_leaderboard_complete",
@@ -376,7 +359,8 @@
     "lm_eval": "arabic_leaderboard_complete"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arabic_leaderboard_complete"
   },
   "arabic_leaderboard_light": {
    "name": "arabic_leaderboard_light",
@@ -391,7 +375,8 @@
     "lm_eval": "arabic_leaderboard_light"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arabic_leaderboard_light"
   },
   "aradice": {
    "name": "AraDICE",
@@ -406,24 +391,10 @@
     "lm_eval": "AraDICE"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "aradice"
   },
-  "arc_c": {
-   "name": "ARC_c",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ARC_c"
-   ],
-   "harness": {
-    "opencompass": "ARC_c"
-   },
-   "category_hint": "",
-   "score": 18.0
-  },
-  "arc_e": {
+  "arc_easy": {
    "name": "ARC_e",
    "aliases": [],
    "sources": [
@@ -436,7 +407,8 @@
     "opencompass": "ARC_e"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arc_e"
   },
   "arc_prize_public_evaluation": {
    "name": "ARC_Prize_Public_Evaluation",
@@ -451,7 +423,8 @@
     "opencompass": "ARC_Prize_Public_Evaluation"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arc_prize_public_evaluation"
   },
   "arxivrollbench": {
    "name": "arxivrollbench",
@@ -466,7 +439,8 @@
     "opencompass": "arxivrollbench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "arxivrollbench"
   },
   "assistant_bench": {
    "name": "assistant_bench",
@@ -481,7 +455,8 @@
     "inspect_evals": "assistant_bench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "assistant_bench"
   },
   "autobencher_capabilities": {
    "name": "autobencher_capabilities",
@@ -496,7 +471,8 @@
     "helm": "autobencher_capabilities"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "autobencher_capabilities"
   },
   "autobencher_safety": {
    "name": "autobencher_safety",
@@ -511,7 +487,8 @@
     "helm": "autobencher_safety"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "autobencher_safety"
   },
   "babi_qa": {
    "name": "babi_qa",
@@ -526,7 +503,8 @@
     "helm": "babi_qa"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "babi_qa"
   },
   "bangla_boolqa": {
    "name": "bangla_boolQA",
@@ -541,7 +519,8 @@
     "lm_eval": "bangla_boolQA"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bangla_boolqa"
   },
   "bangla_commonsenseqa": {
    "name": "bangla_commonsenseQA",
@@ -556,7 +535,8 @@
     "lm_eval": "bangla_commonsenseQA"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bangla_commonsenseqa"
   },
   "bangla_piqa": {
    "name": "bangla_piQA",
@@ -571,9 +551,10 @@
     "lm_eval": "bangla_piQA"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bangla_piqa"
   },
-  "bangla_poenbookqa": {
+  "bangla_openbookqa": {
    "name": "bangla_poenbookQA",
    "aliases": [],
    "sources": [
@@ -586,7 +567,8 @@
     "lm_eval": "bangla_poenbookQA"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bangla_poenbookqa"
   },
   "basque_bench": {
    "name": "basque_bench",
@@ -601,7 +583,8 @@
     "lm_eval": "basque_bench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "basque_bench"
   },
   "bertaqa": {
    "name": "bertaqa",
@@ -616,7 +599,8 @@
     "lm_eval": "bertaqa"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bertaqa"
   },
   "beyondaime": {
    "name": "BeyondAIME",
@@ -631,7 +615,8 @@
     "opencompass": "BeyondAIME"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "beyondaime"
   },
   "bridging_anaphora_resolution_barqa": {
    "name": "bridging_anaphora_resolution_barqa",
@@ -646,7 +631,8 @@
     "bigbench": "bridging_anaphora_resolution_barqa"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "bridging_anaphora_resolution_barqa"
   },
   "buysidefinbench": {
    "name": "BuySideFinBench",
@@ -661,7 +647,8 @@
     "opencompass": "BuySideFinBench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "buysidefinbench"
   },
   "cardbiomedbench": {
    "name": "CARDBiomedBench",
@@ -676,7 +663,8 @@
     "opencompass": "CARDBiomedBench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "cardbiomedbench"
   },
   "careqa": {
    "name": "careqa",
@@ -691,7 +679,8 @@
     "lm_eval": "careqa"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "careqa"
   },
   "catalan_bench": {
    "name": "catalan_bench",
@@ -706,7 +695,8 @@
     "lm_eval": "catalan_bench"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "catalan_bench"
   },
   "chem_exam": {
    "name": "chem_exam",
@@ -721,7 +711,56 @@
     "opencompass": "chem_exam"
    },
    "category_hint": "",
-   "score": 18.0
+   "score": 18.0,
+   "census_slug": "chem_exam"
+  },
+  "chinese_simpleqa": {
+   "name": "chinese_simpleqa",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/chinese_simpleqa"
+   ],
+   "harness": {
+    "opencompass": "chinese_simpleqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "chinese_simpleqa"
+  },
+  "ci_mcqa": {
+   "name": "ci_mcqa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/ci_mcqa_scenario.py"
+   ],
+   "harness": {
+    "helm": "ci_mcqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "ci_mcqa"
+  },
+  "cibench": {
+   "name": "CIBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CIBench"
+   ],
+   "harness": {
+    "opencompass": "CIBench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "cibench"
   }
  }
 }

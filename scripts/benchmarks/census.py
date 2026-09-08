@@ -130,7 +130,12 @@ def src_lm_eval() -> None:
         name = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", cells[0]).strip("`")
         desc = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", cells[1])
         if name and name.lower() not in ("task family", "name"):
-            add(name, "lm_eval", "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/" + name, desc, kind="registry", extra={"priority": 2, "harness": {"lm_eval": name}})
+            # Do NOT build a per-task directory url: many tasks live inside a shared directory
+            # (the Bangla tasks all sit under lm_eval/tasks/bangla/), so a fabricated path 404s.
+            # Point at the registry table instead and let the writer find the real task file.
+            add(name, "lm_eval", "https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/README.md",
+                desc, kind="registry", extra={"priority": 2, "harness": {"lm_eval": name},
+                                              "url_note": "registry table; the task file may live in a shared directory"})
 
 
 # ---------- 3. inspect_evals ----------
