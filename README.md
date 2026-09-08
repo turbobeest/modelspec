@@ -123,7 +123,11 @@ modelspec contribute
 
 ## Contribute
 
-ModelSpec is community-driven. Three ways to contribute research:
+ModelSpec is community-driven. Read [CONTRIBUTING.md](CONTRIBUTING.md) first, and sign off your commits
+with `git commit -s` to agree to the [contributor licence agreement](CLA.md). The rule that matters: every
+fact carries a source and the date it was read, and unknown means an empty field rather than a guess.
+
+Three ways to contribute research:
 
 ### 1. Web UI (easiest)
 
