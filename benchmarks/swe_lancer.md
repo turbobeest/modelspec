@@ -138,35 +138,33 @@ freshness:
 
 SWE-Lancer asks whether a model can do real, paid freelance software-engineering work rather than a
 synthetic proxy for it. Every one of its 1,488 tasks is a real Upwork job posted against Expensify, an
-open-source expense-management product, and every task carries the dollar amount that was actually paid
-out for it historically. IC SWE tasks are individual-contributor engineering work -- from $50 bug fixes
-to $32,000 feature builds -- where the model edits the repository directly. SWE Manager tasks instead
-test a different skill: given several competing implementation proposals for an issue, written by real
-freelancers, the model must pick the one the actual hiring manager chose, which probes technical
-judgment rather than the ability to write code.
+open-source expense-management product, tagged with the dollar amount actually paid for it historically.
+IC SWE tasks are individual-contributor work -- from $50 bug fixes to $32,000 feature builds -- where the
+model edits the repository directly. SWE Manager tasks test a different skill: given several competing
+implementation proposals for an issue, written by real freelancers, the model must pick the one the
+hiring manager actually chose, which probes technical judgment rather than the ability to write code.
 
 ## How it is scored
 
 IC SWE tasks are graded by an end-to-end test suite -- largely Playwright browser tests -- that OpenAI
-says were hand-written and triple-verified by professional software engineers rather than reused from
-the original pull requests; the model cannot see these tests while attempting the task, and a task pays
-out in full only if all of them pass, with no partial credit for a near-miss patch. SWE Manager tasks are
-scored by exact match against the real manager's historical choice among the candidate proposals. OpenAI
-reports both a percent-resolved pass rate per task type and the total dollar value earned; because dollar
-value is not spread evenly across tasks, these two numbers can diverge -- a model that reliably solves
-many cheap tasks but few expensive ones scores well on pass rate yet poorly in dollars, and vice versa.
+says were hand-written and triple-verified by professional engineers rather than reused from the original
+pull requests; the model cannot see these tests while attempting the task, and a task pays out in full
+only if all of them pass, with no partial credit. SWE Manager tasks are scored by exact match against the
+manager's historical choice among the candidate proposals. OpenAI reports both a percent-resolved pass
+rate per task type and the total dollar value earned; because dollar value is not spread evenly across
+tasks, the two can diverge -- a model that solves many cheap tasks but few expensive ones scores well on
+pass rate yet poorly in dollars, and vice versa.
 
 ## Dataset and licence
 
 The full set is 1,488 tasks worth $1,000,000: 764 IC SWE tasks ($414,775) and 724 SWE Manager tasks
 ($585,225), drawn from Expensify's real Upwork job history in 2023-2024. OpenAI publicly released a
 502-task subset, SWE-Lancer Diamond ($500,800: 237 IC SWE tasks worth $236,300, 265 SWE Manager tasks
-worth $264,500), together with a unified Docker evaluation image; the remaining roughly 986 tasks
-(~$499,200) are held out privately as a contamination guard. The code and dataset in
-github.com/openai/frontier-evals are MIT-licensed. A July 2025 update removed the requirement for
-internet access during grading and, in adapting IC SWE Diamond to run fully offline, dropped 39 of its
-original 237 tasks that could not be made to work reliably without network access, leaving 198 usable in
-the current release (see How to run it).
+worth $264,500), with a unified Docker evaluation image; the remaining roughly 986 tasks (~$499,200) are
+held out privately as a contamination guard. The code and dataset in github.com/openai/frontier-evals are
+MIT-licensed. A July 2025 update removed the internet-access requirement during grading and, in adapting
+IC SWE Diamond to run fully offline, dropped 39 of its 237 tasks that could not work reliably without
+network access, leaving 198 usable today (see How to run it).
 
 ## Who publishes it
 
@@ -192,33 +190,29 @@ itself was identified.
 
 At release, OpenAI's own framing was that frontier models "are still unable to solve the majority of
 tasks": the best of the three models it reported, Claude 3.5 Sonnet, earned about $208k of the $500,800
-available on Diamond, with o1 (high) and GPT-4o further behind. That leaves a wide, unsaturated gap to
-the ceiling as of the evidence available for this page; no current cross-model leaderboard was located to
-say where frontier models sit as of 2026. Contamination risk is medium: IC SWE tasks are real, historical,
-publicly resolved issues against a public repository, but two-thirds of the full benchmark is held out
-privately and the grading tests are hidden from the model, both of which limit (without eliminating) how
-much memorising a public fix would help.
+available on Diamond, with o1 (high) and GPT-4o further behind -- a wide, unsaturated gap as of the
+evidence available; no current cross-model leaderboard was located to say where frontier models sit as of
+2026. Contamination risk is medium: IC SWE tasks are real, historical, publicly resolved issues, but
+two-thirds of the full benchmark is held out privately and the grading tests are hidden from the model,
+both of which limit how much memorising a public fix would help.
 
 ## How to run it
 
 inspect_evals implements the benchmark as `swe_lancer`, selecting `ic_swe`, `swe_manager` or `all` tasks
-and running each inside a pre-built, per-issue Docker image pulled from Docker Hub (`swelancer/swelancer_x86_*`,
-tagged `releasev1`); OpenAI's own runner lives in `github.com/openai/frontier-evals/project/swelancer` and
-supports both per-task images and a single "monolith" image (required for SWE Manager tasks). Because the
-July 2025 update disables internet access during grading -- OpenAI states results with internet enabled
-are not considered valid -- and only 198 of the original 237 IC SWE Diamond tasks were successfully
-adapted to run offline, a reported IC SWE Diamond score today may cover a smaller item set than the
-paper's original 237-task figure; check which task count and which repository revision a reported number
-used before comparing it to another.
+and running each inside a pre-built, per-issue Docker image from Docker Hub (`swelancer/swelancer_x86_*`,
+tagged `releasev1`); OpenAI's own runner in `github.com/openai/frontier-evals/project/swelancer` supports
+both per-task images and a single "monolith" image (required for SWE Manager tasks). The July 2025 update
+disables internet access during grading -- OpenAI considers results with internet enabled invalid -- and
+only 198 of the original 237 IC SWE Diamond tasks were adapted to run offline, so a reported IC SWE
+Diamond score today may cover a smaller item set than the paper's original 237-task figure; check the
+task count and repository revision before comparing scores.
 
 ## Reading the numbers
 
-A high dollar total on SWE-Lancer is evidence a model can do freelance-grade software engineering work
-that a real client would pay for and a real engineering manager would judge sound, on a genuine,
-moderately large open-source product -- a step beyond an isolated coding puzzle. Because the metric is
-priced rather than percentage-based, always check whether a reported figure is a dollar total or a pass
-rate, and which slice (full set, Diamond, IC SWE only, SWE Manager only) it was computed on, before
-comparing it to another model's number: a high dollar total can come from solving a few very expensive
-tasks rather than being broadly reliable, which a plain pass rate would show but a dollar figure alone can
-obscure. Like SWE-bench, it says little about codebases, languages or task types outside Expensify's
-JavaScript/PHP web application and its specific freelance-issue style.
+A high dollar total on SWE-Lancer is evidence a model can do freelance-grade engineering work that a real
+client would pay for and a real manager would judge sound -- a step beyond an isolated coding puzzle.
+Because the metric is priced rather than percentage-based, check whether a reported figure is a dollar
+total or a pass rate, and which slice (full set, Diamond, IC SWE only, SWE Manager only) it was computed
+on: a high dollar total can come from solving a few very expensive tasks rather than being broadly
+reliable, which a plain pass rate would show but a dollar figure alone can obscure. Like SWE-bench, it
+says little about codebases or languages outside Expensify's JavaScript/PHP application.

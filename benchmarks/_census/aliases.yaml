@@ -11,6 +11,7 @@
 # rather than an evaluation with its own questions and metric.
 
 aliases:
+  aexams: arabic_exams
   arc_c: arc_challenge
   arc_e: arc_easy
   anthropics_evals: model_written_evals
