@@ -2,734 +2,776 @@
  "queue": "queue_p2.json",
  "slices": {
   "A": [
-   "clue_afqmc",
-   "clue_c3",
-   "clue_cmnli",
-   "clue_cmrc",
-   "clue_drcd",
-   "clue_ocnli"
+   "humaneval_cn",
+   "humaneval_infilling",
+   "humaneval_multi",
+   "humaneval_plus",
+   "humaneval_pro"
   ],
   "B": [
-   "fewclue_bustm",
-   "fewclue_chid",
-   "fewclue_cluewsc",
-   "fewclue_csl",
-   "fewclue_eprstmt",
-   "fewclue_tnews"
+   "glue_cola",
+   "glue_mrpc",
+   "glue_qqp",
+   "infinite_bench_en_mc",
+   "infinite_bench_en_qa",
+   "infinite_bench_en_sum"
   ],
   "C": [
-   "cyberseceval_2",
-   "cyberseceval_3",
-   "cyberseceval_4",
-   "compassbench_20_v1_1",
-   "compassbench_20_v1_1_public",
-   "eq_bench_ca",
-   "eq_bench_es"
+   "ifeval_ca",
+   "ifeval_es",
+   "french_bench",
+   "galician_bench",
+   "gaokaobench",
+   "harm_bench",
+   "harm_bench_gcg_transfer"
   ],
   "D": [
-   "ci_mcqa",
-   "class_eval",
-   "clbench",
-   "climaqa",
-   "clinicbench",
-   "cmphysbench",
-   "compassbench_v1_3"
+   "humanevalx",
+   "hungarian_exam",
+   "ifevalcode",
+   "instrumentaleval",
+   "inverseifeval",
+   "japanese_leaderboard",
+   "jfinqa"
   ],
   "E": [
-   "csatqa",
-   "custom_mcqa",
-   "cybench",
-   "czech_bank_qa",
-   "darija_bench",
-   "disambiguation_qa",
-   "disfl_qa"
+   "jsonschema_bench",
+   "kernelbench",
+   "korbench",
+   "kormedmcqa",
+   "lcbench",
+   "leval",
+   "live_qa"
   ],
   "F": [
-   "elementary_math_qa",
-   "enem_challenge",
-   "eus_exams",
-   "evalita_llm",
-   "evaluating_information_essentiality",
-   "exams_multilingual",
-   "fewclue_ocnli_fc"
+   "livemathbench",
+   "livereasonbench",
+   "livestembench",
+   "lm_syneval",
+   "lsat_qa",
+   "macbench",
+   "madinah_qa"
   ],
   "G": [
-   "fin_qa",
-   "financeiq"
+   "matbench",
+   "mathbench",
+   "mathqa"
   ]
  },
  "hints": {
-  "ci_mcqa": {
-   "name": "ci_mcqa",
+  "french_bench": {
+   "name": "french_bench",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/french_bench"
+   ],
+   "harness": {
+    "lm_eval": "french_bench"
+   },
+   "category_hint": "",
+   "census_slug": "french_bench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "galician_bench": {
+   "name": "galician_bench",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/galician_bench"
+   ],
+   "harness": {
+    "lm_eval": "galician_bench"
+   },
+   "category_hint": "",
+   "census_slug": "galician_bench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "gaokaobench": {
+   "name": "GaokaoBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/GaokaoBench"
+   ],
+   "harness": {
+    "opencompass": "GaokaoBench"
+   },
+   "category_hint": "",
+   "census_slug": "gaokaobench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "glue_cola": {
+   "name": "GLUE_CoLA",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/GLUE_CoLA"
+   ],
+   "harness": {
+    "opencompass": "GLUE_CoLA"
+   },
+   "category_hint": "",
+   "census_slug": "glue_cola",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "glue_mrpc": {
+   "name": "GLUE_MRPC",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/GLUE_MRPC"
+   ],
+   "harness": {
+    "opencompass": "GLUE_MRPC"
+   },
+   "category_hint": "",
+   "census_slug": "glue_mrpc",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "glue_qqp": {
+   "name": "GLUE_QQP",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/GLUE_QQP"
+   ],
+   "harness": {
+    "opencompass": "GLUE_QQP"
+   },
+   "category_hint": "",
+   "census_slug": "glue_qqp",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "harm_bench": {
+   "name": "harm_bench",
    "aliases": [],
    "sources": [
     "helm"
    ],
    "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/ci_mcqa_scenario.py"
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/harm_bench_scenario.py"
    ],
    "harness": {
-    "helm": "ci_mcqa"
+    "helm": "harm_bench"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "ci_mcqa"
+   "census_slug": "harm_bench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "class_eval": {
-   "name": "class_eval",
+  "harm_bench_gcg_transfer": {
+   "name": "harm_bench_gcg_transfer",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/harm_bench_gcg_transfer_scenario.py"
+   ],
+   "harness": {
+    "helm": "harm_bench_gcg_transfer"
+   },
+   "category_hint": "",
+   "census_slug": "harm_bench_gcg_transfer",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humaneval_cn": {
+   "name": "humaneval_cn",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/humaneval_cn"
+   ],
+   "harness": {
+    "opencompass": "humaneval_cn"
+   },
+   "category_hint": "",
+   "census_slug": "humaneval_cn",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humaneval_infilling": {
+   "name": "humaneval_infilling",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/humaneval_infilling"
+   ],
+   "harness": {
+    "lm_eval": "humaneval_infilling"
+   },
+   "category_hint": "",
+   "census_slug": "humaneval_infilling",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humaneval_multi": {
+   "name": "humaneval_multi",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/humaneval_multi"
+   ],
+   "harness": {
+    "opencompass": "humaneval_multi"
+   },
+   "category_hint": "",
+   "census_slug": "humaneval_multi",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humaneval_plus": {
+   "name": "humaneval_plus",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/humaneval_plus"
+   ],
+   "harness": {
+    "opencompass": "humaneval_plus"
+   },
+   "category_hint": "",
+   "census_slug": "humaneval_plus",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humaneval_pro": {
+   "name": "humaneval_pro",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/humaneval_pro"
+   ],
+   "harness": {
+    "opencompass": "humaneval_pro"
+   },
+   "category_hint": "",
+   "census_slug": "humaneval_pro",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "humanevalx": {
+   "name": "humanevalx",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/humanevalx"
+   ],
+   "harness": {
+    "opencompass": "humanevalx"
+   },
+   "category_hint": "",
+   "census_slug": "humanevalx",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "hungarian_exam": {
+   "name": "hungarian_exam",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/hungarian_exam"
+   ],
+   "harness": {
+    "opencompass": "hungarian_exam"
+   },
+   "category_hint": "",
+   "census_slug": "hungarian_exam",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "ifeval_ca": {
+   "name": "ifeval_ca",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/ifeval_ca"
+   ],
+   "harness": {
+    "lm_eval": "ifeval_ca"
+   },
+   "category_hint": "",
+   "census_slug": "ifeval_ca",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "ifeval_es": {
+   "name": "ifeval_es",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/ifeval_es"
+   ],
+   "harness": {
+    "lm_eval": "ifeval_es"
+   },
+   "category_hint": "",
+   "census_slug": "ifeval_es",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "ifevalcode": {
+   "name": "ifevalcode",
    "aliases": [],
    "sources": [
     "inspect_evals"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/class_eval"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/ifevalcode"
    ],
    "harness": {
-    "inspect_evals": "class_eval"
+    "inspect_evals": "ifevalcode"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "class_eval"
+   "census_slug": "ifevalcode",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "clbench": {
-   "name": "CLBench",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLBench"
-   ],
-   "harness": {
-    "opencompass": "CLBench"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clbench"
-  },
-  "climaqa": {
-   "name": "ClimaQA",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ClimaQA"
-   ],
-   "harness": {
-    "opencompass": "ClimaQA"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "climaqa"
-  },
-  "clinicbench": {
-   "name": "ClinicBench",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ClinicBench"
-   ],
-   "harness": {
-    "opencompass": "ClinicBench"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clinicbench"
-  },
-  "clue_afqmc": {
-   "name": "CLUE_afqmc",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_afqmc"
-   ],
-   "harness": {
-    "opencompass": "CLUE_afqmc"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_afqmc"
-  },
-  "clue_c3": {
-   "name": "CLUE_C3",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_C3"
-   ],
-   "harness": {
-    "opencompass": "CLUE_C3"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_c3"
-  },
-  "clue_cmnli": {
-   "name": "CLUE_cmnli",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_cmnli"
-   ],
-   "harness": {
-    "opencompass": "CLUE_cmnli"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_cmnli"
-  },
-  "clue_cmrc": {
-   "name": "CLUE_CMRC",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_CMRC"
-   ],
-   "harness": {
-    "opencompass": "CLUE_CMRC"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_cmrc"
-  },
-  "clue_drcd": {
-   "name": "CLUE_DRCD",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_DRCD"
-   ],
-   "harness": {
-    "opencompass": "CLUE_DRCD"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_drcd"
-  },
-  "clue_ocnli": {
-   "name": "CLUE_ocnli",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CLUE_ocnli"
-   ],
-   "harness": {
-    "opencompass": "CLUE_ocnli"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "clue_ocnli"
-  },
-  "cmphysbench": {
-   "name": "CMPhysBench",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CMPhysBench"
-   ],
-   "harness": {
-    "opencompass": "CMPhysBench"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "cmphysbench"
-  },
-  "compassbench_20_v1_1": {
-   "name": "compassbench_20_v1_1",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/compassbench_20_v1_1"
-   ],
-   "harness": {
-    "opencompass": "compassbench_20_v1_1"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "compassbench_20_v1_1"
-  },
-  "compassbench_20_v1_1_public": {
-   "name": "compassbench_20_v1_1_public",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/compassbench_20_v1_1_public"
-   ],
-   "harness": {
-    "opencompass": "compassbench_20_v1_1_public"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "compassbench_20_v1_1_public"
-  },
-  "compassbench_v1_3": {
-   "name": "compassbench_v1_3",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/compassbench_v1_3"
-   ],
-   "harness": {
-    "opencompass": "compassbench_v1_3"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "compassbench_v1_3"
-  },
-  "csatqa": {
-   "name": "csatqa",
-   "aliases": [],
-   "sources": [
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/csatqa"
-   ],
-   "harness": {
-    "lm_eval": "csatqa"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "csatqa"
-  },
-  "custom_mcqa": {
-   "name": "custom_mcqa",
+  "infinite_bench_en_mc": {
+   "name": "infinite_bench_en_mc",
    "aliases": [],
    "sources": [
     "helm"
    ],
    "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/custom_mcqa_scenario.py"
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/infinite_bench_en_mc_scenario.py"
    ],
    "harness": {
-    "helm": "custom_mcqa"
+    "helm": "infinite_bench_en_mc"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "custom_mcqa"
+   "census_slug": "infinite_bench_en_mc",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "cybench": {
-   "name": "cybench",
+  "infinite_bench_en_qa": {
+   "name": "infinite_bench_en_qa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/infinite_bench_en_qa_scenario.py"
+   ],
+   "harness": {
+    "helm": "infinite_bench_en_qa"
+   },
+   "category_hint": "",
+   "census_slug": "infinite_bench_en_qa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "infinite_bench_en_sum": {
+   "name": "infinite_bench_en_sum",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/infinite_bench_en_sum_scenario.py"
+   ],
+   "harness": {
+    "helm": "infinite_bench_en_sum"
+   },
+   "category_hint": "",
+   "census_slug": "infinite_bench_en_sum",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "instrumentaleval": {
+   "name": "instrumentaleval",
    "aliases": [],
    "sources": [
     "inspect_evals"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/cybench"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/instrumentaleval"
    ],
    "harness": {
-    "inspect_evals": "cybench"
+    "inspect_evals": "instrumentaleval"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "cybench"
+   "census_slug": "instrumentaleval",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "cyberseceval_2": {
-   "name": "cyberseceval_2",
+  "inverseifeval": {
+   "name": "InverseIFEval",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/InverseIFEval"
+   ],
+   "harness": {
+    "opencompass": "InverseIFEval"
+   },
+   "category_hint": "",
+   "census_slug": "inverseifeval",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "japanese_leaderboard": {
+   "name": "japanese_leaderboard",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/japanese_leaderboard"
+   ],
+   "harness": {
+    "lm_eval": "japanese_leaderboard"
+   },
+   "category_hint": "",
+   "census_slug": "japanese_leaderboard",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "jfinqa": {
+   "name": "jfinqa",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/jfinqa"
+   ],
+   "harness": {
+    "lm_eval": "jfinqa"
+   },
+   "category_hint": "",
+   "census_slug": "jfinqa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "jsonschema_bench": {
+   "name": "jsonschema_bench",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/jsonschema_bench"
+   ],
+   "harness": {
+    "lm_eval": "jsonschema_bench"
+   },
+   "category_hint": "",
+   "census_slug": "jsonschema_bench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "kernelbench": {
+   "name": "kernelbench",
    "aliases": [],
    "sources": [
     "inspect_evals"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/cyberseceval_2"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/kernelbench"
    ],
    "harness": {
-    "inspect_evals": "cyberseceval_2"
+    "inspect_evals": "kernelbench"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "cyberseceval_2"
+   "census_slug": "kernelbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "cyberseceval_3": {
-   "name": "cyberseceval_3",
+  "korbench": {
+   "name": "korbench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/korbench"
+   ],
+   "harness": {
+    "opencompass": "korbench"
+   },
+   "category_hint": "",
+   "census_slug": "korbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "kormedmcqa": {
+   "name": "kormedmcqa",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/kormedmcqa"
+   ],
+   "harness": {
+    "lm_eval": "kormedmcqa"
+   },
+   "category_hint": "",
+   "census_slug": "kormedmcqa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "lcbench": {
+   "name": "LCBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/LCBench"
+   ],
+   "harness": {
+    "opencompass": "LCBench"
+   },
+   "category_hint": "",
+   "census_slug": "lcbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "leval": {
+   "name": "leval",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/leval"
+   ],
+   "harness": {
+    "opencompass": "leval"
+   },
+   "category_hint": "",
+   "census_slug": "leval",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "live_qa": {
+   "name": "live_qa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/live_qa_scenario.py"
+   ],
+   "harness": {
+    "helm": "live_qa"
+   },
+   "category_hint": "",
+   "census_slug": "live_qa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "livemathbench": {
+   "name": "livemathbench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livemathbench"
+   ],
+   "harness": {
+    "opencompass": "livemathbench"
+   },
+   "category_hint": "",
+   "census_slug": "livemathbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "livereasonbench": {
+   "name": "livereasonbench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livereasonbench"
+   ],
+   "harness": {
+    "opencompass": "livereasonbench"
+   },
+   "category_hint": "",
+   "census_slug": "livereasonbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "livestembench": {
+   "name": "livestembench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livestembench"
+   ],
+   "harness": {
+    "opencompass": "livestembench"
+   },
+   "category_hint": "",
+   "census_slug": "livestembench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "lm_syneval": {
+   "name": "lm_syneval",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/lm_syneval"
+   ],
+   "harness": {
+    "lm_eval": "lm_syneval"
+   },
+   "category_hint": "",
+   "census_slug": "lm_syneval",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "lsat_qa": {
+   "name": "lsat_qa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/lsat_qa_scenario.py"
+   ],
+   "harness": {
+    "helm": "lsat_qa"
+   },
+   "category_hint": "",
+   "census_slug": "lsat_qa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "macbench": {
+   "name": "macbench",
    "aliases": [],
    "sources": [
     "inspect_evals"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/cyberseceval_3"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/macbench"
    ],
    "harness": {
-    "inspect_evals": "cyberseceval_3"
+    "inspect_evals": "macbench"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "cyberseceval_3"
+   "census_slug": "macbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "cyberseceval_4": {
-   "name": "cyberseceval_4",
-   "aliases": [],
-   "sources": [
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/cyberseceval_4"
-   ],
-   "harness": {
-    "inspect_evals": "cyberseceval_4"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "cyberseceval_4"
-  },
-  "czech_bank_qa": {
-   "name": "czech_bank_qa",
+  "madinah_qa": {
+   "name": "madinah_qa",
    "aliases": [],
    "sources": [
     "helm"
    ],
    "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/czech_bank_qa_scenario.py"
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/madinah_qa_scenario.py"
    ],
    "harness": {
-    "helm": "czech_bank_qa"
+    "helm": "madinah_qa"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "czech_bank_qa"
+   "census_slug": "madinah_qa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   },
-  "darija_bench": {
-   "name": "darija_bench",
+  "matbench": {
+   "name": "matbench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/matbench"
+   ],
+   "harness": {
+    "opencompass": "matbench"
+   },
+   "category_hint": "",
+   "census_slug": "matbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "mathbench": {
+   "name": "MathBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/MathBench"
+   ],
+   "harness": {
+    "opencompass": "MathBench"
+   },
+   "category_hint": "",
+   "census_slug": "mathbench",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+  },
+  "mathqa": {
+   "name": "mathqa",
    "aliases": [],
    "sources": [
     "lm_eval"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/darija_bench"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/mathqa"
    ],
    "harness": {
-    "lm_eval": "darija_bench"
+    "lm_eval": "mathqa"
    },
    "category_hint": "",
-   "score": 18.0,
-   "census_slug": "darija_bench"
-  },
-  "disambiguation_qa": {
-   "name": "disambiguation_qa",
-   "aliases": [],
-   "sources": [
-    "bigbench"
-   ],
-   "urls": [
-    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/disambiguation_qa"
-   ],
-   "harness": {
-    "bigbench": "disambiguation_qa"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "disambiguation_qa"
-  },
-  "disfl_qa": {
-   "name": "disfl_qa",
-   "aliases": [],
-   "sources": [
-    "bigbench"
-   ],
-   "urls": [
-    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/disfl_qa"
-   ],
-   "harness": {
-    "bigbench": "disfl_qa"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "disfl_qa"
-  },
-  "elementary_math_qa": {
-   "name": "elementary_math_qa",
-   "aliases": [],
-   "sources": [
-    "bigbench"
-   ],
-   "urls": [
-    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/elementary_math_qa"
-   ],
-   "harness": {
-    "bigbench": "elementary_math_qa"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "elementary_math_qa"
-  },
-  "enem_challenge": {
-   "name": "enem_challenge",
-   "aliases": [],
-   "sources": [
-    "helm"
-   ],
-   "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/enem_challenge_scenario.py"
-   ],
-   "harness": {
-    "helm": "enem_challenge"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "enem_challenge"
-  },
-  "eq_bench_ca": {
-   "name": "eq-bench_ca",
-   "aliases": [],
-   "sources": [
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/eq-bench_ca"
-   ],
-   "harness": {
-    "lm_eval": "eq-bench_ca"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "eq_bench_ca"
-  },
-  "eq_bench_es": {
-   "name": "eq-bench_es",
-   "aliases": [],
-   "sources": [
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/eq-bench_es"
-   ],
-   "harness": {
-    "lm_eval": "eq-bench_es"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "eq_bench_es"
-  },
-  "eus_exams": {
-   "name": "eus_exams",
-   "aliases": [],
-   "sources": [
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/eus_exams"
-   ],
-   "harness": {
-    "lm_eval": "eus_exams"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "eus_exams"
-  },
-  "evalita_llm": {
-   "name": "evalita_LLM",
-   "aliases": [],
-   "sources": [
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/evalita_LLM"
-   ],
-   "harness": {
-    "lm_eval": "evalita_LLM"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "evalita_llm"
-  },
-  "evaluating_information_essentiality": {
-   "name": "evaluating_information_essentiality",
-   "aliases": [],
-   "sources": [
-    "bigbench"
-   ],
-   "urls": [
-    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/evaluating_information_essentiality"
-   ],
-   "harness": {
-    "bigbench": "evaluating_information_essentiality"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "evaluating_information_essentiality"
-  },
-  "exams_multilingual": {
-   "name": "exams_multilingual",
-   "aliases": [],
-   "sources": [
-    "helm"
-   ],
-   "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/exams_multilingual_scenario.py"
-   ],
-   "harness": {
-    "helm": "exams_multilingual"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "exams_multilingual"
-  },
-  "fewclue_bustm": {
-   "name": "FewCLUE_bustm",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_bustm"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_bustm"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_bustm"
-  },
-  "fewclue_chid": {
-   "name": "FewCLUE_chid",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_chid"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_chid"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_chid"
-  },
-  "fewclue_cluewsc": {
-   "name": "FewCLUE_cluewsc",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_cluewsc"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_cluewsc"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_cluewsc"
-  },
-  "fewclue_csl": {
-   "name": "FewCLUE_csl",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_csl"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_csl"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_csl"
-  },
-  "fewclue_eprstmt": {
-   "name": "FewCLUE_eprstmt",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_eprstmt"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_eprstmt"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_eprstmt"
-  },
-  "fewclue_ocnli_fc": {
-   "name": "FewCLUE_ocnli_fc",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_ocnli_fc"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_ocnli_fc"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_ocnli_fc"
-  },
-  "fewclue_tnews": {
-   "name": "FewCLUE_tnews",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FewCLUE_tnews"
-   ],
-   "harness": {
-    "opencompass": "FewCLUE_tnews"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fewclue_tnews"
-  },
-  "fin_qa": {
-   "name": "fin_qa",
-   "aliases": [],
-   "sources": [
-    "helm"
-   ],
-   "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/fin_qa_scenario.py"
-   ],
-   "harness": {
-    "helm": "fin_qa"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "fin_qa"
-  },
-  "financeiq": {
-   "name": "FinanceIQ",
-   "aliases": [],
-   "sources": [
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/FinanceIQ"
-   ],
-   "harness": {
-    "opencompass": "FinanceIQ"
-   },
-   "category_hint": "",
-   "score": 18.0,
-   "census_slug": "financeiq"
+   "census_slug": "mathqa",
+   "census_rank_score": 18.0,
+   "_note": "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
   }
  }
 }
