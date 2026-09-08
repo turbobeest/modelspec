@@ -35,7 +35,7 @@ dataset:
     - text
     - image
   splits: "dev (150) / validation (900) / test (10,500)"
-  public_test_set: null
+  public_test_set: true
 publisher:
   org: ""
   authors:
@@ -83,8 +83,8 @@ saturation:
   as_of: ""
   note: "At launch (November 2023) the strongest models scored well below the human expert ceiling (GPT-4V 56%, Gemini Ultra 59%, versus 88.6% best-expert), so the original test was not saturated. A harder successor, MMMU-Pro, was created specifically to filter out questions answerable without genuinely using the image and to raise the ceiling again, which is itself evidence that the original MMMU was starting to be gamed by text-only shortcuts on some questions; no current top score for base MMMU was confirmed from a source opened during this research."
 contamination:
-  risk: unknown
-  note: "Whether the 10,500-question test split ships with public answers, or is held out and scored through the EvalAI submission platform mentioned on the benchmark site, was not confirmed from a source opened during this research."
+  risk: high
+  note: "The maintainers released the test-set answers on 2026-02-12, announced on the benchmark's own site, and struck through the EvalAI submission server that previously held them back. Every score dated after that was produced against a set whose answers are public."
 harness:
   lm_eval: ""
   inspect_evals: ""
@@ -164,9 +164,16 @@ At release, leading models were well short of the human expert ceiling: GPT-4V s
 Ultra 59%, against an 88.6% best-expert baseline, so the benchmark opened with clear headroom. That
 MMMU-Pro exists at all, built specifically to close text-only shortcuts and re-widen the gap between
 models, is itself a sign that base MMMU was starting to be gameable on at least some questions by the
-time MMMU-Pro was built; this page could not confirm a current top score for base MMMU from a source
-opened during research. Whether the test set is at meaningful risk of leaking into training data was not
-established either, since public accessibility of the test answers was not confirmed.
+time MMMU-Pro was built.
+
+The leaderboard has since moved well past that ceiling: its top entry stands at 86.9 as of 1 July 2026,
+above the 85.4 human-expert approximation, and nearly every entry after 2024 is marked self-reported
+rather than independently verified. Contamination risk is now high for a specific, dated reason. On
+12 February 2026 the maintainers released the answers for the test set and struck through the EvalAI
+submission server that had previously held them back, so any score dated after that was produced
+against a set whose answers are public. Treat pre-2026 and post-February-2026 numbers as different
+measurements, and prefer MMMU-Pro when the question is whether a model can still be separated from
+its peers.
 
 ## How to run it
 

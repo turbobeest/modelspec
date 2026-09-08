@@ -57,9 +57,34 @@ groups in the same directories. Whether this task existed but was missed, or was
 directly, rather than saying no such task was confirmed. `benchmarks/math.md`'s own "How to run it" section
 documents this finding correctly for the family page.
 
+## 2026-09-08: `benchmarks/mmmu.md` says test-set answer availability is unconfirmed; the publisher has since released them
+
+Found while researching `mmmu_pro` (not modified, per this batch's instructions not to touch a page
+outside the assigned id list). `mmmu.md`'s front matter currently carries `contamination.risk: unknown`
+and `dataset.public_test_set: null`, with prose stating "Whether the 10,500-question test split ships
+with public answers, or is held out and scored through the EvalAI submission platform ... was not
+confirmed from a source opened during this research." The official MMMU benchmark homepage
+(https://mmmu-benchmark.github.io/, fetched 2026-09-08 for this batch) carries a news item dated
+2026-02-12: "We have released the answers for the MMMU test set! You can now evaluate your models on
+the test set locally!" -- meaning the test-set answers that were unconfirmed as of `mmmu.md`'s
+2026-09-07 research date have since been made public by the publisher, roughly one week after that
+page's freshness date. This would raise `contamination.risk` from `unknown` toward at least `medium`
+(the answers are now public, though only since February 2026, so exposure window is shorter than an
+old benchmark's) and would let `dataset.public_test_set` be set to `true`. Action: whoever next
+reviews or refreshes `mmmu.md` should update `contamination`, `dataset.public_test_set`, and the
+"Dataset and licence" / "Saturation and contamination" prose to reflect the February 2026 answer
+release, citing the homepage's news section directly.
+
 ## 2026-09-08: MATH-500 harness claim (RESOLVED)
 
 A batch-2 writer found that `benchmarks/math_500.md` claimed no lm-evaluation-harness task existed for the
 500-item split. Verified against the harness's own task directory: `hendrycks_math/hendrycks_math500.yaml` and
 `minerva_math/minerva_math500.yaml` both exist and load `HuggingFaceH4/MATH-500`. The page and its `harness.lm_eval`
 field have been corrected. No further action.
+
+### Resolved 2026-09-08: the MMMU staleness finding above
+
+Verified against mmmu-benchmark.github.io directly: the site's own banner reads "[2026-02-12] We have released the
+answers for the MMMU test set!" and the earlier EvalAI submission-server line is struck through. `benchmarks/mmmu.md`
+now records contamination risk as high with that date, sets `dataset.public_test_set: true`, and carries the current
+leaderboard position (86.9 as of 2026-07-01, above the 85.4 human-expert approximation, mostly self-reported).
