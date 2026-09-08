@@ -37,6 +37,7 @@ rename:
   bangla_poenbookqa: bangla_openbookqa
 
 not_a_benchmark:
+  - custom_mcqa     # HELM template: the user supplies their own JSONL, so two scores are never comparable
   - unitxt          # IBM's evaluation framework, not an evaluation
   - lm_eval         # a harness
   - inspect_evals   # a harness
