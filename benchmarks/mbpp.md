@@ -222,15 +222,15 @@ problems with different tests.
 The original release contains 974 crowd-sourced problems, each with a task description, a
 reference solution and 3 unit tests, split by the authors into task IDs 1-10 (few-shot prompt
 pool), 11-510 (500-problem test split), 511-600 (90-problem validation split) and 601-974
-(374-problem training split) -- confirmed against the current Hugging Face mirror's "full" config,
-which matches those counts exactly. The authors separately hand-inspected, edited and pruned a
-subset for clarity, describing it in the paper as "426 hand-verified questions"; the mirror's
-"sanitized" config instead totals 427, a small discrepancy this page reports rather than resolves.
-EvalPlus later built MBPP+ on top of the sanitized subset by dropping further ill-formed problems
-(399 at its January 2024 release, reduced to 378 after an April 2024 fix) and adding roughly 35x
-more automatically generated test cases per problem, released separately as evalplus/mbppplus. The
-underlying dataset carries a CC BY 4.0 licence; EvalPlus's MBPP+ repackaging is separately licensed
-Apache-2.0. All text is English; the only programming language covered is Python.
+(374-problem training split) -- confirmed against the current Hugging Face mirror's "full" config.
+The authors separately hand-inspected, edited and pruned a subset for clarity, describing it in the
+paper as "426 hand-verified questions"; the mirror's "sanitized" config instead totals 427, a small
+discrepancy this page reports rather than resolves. EvalPlus later built MBPP+ on top of the
+sanitized subset by dropping further ill-formed problems (399 at its January 2024 release, reduced
+to 378 after an April 2024 fix) and adding roughly 35x more automatically generated tests per
+problem, released separately as evalplus/mbppplus. The underlying dataset carries a CC BY 4.0
+licence; MBPP+'s repackaging is separately licensed Apache-2.0. All text is English; the only
+programming language covered is Python.
 
 ## Who publishes it
 
@@ -238,9 +238,9 @@ MBPP was introduced by Jacob Austin, Augustus Odena, Maxwell Nye, Maarten Bosma,
 Michalewski, David Dohan, Ellen Jiang, Carrie Cai, Michael Terry, Quoc Le and Charles Sutton, all
 at Google Research, in "Program Synthesis with Large Language Models," posted to arXiv in August
 2021 alongside the paper's other benchmark, MathQA-Python. Google Research maintains the reference
-dataset and split definitions on GitHub. Since 2024 it has been most visibly extended and
-re-reported by EvalPlus (evalplus.github.io), an independent project that also produced HumanEval+
-and maintains a community leaderboard covering both the original- and plus-style scores.
+dataset on GitHub. Since 2024 it has been most visibly extended and re-reported by EvalPlus
+(evalplus.github.io), an independent project that also produced HumanEval+ and maintains a
+community leaderboard covering both original- and plus-style scores.
 
 ## Lineage
 
@@ -252,21 +252,19 @@ translates both HumanEval's and MBPP's problems into 18+ other programming langu
 underlies part of that family too. The LiveCodeBench paper (arXiv 2403.07974) names MBPP directly,
 alongside HumanEval, as an example of an existing benchmark "no longer sufficient" for evaluating
 current models, motivating LiveCodeBench's (live_code_bench) contamination-resistant, continuously
-refreshed problem collection -- a response to MBPP's limitations rather than a formal replacement,
-since MBPP is still widely reported today.
+refreshed problem collection -- a response to MBPP's limitations rather than a formal replacement.
 
 ## Saturation and contamination
 
 On the EvalPlus leaderboard's underlying results data (fetched 2026-09-08), the top model on the
 lightly-tested "mbpp" column, OpenAI's o1-preview (September 2024), scored 95.5% pass@1 -- near the
-ceiling -- while the same model scored 80.2% on the stricter "mbpp+" column, a 15-point gap that
-shows how much of that apparent saturation comes from a weak original test suite rather than
-verified correctness. That leaderboard's newest entries date to around September-November 2024, so
-neither figure reflects current frontier models. Contamination risk is high: both the full and
-sanitized problem sets, with reference solutions, have been public since August 2021 and are widely
-re-hosted, including inside instruction-tuning corpora that bundle text-to-code pairs; MBPP+ reuses
-the same problem text and so carries the same exposure. The LiveCodeBench paper cites this kind of
-static, fully public problem set as a specific reason its own benchmark exists.
+ceiling -- while the same model scored 80.2% on the stricter "mbpp+" column, a 15-point gap showing
+how much of that apparent saturation comes from a weak original test suite rather than verified
+correctness. That leaderboard's newest entries date to around September-November 2024, so neither
+figure reflects current frontier models. Contamination risk is high: both problem sets, with
+reference solutions, have been public since August 2021 and are widely re-hosted, including inside
+instruction-tuning corpora that bundle text-to-code pairs; MBPP+ reuses the same problem text and so
+carries the same exposure.
 
 ## How to run it
 
@@ -283,12 +281,11 @@ dataset config.
 ## Reading the numbers
 
 A high MBPP pass@1 shows a model can turn an everyday, precisely stated task description into a
-short working Python function -- useful signal for basic coding fluency, particularly on common
-idioms a working programmer would recognize, but not evidence of the multi-file, tool-using or
-debugging skills real software engineering requires. Because the field has at least three
-differently sized versions of "MBPP" in circulation, a single reported percentage is close to
+short working Python function -- useful signal for basic coding fluency, but not evidence of the
+multi-file, tool-using or debugging skills real software engineering requires. Because at least
+three differently sized versions of "MBPP" circulate, a single reported percentage is close to
 meaningless without knowing which dataset and harness produced it; the gap between plain "mbpp" and
-"mbpp+" scores for the same model is itself informative; a large gap suggests the model is passing
-on weak tests rather than writing robust code. Given the dataset's age and public solutions, treat
-a high score as necessary but not sufficient, and check a contamination-resistant benchmark such as
-LiveCodeBench alongside it.
+"mbpp+" scores for the same model is itself informative, since a large gap suggests the model is
+passing weak tests rather than writing robust code. Given the dataset's age and public solutions,
+treat a high score as necessary but not sufficient, and check a contamination-resistant benchmark
+such as LiveCodeBench alongside it.

@@ -150,7 +150,7 @@ freshness:
 
 ## What it measures
 
-CVE-Bench measures whether an autonomous LLM agent can exploit real, critical-severity web application vulnerabilities inside a live sandbox, rather than whether a model can answer questions about security. Each of its 40 tasks corresponds to one real CVE from the National Vulnerability Database, hosted as a running, vulnerable web application in Docker containers alongside a reference exploit confirming the vulnerability is genuinely reachable. The agent must plan, issue tool calls, and observe results across multiple steps to achieve one of eight standardized attack goals -- why this page categorizes CVE-Bench as agentic rather than domain: scoring depends on live, multi-step interaction with a real system, not a static answer.
+CVE-Bench measures whether an autonomous LLM agent can exploit real, critical-severity web application vulnerabilities inside a live sandbox, rather than whether a model can answer questions about security. Each of its 40 tasks corresponds to one real CVE from the National Vulnerability Database, hosted as a running, vulnerable web application in Docker containers alongside a reference exploit confirming the vulnerability is genuinely reachable. The agent must plan, issue tool calls, and observe results across multiple steps to achieve one of eight standardized attack goals, which is why this page categorizes CVE-Bench as agentic rather than domain: scoring depends on live, multi-step interaction with a real system, not a static answer.
 
 CVE-Bench also simulates two points in a vulnerability's disclosure lifecycle. Under the zero-day setting, the agent gets only a task description and must discover the vulnerability itself; under the one-day setting, it additionally gets a high-level description of the known vulnerability, closer to how a real attacker would work once a CVE is public.
 
@@ -160,7 +160,7 @@ Success is measured against eight standardized attack goals, each independently 
 
 ## Dataset and licence
 
-The 40 CVEs come from the National Vulnerability Database: web-application vulnerabilities only, in free and open-source software, published in a narrow six-week window from 1 May to 14 June 2024, excluding platform-dependent and non-reproducible CVEs. Every one carries a CVSS v3.1 base severity of at least 9.0 ("critical"), with 21 of the 40 rated 9.6-9.8. Application types skew toward content management systems such as WordPress (12 CVEs) and AI or machine-learning tools such as LoLLMs (7), with the rest spread across business management, monitoring, infrastructure, libraries, e-commerce and other categories. Data and code are released on GitHub under the Apache 2.0 licence.
+The 40 CVEs come from the National Vulnerability Database: web-application vulnerabilities only, in free and open-source software, published in a six-week window from 1 May to 14 June 2024, excluding platform-dependent and non-reproducible CVEs. Every one carries a CVSS v3.1 base severity of at least 9.0 ("critical"), with 21 of the 40 rated 9.6-9.8. Application types skew toward content management systems such as WordPress (12 CVEs) and AI or machine-learning tools such as LoLLMs (7), with the rest spread across business management, monitoring, infrastructure, libraries and e-commerce. Data and code are released on GitHub under the Apache 2.0 licence.
 
 ## Who publishes it
 
@@ -176,7 +176,7 @@ CVE-Bench is far from saturated: the headline numbers, up to 13% success under z
 
 ## How to run it
 
-The reference implementation runs each CVE as a set of Docker containers -- typically the web application, its database, and auxiliary services -- alongside a reference exploit confirming reproducibility. inspect_evals packages CVE-Bench as an isolated task with its own dependencies, supporting Docker and Kubernetes sandbox backends; Kubernetes currently covers only a subset of the 40 CVEs. Standing up live, exploitable infrastructure rather than calling an API makes CVE-Bench far more demanding to reproduce than a typical text benchmark, which is itself reason to expect fewer independent replications of any published score.
+The reference implementation runs each CVE as a set of Docker containers -- typically the web application, its database, and auxiliary services -- alongside a reference exploit confirming reproducibility. inspect_evals packages CVE-Bench as an isolated task with its own dependencies, supporting Docker and Kubernetes sandbox backends; Kubernetes currently covers only a subset of the 40 CVEs. Standing up live, exploitable infrastructure rather than calling an API makes CVE-Bench far more demanding to reproduce than a typical text benchmark, which is itself a reason to expect fewer independent replications of any published score.
 
 ## Reading the numbers
 

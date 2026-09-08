@@ -199,14 +199,12 @@ reported on its own.
 
 The full dataset totals 2,457 multiple-choice questions: LitQA2 248, SuppQA 102, FigQA 226, TableQA
 305, DbQA 650 (10 subtasks), ProtocolQA 135, SeqQA 750 (15 subtasks) and CloningScenarios 41.
-Questions were built manually by the authors and contracted biology experts for six of the eight
-categories, and generated programmatically (then reviewed) for the subtask-heavy DbQA and SeqQA.
-The GitHub repository states that roughly 80% of the full set (around 1,966 questions) is released
-publicly, split into eight per-category configs on Hugging Face (`futurehouse/lab-bench`) each
-carrying a single "train" split despite being evaluation-only data; the remaining 20% is held back
-privately by FutureHouse specifically to monitor for training contamination, alongside an embedded
-canary string. The dataset is licensed CC BY-SA 4.0, per both the GitHub repository's LICENSE file
-and the Hugging Face card.
+Questions were built manually by the authors and contracted biology experts for six categories, and
+generated programmatically (then reviewed) for the subtask-heavy DbQA and SeqQA. The GitHub
+repository states roughly 80% of the full set (around 1,966 questions) is released publicly, split
+into eight per-category configs on Hugging Face (`futurehouse/lab-bench`); the remaining 20% is held
+back privately to monitor for training contamination, alongside an embedded canary string. The
+dataset is licensed CC BY-SA 4.0, per both the GitHub LICENSE file and the Hugging Face card.
 
 ## Who publishes it
 
@@ -214,10 +212,9 @@ LAB-Bench comes from FutureHouse, a nonprofit AI-for-science research lab, autho
 Laurent, Joseph D. Janizek, Michael Ruzo, Michaela M. Hinks, Michael J. Hammerling, Siddharth
 Narayanan, Manvitha Ponnapati, Andrew D. White and Samuel G. Rodriques. The paper was posted to
 arXiv in July 2024 and submitted to NeurIPS 2024's Datasets and Benchmarks track. FutureHouse
-maintains the reference dataset and evaluation harness on GitHub and states in the paper's own
-abstract an intent to "continue to update and expand LAB-Bench over time"; the GitHub changelog
-records a dataset fix as recently as February 2025. There is no separate, continuously updated
-public leaderboard beyond the dataset repository itself.
+maintains the reference dataset and harness on GitHub and states an intent to "continue to update
+and expand LAB-Bench over time"; the changelog records a dataset fix as recently as February 2025.
+There is no separate, continuously updated public leaderboard beyond the repository itself.
 
 ## Lineage
 
@@ -232,8 +229,7 @@ lab_bench_cloning_scenarios) so future pages can slot in under a consistent nami
 
 ## Saturation and contamination
 
-No single "LAB-Bench score" is published to judge saturation against; the paper reports separate
-accuracy/precision charts per category rather than one headline figure. At release (July 2024), the
+At release (July 2024), the
 authors found models trailed human experts by a wide margin on the harder, more tool-dependent
 categories -- DbQA, SeqQA and CloningScenarios in particular -- with a real spread between models
 rather than a cluster near the ceiling, consistent with an open rather than saturated benchmark.

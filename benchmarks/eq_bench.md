@@ -203,10 +203,9 @@ train/test split -- the full set is used for evaluation -- and no held-out or pr
 EQ-Bench was created by Samuel J. Paech, an independent researcher with no institutional affiliation
 stated in the paper, and posted to arXiv in December 2023. Paech has continued to maintain the
 reference pipeline on GitHub and a public leaderboard at eqbench.com, and has substantially expanded
-the project since: the same site now also hosts unrelated sibling benchmarks from the same author,
-including a creative-writing quality benchmark, a "Judgemark" benchmark for LLM-judge calibration,
-and others (Spiral-Bench, Slop Score, BuzzBench, DiploBench), none of which measure the same task as
-EQ-Bench itself.
+the project since: the same site now also hosts several unrelated sibling benchmarks from the same
+author (a creative-writing quality benchmark, a "Judgemark" LLM-judge calibration benchmark, and
+others), none of which measure the same task as EQ-Bench itself.
 
 ## Lineage
 

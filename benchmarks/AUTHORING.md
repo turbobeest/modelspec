@@ -97,6 +97,14 @@ Length: a benchmark page runs 350 to 900 words in the body; a subset page 120 to
   from (`benchmarks.benchmark_source`, `benchmarks.benchmark_notes`); `grep -rl "<id>:" models/`
   finds them. Use that to learn which leaderboards carry the benchmark, not as a citation.
 
+## The census hints are leads, not citations
+
+`benchmarks/_census/next_batch.json` and `queue_p1.json` carry urls, arXiv ids and harness names gathered by
+name matching across registries, papers and lists. Names collide: two unrelated papers can share an acronym, and
+a hint's arXiv id may belong to the wrong one. Open the source and confirm it actually describes the benchmark
+your id names before you cite it. When two projects share a name, say so in Lineage and name the one your page
+documents. Never cite a hint url you did not open.
+
 ## Recording a number you cannot verify
 
 If a leaderboard will not render, a licence is stated two different ways, or two sources disagree, that is a

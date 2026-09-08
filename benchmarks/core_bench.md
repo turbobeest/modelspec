@@ -207,11 +207,11 @@ actively maintained."
 ## Lineage
 
 CORE-Bench has no named predecessor or formal successor benchmark. Its most direct continuation is
-organizational rather than a new benchmark id: the same Princeton group folded CORE-Bench into the
-Holistic Agent Leaderboard, a shared harness and leaderboard covering multiple agentic benchmarks,
-superseding the original standalone evaluation harness (though not the underlying task or dataset,
-which are unchanged). This repository does not have separate pages for the three difficulty levels,
-which are run as parameters of one task rather than as separately identified benchmarks.
+organizational rather than a new id: the same Princeton group folded CORE-Bench into the Holistic
+Agent Leaderboard, a shared harness covering multiple agentic benchmarks, superseding the original
+standalone evaluation harness though not the underlying task or dataset. This repository does not
+have separate pages for the three difficulty levels, run as parameters of one task rather than as
+separate benchmarks.
 
 ## Saturation and contamination
 
@@ -241,11 +241,10 @@ maintained in favor of the Holistic Agent Leaderboard harness from the same auth
 
 A high CORE-Bench score shows an agent can navigate an unfamiliar, real code repository well enough
 to install its dependencies, execute it correctly, and pull out the right numbers or figure
-readings -- a close proxy for whether it could actually help verify or replicate a piece of
-published research, rather than merely writing plausible-looking code. Because a task requires every
-associated question to be answered correctly, scores are stricter than a per-question accuracy would
-suggest, and comparing scores across difficulty levels shows how much of an agent's success depends
-on being handed a working environment versus building one itself. Given the benchmark's low
-reported ceiling as of its original publication and the unconfirmed state of current leaderboard
-data, treat any single CORE-Bench number as provisional until checked against the harness, model and
-difficulty level that produced it.
+readings -- a close proxy for whether it could actually help verify or replicate published research,
+rather than merely writing plausible-looking code. Because a task requires every associated question
+to be answered correctly, scores are stricter than a per-question accuracy would suggest, and
+comparing scores across difficulty levels shows how much of an agent's success depends on being
+handed a working environment versus building one itself. Given the benchmark's low original ceiling
+and the unconfirmed state of current leaderboard data, treat any single number as provisional until
+checked against the harness, model and difficulty level that produced it.
