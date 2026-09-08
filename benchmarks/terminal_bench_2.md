@@ -154,11 +154,10 @@ organisation on GitHub.
 
 Terminal-Bench 2.0 is the direct successor to the original Terminal-Bench (`terminal_bench`), rebuilt for
 quality rather than task variety. Terminal-Bench 2.1 is a revision within the same generation (same 89
-tasks, 28 corrected) rather than a new major version, and this page treats the two together. The project
-moved on to further major releases — v3.0.0 (July 2026) and v4.0.0 (August 2026) — hosted back in the main
-`terminal-bench` repository and apparently merged with a separate, harder task set (referenced in that
-repository's own release history as "frontier-bench"); those later versions are not catalogued in this
-repository and this page does not describe them.
+tasks, 28 corrected), not a new major version, and this page treats the two together. The project moved on
+to further major releases — v3.0.0 (July 2026) and v4.0.0 (August 2026) — hosted in the main
+`terminal-bench` repository and apparently merged with a separate, harder task set ("frontier-bench" in
+that repository's own release history); those later versions are not catalogued here.
 
 ## Saturation and contamination
 

@@ -141,10 +141,10 @@ freshness:
 MathVista tests mathematical reasoning that depends on understanding a visual context, rather than
 reasoning over text alone. It spans five task types: figure question answering over charts and plots,
 geometry problem solving, math word problems embedded in images, textbook question answering, and
-general visual question answering with a quantitative answer. The underlying images range across
-natural photos, geometry diagrams, abstract and synthetic scenes, function plots and puzzle-test
-figures, and the questions draw on seven reasoning types from arithmetic and algebra through logical,
-statistical and scientific reasoning.
+general visual question answering with a quantitative answer. Images range across natural photos,
+geometry diagrams, abstract and synthetic scenes, function plots and puzzle-test figures, and
+questions draw on seven reasoning types from arithmetic and algebra through logical, statistical and
+scientific reasoning.
 
 The benchmark addresses a specific gap: prior work studied mathematical reasoning in text and,
 separately, visual question answering, but not the intersection, even though many real-world
@@ -178,28 +178,27 @@ that dataset card; the arXiv paper's own front matter separately states CC BY 4.
 
 MathVista was introduced by Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li, Hannaneh
 Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley and Jianfeng Gao, a collaboration spanning UCLA,
-the University of Washington and Microsoft Research. It was posted to arXiv in October 2023 and
-accepted at ICLR 2024. The authors maintain the project site and leaderboard at mathvista.github.io,
-which takes result submissions by email and publishes separate testmini and test leaderboards.
+the University of Washington and Microsoft Research, posted to arXiv in October 2023 and accepted at
+ICLR 2024. The authors maintain the project site and leaderboard at mathvista.github.io, which takes
+submissions by email and publishes separate testmini and test leaderboards.
 
 ## Lineage
 
-MathVista has no single named predecessor; it is a deliberate aggregation of 28 pre-existing math and
-VQA datasets plus three newly built ones, rather than an extension of any one prior benchmark. It has
-no formally named successor and no variant is tracked in this repository yet, though it is frequently
-cited alongside later, harder visual-math benchmarks as scores on it have risen.
+MathVista has no single named predecessor; it aggregates 28 pre-existing math and VQA datasets plus
+three newly built ones, rather than extending any one prior benchmark. It has no formally named
+successor and no variant is tracked in this repository yet, though it is often cited alongside later,
+harder visual-math benchmarks as scores on it have risen.
 
 ## Saturation and contamination
 
 At release, the best-performing model (GPT-4V) scored 49.9%, a 15.1-point jump over the next-best
 model (Multimodal Bard) but still 10.4 points short of the 60.3% human baseline. The project's own
-leaderboard, fetched directly for this page, currently lists its top testmini entry as "DreamPRM
-(o4-mini)" at 85.2%, dated June 2025, well clear of the human baseline, with no newer entry recorded
-in the leaderboard's own data as of this research. That trajectory — a roughly 35-point gain in about
-twenty months — points toward saturation, though this leaderboard snapshot may lag the true state of
-the art. Contamination risk sits at medium: the testmini subset has been fully public with released
-answers for close to two years and is the split nearly everyone reports, even though a larger,
-answer-withheld test subset exists to guard against this.
+leaderboard, fetched directly for this page, lists its top testmini entry as "DreamPRM (o4-mini)" at
+85.2%, dated June 2025, well clear of the human baseline, with no newer entry recorded as of this
+research — a roughly 35-point gain in about twenty months, pointing toward saturation, though this
+snapshot may lag the true state of the art. Contamination risk sits at medium: testmini has been fully public with released answers for close to
+two years and is the split nearly everyone reports, even though a larger, answer-withheld test subset
+exists to guard against this.
 
 ## How to run it
 
@@ -216,9 +215,8 @@ different sources as only roughly comparable.
 
 A strong MathVista score indicates a model can combine visual perception with quantitative reasoning:
 reading a value off a chart, tracking a geometric relationship, or extracting a number from a diagram
-and computing with it correctly. It is a composite of five different task types, so one overall number
-can hide large gaps between, say, geometry problem solving and general visual question answering — the
-per-task breakdown is worth reading alongside the headline score. Given how far top scores have moved
-past the human baseline, and how long testmini has circulated publicly, read a very high recent score
-with some contamination caution, and check it against the harder, answer-withheld test subset where
-available.
+and computing with it correctly. It is a composite of five task types, so one overall number can hide
+large gaps between, say, geometry problem solving and visual question answering — read the per-task
+breakdown alongside the headline score. Given how far top scores have moved past the human baseline,
+and how long testmini has circulated publicly, treat a very high recent score with some contamination
+caution, and check it against the harder, answer-withheld test subset where available.
