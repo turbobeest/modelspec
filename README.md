@@ -262,4 +262,17 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 ## License
 
-MIT
+Two licences, because the code and the corpus want different things.
+
+| Part | Licence |
+| --- | --- |
+| Code (everything outside the data directories) | MIT |
+| Data (`models/`, `benchmarks/`) | CC BY-SA 4.0 |
+
+The corpus is share-alike: build on it, including commercially, but if you
+redistribute it or a derivative, credit ModelSpec and publish yours under the same
+terms. The code is permissive so the CLI can go anywhere. Full text in `LICENSE`
+and `LICENSE-DATA`.
+
+Every card and page records the sources it draws on and the date each was read.
+Those sources keep their own licences.
