@@ -151,7 +151,7 @@ freshness:
 
 ## What it measures
 
-GreekMMLU tests broad academic, professional and civic knowledge in Greek using four-option multiple-choice questions drawn from real Greek exams, spanning difficulty from primary school through university to professional licensing. The paper's stated motivation is that prior Greek evaluation material was largely machine-translated from English, which its authors argue loses Greek linguistic and cultural specifics. This page confirms directly from the paper's abstract and its Hugging Face dataset card that GreekMMLU is native-sourced rather than translated by any method: every question was collected or authored in Greek in the first place, not translated into it. That distinction matters for how a score should be read -- unlike a machine-translated benchmark, a low score here cannot be blamed on translation artefacts, and the subject list includes content with no English-language source to translate from at all, such as Greek driving regulations, Greek mythology and traditions, and Greek civil-service exam material, alongside standard STEM, humanities and social-science subjects organised across 45 subject areas in total.
+GreekMMLU tests broad academic, professional and civic knowledge in Greek using four-option multiple-choice questions drawn from real Greek exams, spanning difficulty from primary school through university to professional licensing. Its authors built it because they judged prior Greek evaluation material to be largely machine-translated from English, losing Greek linguistic and cultural specifics. This page confirms directly from the paper's abstract and its Hugging Face dataset card that GreekMMLU is native-sourced rather than translated by any method, machine or human: every question was collected or authored in Greek in the first place. That matters for how a score reads -- a low score cannot be blamed on translation artefacts -- and the 45 subject areas include content with no English source to translate from at all, such as Greek driving regulations, mythology, traditions and civil-service exam material, alongside standard STEM, humanities and social-science subjects.
 
 ## How it is scored
 
@@ -159,7 +159,7 @@ Every item is four-option multiple choice, following Greek examination conventio
 
 ## Dataset and licence
 
-The paper reports 21,805 total questions across 45 subjects, of which 16,857 are publicly released and 4,948 are deliberately withheld for a private leaderboard. This page uses the public 16,857 figure as the practical dataset size, confirmed directly against the Hugging Face repository's own "All" aggregate configuration, which independently totals exactly 16,857 rows. A separate 450-row development split (10 questions per subject) supports five-shot prompting. The Hugging Face dataset card states an MIT licence; the paper itself only states, more generally, that source materials were drawn exclusively from content released under open-access or educational-reuse terms, without naming a single licence for the compiled dataset -- this page records both readings rather than treating them as equivalent.
+The paper reports 21,805 total questions across 45 subjects, of which 16,857 are publicly released and 4,948 are deliberately withheld for a private leaderboard. This page uses the public 16,857 figure as the practical dataset size, confirmed directly against the Hugging Face repository's own "All" aggregate configuration, which independently totals exactly that many rows. A separate 450-row development split (10 per subject) supports five-shot prompting. The Hugging Face card states an MIT licence; the paper itself only says, more generally, that materials were drawn from content released under open-access or educational-reuse terms, without naming a single licence -- this page records both readings rather than treating them as equivalent.
 
 ## Who publishes it
 
@@ -167,7 +167,7 @@ GreekMMLU comes from Yang Zhang, Mersin Konomi, Christos Xypolopoulos, Konstanti
 
 ## Lineage
 
-GreekMMLU is not a subset or translation of [MMLU](mmlu.md); it borrows only the "massive multitask" framing and format. It is closer in spirit to [CMMLU](cmmlu.md), also in this repository, in that both are native-language benchmarks built from scratch in their target language rather than translations of an English original, including subjects with no English equivalent (CMMLU's Chinese civil-service and driving-rules content mirrors GreekMMLU's own Greek equivalents almost exactly). It differs from OpenAI's MMMLU, a human (not machine) translation of MMLU's actual English test questions into 14 other languages, since GreekMMLU's questions were never in English to begin with. The paper explicitly frames itself as a corrective to prior, unnamed Greek benchmarks it characterises as machine-translated.
+GreekMMLU is not a subset or translation of [MMLU](mmlu.md); it borrows only the "massive multitask" framing and format. It is closer in spirit to [CMMLU](cmmlu.md), also in this repository: both are native-language benchmarks built from scratch in their target language, including subjects with no English equivalent (CMMLU's Chinese civil-service and driving-rules content mirrors GreekMMLU's own Greek equivalents almost exactly). It differs from OpenAI's MMMLU, a human translation of MMLU's actual English questions into 14 languages, since GreekMMLU's questions were never in English to begin with.
 
 ## Saturation and contamination
 
@@ -175,7 +175,7 @@ GreekMMLU is not saturated: the paper's own zero-shot results show small and lig
 
 ## How to run it
 
-lm-evaluation-harness implements GreekMMLU as a `greekmmlu` task group over four subject-cluster groups (`greekmmlu_stem`, `greekmmlu_humanities`, `greekmmlu_social_sciences`, `greekmmlu_other`), each aggregating per-subject tasks such as `greekmmlu_accounting`, reading the public Hugging Face release directly. The harness task's own README documents these groups under a differently abbreviated `gmmlu_*` naming that does not match the actual group names defined in its own configuration files, which this page confirmed directly rather than repeating the README's naming. No HELM, OpenCompass, inspect_evals or BIG-bench implementation was confirmed for GreekMMLU in the sources reviewed for this page.
+lm-evaluation-harness implements GreekMMLU as a `greekmmlu` task group over four subject-cluster groups (`greekmmlu_stem`, `greekmmlu_humanities`, `greekmmlu_social_sciences`, `greekmmlu_other`), each aggregating per-subject tasks such as `greekmmlu_accounting`, reading the public Hugging Face release directly. The task's own README documents these under a differently abbreviated `gmmlu_*` naming that does not match the group names in its own configuration files, which this page confirmed directly rather than repeating the README. No HELM, OpenCompass, inspect_evals or BIG-bench implementation was confirmed.
 
 ## Reading the numbers
 

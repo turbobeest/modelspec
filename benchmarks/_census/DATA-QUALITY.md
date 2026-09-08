@@ -88,3 +88,45 @@ Verified against mmmu-benchmark.github.io directly: the site's own banner reads 
 answers for the MMMU test set!" and the earlier EvalAI submission-server line is struck through. `benchmarks/mmmu.md`
 now records contamination risk as high with that date, sets `dataset.public_test_set: true`, and carries the current
 leaderboard position (86.9 as of 2026-07-01, above the 85.4 human-expert approximation, mostly self-reported).
+
+## 2026-09-08: `physics` hint record conflates two unrelated benchmarks under one slug
+
+`benchmarks/_census/next_batch.json` and `queue_p2.json` both carry a single hint record for slug `physics` with
+`aliases: ["PHYSICS"]` and `harness: {"bigbench": "physics", "opencompass": "PHYSICS"}` -- as if the BIG-bench task
+and the OpenCompass dataset were the same benchmark under two harness names. They are not. BIG-bench's `physics`
+(`google/BIG-bench/tree/main/bigbench/benchmark_tasks/physics`) is a 229-item, high-school-level, multiple-choice
+"which formula solves this word problem" task authored by two individual contributors (Gloria Wang, Zirui Wang)
+during BIG-bench's 2021-2022 crowdsourcing drive, with a GPT-2-era dummy-model baseline near random chance.
+OpenCompass's `PHYSICS` (`open-compass/opencompass/tree/main/opencompass/configs/datasets/PHYSICS`) loads
+`opencompass/PHYSICS-textonly` and is a completely different, much larger benchmark: 1,297 expert-annotated,
+PhD-qualifying-exam-level physics problems from Feng et al., "PHYSICS: Benchmarking Foundation Models on
+University-Level Physics Problem Solving" (arXiv:2503.21821, Yale/NYU, March 2025), scored with a SymPy-plus-LLM-judge
+pipeline, where the best model in the paper (o3-mini) reached only 59.9% accuracy. Same near-identical name
+(lowercase vs. uppercase), same generic subject word, otherwise unrelated: different authors, different era,
+different task format, different difficulty level, no shared data. Likely cause: a name-matching harvester that
+does not disambiguate a bare, extremely generic subject word like "physics" across sources the way it can for a
+more distinctive acronym. `benchmarks/physics.md` documents the OpenCompass/Feng-et-al. benchmark as the primary
+subject (it is the actively used, harder, better-evidenced of the two) and names the BIG-bench task explicitly in
+its "What it measures" and "Lineage" sections so the two are not conflated; it does not get its own page here.
+Action: whoever next touches this hint file should split the `physics` record into two (e.g. `physics` for the
+OpenCompass/Feng-et-al. benchmark and a distinctly named record such as `bigbench_physics` for the BIG-bench task),
+and re-check other bare, generic single-word hint slugs in the same file for the same collision pattern.
+
+## 2026-09-08: AIME series carries two id conventions
+
+`benchmarks/aime_2025.md` uses the id `aime_2025` (underscore before the year). This batch's
+`benchmarks/aime2024.md` and `benchmarks/aime2026.md` use no underscore, matching the ids as assigned for
+this batch. All three document the same annual American Invitational Mathematics Examination series under an
+otherwise identical schema, problem format and scoring approach, and each page's Lineage section cross-references
+the other two by id (`aime2024.md` and `aime2026.md` name `aime_2025` explicitly and note the spelling
+difference in prose; `aime_2025.md` was not modified, per this batch's instructions, so it does not link forward
+to `aime2026`). The inconsistency is a naming-convention artefact from how ids were assigned across batches, not
+a substantive difference in what the pages cover. Action: normalise the three ids to one convention (either add
+underscores to `aime2024`/`aime2026` or drop the underscore from `aime_2025`), then update any model-card
+benchmark keys and cross-page links that reference whichever id(s) change.
+
+### Resolved 2026-09-08: AIME id convention normalised
+
+The series now uses one convention, `aime_2024` / `aime_2025` / `aime_2026`, matching the `aime_2025` key the model
+cards already carry (29 cards). The harness spellings `aime2024` and `aime2026` are kept as aliases on their pages,
+and the slicer's variant collapsing means the aliased spellings will not be re-queued as separate benchmarks.
