@@ -144,9 +144,9 @@ freshness:
 
 ## What it measures
 
-Despite a name generic enough to suggest human perspective-taking or opinion polarisation, PerspectiveGap measures a specific, narrower capability: composing orchestration prompts for multi-agent LLM systems by correctly working out what each sub-agent role needs to know, and, just as importantly, what it should not be told. This page did not find any other established benchmark carrying the exact same name, so the naming resemblance to broader perspective-taking research appears to be coincidental rather than a true collision -- the Hugging Face dataset card itself tags the benchmark with "theory-of-mind," suggesting the authors intentionally frame information-partitioning across agent roles as a kind of applied perspective-taking problem, not that this is a different, unrelated dataset.
+Despite a name generic enough to suggest human perspective-taking or opinion polarisation, PerspectiveGap measures a specific, narrower capability: composing orchestration prompts for multi-agent LLM systems by correctly working out what each sub-agent role needs to know, and, just as importantly, what it should not be told. No other established benchmark carrying the exact same name was found, so the resemblance to broader perspective-taking research appears coincidental rather than a true collision -- the Hugging Face dataset card itself tags the benchmark "theory-of-mind," suggesting the authors intentionally frame information-partitioning across agent roles as an applied perspective-taking problem.
 
-Given a scenario describing a multi-agent workflow, the model must either assign information fragments to the correct sub-agent role (role-fragment assignment, with distractor fragments mixed in) or write the orchestration prompt text for a role from scratch (free-form prompt writing). The 110 underlying scenarios are organised into 10 orchestration "topologies" the authors describe as distilled from their own real-world multi-agent engineering practice, framed around what the paper calls the "Prompt Economy" principle: orchestrations should reuse a small, stable set of roles rather than accumulate roles and handoffs without bound.
+Given a scenario describing a multi-agent workflow, the model must either assign information fragments to the correct sub-agent role (role-fragment assignment, with distractors mixed in) or write the orchestration prompt text for a role from scratch (free-form prompt writing). The 110 underlying scenarios are organised into 10 orchestration "topologies" the authors describe as distilled from their own real-world engineering practice, framed around what the paper calls the "Prompt Economy" principle: orchestrations should reuse a small, stable set of roles rather than accumulate roles and handoffs without bound.
 
 ## How it is scored
 
@@ -162,7 +162,7 @@ PerspectiveGap comes from Youran Sun (University of Maryland), Xingyu Ren, Kejia
 
 ## Lineage
 
-This repository does not track a predecessor or successor for PerspectiveGap; it is a new benchmark with no earlier version to relate it to. Its own repository documents third-party adoption within weeks of release: OpenCompass merged both task formats in June 2026, and the authors state inspect_evals and ModelScope's EvalScope did the same shortly after, though this page could only directly confirm the OpenCompass integration from a live configuration file.
+This repository does not track a predecessor or successor for PerspectiveGap; it is a new benchmark with no earlier version to relate it to. Its own repository documents rapid third-party adoption (OpenCompass, inspect_evals, EvalScope, all within weeks of release); see How to run it for what this page could and could not confirm directly.
 
 ## Saturation and contamination
 

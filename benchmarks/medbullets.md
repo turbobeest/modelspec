@@ -157,7 +157,7 @@ This repository does not record a formal predecessor or successor for Medbullets
 
 ## Saturation and contamination
 
-No continuously maintained public leaderboard was found for Medbullets. The 2024 paper's own comparison already showed it separating models more than MedQA did at the time, and by the authors' account it remains the harder benchmark of the two, but no current (2026) top score was confirmed from the sources reviewed for this page. Contamination risk sits at medium: the CSV files have been public on GitHub without gating since February 2024, a shorter exposure window than MedQA's, but the source questions themselves pre-date the paper on a public study website, which is a second, older route by which the content could already be present in a training corpus.
+No continuously maintained public leaderboard was found for Medbullets, and no current (2026) top score was confirmed from the sources reviewed for this page. Contamination risk sits at medium: the CSV files have been public on GitHub without gating since February 2024, a shorter exposure window than MedQA's, but the source questions themselves pre-date the paper on a public study website, a second, older route by which the content could already be present in a training corpus.
 
 ## How to run it
 
