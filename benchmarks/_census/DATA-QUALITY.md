@@ -14,3 +14,12 @@ the `pro_` in their key, or a roll-up of classic MMLU subjects. The same cards a
 not MMLU-Pro categories, so the pull may mix both. Action: trace the intlpull source for these 40 cards, re-key
 the MMLU-Pro categories to `mmlu_pro_<category>`, and re-run the wiki queue. Until then the pages for these ids say
 so and carry `status: unknown`.
+
+## 2026-09-08: `artificial_analysis_quality_index` names something Artificial Analysis does not publish
+
+The card key is `artificial_analysis_quality_index`, but Artificial Analysis has called its composite
+the **Intelligence Index** in every version back to v1.0 (January 2024); "Quality Index" appears nowhere
+on the live site. The page documents the Intelligence Index under this id with an alias and says so in prose.
+Action: confirm which figure the cards actually carry, then either re-key to `artificial_analysis_intelligence_index`
+or record the alias in the card schema. Related: `artificial_analysis_speed_index` — AA publishes no single blended
+speed index either; the page documents Output Speed (tokens per second) as the closest published figure.
