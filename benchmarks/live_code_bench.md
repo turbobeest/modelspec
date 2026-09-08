@@ -1,7 +1,7 @@
 ---
 id: live_code_bench
 name: LiveCodeBench
-aliases: ["LCB"]
+aliases: ["LCB", "livecodebench"]
 page_kind: benchmark
 category: coding
 subcategory: "competitive programming, contamination-resistant via dated problems"

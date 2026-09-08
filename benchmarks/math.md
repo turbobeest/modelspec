@@ -1,7 +1,7 @@
 ---
 id: math
 name: "MATH (Mathematics Aptitude Test of Heuristics)"
-aliases: ["Hendrycks MATH", "MATH dataset", "hendrycks_math"]
+aliases: ["Hendrycks MATH", "MATH dataset", "hendrycks_math", "minerva_math"]
 page_kind: family
 category: math
 subcategory: "competition mathematics"

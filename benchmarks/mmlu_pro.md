@@ -1,5 +1,6 @@
 ---
 id: mmlu_pro
+aliases: []
 name: "MMLU-Pro"
 page_kind: benchmark
 category: knowledge

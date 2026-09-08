@@ -1,5 +1,6 @@
 ---
 id: arc_challenge
+aliases: ["arc_c"]
 name: ARC-Challenge
 aliases:
   - AI2 Reasoning Challenge

@@ -14,8 +14,17 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 CENSUS = ROOT / "benchmarks" / "_census"
+
+
+def load_map() -> dict:
+    f = CENSUS / "aliases.yaml"
+    d = yaml.safe_load(f.read_text()) if f.exists() else {}
+    return {"aliases": d.get("aliases") or {}, "rename": d.get("rename") or {},
+            "drop": set(d.get("not_a_benchmark") or [])}
 
 
 def norm(s: str) -> str:
@@ -50,15 +59,32 @@ def main() -> None:
     size = int(sys.argv[3]) if len(sys.argv) > 3 else 7
     q = json.loads((CENSUS / qname).read_text())
     have = written()
-    pool, seen = [], set(have)
+    m = load_map()
+    pool, seen, folded = [], set(have), []
     for e in q:
-        n = norm(e["slug"])
+        slug = e["slug"]
+        if slug in m["drop"]:
+            continue
+        canon = m["aliases"].get(slug)
+        if canon:
+            if norm(canon) in have:
+                folded.append((slug, canon))
+                continue
+            slug = m["rename"].get(slug, canon)
+        else:
+            slug = m["rename"].get(slug, slug)
+        n = norm(slug)
         if n in seen:
             continue
         seen.add(n)
+        e = dict(e, slug=slug, census_slug=e["slug"])
         pool.append(e)
         if len(pool) >= count:
             break
+    if folded:
+        print("folded into existing pages as aliases:")
+        for s, c in folded:
+            print(f"  {s} -> {c}")
     groups: dict[str, list[dict]] = collections.defaultdict(list)
     for e in pool:
         groups[family_key(e["slug"])].append(e)
@@ -78,7 +104,7 @@ def main() -> None:
             cur = cur[size:]
     if cur:
         slices[chr(label)] = cur
-    hints = {e["slug"]: {k: e[k] for k in ("name", "aliases", "sources", "urls", "harness", "category_hint", "score")} for e in pool}
+    hints = {e["slug"]: {k: e[k] for k in ("name", "aliases", "sources", "urls", "harness", "category_hint", "score", "census_slug")} for e in pool}
     (CENSUS / "next_batch.json").write_text(json.dumps({"queue": qname, "slices": slices, "hints": hints}, indent=1))
     print(f"{len(pool)} unwritten ids from {qname} in {len(slices)} slices:")
     for k, v in slices.items():

@@ -1,5 +1,6 @@
 ---
 id: big_bench
+aliases: ["bigbench"]
 name: "BIG-bench (Beyond the Imitation Game Benchmark)"
 aliases:
   - "BIG-Bench"

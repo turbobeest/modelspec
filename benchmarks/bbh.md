@@ -1,5 +1,6 @@
 ---
 id: bbh
+aliases: ["bbh_zeroshot"]
 name: BIG-Bench Hard
 aliases:
   - BBH

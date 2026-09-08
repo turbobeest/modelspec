@@ -1,5 +1,6 @@
 ---
 id: model_written_evals
+aliases: ["anthropics_evals"]
 name: Model-Written Evaluations
 aliases:
   - "Discovering Language Model Behaviors with Model-Written Evaluations"

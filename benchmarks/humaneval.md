@@ -1,5 +1,6 @@
 ---
 id: humaneval
+aliases: []
 name: HumanEval
 aliases:
   - "OpenAI HumanEval"

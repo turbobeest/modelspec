@@ -1,5 +1,6 @@
 ---
 id: siqa
+aliases: ["social_iqa"]
 name: "Social IQa"
 aliases:
   - "SocialIQA"

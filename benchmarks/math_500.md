@@ -1,7 +1,7 @@
 ---
 id: math_500
 name: MATH-500
-aliases: ["MATH500"]
+aliases: ["MATH500", "hendrycks_math500", "minerva_math500"]
 page_kind: benchmark
 category: math
 subcategory: "competition mathematics"

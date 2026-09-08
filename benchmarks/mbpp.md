@@ -1,5 +1,6 @@
 ---
 id: mbpp
+aliases: []
 name: "MBPP (Mostly Basic Python Problems)"
 aliases:
   - "Mostly Basic Python Problems"

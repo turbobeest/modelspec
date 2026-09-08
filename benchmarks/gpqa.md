@@ -1,5 +1,6 @@
 ---
 id: gpqa
+aliases: ["gpqa_main", "gpqa_extended"]
 name: GPQA
 aliases:
   - Graduate-Level Google-Proof Q&A Benchmark

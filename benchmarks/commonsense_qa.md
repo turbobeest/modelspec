@@ -1,7 +1,7 @@
 ---
 id: commonsense_qa
 name: "CommonsenseQA"
-aliases: []
+aliases: ["commonsenseqa"]
 page_kind: benchmark
 category: reasoning
 subcategory: "commonsense multiple-choice question answering"
