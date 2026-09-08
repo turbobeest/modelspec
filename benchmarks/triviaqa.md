@@ -208,13 +208,12 @@ question instances: 61,888/7,993/7,701 (train/validation/test) for the Wikipedia
 76,496/9,951/9,509 for the Web domain, both confirmed against the current Hugging Face release and
 matching the paper's own published table exactly. A separate, larger "unfiltered" release (110,495
 QA pairs per the paper; currently hosted as 87,622/11,313/10,832 train/validation/test) exists
-specifically for open-domain and IR-style research, where -- unlike the curated reading-comprehension
-version -- not every paired document is guaranteed to actually contain the answer. A much smaller,
-human-verified subset (297-733 questions per split) marks cases where an annotator confirmed the
-evidence genuinely supports the answer. The GitHub repository states an Apache 2.0 licence covers
-both code and data; the official project site separately notes the University of Washington does not
-own the copyright of the underlying questions and documents, which were sourced from third-party
-trivia sites, Wikipedia and web search results.
+specifically for open-domain and IR-style research, where not every paired document is guaranteed to
+contain the answer. A much smaller, human-verified subset (297-733 questions per split) marks cases
+where an annotator confirmed the evidence genuinely supports the answer. The GitHub repository states
+an Apache 2.0 licence covers both code and data; the official site separately notes the University of
+Washington does not own the copyright of the underlying questions and documents, sourced from
+third-party trivia sites, Wikipedia and web search results.
 
 ## Who publishes it
 
@@ -229,22 +228,20 @@ leaderboard remains active today.
 
 TriviaQA has no formal predecessor or successor as a benchmark id; the paper positions it as a
 harder, more naturally-sourced alternative to SQuAD and similar single-paragraph reading-comprehension
-datasets available at the time, rather than as a direct successor to any one of them. Its own
-"unfiltered" release, built specifically to support open-domain and IR-style question answering, is
-best understood as an internal variant of the same project rather than a separate benchmark, and
-predates by several years the closed-book usage that later became the dominant way LLM papers report
-"TriviaQA" scores.
+datasets available at the time. Its own "unfiltered" release, built specifically to support
+open-domain and IR-style question answering, is best understood as an internal variant of the same
+project rather than a separate benchmark, and predates by several years the closed-book usage that
+later became the dominant way LLM papers report "TriviaQA" scores.
 
 ## Saturation and contamination
 
 The paper's own original result -- BiDAF at 40% EM in the reading-comprehension setting, against
 roughly 80% for a human given the same evidence -- is a 2017 baseline with no bearing on current
-models. This benchmark is widely used in the LLM literature as a standard open-domain,
-closed-book knowledge check, and its age and heavy reliance on Wikipedia-derived facts make it a
-plausible candidate for saturation at the frontier, but this page could not confirm a specific,
-currently dated top score from a source opened during this research, so saturation status is left
-unknown rather than guessed. Contamination risk is graded high: the dataset has been fully public
-with answers since 2017, is one of the most widely cited QA benchmarks in NLP, and draws heavily on
+models. This benchmark's age and heavy reliance on Wikipedia-derived facts make it a plausible
+candidate for saturation at the frontier in its open-domain form, but this page could not confirm a
+specific, currently dated top score from a source opened during this research, so saturation status
+is left unknown rather than guessed. Contamination risk is graded high: the dataset has been fully
+public with answers since 2017, is one of the most widely cited QA benchmarks in NLP, and draws heavily on
 Wikipedia content that overlaps extensively with the training data of essentially every
 broad-coverage language model; lm-evaluation-harness's own task config includes a built-in
 decontamination check, itself a sign the community treats this as a live concern.
@@ -256,9 +253,8 @@ GitHub) implements the paper's own SQuAD-style EM/F1 scoring against a given evi
 lm-evaluation-harness's `triviaqa` task instead reads the `rc.nocontext` configuration -- no evidence
 shown -- generates freely, and scores with case- and punctuation-insensitive Exact Match against the
 question's answer aliases, evaluated on the validation split. OpenCompass ships its own `triviaqa`
-configuration. Because the reading-comprehension and open-domain settings are different tasks with
-different difficulty, and because harnesses differ in exactly which configuration and split they use,
-always confirm which protocol produced a reported "TriviaQA" number before comparing it to another.
+configuration. Because harnesses differ in which configuration and split they use, always confirm
+which protocol produced a reported "TriviaQA" number before comparing it to another.
 
 ## Reading the numbers
 

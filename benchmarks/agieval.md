@@ -203,9 +203,9 @@ each original source's own licence, and those sources differ across the 20 tasks
 
 AGIEval was introduced by Wanjun Zhong, Ruixiang Cui, Yiduo Guo, Yaobo Liang, Shuai Lu, Yanlin Wang,
 Amin Saied, Weizhu Chen and Nan Duan, all at Microsoft, posted to arXiv in April 2023. Microsoft
-maintains the reference dataset, evaluation scripts and a leaderboard directly in the GitHub
-repository's README, which the maintainers have continued to update with new baseline results (most
-recently GPT-4o and Llama 3, as of a June 2024 commit) well after the original paper's publication.
+maintains the reference dataset, evaluation scripts and a leaderboard directly in the GitHub README,
+which the maintainers have continued updating with new baseline results (most recently GPT-4o and
+Llama 3, as of a June 2024 commit) well after the paper's own publication.
 
 ## Lineage
 
@@ -245,12 +245,11 @@ which one before comparing two numbers.
 ## Reading the numbers
 
 A high AGIEval score shows a model can answer real questions from demanding human qualification
-exams across law, mathematics, and general academic subjects in two languages -- a broader and more
+exams across law, mathematics, and general academic subjects in two languages -- a broader, more
 externally grounded test than a purpose-built knowledge benchmark, but still bounded by which 20
 tasks were chosen and how old their questions are. Because the benchmark blends genuinely different
 skills (legal reasoning, reading comprehension, calculation, subject recall) into one average, a
-single blended number can mask a model that is very strong on some component exams and weak on
-others; check the English/Chinese/all split, and ideally the per-task breakdown, before treating one
-AGIEval percentage as a full picture. Given the exam questions' age and public circulation, corroborate
-a high score with a newer or less exposed reasoning benchmark before trusting it as evidence of
-current capability.
+single number can mask a model that is strong on some component exams and weak on others; check the
+English/Chinese/all split, and ideally the per-task breakdown, before treating one AGIEval percentage
+as a full picture. Given the exam questions' age and public circulation, corroborate a high score
+with a newer or less exposed reasoning benchmark before trusting it as current capability.

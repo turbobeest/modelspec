@@ -2,939 +2,840 @@
  "queue": "queue_p2.json",
  "slices": {
   "A": [
-   "gpqa",
-   "livebench",
-   "air_bench",
-   "medcalc_bench",
-   "mle_bench",
-   "bigcodebench",
-   "piqa"
+   "longbench",
+   "longbenchv2",
+   "lveval",
+   "medbench",
+   "mlrc_bench",
+   "mmlu_prox",
+   "mmmu_pro"
   ],
   "B": [
-   "mbpp",
-   "lab_bench",
-   "eq_bench",
-   "core_bench",
-   "agieval",
-   "cruxeval",
-   "triviaqa"
+   "narrativeqa",
+   "openbookqa",
+   "s3eval",
+   "scienceqa",
+   "sciknoweval",
+   "simpleqa",
+   "siqa"
   ],
   "C": [
-   "drop",
-   "lambada",
-   "math",
-   "omni_math",
-   "ruler",
-   "vstar_bench",
-   "acp_bench"
+   "strategyqa",
+   "tydiqa",
+   "writingbench",
+   "xstest",
+   "aa_lcr",
+   "aime2024",
+   "aime2026"
   ],
   "D": [
-   "model_written_evals",
-   "financebench",
-   "r_bench",
-   "discrim_eval",
-   "novelty_bench",
-   "aci_bench",
-   "compute_eval"
+   "anli",
+   "apps",
+   "arc",
+   "arithmetic",
+   "babilong",
+   "bbeh",
+   "blimp"
   ],
   "E": [
-   "big_bench",
-   "ceval",
-   "charm",
-   "chembench",
-   "commonsense_qa",
-   "coqa",
-   "cve_bench"
+   "bold",
+   "boolq",
+   "cmb",
+   "cmmlu",
+   "ds1000",
+   "general365",
+   "greekmmlu"
   ],
   "F": [
-   "headqa",
-   "healthbench",
-   "ifbench",
-   "infinitebench",
-   "lawbench",
-   "livecodebench_pro",
-   "logiqa"
+   "imdb",
+   "kpi_edgar",
+   "lingoly",
+   "medbullets",
+   "meqsum",
+   "perspectivegap",
+   "physics"
   ]
  },
  "hints": {
-  "gpqa": {
-   "name": "gpqa",
+  "longbench": {
+   "name": "longbench",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/longbench",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/longbench"
+   ],
+   "harness": {
+    "lm_eval": "longbench",
+    "opencompass": "longbench"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "longbenchv2": {
+   "name": "longbenchv2",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/longbenchv2",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/longbenchv2"
+   ],
+   "harness": {
+    "lm_eval": "longbenchv2",
+    "opencompass": "longbenchv2"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "lveval": {
+   "name": "lveval",
    "aliases": [
-    "GPQA"
+    "LVEval"
    ],
    "sources": [
-    "aggregator:artificialanalysis.ai",
+    "awesome:onejune2018/Awesome-LLM-Eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/infinigence/LVEval",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/lveval"
+   ],
+   "harness": {
+    "opencompass": "lveval"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "medbench": {
+   "name": "MedBench",
+   "aliases": [
+    "medbench"
+   ],
+   "sources": [
+    "awesome:onejune2018/Awesome-LLM-Eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/MedBench",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/datasets/medbench/"
+   ],
+   "harness": {
+    "opencompass": "MedBench"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "mlrc_bench": {
+   "name": "mlrc_bench",
+   "aliases": [
+    "MLRC-Bench"
+   ],
+   "sources": [
+    "arxiv",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://arxiv.org/abs/2504.09702v3",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/mlrc_bench"
+   ],
+   "harness": {
+    "inspect_evals": "mlrc_bench"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "mmlu_prox": {
+   "name": "MMLU-ProX",
+   "aliases": [
+    "mmlu_prox"
+   ],
+   "sources": [
+    "firecrawl_search",
+    "lm_eval"
+   ],
+   "urls": [
+    "https://arxiv.org/abs/2503.10497",
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/mmlu_prox",
+    "https://mmluprox.github.io/",
+    "https://www.reddit.com/r/LocalLLaMA/comments/1lzzcje/mmluprox_a_multilingual_benchmark_for_advanced/"
+   ],
+   "harness": {
+    "lm_eval": "mmlu_prox"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "mmmu_pro": {
+   "name": "MMMU_Pro",
+   "aliases": [
+    "MMMU-Pro"
+   ],
+   "sources": [
     "aggregator:llm-stats.com",
-    "helm",
-    "inspect_evals",
-    "lm_eval",
     "opencompass"
    ],
    "urls": [
-    "https://artificialanalysis.ai/evaluations",
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/gpqa",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/gpqa",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/gpqa",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/gpqa_scenario.py",
-    "https://llm-stats.com/benchmarks"
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/MMMU_Pro",
+    "https://llm-stats.com/benchmarks/mmmu-pro"
    ],
    "harness": {
-    "lm_eval": "gpqa",
-    "inspect_evals": "gpqa",
-    "helm": "gpqa",
-    "opencompass": "gpqa"
+    "opencompass": "MMMU_Pro"
    },
    "category_hint": "",
-   "score": 68.0
+   "score": 28.0
   },
-  "livebench": {
-   "name": "LiveBench",
+  "narrativeqa": {
+   "name": "narrativeqa",
+   "aliases": [],
+   "sources": [
+    "helm",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/narrativeqa",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/narrativeqa_scenario.py"
+   ],
+   "harness": {
+    "helm": "narrativeqa",
+    "opencompass": "narrativeqa"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "openbookqa": {
+   "name": "openbookqa",
    "aliases": [
-    "livebench"
+    "OpenBookQA"
    ],
    "sources": [
     "aggregator:epoch.ai",
-    "aggregator:livebench.ai",
-    "awesome:ttxs69/awesome-coding-agent-eval",
-    "hf_datasets",
-    "inspect_evals"
+    "lm_eval"
    ],
    "urls": [
     "https://epoch.ai/benchmarks",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/livebench",
-    "https://huggingface.co/datasets/lmms-eval/LiveBench",
-    "https://livebench.ai/"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/openbookqa"
    ],
    "harness": {
-    "inspect_evals": "livebench"
+    "lm_eval": "openbookqa"
    },
    "category_hint": "",
-   "score": 61.2
+   "score": 28.0
   },
-  "air_bench": {
-   "name": "air_bench",
+  "s3eval": {
+   "name": "s3eval",
    "aliases": [
-    "AIR-Bench",
-    "AIR_bench"
+    "S3Eval"
    ],
    "sources": [
     "arxiv",
-    "firecrawl_search",
-    "helm",
-    "hf_datasets",
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://aclanthology.org/2024.acl-long.109/",
-    "https://arxiv.org/abs/2412.13102v4",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/air_bench",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/air_bench_scenario.py",
-    "https://huggingface.co/datasets/lmms-lab/AIR_bench"
-   ],
-   "harness": {
-    "inspect_evals": "air_bench",
-    "helm": "air_bench"
-   },
-   "category_hint": "",
-   "score": 60.9
-  },
-  "medcalc_bench": {
-   "name": "MedCalc-Bench",
-   "aliases": [
-    "medcalc_bench",
-    "MedCalc_Bench"
-   ],
-   "sources": [
-    "arxiv",
-    "helm",
-    "hf_datasets",
     "opencompass"
    ],
    "urls": [
-    "https://arxiv.org/abs/2406.12036v4",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/MedCalc_Bench",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/medcalc_bench_scenario.py",
-    "https://huggingface.co/datasets/ncbi/MedCalc-Bench"
+    "https://arxiv.org/abs/2310.15147v2",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/s3eval"
    ],
    "harness": {
-    "helm": "medcalc_bench",
-    "opencompass": "MedCalc_Bench"
+    "opencompass": "s3eval"
    },
    "category_hint": "",
-   "score": 51.2
+   "score": 28.0
   },
-  "mle_bench": {
-   "name": "mle_bench",
-   "aliases": [
-    "MLE-bench",
-    "mle-bench"
-   ],
-   "sources": [
-    "arxiv",
-    "awesome:benchflow-ai/awesome-evals",
-    "hf_datasets",
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://arxiv.org/abs/2410.07095",
-    "https://arxiv.org/abs/2410.07095v6",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/mle_bench",
-    "https://huggingface.co/datasets/TIGER-Lab/mle-bench",
-    "https://huggingface.co/datasets/annon124816/mle_bench"
-   ],
-   "harness": {
-    "inspect_evals": "mle_bench"
-   },
-   "category_hint": "",
-   "score": 50.9
-  },
-  "bigcodebench": {
-   "name": "bigcodebench",
-   "aliases": [
-    "BigCodeBench"
-   ],
-   "sources": [
-    "aggregator:evalplus.github.io",
-    "helm",
-    "inspect_evals",
-    "opencompass"
-   ],
-   "urls": [
-    "https://bigcode-bench.github.io/",
-    "https://evalplus.github.io/leaderboard.html",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/bigcodebench",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/bigcodebench",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/bigcodebench_scenario.py"
-   ],
-   "harness": {
-    "inspect_evals": "bigcodebench",
-    "helm": "bigcodebench",
-    "opencompass": "bigcodebench"
-   },
-   "category_hint": "",
-   "score": 48.0
-  },
-  "piqa": {
-   "name": "piqa",
-   "aliases": [
-    "PIQA"
-   ],
+  "scienceqa": {
+   "name": "ScienceQA",
+   "aliases": [],
    "sources": [
     "aggregator:epoch.ai",
-    "inspect_evals",
-    "lm_eval",
     "opencompass"
    ],
    "urls": [
     "https://epoch.ai/benchmarks",
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/piqa",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/piqa",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/piqa"
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ScienceQA"
    ],
    "harness": {
-    "lm_eval": "piqa",
-    "inspect_evals": "piqa",
-    "opencompass": "piqa"
+    "opencompass": "ScienceQA"
    },
    "category_hint": "",
-   "score": 48.0
+   "score": 28.0
   },
-  "mbpp": {
-   "name": "mbpp",
+  "sciknoweval": {
+   "name": "sciknoweval",
    "aliases": [
-    "MBPP+"
+    "SciKnowEval"
    ],
    "sources": [
-    "aggregator:evalplus.github.io",
     "inspect_evals",
-    "lm_eval",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/mbpp",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/mbpp",
-    "https://github.com/evalplus/mbppplus_release",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/mbpp"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/sciknoweval",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/SciKnowEval"
    ],
    "harness": {
-    "lm_eval": "mbpp",
-    "inspect_evals": "mbpp",
-    "opencompass": "mbpp"
+    "inspect_evals": "sciknoweval",
+    "opencompass": "SciKnowEval"
    },
    "category_hint": "",
-   "score": 45.0
+   "score": 28.0
   },
-  "lab_bench": {
-   "name": "lab_bench",
+  "simpleqa": {
+   "name": "simpleqa",
    "aliases": [
-    "lab-bench",
-    "LAB-Bench"
+    "SimpleQA"
    ],
    "sources": [
-    "arxiv",
-    "hf_datasets",
-    "inspect_evals"
+    "inspect_evals",
+    "opencompass"
    ],
    "urls": [
-    "https://arxiv.org/abs/2407.10362v3",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/lab_bench",
-    "https://huggingface.co/datasets/futurehouse/lab-bench"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/simpleqa",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/SimpleQA"
    ],
    "harness": {
-    "inspect_evals": "lab_bench"
+    "inspect_evals": "simpleqa",
+    "opencompass": "SimpleQA"
    },
    "category_hint": "",
-   "score": 42.2
+   "score": 28.0
   },
-  "eq_bench": {
-   "name": "EQ-Bench",
-   "aliases": [
-    "eq_bench"
-   ],
-   "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "hf_datasets",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EQ-bench/EQ-Bench",
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/eq_bench",
-    "https://huggingface.co/datasets/pbevan11/EQ-Bench"
-   ],
-   "harness": {
-    "lm_eval": "eq_bench"
-   },
-   "category_hint": "",
-   "score": 41.1
-  },
-  "core_bench": {
-   "name": "core_bench",
-   "aliases": [
-    "core-bench",
-    "CORE-Bench"
-   ],
-   "sources": [
-    "arxiv",
-    "hf_datasets",
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://arxiv.org/abs/2409.11363v2",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/core_bench",
-    "https://huggingface.co/datasets/siegelz/core-bench"
-   ],
-   "harness": {
-    "inspect_evals": "core_bench"
-   },
-   "category_hint": "",
-   "score": 40.7
-  },
-  "agieval": {
-   "name": "agieval",
+  "siqa": {
+   "name": "siqa",
    "aliases": [],
    "sources": [
-    "inspect_evals",
     "lm_eval",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/agieval",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/agieval",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/agieval"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/siqa",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/siqa"
    ],
    "harness": {
-    "lm_eval": "agieval",
-    "inspect_evals": "agieval",
-    "opencompass": "agieval"
+    "lm_eval": "siqa",
+    "opencompass": "siqa"
    },
    "category_hint": "",
-   "score": 38.0
+   "score": 28.0
   },
-  "cruxeval": {
-   "name": "CRUXEval",
-   "aliases": [
-    "cruxeval"
-   ],
-   "sources": [
-    "aggregator:evalplus.github.io",
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "opencompass"
-   ],
-   "urls": [
-    "https://arxiv.org/abs/2401.03065",
-    "https://crux-eval.github.io/leaderboard.html",
-    "https://evalplus.github.io/leaderboard.html",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/cruxeval"
-   ],
-   "harness": {
-    "opencompass": "cruxeval"
-   },
-   "category_hint": "",
-   "score": 38.0
-  },
-  "triviaqa": {
-   "name": "triviaqa",
-   "aliases": [
-    "TriviaQA"
-   ],
-   "sources": [
-    "aggregator:epoch.ai",
-    "lm_eval",
-    "opencompass"
-   ],
-   "urls": [
-    "https://epoch.ai/benchmarks",
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/triviaqa",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/triviaqa"
-   ],
-   "harness": {
-    "lm_eval": "triviaqa",
-    "opencompass": "triviaqa"
-   },
-   "category_hint": "",
-   "score": 38.0
-  },
-  "drop": {
-   "name": "drop",
+  "strategyqa": {
+   "name": "strategyqa",
    "aliases": [],
    "sources": [
-    "inspect_evals",
-    "lm_eval",
+    "bigbench",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/drop",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/drop",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/drop"
+    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/strategyqa",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/strategyqa"
    ],
    "harness": {
-    "lm_eval": "drop",
-    "inspect_evals": "drop",
-    "opencompass": "drop"
+    "bigbench": "strategyqa",
+    "opencompass": "strategyqa"
    },
    "category_hint": "",
-   "score": 35.0
+   "score": 28.0
   },
-  "lambada": {
-   "name": "lambada",
-   "aliases": [
-    "LAMBADA"
-   ],
-   "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "lm_eval",
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/lambada",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/lambada",
-    "https://zenodo.org/record/2630551#.ZFUKS-zML0p"
-   ],
-   "harness": {
-    "lm_eval": "lambada",
-    "opencompass": "lambada"
-   },
-   "category_hint": "",
-   "score": 35.0
-  },
-  "math": {
-   "name": "math",
+  "tydiqa": {
+   "name": "tydiqa",
    "aliases": [],
    "sources": [
-    "helm",
-    "inspect_evals",
+    "lm_eval",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/math",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/math",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/math_scenario.py"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/tydiqa",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/tydiqa"
    ],
    "harness": {
-    "inspect_evals": "math",
-    "helm": "math",
-    "opencompass": "math"
+    "lm_eval": "tydiqa",
+    "opencompass": "tydiqa"
    },
    "category_hint": "",
-   "score": 35.0
+   "score": 28.0
   },
-  "omni_math": {
-   "name": "omni_math",
+  "writingbench": {
+   "name": "WritingBench",
    "aliases": [
-    "Omni-MATH"
+    "writingbench"
    ],
    "sources": [
     "firecrawl_search",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://arxiv.org/html/2503.05244v1",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/writingbench",
+    "https://neurips.cc/virtual/2025/poster/121666"
+   ],
+   "harness": {
+    "inspect_evals": "writingbench"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "xstest": {
+   "name": "xstest",
+   "aliases": [],
+   "sources": [
     "helm",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/xstest",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/xstest_scenario.py"
+   ],
+   "harness": {
+    "inspect_evals": "xstest",
+    "helm": "xstest"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "aa_lcr": {
+   "name": "aa_lcr",
+   "aliases": [
+    "AA-LCR"
+   ],
+   "sources": [
+    "aggregator:llm-stats.com",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/omni_math",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/omni_math_scenario.py",
-    "https://openreview.net/forum?id=yaqPf0KAlN"
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/aa_lcr",
+    "https://llm-stats.com/benchmarks/aa-lcr"
    ],
    "harness": {
-    "helm": "omni_math",
-    "opencompass": "omni_math"
+    "opencompass": "aa_lcr"
    },
    "category_hint": "",
-   "score": 35.0
+   "score": 25.0
   },
-  "ruler": {
-   "name": "ruler",
-   "aliases": [
-    "RULER"
-   ],
+  "aime2024": {
+   "name": "aime2024",
+   "aliases": [],
    "sources": [
-    "awesome:benchflow-ai/awesome-evals",
+    "inspect_evals",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/aime2024",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/aime2024"
+   ],
+   "harness": {
+    "inspect_evals": "aime2024",
+    "opencompass": "aime2024"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "aime2026": {
+   "name": "aime2026",
+   "aliases": [],
+   "sources": [
+    "inspect_evals",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/aime2026",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/aime2026"
+   ],
+   "harness": {
+    "inspect_evals": "aime2026",
+    "opencompass": "aime2026"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "anli": {
+   "name": "anli",
+   "aliases": [],
+   "sources": [
     "lm_eval",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/ruler",
-    "https://github.com/OpenPipe/ART",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ruler"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/anli",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/anli"
    ],
    "harness": {
-    "lm_eval": "ruler",
-    "opencompass": "ruler"
+    "lm_eval": "anli",
+    "opencompass": "anli"
    },
    "category_hint": "",
-   "score": 35.0
+   "score": 25.0
   },
-  "vstar_bench": {
-   "name": "vstar_bench",
-   "aliases": [
-    "vstar-bench",
-    "VStar_Bench"
-   ],
-   "sources": [
-    "hf_datasets",
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/vstar_bench",
-    "https://huggingface.co/datasets/craigwu/vstar_bench",
-    "https://huggingface.co/datasets/lmms-lab-encoder/vstar-bench",
-    "https://huggingface.co/datasets/xjtupanda/VStar_Bench"
-   ],
-   "harness": {
-    "inspect_evals": "vstar_bench"
-   },
-   "category_hint": "",
-   "score": 31.9
-  },
-  "acp_bench": {
-   "name": "acp_bench",
+  "apps": {
+   "name": "apps",
    "aliases": [],
    "sources": [
-    "hf_datasets",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/acp_bench",
-    "https://huggingface.co/datasets/ibm-research/acp_bench"
-   ],
-   "harness": {
-    "lm_eval": "acp_bench"
-   },
-   "category_hint": "",
-   "score": 31.7
-  },
-  "model_written_evals": {
-   "name": "model-written-evals",
-   "aliases": [
-    "model_written_evals"
-   ],
-   "sources": [
-    "hf_datasets",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/model_written_evals",
-    "https://huggingface.co/datasets/Anthropic/model-written-evals",
-    "https://huggingface.co/datasets/inverse-scaling-ttc/model-written-evals"
-   ],
-   "harness": {
-    "lm_eval": "model_written_evals"
-   },
-   "category_hint": "",
-   "score": 31.4
-  },
-  "financebench": {
-   "name": "FinanceBench",
-   "aliases": [
-    "financebench"
-   ],
-   "sources": [
-    "helm",
-    "hf_datasets"
-   ],
-   "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/financebench_scenario.py",
-    "https://huggingface.co/datasets/embedding-benchmark/FinanceBench"
-   ],
-   "harness": {
-    "helm": "financebench"
-   },
-   "category_hint": "",
-   "score": 31.3
-  },
-  "r_bench": {
-   "name": "R-Bench",
-   "aliases": [
-    "R_Bench"
-   ],
-   "sources": [
-    "hf_datasets",
+    "inspect_evals",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/R_Bench",
-    "https://huggingface.co/datasets/MM-Hallu/R-Bench",
-    "https://huggingface.co/datasets/R-Bench/R-Bench"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/apps",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/apps"
    ],
    "harness": {
-    "opencompass": "R_Bench"
+    "inspect_evals": "apps",
+    "opencompass": "apps"
    },
    "category_hint": "",
-   "score": 31.2
+   "score": 25.0
   },
-  "discrim_eval": {
-   "name": "discrim_eval",
-   "aliases": [
-    "discrim-eval"
-   ],
+  "arc": {
+   "name": "arc",
+   "aliases": [],
    "sources": [
-    "hf_datasets",
+    "inspect_evals",
     "lm_eval"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/discrim_eval",
-    "https://huggingface.co/datasets/Anthropic/discrim-eval"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/arc",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/arc"
    ],
    "harness": {
-    "lm_eval": "discrim_eval"
+    "lm_eval": "arc",
+    "inspect_evals": "arc"
    },
    "category_hint": "",
-   "score": 31.1
+   "score": 25.0
   },
-  "novelty_bench": {
-   "name": "novelty_bench",
-   "aliases": [
-    "novelty-bench"
-   ],
+  "arithmetic": {
+   "name": "arithmetic",
+   "aliases": [],
    "sources": [
-    "hf_datasets",
-    "inspect_evals"
+    "bigbench",
+    "lm_eval"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/novelty_bench",
-    "https://huggingface.co/datasets/yimingzhang/novelty-bench"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/arithmetic",
+    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/arithmetic"
    ],
    "harness": {
-    "inspect_evals": "novelty_bench"
+    "lm_eval": "arithmetic",
+    "bigbench": "arithmetic"
    },
    "category_hint": "",
-   "score": 31.0
+   "score": 25.0
   },
-  "aci_bench": {
-   "name": "aci_bench",
-   "aliases": [
-    "ACI-Bench"
+  "babilong": {
+   "name": "babilong",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
    ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/babilong",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/babilong"
+   ],
+   "harness": {
+    "lm_eval": "babilong",
+    "opencompass": "babilong"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "bbeh": {
+   "name": "bbeh",
+   "aliases": [],
+   "sources": [
+    "inspect_evals",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/bbeh",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/bbeh"
+   ],
+   "harness": {
+    "inspect_evals": "bbeh",
+    "opencompass": "bbeh"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "blimp": {
+   "name": "blimp",
+   "aliases": [],
    "sources": [
     "helm",
-    "hf_datasets"
+    "lm_eval"
    ],
    "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/aci_bench_scenario.py",
-    "https://huggingface.co/datasets/mkieffer/ACI-Bench"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/blimp",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/blimp_scenario.py"
    ],
    "harness": {
-    "helm": "aci_bench"
+    "lm_eval": "blimp",
+    "helm": "blimp"
    },
    "category_hint": "",
-   "score": 30.7
+   "score": 25.0
   },
-  "compute_eval": {
-   "name": "compute_eval",
-   "aliases": [
-    "compute-eval"
-   ],
+  "bold": {
+   "name": "bold",
+   "aliases": [],
    "sources": [
-    "hf_datasets",
+    "helm",
     "inspect_evals"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/compute_eval",
-    "https://huggingface.co/datasets/nvidia/compute-eval"
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/bold",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/bold_scenario.py"
    ],
    "harness": {
-    "inspect_evals": "compute_eval"
+    "inspect_evals": "bold",
+    "helm": "bold"
    },
    "category_hint": "",
-   "score": 30.7
+   "score": 25.0
   },
-  "big_bench": {
-   "name": "big_bench",
+  "boolq": {
+   "name": "boolq",
+   "aliases": [],
+   "sources": [
+    "helm",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/boolq",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/boolq_scenario.py"
+   ],
+   "harness": {
+    "inspect_evals": "boolq",
+    "helm": "boolq"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "cmb": {
+   "name": "cmb",
    "aliases": [
-    "BIG-bench"
+    "CMB"
    ],
    "sources": [
-    "firecrawl_search",
+    "awesome:ahammadmejbah/Awesome-Datasets-Hub",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/FreedomIntelligence/CMB",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/cmb"
+   ],
+   "harness": {
+    "opencompass": "cmb"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "cmmlu": {
+   "name": "cmmlu",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/cmmlu",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/cmmlu"
+   ],
+   "harness": {
+    "lm_eval": "cmmlu",
+    "opencompass": "cmmlu"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "ds1000": {
+   "name": "ds1000",
+   "aliases": [],
+   "sources": [
+    "inspect_evals",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/ds1000",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ds1000"
+   ],
+   "harness": {
+    "inspect_evals": "ds1000",
+    "opencompass": "ds1000"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "general365": {
+   "name": "General365",
+   "aliases": [],
+   "sources": [
+    "arxiv",
+    "opencompass"
+   ],
+   "urls": [
+    "https://arxiv.org/abs/2604.11778v1",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/General365"
+   ],
+   "harness": {
+    "opencompass": "General365"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "greekmmlu": {
+   "name": "greekmmlu",
+   "aliases": [
+    "GreekMMLU"
+   ],
+   "sources": [
+    "arxiv",
+    "lm_eval"
+   ],
+   "urls": [
+    "https://arxiv.org/abs/2602.05150v2",
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/greekmmlu"
+   ],
+   "harness": {
+    "lm_eval": "greekmmlu"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "imdb": {
+   "name": "imdb",
+   "aliases": [
+    "IMDb"
+   ],
+   "sources": [
+    "awesome:latentsubspace/awesome-llm-benchmarks-hu",
     "helm"
    ],
    "urls": [
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/big_bench_scenario.py",
-    "https://x.com/AIOZNetwork/article/2082837213625176475"
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/imdb_scenario.py",
+    "https://huggingface.co/datasets/stanfordnlp/imdb"
    ],
    "harness": {
-    "helm": "big_bench"
+    "helm": "imdb"
    },
    "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   },
-  "ceval": {
-   "name": "ceval",
-   "aliases": [],
-   "sources": [
-    "lm_eval",
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/ceval",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ceval"
-   ],
-   "harness": {
-    "lm_eval": "ceval",
-    "opencompass": "ceval"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "charm": {
-   "name": "CHARM",
-   "aliases": [],
-   "sources": [
-    "arxiv",
-    "opencompass"
-   ],
-   "urls": [
-    "https://arxiv.org/abs/2609.01352v1",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CHARM"
-   ],
-   "harness": {
-    "opencompass": "CHARM"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "chembench": {
-   "name": "chembench",
+  "kpi_edgar": {
+   "name": "kpi_edgar",
    "aliases": [
-    "ChemBench"
+    "KPI-EDGAR"
    ],
    "sources": [
-    "inspect_evals",
-    "opencompass"
+    "awesome:latentsubspace/awesome-llm-benchmarks-hu",
+    "helm"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/chembench",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ChemBench"
+    "https://arxiv.org/pdf/2210.09163",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/kpi_edgar_scenario.py"
    ],
    "harness": {
-    "inspect_evals": "chembench",
-    "opencompass": "ChemBench"
+    "helm": "kpi_edgar"
    },
    "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   },
-  "commonsense_qa": {
-   "name": "commonsense_qa",
+  "lingoly": {
+   "name": "lingoly",
    "aliases": [],
    "sources": [
     "inspect_evals",
     "lm_eval"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/commonsense_qa",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/commonsense_qa"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/lingoly",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/lingoly"
    ],
    "harness": {
-    "lm_eval": "commonsense_qa",
-    "inspect_evals": "commonsense_qa"
+    "lm_eval": "lingoly",
+    "inspect_evals": "lingoly"
    },
    "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   },
-  "coqa": {
-   "name": "coqa",
+  "medbullets": {
+   "name": "medbullets",
    "aliases": [
-    "CoQA"
+    "Medbullets"
    ],
-   "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/coqa",
-    "https://stanfordnlp.github.io/coqa/"
-   ],
-   "harness": {
-    "lm_eval": "coqa"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "cve_bench": {
-   "name": "cve_bench",
-   "aliases": [
-    "CVE-Bench"
-   ],
-   "sources": [
-    "arxiv",
-    "inspect_evals"
-   ],
-   "urls": [
-    "https://arxiv.org/abs/2503.17332v4",
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/cve_bench"
-   ],
-   "harness": {
-    "inspect_evals": "cve_bench"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "headqa": {
-   "name": "headqa",
-   "aliases": [],
    "sources": [
     "helm",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/Medbullets",
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/medbullets_scenario.py"
+   ],
+   "harness": {
+    "helm": "medbullets",
+    "opencompass": "Medbullets"
+   },
+   "category_hint": "",
+   "score": 25.0
+  },
+  "meqsum": {
+   "name": "meqsum",
+   "aliases": [
+    "MeQSum"
+   ],
+   "sources": [
+    "awesome:ahammadmejbah/Awesome-Datasets-Hub",
     "lm_eval"
    ],
    "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/headqa",
-    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/headqa_scenario.py"
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/meqsum",
+    "https://github.com/abachaa/MeQSum"
    ],
    "harness": {
-    "lm_eval": "headqa",
-    "helm": "headqa"
+    "lm_eval": "meqsum"
    },
    "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   },
-  "healthbench": {
-   "name": "healthbench",
+  "perspectivegap": {
+   "name": "perspectivegap",
    "aliases": [
-    "HealthBench"
+    "PerspectiveGap"
    ],
    "sources": [
-    "inspect_evals",
+    "arxiv",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/healthbench",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/HealthBench"
+    "https://arxiv.org/abs/2606.08878v2",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/perspectivegap"
    ],
    "harness": {
-    "inspect_evals": "healthbench",
-    "opencompass": "HealthBench"
+    "opencompass": "perspectivegap"
    },
    "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   },
-  "ifbench": {
-   "name": "IFBench",
-   "aliases": [],
-   "sources": [
-    "aggregator:artificialanalysis.ai",
-    "opencompass"
-   ],
-   "urls": [
-    "https://artificialanalysis.ai/evaluations",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/IFBench"
-   ],
-   "harness": {
-    "opencompass": "IFBench"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "infinitebench": {
-   "name": "infinitebench",
+  "physics": {
+   "name": "physics",
    "aliases": [
-    "InfiniteBench"
+    "PHYSICS"
    ],
    "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
+    "bigbench",
     "opencompass"
    ],
    "urls": [
-    "https://github.com/OpenBMB/InfiniteBench",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/infinitebench"
+    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/physics",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/PHYSICS"
    ],
    "harness": {
-    "opencompass": "infinitebench"
+    "bigbench": "physics",
+    "opencompass": "PHYSICS"
    },
    "category_hint": "",
-   "score": 28.0
-  },
-  "lawbench": {
-   "name": "lawbench",
-   "aliases": [
-    "LawBench"
-   ],
-   "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/open-compass/lawbench",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/lawbench"
-   ],
-   "harness": {
-    "opencompass": "lawbench"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "livecodebench_pro": {
-   "name": "livecodebench_pro",
-   "aliases": [],
-   "sources": [
-    "inspect_evals",
-    "opencompass"
-   ],
-   "urls": [
-    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/livecodebench_pro",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livecodebench_pro"
-   ],
-   "harness": {
-    "inspect_evals": "livecodebench_pro",
-    "opencompass": "livecodebench_pro"
-   },
-   "category_hint": "",
-   "score": 28.0
-  },
-  "logiqa": {
-   "name": "logiqa",
-   "aliases": [
-    "LogiQA"
-   ],
-   "sources": [
-    "awesome:onejune2018/Awesome-LLM-Eval",
-    "lm_eval"
-   ],
-   "urls": [
-    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/logiqa",
-    "https://github.com/lgw863/LogiQA-dataset"
-   ],
-   "harness": {
-    "lm_eval": "logiqa"
-   },
-   "category_hint": "",
-   "score": 28.0
+   "score": 25.0
   }
  }
 }
