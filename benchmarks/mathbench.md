@@ -189,14 +189,14 @@ education at all) -- the three names are easy to mistake for one another but tes
 ## Saturation and contamination
 
 At the paper's own May 2024 release, the top model (GPT-4o-2024-05-13) already scored 87.7%
-application / 92.2% theory at the primary stage -- close to a ceiling -- while the same model's
-college-level scores were markedly lower (54.0% application / 85.6% theory), and open-source models
-trailed further still at college level. That spread suggests the easiest stages were already
-saturating at release while college-level application kept separating models. No current (2025-2026)
-score was found in the sources opened for this page, so present-day saturation is not established
-beyond this dated, stage-by-stage picture. Contamination risk is high: all problems and answers have
-been public under a permissive licence since March 2024, which is ample time to reach later
-pretraining corpora, and no contamination study specific to MathBench was found.
+application / 92.2% theory at the primary stage -- close to a ceiling -- while its college-level
+scores were markedly lower (54.0% application / 85.6% theory), and open-source models trailed further
+at college level. That spread suggests the easiest stages were saturating at release while
+college-level application kept separating models. No current (2025-2026) score was found in the
+sources opened for this page, so present-day saturation is not established beyond this dated picture.
+Contamination risk is high: all problems and answers have been public under a permissive licence
+since March 2024, ample time to reach later pretraining corpora, and no contamination study specific
+to MathBench was found.
 
 ## How to run it
 

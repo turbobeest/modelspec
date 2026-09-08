@@ -161,14 +161,13 @@ four sources at greater difficulty and separates frontier models far more sharpl
 
 ## How it is scored
 
-G-Pass@k_tau generalises the familiar Pass@k metric from code generation: given n independent samples
-per question and c of them judged correct, it estimates the probability that at least a tau-fraction
-of any randomly chosen k-sized subset of those samples is correct. Setting tau low rewards mere
-potential (can the model ever get it right); setting tau close to 1 rewards consistency (does it get
-it right nearly every time). mG-Pass@k integrates this across tau from 0.5 to 1.0 into a single
-number. Reported results also include a plain "Greedy" accuracy (single deterministic sample) for
-comparison. Because grading is free-response, no chance-level baseline applies, and no human baseline
-was found in the sources opened for this page.
+G-Pass@k_tau generalises Pass@k from code generation: given n independent samples per question and c
+judged correct, it estimates the probability that at least a tau-fraction of any k-sized subset of
+those samples is correct. A low tau rewards mere potential (can the model ever get it right); a tau
+near 1 rewards consistency (does it get it right nearly every time). mG-Pass@k integrates this across
+tau from 0.5 to 1.0 into one number. Results also report plain "Greedy" accuracy (one deterministic
+sample) for comparison. Free-response grading has no chance-level baseline, and no human baseline was
+found in the sources opened for this page.
 
 ## Dataset and licence
 
@@ -191,43 +190,40 @@ release -- v202505 being the most recent confirmed by this research.
 
 ## Lineage
 
-LiveMathBench names no formal predecessor. Several of its authors -- Kai Chen, Songyang Zhang and
-Wenwei Zhang -- also appear on this repository's `mathbench` page, a separate benchmark from the same
-Shanghai AI Laboratory / OpenCompass team that tests hierarchical, grade-by-grade mathematics
-proficiency rather than contamination resistance; the two are sibling projects with different design
-goals, not versions of each other. No successor or repository variant of LiveMathBench itself was
-found during this research.
+LiveMathBench names no formal predecessor. Several authors -- Kai Chen, Songyang Zhang and Wenwei
+Zhang -- also appear on this repository's `mathbench` page, a sibling OpenCompass benchmark that
+tests hierarchical, grade-by-grade proficiency rather than contamination resistance; the two are
+separate projects with different goals, not versions of each other. No successor or variant of
+LiveMathBench itself was found during this research.
 
 ## Saturation and contamination
 
 The maintainers' own results table, dated to the paper's early-2025 revisions rather than to today,
-shows DeepSeek-R1 leading the base LiveMathBench-202412 set (mG-Pass@16 77.6, Greedy 81.1), with
-OpenAI o3-mini close behind. On LiveMathBench-Hard-202412, the same top models drop sharply
-(DeepSeek-R1 mG-Pass@16 29.6, o3-mini 28.6), showing the Hard subset still separated frontier
-reasoning models well at that point. No current, 2026-dated score was found in sources opened for
-this page, and the question set has itself moved on to v202505 since that table was published, so
-these figures describe one past release rather than where today's models stand. Contamination risk is
-low by explicit design: every problem is sourced from recent, dated competitions chosen for low
-overlap with existing public data, and the authors commit to ongoing updates to stay ahead of model
-training cutoffs -- though risk rises for any single fixed version, like v202412, as more models are
-trained after its publication without a matching refresh of published results.
+shows DeepSeek-R1 leading the base LiveMathBench-202412 set (mG-Pass@16 77.6, Greedy 81.1). On
+LiveMathBench-Hard-202412, the same top models drop sharply (DeepSeek-R1 mG-Pass@16 29.6), showing
+the Hard subset still separated frontier reasoning models well at that point. No current, 2026-dated
+score was found in sources opened for this page, and the question set has itself moved on to v202505
+since that table was published, so these figures describe one past release, not where today's models
+stand. Contamination risk is low by design: every problem is sourced from recent, dated competitions
+chosen for low overlap with existing public data, and the authors commit to ongoing updates to stay
+ahead of training cutoffs -- though risk rises for any single fixed version, like v202412, the longer
+it goes without a refresh of published results.
 
 ## How to run it
 
 OpenCompass is the reference harness, registering the benchmark under its `livemathbench` config
 directory with numerous variants: a standard G-Pass@k config, a greedy-only config, several
-LiveMathBench-Hard configs (including LLM-verification and cascade-evaluation variants), and separate
-v202505 configs. The authors also publish a standalone Python implementation of the G-Pass@k metric
-class and a `lighteval`-based integration. Because G-Pass@k depends on the number of samples (n) and
-the threshold (tau) used, a score like "G-Pass@16_0.5" is only comparable to another score computed
-with the same k and tau.
+LiveMathBench-Hard configs, and separate v202505 configs. The authors also publish a standalone
+Python implementation of the G-Pass@k metric class and a `lighteval`-based integration. Because
+G-Pass@k depends on the sample count (n) and threshold (tau) used, a score like "G-Pass@16_0.5" is
+only comparable to another computed with the same k and tau.
 
 ## Reading the numbers
 
-Because LiveMathBench is versioned rather than fixed, always check which release (v202412, v202505,
-or a later one) a reported score used before comparing it to another -- the question sets, and for
-v202505 even the language, differ between versions. Because the headline metric is stability-aware
-rather than a simple accuracy, a high G-Pass@16 at a high tau threshold is a stronger claim than a
-high Greedy or Pass@1 score: it says the model gets the same problem right nearly every time it is
-asked, not just once. Read the base and Hard results separately, since the paper's own numbers show
-the Hard subset still separating models sharply where the base set was closer to solved.
+Because LiveMathBench is versioned, always check which release (v202412, v202505, or a later one)
+a reported score used before comparing it to another -- the question sets, and for v202505 even the
+language, differ between versions. Because the headline metric is stability-aware rather than a
+simple accuracy, a high G-Pass@16 at a high tau threshold is a stronger claim than a high Greedy
+score: it says the model gets the same problem right nearly every time, not just once. Read the base
+and Hard results separately, since the Hard subset still separates models where the base set is
+closer to solved.

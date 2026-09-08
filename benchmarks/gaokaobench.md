@@ -171,18 +171,17 @@ English, since that mirrors the real Gaokao English paper.
 
 ## How it is scored
 
-Evaluation is zero-shot by design, intended to mirror how a human examinee sits the exam rather than
-give a model few-shot examples. Objective questions are scored by rule-based extraction of the
-predicted answer. Subjective questions are harder: the original paper had them graded by human
-teachers (the authors credit teachers at a Shanghai secondary school), and the repository separately
-ships a GPT-4-based LLM-as-judge script as a scalable alternative, reporting Spearman and Kendall-Tau
-correlation between LLM-assigned and human-assigned scores rather than treating the LLM judge as
-ground truth -- the paper describes the resulting agreement as "a moderate level of consistency." The
-paper's headline number combines both question types into a converted total score rescaled onto the
-real Gaokao's own 750-point scale, with GPT-4-0314 the strongest model tested at over 400 points. Most
-downstream harnesses, by contrast, report plain accuracy on the objective subset alone: OpenCompass's
-own `GaokaoBench_no_subjective_gen` configurations exclude the subjective questions entirely, so a
-harness-reported GAOKAO-Bench score is not the same figure as the paper's own converted total score.
+Evaluation is zero-shot by design, to mirror how a human examinee sits the exam rather than give a
+model few-shot examples. Objective questions are scored by rule-based extraction of the predicted
+answer. Subjective questions are harder: the paper had them graded by human teachers (credited at a
+Shanghai secondary school), and the repository separately ships a GPT-4-based LLM-as-judge script,
+reporting Spearman and Kendall-Tau correlation between LLM- and human-assigned scores rather than
+treating the judge as ground truth -- the paper calls the resulting agreement "a moderate level of
+consistency." The paper's headline number combines both question types into a converted total score
+rescaled onto the real Gaokao's own 750-point scale, with GPT-4-0314 strongest at over 400 points. Most
+downstream harnesses instead report plain accuracy on the objective subset alone: OpenCompass's
+`GaokaoBench_no_subjective_gen` configurations exclude subjective questions entirely, so a
+harness-reported score is not the same figure as the paper's own converted total score.
 
 ## Dataset and licence
 
@@ -213,12 +212,11 @@ Gaokao papers specifically to outrun contamination in the original set. GAOKAO-B
 confused with AGIEval (Zhong et al. 2023, arXiv 2304.06364), a separate, broader benchmark that
 independently draws several individual Gaokao-subject splits (gaokao-biology, gaokao-chemistry,
 gaokao-chinese, gaokao-english, gaokao-geography, gaokao-history, gaokao-mathcloze, gaokao-mathqa,
-gaokao-physics -- confirmed directly in lm-evaluation-harness's `agieval` task directory) into its own
-20-exam collection alongside the American SAT, LSAT and other qualification tests; the two projects
-share source material but not authorship, curation, or the objective/subjective split GAOKAO-Bench is
-built around. This wiki's [C-Eval](ceval.md) and [CMMLU](cmmlu.md) pages are contemporaneous
-Chinese-language exam suites but draw on original, authored-for-the-benchmark question banks rather
-than a real, publicly administered exam's actual questions.
+gaokao-physics -- confirmed in lm-evaluation-harness's `agieval` task directory) into its own 20-exam
+collection alongside the SAT and LSAT; the two projects share source material but not authorship,
+curation, or GAOKAO-Bench's objective/subjective split. This wiki's [C-Eval](ceval.md) and
+[CMMLU](cmmlu.md) pages are contemporaneous Chinese exam suites but draw on original,
+authored-for-the-benchmark question banks rather than a real, publicly administered exam.
 
 ## Saturation and contamination
 
@@ -250,11 +248,10 @@ produced it.
 
 A strong GAOKAO-Bench score shows a model handling real Chinese secondary-education exam material
 across a wide subject range, in the exact multi-format style (multiple choice, cloze, fill-in-the-blank,
-essay) a Chinese student actually faces, which is a richer test of format-following than a uniform
-4-option multiple-choice suite. Because most harness numbers cover only the objective subset, they say
-nothing about a model's performance on the 36.6% of the original exam that requires extended,
-free-form answers -- a model could score well on objective GAOKAO-Bench while never having its
-essay-writing or extended-reasoning ability checked by this benchmark at all. Given the 2023-2024
-comparisons already show several models above 85% on the objective subset, corroborate an
-unusually high score against C-Eval or CMMLU, and check whether the figure reported is objective-only
-accuracy or the paper's own 750-point converted score before comparing two numbers.
+essay) a Chinese student actually faces -- a richer test of format-following than a uniform 4-option
+multiple-choice suite. Because most harness numbers cover only the objective subset, they say nothing
+about the 36.6% of the exam that requires extended, free-form answers -- a model can score well on
+objective GAOKAO-Bench without its essay-writing or extended reasoning ever being checked. Given 2024
+comparisons already show several models above 85% on the objective subset, corroborate an unusually
+high score against C-Eval or CMMLU, and check whether a reported figure is objective-only accuracy or
+the paper's own 750-point converted score before comparing two numbers.

@@ -152,27 +152,23 @@ LM-SynEval measures what a language model implicitly knows about specific points
 not whether it can perform a task or explain a rule. Each item is a minimal pair of sentences
 differing in exactly one grammatical property -- for example "The author laughs" versus "The author
 laugh" -- and the model is scored by whether it assigns a higher probability to the grammatical
-member. The pairs cover three phenomena: subject-verb agreement, tested across many constructions
-(across a prepositional phrase, a sentential complement, subject and object relative clauses with and
-without an overt "that", and verb-phrase coordination); reflexive anaphora, testing whether a
-reflexive pronoun's number matches its antecedent, within simple sentences and across a relative
-clause; and negative polarity item licensing, testing whether a word like "ever" appears only in a
-context, such as one introduced by "no", that licenses it. A model can score well on every
-construction here while being unable to state, in words, the agreement or licensing rule it is
-implicitly satisfying -- this is a probe of linguistic competence, closer to a psycholinguistic
-acceptability-judgment experiment than to a benchmark of task-solving ability such as question
-answering.
+member. The pairs cover three phenomena: subject-verb agreement (across a prepositional phrase, a
+sentential complement, relative clauses with and without an overt "that", and verb-phrase
+coordination); reflexive anaphora (does a reflexive pronoun's number match its antecedent, within
+simple sentences and across a relative clause); and negative polarity item licensing (does a word
+like "ever" appear only where a context such as "no" licenses it). A model can score well on every
+construction here while being unable to state, in words, the rule it is implicitly satisfying -- this
+is a probe of linguistic competence, closer to a psycholinguistic acceptability-judgment experiment
+than to a benchmark of task-solving ability such as question answering.
 
 ## How it is scored
 
-For each minimal pair, the model is scored correct if it assigns a higher probability to the
-grammatical sentence than to the ungrammatical one; lm-evaluation-harness implements this as a
-`multiple_choice` task with exactly two options per item, so random guessing scores 50%. Accuracy is
-reported per construction (72 in total) and can be aggregated up through each phenomenon (agreement,
-reflexives, NPI) to an overall mean. The original paper additionally recruited human participants
-online to validate the task and reports that "a large gap remained" between its best LSTM model and
-human accuracy, though no single overall human-accuracy percentage was found in the source read for
-this page.
+The model is scored correct on a pair if it assigns a higher probability to the grammatical sentence;
+lm-evaluation-harness implements this as a `multiple_choice` task with exactly two options per item,
+so random guessing scores 50%. Accuracy is reported per construction (72 total) and aggregates up
+through each phenomenon to an overall mean. The paper also recruited human participants online and
+reports "a large gap remained" between its best LSTM and human accuracy, though no single overall
+human-accuracy percentage was found in the source read for this page.
 
 ## Dataset and licence
 
@@ -194,38 +190,34 @@ commonly used to evaluate current models.
 
 ## Lineage
 
-LM-SynEval names no predecessor of its own. This repository's `blimp` page (Warstadt et al., 2020,
-NYU) is the clearest downstream relative: BLiMP's own related-work table cites Marvin and Linzen 2018
-by name specifically for its coverage of subject-verb agreement, anaphor/binding phenomena and
-negative polarity items -- the same three phenomena this benchmark tests -- while BLiMP itself scales
-the same minimal-pair methodology to 67 paradigms and 12 broader phenomena using fully automatic,
-larger-scale generation. The two are separate benchmarks with separate datasets and code, not a
-family and a subset of it, but they measure the same underlying kind of thing: probability-based
-grammaticality judgment on constructed minimal pairs.
+LM-SynEval names no predecessor. This repository's `blimp` page (Warstadt et al., 2020, NYU) is the
+clearest downstream relative: BLiMP's own related-work table cites Marvin and Linzen 2018 by name for
+its coverage of subject-verb agreement, anaphor/binding and negative polarity items -- the same three
+phenomena this benchmark tests -- while BLiMP scales the same minimal-pair methodology to 67 paradigms
+and 12 phenomena with fully automatic generation. The two are separate benchmarks, not a family and a
+subset of it, but they measure the same underlying kind of thing: probability-based grammaticality
+judgment on constructed minimal pairs.
 
 ## Saturation and contamination
 
-The original 2018 paper found an LSTM language model handled simple constructions well but performed
-poorly on several harder ones, particularly agreement across an object relative clause and NPI
-licensing, and that multi-task training with a CCG-supertagging objective improved but did not close
-the gap to human accuracy. No source opened for this page reported a current transformer-era or
-frontier-model score on this specific benchmark, and no model card in this repository was found
-citing it, so its standing against current models is not established here. Contamination risk is
-medium: the dataset has been public since 2018, but because every pair is generated from a template
-over a shared vocabulary rather than hand-written or drawn from one external source, correctly
-favouring grammatical sentences is plausibly a capability learned from broad exposure to grammatical
-English generally, not from memorising these specific 158,084 pairs.
+The original 2018 paper found an LSTM handled simple constructions well but performed poorly on
+harder ones, particularly agreement across an object relative clause and NPI licensing, and that
+multi-task training with a CCG-supertagging objective improved but did not close the gap to human
+accuracy. No source opened for this page reported a current transformer-era or frontier-model score,
+and no model card in this repository cites it, so its standing against current models is not
+established here. Contamination risk is medium: the dataset has been public since 2018, but since
+every pair is generated from a template over a shared vocabulary rather than hand-written, correctly
+favouring grammatical sentences is plausibly learned from broad exposure to English generally, not
+from memorising these specific pairs.
 
 ## How to run it
 
-lm-evaluation-harness implements the task as `lm_syneval`, made up of 72 individual construction
-tasks (for example `lm_syneval__agreement__simple_agrmt__sing_MS_MV`) grouped under three
-sub-groups -- `lm_syneval__agreement`, `lm_syneval__reflexives`, `lm_syneval__npi` -- and an overall
-`lm_syneval` group, each using unweighted mean aggregation. The harness's own checklist notes that
-this implementation has not been checked against the original authors' reference code, because that
-code was built to evaluate RNN-family models rather than the prompted, tokenizer-based evaluation
-used for current LLMs. No HELM, OpenCompass, inspect_evals or BIG-bench registration was confirmed
-during this research.
+lm-evaluation-harness implements the task as `lm_syneval`, made up of 72 construction tasks (for
+example `lm_syneval__agreement__simple_agrmt__sing_MS_MV`) grouped under three sub-groups --
+agreement, reflexives, npi -- and an overall group, each using unweighted mean aggregation. The
+harness's own checklist notes this implementation has not been checked against the original authors'
+reference code, since that code targets RNN-family models rather than the prompted evaluation used
+for current LLMs. No HELM, OpenCompass, inspect_evals or BIG-bench registration was confirmed.
 
 ## Reading the numbers
 

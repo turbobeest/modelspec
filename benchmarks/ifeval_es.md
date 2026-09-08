@@ -154,8 +154,7 @@ are simply unexercised here.
 
 A high ifeval_es score shows a model reliably follows explicit, checkable instructions written in
 Spanish -- the same narrow claim English IFEval supports for English, not general Spanish fluency.
-Because scoring runs on an independently maintained Spanish checker codebase rather than the English
-one, a Spanish and an English IFEval score are comparable in spirit but not strictly the same
-measurement, even though the item count and instruction taxonomy line up exactly. As with English
-IFEval, check whether a reported figure is strict or loose, and prompt-level or instruction-level,
-before comparing two scores.
+Because scoring runs on an independently maintained Spanish checker codebase, a Spanish and an English
+IFEval score are comparable in spirit but not strictly the same measurement, even though the item count
+and instruction taxonomy line up exactly. As with English IFEval, check whether a figure is strict or
+loose, and prompt-level or instruction-level, before comparing two scores.

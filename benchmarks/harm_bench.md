@@ -226,33 +226,30 @@ centerforaisafety/HarmBench on GitHub and at harmbench.org.
 
 ## Lineage
 
-HarmBench positions itself against a set of smaller, less diverse prior red-teaming behavior sets it
-directly compares itself to in its own Table 5, including AdvBench (58 behaviors, from the same GCG
-paper, Zou et al. 2023, arXiv 2307.15043), TDC 2023 (99 behaviors) and MaliciousInstruct (100
-behaviors) -- none of which are separately catalogued in this repository. Its own variant,
-[harm_bench_gcg_transfer](harm_bench_gcg_transfer.md), applies suffixes from the transfer version of
-GCG to the same behavior set rather than introducing new behaviors. HarmBench is the safety-red-teaming
-counterpart to over-refusal calibration benchmarks like [XSTest](xstest.md): the two test opposite
-failure modes (a model complying with genuinely unsafe requests versus refusing genuinely safe ones),
-and are best read together rather than in isolation. It is distinct from [WMDP](wmdp.md), a
-multiple-choice hazardous-knowledge proxy rather than a red-teaming attack framework, and from
-[CyberSecEval 2](cyberseceval_2.md), which is scoped specifically to cybersecurity risk and code
-security rather than HarmBench's broader harm taxonomy.
+HarmBench positions itself against smaller, less diverse prior red-teaming behavior sets it directly
+compares itself to in its own Table 5, including AdvBench (58 behaviors, from the same GCG paper, Zou
+et al. 2023, arXiv 2307.15043), TDC 2023 (99 behaviors) and MaliciousInstruct (100 behaviors) -- none
+catalogued separately in this repository. Its own variant,
+[harm_bench_gcg_transfer](harm_bench_gcg_transfer.md), applies transfer-GCG suffixes to the same
+behavior set rather than introducing new ones. HarmBench is the red-teaming counterpart to
+over-refusal calibration benchmarks like [XSTest](xstest.md): the two test opposite failure modes
+(complying with unsafe requests versus refusing safe ones) and are best read together. It is distinct
+from [WMDP](wmdp.md), a multiple-choice hazardous-knowledge proxy rather than an attack framework, and
+from [CyberSecEval 2](cyberseceval_2.md), scoped to cybersecurity and code security specifically
+rather than HarmBench's broader harm taxonomy.
 
 ## Saturation and contamination
 
-Whether HarmBench looks saturated depends entirely on which attack is used against which model, which
-this page reads as evidence of real, open separation rather than picking a single top score. The
-paper's own Table 6 shows very wide spreads: under the transfer-only GCG-T attack, ASR on Llama 2 7B
-Chat is 1.8% versus 19.8% on Vicuna 7B; under stronger, per-target-optimized attacks such as AutoDAN,
-PAIR and TAP, several models exceed 60% ASR. No 2025-2026 frontier-model figures under the paper's own
-classifier-based scoring were found for this page; the project's own results page presents only
-February-2024 baseline charts as static images with no newer entries. Contamination risk is medium and
-reads differently here than on an answer-matched benchmark: there is no single correct answer to
+Whether HarmBench looks saturated depends entirely on which attack is used against which model, read
+here as evidence of real, open separation rather than a single top score. The paper's own Table 6 shows
+wide spreads: under the transfer-only GCG-T attack, ASR on Llama 2 7B Chat is 1.8% versus 19.8% on
+Vicuna 7B; under stronger, per-target attacks such as AutoDAN, PAIR and TAP, several models exceed 60%
+ASR. No 2025-2026 frontier-model figures under the paper's classifier-based scoring were found; the
+project's results page shows only February-2024 baseline charts as static images. Contamination risk is
+medium and reads differently than on an answer-matched benchmark: there is no correct answer to
 memorize, so exposure mainly matters if a developer safety-tunes specifically against these known
-behaviors or against previously published, attack-optimized suffixes, which would lower ASR on
-HarmBench specifically without necessarily improving robustness to novel attacks the benchmark does not
-cover.
+behaviors or previously published attack-optimized suffixes, which would lower ASR here without
+necessarily improving robustness to attacks the benchmark does not cover.
 
 ## How to run it
 
