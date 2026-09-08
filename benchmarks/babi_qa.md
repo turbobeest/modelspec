@@ -89,9 +89,9 @@ saturation:
   as_of: ""
   note: >
     No source read for this page gave a specific current top score on standalone bAbI, but the
-    evidence points firmly toward "saturated" rather than "open." This repository's own babilong.md
-    page, which embeds these same 20 tasks inside long distractor text, states directly that "the
-    same QA1-QA20 tasks are near-trivial at 0k (no distractor) context" for modern models -- i.e.
+    evidence points firmly toward "saturated" rather than "open." This repository's own BABILong
+    page (babilong.md), which embeds these same 20 tasks inside long distractor text, states directly
+    that "the same QA1-QA20 tasks are near-trivial at 0k (no distractor) context" for modern models -- i.e.
     bAbI's original short-context setting is no longer a meaningful test on its own. That is why
     BABILong exists: it reuses bAbI's reasoning templates but makes the benchmark hard again by
     burying the same facts in up to millions of tokens of irrelevant text.
@@ -161,11 +161,11 @@ bAbI was introduced by Jason Weston, Antoine Bordes, Sumit Chopra, Alexander M. 
 
 ## Lineage
 
-bAbI has no predecessor tracked in this repository. Its direct successor here is `babilong`, which takes the same 20 reasoning-task templates and embeds their fact sentences inside long passages of unrelated book text, isolating long-context retrieval and reasoning from the underlying skill bAbI already tests at short range. A separate, later extension not covered by this page, dialog-bAbI (visible as a second arXiv tag, 1511.06931, on the Hugging Face mirror's metadata), reframes some of the same ideas as goal-oriented dialogue rather than single-turn question answering.
+bAbI has no predecessor tracked in this repository. Its direct successor here is [BABILong](babilong.md), which takes the same 20 reasoning-task templates and embeds their fact sentences inside long passages of unrelated book text, isolating long-context retrieval and reasoning from the underlying skill bAbI already tests at short range. A separate, later extension not covered by this page, dialog-bAbI (visible as a second arXiv tag, 1511.06931, on the Hugging Face mirror's metadata), reframes some of the same ideas as goal-oriented dialogue rather than single-turn question answering.
 
 ## Saturation and contamination
 
-bAbI is saturated. No source read for this page gave a specific current top score on the standalone short-context tasks, but this repository's own babilong.md page states directly that the same 20 tasks are "near-trivial" for modern models at 0k (no-distractor) context -- confirming, from evidence already gathered elsewhere in this repository, that bAbI's original setting no longer meaningfully separates capable models. That is precisely why BABILong exists: reusing bAbI's reasoning templates while making the test hard again by burying the same facts in up to millions of tokens of distractor text. Contamination risk is high: the dataset and its answer keys have been public since February 2015, over eleven years by this page's research date, and are widely mirrored and used as a standard teaching example for reasoning and memory-network architectures.
+bAbI is saturated. No source read for this page gave a specific current top score on the standalone short-context tasks, but this repository's own [BABILong](babilong.md) page states directly that the same 20 tasks are "near-trivial" for modern models at 0k (no-distractor) context -- confirming, from evidence already gathered elsewhere in this repository, that bAbI's original setting no longer meaningfully separates capable models. That is precisely why BABILong exists: reusing bAbI's reasoning templates while making the test hard again by burying the same facts in up to millions of tokens of distractor text. Contamination risk is high: the dataset and its answer keys have been public since February 2015, over eleven years by this page's research date, and are widely mirrored and used as a standard teaching example for reasoning and memory-network architectures.
 
 ## How to run it
 

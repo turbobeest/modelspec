@@ -141,90 +141,83 @@ freshness:
 
 WMDP probes whether a model can answer multiple-choice questions covering knowledge adjacent to
 biological, chemical and cyber weapons risk, split into three subsets: WMDP-Bio, WMDP-Cyber and
-WMDP-Chem. The authors are explicit that it is a proxy rather than a direct capability test -- to avoid
-publishing genuinely dangerous material, the roughly 3,668 questions were written and reviewed by
-academics and technical consultants to sit at the level of precursor, neighbouring and component
-knowledge, each checked by at least two subject-matter experts and screened for compliance with US
-export-control rules. WMDP is built to serve two purposes: as a evaluation of hazardous-adjacent
-knowledge a model can surface, and as a concrete optimisation target for machine unlearning research,
-which is why the paper pairs the benchmark with its own unlearning method (RMU, Representation
-Misdirection for Unlearning) rather than presenting it purely as a capability leaderboard.
+WMDP-Chem. The authors are explicit it is a proxy rather than a direct capability test -- to avoid
+publishing genuinely dangerous material, the 3,668 questions were written and reviewed by academics and
+technical consultants to sit at the level of precursor, neighbouring and component knowledge, each
+checked by at least two subject-matter experts and screened for compliance with US export-control rules.
+WMDP serves two purposes: an evaluation of hazardous-adjacent knowledge a model can surface, and a
+concrete optimisation target for machine unlearning research, which is why the paper pairs it with its
+own unlearning method (RMU, Representation Misdirection for Unlearning) rather than presenting it purely
+as a capability leaderboard.
 
 ## How it is scored
 
 Every question is four-option multiple choice, scored as plain accuracy, giving a 25% random-chance
 baseline. This is the one entry in this repository where scoring direction needs a careful reading:
-accuracy still increases with a model's underlying knowledge exactly as it would on any other
-multiple-choice benchmark -- larger, more capable models scored higher in the paper's own baseline
-table. What differs is which direction is desirable. The paper states its goal plainly: reduce "QA
-accuracy on WMDP while maintaining performance on other benchmarks, such as MMLU." A low WMDP score is
-only meaningful as a safety signal when read next to a general-capability benchmark that stayed high --
-that combination is what indicates targeted removal of hazardous-adjacent knowledge rather than simply a
-weaker model. A low WMDP score alongside a depressed MMLU score shows nothing about successful
-unlearning.
+accuracy still increases with a model's underlying knowledge, exactly as on any other multiple-choice
+benchmark -- larger, more capable models scored higher in the paper's own baseline table. What differs is
+which direction is desirable. The paper states its goal plainly: reduce "QA accuracy on WMDP while
+maintaining performance on other benchmarks, such as MMLU." A low WMDP score is only meaningful as a
+safety signal when read next to a general-capability benchmark that stayed high; a low WMDP score
+alongside a depressed MMLU score shows nothing about successful unlearning.
 
 ## Dataset and licence
 
 The dataset is 3,668 multiple-choice questions: 1,273 in WMDP-Bio, 1,987 in WMDP-Cyber and 408 in
-WMDP-Chem, each a single test split with no train or validation portion, confirmed directly from the
-official Hugging Face dataset card's split metadata and matching the published paper. The
-lm-evaluation-harness task README states a different total, 4,157 questions (1,520/2,225/412 by
-subset); this page treats the paper and dataset-card figure as the better-corroborated one, since the
-two agree independently, and notes the mismatch rather than silently picking a number. The dataset
-(`cais/wmdp`) carries an MIT licence on Hugging Face. Per the authors, questions were deliberately
-curated to exclude operationally dangerous detail even though the underlying dataset is fully public.
+WMDP-Chem, each a single test split with no train or validation portion, confirmed from the official
+Hugging Face dataset card's split metadata and matching the paper. The lm-evaluation-harness task README
+states a different total, 4,157 questions (1,520/2,225/412 by subset); this page treats the paper and
+dataset-card figure as better-corroborated, since the two agree independently, and flags the mismatch
+rather than silently picking one. The dataset (`cais/wmdp`) carries an MIT licence on Hugging Face.
+Questions were deliberately curated to exclude operationally dangerous detail even though the dataset is
+fully public.
 
 ## Who publishes it
 
 WMDP was produced by a large, multi-institution author group led by Nathaniel Li, Alexander Pan and
-Anjali Gopal, with the Center for AI Safety (CAIS) as the coordinating organisation and Dan Hendrycks
-as senior author; contributors span academic groups (including UC Berkeley and MIT), biosecurity
-specialists at SecureBio, and industry participants. It was posted to arXiv in March 2024. The project
-is maintained at wmdp.ai and github.com/centerforaisafety/wmdp, alongside the RMU unlearning reference
-implementation.
+Anjali Gopal, with the Center for AI Safety (CAIS) as coordinating organisation and Dan Hendrycks as
+senior author; contributors span academic groups (including UC Berkeley and MIT), biosecurity specialists
+at SecureBio, and industry participants. It was posted to arXiv in March 2024. The project is maintained
+at wmdp.ai and github.com/centerforaisafety/wmdp, alongside the RMU reference implementation.
 
 ## Lineage
 
-WMDP does not sit in a benchmark family catalogued in this repository and has no confirmed predecessor
-or successor of its own. It is best understood in relation to the general-capability benchmarks it is
-designed to be read against, most notably MMLU, which the paper names directly as the companion metric
-that should stay high while WMDP goes down for a successful, targeted unlearning result -- the two
-should always be reported together rather than WMDP in isolation. It also sits within a broader,
-fast-moving line of machine-unlearning research (of which RMU is the paper's own contribution) that
-this repository does not otherwise catalogue.
+WMDP does not sit in a benchmark family catalogued in this repository and has no confirmed predecessor or
+successor. It is best understood in relation to the general-capability benchmarks it is designed to be
+read against, most notably MMLU, which the paper names directly as the companion metric that should stay
+high while WMDP goes down for a successful, targeted unlearning result -- the two should always be
+reported together rather than WMDP alone. It also sits within a broader line of machine-unlearning
+research (of which RMU is the paper's own contribution) this repository does not otherwise catalogue.
 
 ## Saturation and contamination
 
-Whether WMDP is "saturated" depends on which direction you are reading it in, so this page states both
-without picking one as the answer. As a raw capability ceiling, the paper's 2024 baseline table put
-GPT-4 at 86.2% (Bio), 73.6% (Cyber) and 81.6% (Chem) -- well above the 25% random baseline for every
-model tested, indicating the questions were not especially obscure to a strong 2024 model. As a
-safety-desirable floor, the paper's own RMU method pushed several open models down toward the high 20s
-and low 30s percent on Bio and Cyber while mostly preserving MMLU. No 2025-2026 frontier-model score on
-unmodified WMDP was found for this page. Contamination risk is high: the full question set has been
-public and unchanged since March 2024 with no private holdout, so exposure during later pretraining or
-fine-tuning is plausible, even though the questions were curated to avoid teaching operational detail by
-themselves.
+Whether WMDP is "saturated" depends on which direction you read it in, so this page states both rather
+than pick one. As a raw capability ceiling, the paper's 2024 baseline table put GPT-4 at 86.2% (Bio),
+73.6% (Cyber) and 81.6% (Chem) -- well above the 25% random baseline, indicating the questions were not
+especially obscure to a strong 2024 model. As a safety-desirable floor, the paper's own RMU method pushed
+several open models down toward the high 20s and low 30s percent on Bio and Cyber while mostly preserving
+MMLU. No 2025-2026 frontier-model score on unmodified WMDP was found for this page. Contamination risk is
+high: the full question set has been public and unchanged since March 2024 with no private holdout, so
+exposure during later training is plausible, even though questions were curated to avoid teaching
+operational detail by themselves.
 
 ## How to run it
 
-lm-evaluation-harness groups the benchmark under the tag `wmdp`, covering three subtasks --
-`wmdp_bio`, `wmdp_cyber`, `wmdp_chemistry`. inspect_evals implements the same three subsets as separate
-tasks (`wmdp_bio`, `wmdp_chem`, `wmdp_cyber`) with no single combined task. The authors' own evaluation
-and RMU unlearning code is at github.com/centerforaisafety/wmdp. No HELM, OpenCompass or BIG-bench
-implementation was confirmed during this research. Because the benchmark is typically reported as three
-separate per-domain percentages rather than one blended figure, check which subset (or which
-combination) a reported number covers before comparing it to another source.
+lm-evaluation-harness groups the benchmark under the tag `wmdp`, covering three subtasks -- `wmdp_bio`,
+`wmdp_cyber`, `wmdp_chemistry`. inspect_evals implements the same three subsets separately (`wmdp_bio`,
+`wmdp_chem`, `wmdp_cyber`) with no combined task. The authors' own evaluation and RMU code is at
+github.com/centerforaisafety/wmdp. No HELM, OpenCompass or BIG-bench implementation was confirmed. Because
+the benchmark is typically reported as three separate per-domain percentages rather than one blended
+figure, check which subset a reported number covers before comparing it to another source.
 
 ## Reading the numbers
 
-A WMDP score only means something next to a general-capability number reported alongside it: a low
-WMDP score paired with strong MMLU or similar performance is evidence of successful, targeted removal of
-hazardous-adjacent knowledge; a low WMDP score paired with a similarly depressed general benchmark just
-shows a weaker model, not a safer one. A high WMDP score is not, by itself, evidence a model can be used
-to build a weapon -- the authors built the question set deliberately around precursor and component
-knowledge rather than operational detail, precisely so the benchmark could be published safely -- but it
-does indicate the model can surface hazardous-adjacent information on request, which is the risk the
-benchmark is a proxy for. Treat per-domain scores separately rather than averaging Bio, Cyber and Chem
-into one number, since the domains probe different threat models and, per the paper's own baselines,
-models do not track uniformly across all three.
+A WMDP score only means something next to a general-capability number reported alongside it: a low WMDP
+score paired with strong MMLU is evidence of successful, targeted removal of hazardous-adjacent
+knowledge; a low WMDP score paired with a similarly depressed general benchmark just shows a weaker
+model, not a safer one. A high WMDP score is not, by itself, evidence a model can be used to build a
+weapon -- the question set is built deliberately around precursor and component knowledge rather than
+operational detail, so the benchmark could be published safely -- but it does indicate the model can
+surface hazardous-adjacent information on request, the risk the benchmark is a proxy for. Treat
+per-domain scores separately rather than averaging Bio, Cyber and Chem into one number, since the domains
+probe different threat models and models do not track uniformly across all three.

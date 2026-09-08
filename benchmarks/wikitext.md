@@ -137,16 +137,15 @@ freshness:
 
 ## What it measures
 
-WikiText is a language-modelling corpus, not a task benchmark: it does not ask a model a question or
-give it an instruction to follow. Instead, it gives a model long, curated Wikipedia article text and
-scores how well the model's own next-token probability distribution predicts the words that actually
-follow, over the full length of the article. The corpus was built specifically from articles that met
-Wikipedia's "Good" or "Featured" quality bar, which keeps the prose well-formed and roughly consistent in
-register, and it deliberately keeps full articles intact (rather than shuffled sentences) so a model can
-be scored on how well it uses long-range context, not just local word statistics. Because there is no
-question and no correct answer to match, a WikiText score speaks only to raw modelling quality -- how
-well-calibrated and fluent the model's underlying distribution over English text is -- and not to any
-downstream capability such as reasoning, instruction-following or factual correctness.
+WikiText is a language-modelling corpus, not a task benchmark: it does not ask a model a question or give
+it an instruction to follow. Instead, it gives a model long, curated Wikipedia article text and scores how
+well the model's own next-token probability distribution predicts the words that actually follow, over
+the full article. The corpus was built from articles that met Wikipedia's "Good" or "Featured" quality
+bar, keeping the prose well-formed, and deliberately keeps full articles intact (rather than shuffled
+sentences) so a model can be scored on how well it uses long-range context, not just local word
+statistics. Because there is no question and no correct answer to match, a WikiText score speaks only to
+raw modelling quality -- how well-calibrated and fluent the model's underlying distribution over English
+text is -- not to any downstream capability such as reasoning or factual correctness.
 
 ## How it is scored
 
@@ -154,43 +153,41 @@ The metric is perplexity, the exponentiated average negative log-likelihood the 
 actual next token at each position, computed as a rolling score across each document so the model can use
 all preceding context up to its window limit. Lower is better: a perplexity of 1 would mean the model
 predicted every token with certainty, and higher numbers mean the model was more "surprised," on average,
-by the real continuation. Because perplexity is computed per unit of text, its numeric value depends on
-what that unit is -- lm-evaluation-harness accordingly reports three related figures side by side:
-word_perplexity (per word, using the corpus's original word-level tokenization), byte_perplexity (per
-byte, tokenizer-independent) and bits_per_byte (the same byte-level figure expressed in bits). A
-word-level perplexity computed against one tokenizer's vocabulary is not directly comparable to another
-paper's word-level perplexity computed against a different one, which is the main reason WikiText numbers
+by the real continuation. Because perplexity is computed per unit of text, its value depends on what that
+unit is -- lm-evaluation-harness reports three figures side by side: word_perplexity (per word, the
+corpus's original tokenization), byte_perplexity (per byte, tokenizer-independent) and bits_per_byte (the
+same byte-level figure in bits). A word-level perplexity against one tokenizer's vocabulary is not
+comparable to another paper's word-level perplexity against a different one, which is why WikiText numbers
 from different sources are hard to line up.
 
 ## Dataset and licence
 
 WikiText comes in two sizes built from the same source of roughly 28,595 English Wikipedia "Good" or
-"Featured" articles: WikiText-2 (2,088,628 training tokens, a 33,278-word vocabulary) and WikiText-103,
-built from far more of the same source material (103,227,021 training tokens, a 267,735-word vocabulary)
-and sharing WikiText-2's validation and test sets. Each size ships in two forms on Hugging Face
-(`Salesforce/wikitext`): a `-v1` config with out-of-vocabulary words replaced by an `<unk>` token for
-classic word-level modelling, and a `-raw-v1` config that keeps original casing, punctuation and numbers,
-suited to byte- or subword-level models. The dataset card states a dual Creative Commons
-Attribution-ShareAlike 3.0 / GFDL licence, inherited from the licensing terms of the Wikipedia articles it
-was built from.
+"Featured" articles: WikiText-2 (2,088,628 training tokens, a 33,278-word vocabulary) and the far larger
+WikiText-103 (103,227,021 training tokens, a 267,735-word vocabulary), which shares WikiText-2's
+validation and test sets. Each size ships in two forms on Hugging Face (`Salesforce/wikitext`): a `-v1`
+config with out-of-vocabulary words replaced by an `<unk>` token for classic word-level modelling, and a
+`-raw-v1` config keeping original casing, punctuation and numbers, suited to byte- or subword-level
+models. The dataset card states a dual CC BY-SA 3.0 / GFDL licence, inherited from the Wikipedia articles
+it was built from.
 
 ## Who publishes it
 
 WikiText was introduced by Stephen Merity, Caiming Xiong, James Bradbury and Richard Socher, then at
-MetaMind (a company Salesforce acquired around the time of publication and folded into Salesforce
-Research), in the 2016 paper "Pointer Sentinel Mixture Models." The dataset continues to be distributed
-through Salesforce's research pages and mirrored on Hugging Face; no separate, actively maintained
-leaderboard organisation for WikiText was identified.
+MetaMind (acquired by Salesforce around the time of publication and folded into Salesforce Research), in
+the 2016 paper "Pointer Sentinel Mixture Models." The dataset is distributed through Salesforce's research
+pages and mirrored on Hugging Face; no actively maintained leaderboard organisation for WikiText was
+identified.
 
 ## Lineage
 
 WikiText was built explicitly as a successor to the Penn Treebank (PTB) language-modelling benchmark,
 addressing PTB's small size and its removal of case, punctuation and rare words during preprocessing --
 the original paper reports WikiText-2 as over twice the size of comparable PTB data and WikiText-103 as
-over 110 times larger. No id in this repository is catalogued as a further successor or variant, though
+over 110 times larger. No id in this repository is catalogued as a further successor or variant.
 WikiText-103 is best understood as a larger sibling of WikiText-2 built from the same source rather than
 an independent dataset; harnesses that support "wikitext" typically default to the smaller WikiText-2 (see
-How to run it) unless a WikiText-103 config is explicitly requested.
+How to run it) unless WikiText-103 is explicitly requested.
 
 ## Saturation and contamination
 
@@ -198,29 +195,28 @@ No current, actively maintained cross-model leaderboard was found for WikiText, 
 headline metric reported for current instruction-tuned frontier models, so this page does not state a
 present-day top score. Contamination risk is high in the structural sense: the corpus is a large, static,
 unchanged 2016 extract of Wikipedia, an almost universal component of modern pretraining corpora, so
-essentially every current model has seen this exact text (or its still-online source articles) during
-training. That is a normal condition for a language-modelling probe rather than a flaw specific to
-WikiText -- it is used to measure how well a model models familiar, high-quality prose, not to test
-generalisation to unseen content.
+essentially every current model has seen this exact text during training. That is a normal condition for
+a language-modelling probe rather than a flaw specific to WikiText -- it measures how well a model models
+familiar, high-quality prose, not generalisation to unseen content.
 
 ## How to run it
 
 lm-evaluation-harness's `wikitext` task reads the raw WikiText-2 configuration
 (`EleutherAI/wikitext_document_level`, `wikitext-2-raw-v1`) and scores with rolling log-likelihoods,
-reporting word_perplexity, byte_perplexity and bits_per_byte together; it also marks the task for
-decontamination checking against training data. OpenCompass instead exposes WikiText-2 and WikiText-103
-as separate raw-text perplexity tasks (`wikitext_2_raw_ppl`, `wikitext_103_raw_ppl`). No HELM, Inspect
-Evals or BIG-bench implementation was confirmed. Because perplexity depends on tokenizer, context length
-and exactly which config (raw vs. UNK-replaced, WikiText-2 vs. WikiText-103) was used, treat any single
-reported "WikiText perplexity" as meaningless without that context.
+reporting word_perplexity, byte_perplexity and bits_per_byte together, and marks the task for
+decontamination checking. OpenCompass instead exposes WikiText-2 and WikiText-103 as separate raw-text
+perplexity tasks (`wikitext_2_raw_ppl`, `wikitext_103_raw_ppl`). No HELM, Inspect Evals or BIG-bench
+implementation was confirmed. Because perplexity depends on tokenizer, context length and which config
+(raw vs. UNK-replaced, WikiText-2 vs. -103) was used, a single reported "WikiText perplexity" is
+meaningless without that context.
 
 ## Reading the numbers
 
 A low WikiText perplexity shows a model's underlying probability distribution over well-formed English
 prose is well-calibrated and makes good use of long-range context -- useful as a sanity check on
-pretraining quality or as a research metric when comparing architectures under matched tokenization. It
-is not comparable to an accuracy-style benchmark and cannot be read as a task-completion or reasoning
-score: nothing here checks whether a model can answer a question correctly, follow an instruction, or
-produce useful output, only how well it predicts ordinary Wikipedia text. Because the number depends
-heavily on tokenizer and unit (word, byte or subword), only compare WikiText perplexities computed under
-matching harness settings, and treat cross-paper comparisons with real caution.
+pretraining quality or when comparing architectures under matched tokenization. It is not comparable to
+an accuracy-style benchmark and cannot be read as a task-completion or reasoning score: nothing here
+checks whether a model answers correctly, follows an instruction, or produces useful output, only how
+well it predicts ordinary Wikipedia text. Because the number depends heavily on tokenizer and unit, only
+compare perplexities computed under matching harness settings, and treat cross-paper comparisons with
+real caution.
