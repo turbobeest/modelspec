@@ -104,7 +104,14 @@ def main() -> None:
             cur = cur[size:]
     if cur:
         slices[chr(label)] = cur
-    hints = {e["slug"]: {k: e[k] for k in ("name", "aliases", "sources", "urls", "harness", "category_hint", "score", "census_slug")} for e in pool}
+    # NB: the queue's "score" is the census ranking score (how strongly the sources vouch for this
+    # name), NOT a benchmark result. It is renamed here so writers cannot mistake it for one.
+    hints = {}
+    for e in pool:
+        h = {k: e[k] for k in ("name", "aliases", "sources", "urls", "harness", "category_hint", "census_slug") if k in e}
+        h["census_rank_score"] = e.get("score")
+        h["_note"] = "census_rank_score ranks how strongly sources vouch for this name; it is not a benchmark result"
+        hints[e["slug"]] = h
     (CENSUS / "next_batch.json").write_text(json.dumps({"queue": qname, "slices": slices, "hints": hints}, indent=1))
     print(f"{len(pool)} unwritten ids from {qname} in {len(slices)} slices:")
     for k, v in slices.items():

@@ -187,3 +187,11 @@ run-group's own number rather than a parent group's, and should drop the field (
 recurs identically across sibling ids with different metrics. Re-check other multi-scenario HELM run-groups
 (`schema_autobencher.yaml`'s pattern of one parent group with named subgroups is not unique to AutoBencher) for
 the same failure mode.
+
+### Resolved 2026-09-08: the AutoBencher "identical score 18.0" report
+
+Not a harvester bug and not a benchmark number. The `score` field in the census queues is the ranking score the
+census computes for a candidate name (source count, whether a curated source vouches for it, whether the name looks
+like a benchmark, and dataset downloads), so two unrelated benchmarks vouched for by the same kinds of sources will
+often tie. The field is now emitted as `census_rank_score` with a note attached, so no writer mistakes it for a
+result again. Nothing in the AutoBencher pages needs changing.
