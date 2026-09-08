@@ -13,3 +13,6 @@ web/node_modules/
 *.log
 /tmp/
 .DS_Store
+
+# CodeGraph index (local, not shared)
+.codegraph/
