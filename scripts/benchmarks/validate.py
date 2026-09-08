@@ -69,7 +69,9 @@ def check(path: Path) -> list[str]:
 
 def main(argv: list[str]) -> int:
     paths = [Path(a) for a in argv] or sorted((ROOT / "benchmarks").glob("*.md"))
-    paths = [p for p in paths if p.name != "AUTHORING.md" and not p.name.startswith("_")]
+    # AUTHORING.md, LICENSE.md and anything underscore-prefixed are repository files, not pages.
+    skip = {"AUTHORING.md", "LICENSE.md", "README.md"}
+    paths = [p for p in paths if p.name not in skip and not p.name.startswith("_")]
     bad = 0
     for p in paths:
         errs = check(p)

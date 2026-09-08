@@ -35,7 +35,7 @@ def norm(s: str) -> str:
 def written() -> set[str]:
     have = set()
     for p in (ROOT / "benchmarks").glob("*.md"):
-        if p.name == "AUTHORING.md":
+        if p.name in ("AUTHORING.md", "LICENSE.md", "README.md"):
             continue
         have.add(norm(p.stem))
         head = p.read_text(errors="ignore")[:2000]
