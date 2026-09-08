@@ -194,11 +194,10 @@ current scores under a shared harness. Not confirmed in the lm-evaluation-harnes
 ## Reading the numbers
 
 A high ∞Bench average shows a model can hold and use information across genuinely long contexts on a mix
-of synthetic-retrieval and realistic tasks, not just pass a single "needle in a haystack" check -- the
-suite deliberately includes tasks, like the book and math tasks, that a model cannot solve by retrieval
-alone. Because the headline score averages several unrelated metrics (accuracy, ROUGE, exact match, an
-error-position count) across tasks of very different difficulty, a similar overall number can come from
-very different per-task profiles, so check the per-task breakdown rather than relying on the average alone.
+of retrieval and realistic tasks, not just pass a single "needle in a haystack" check -- it deliberately
+includes tasks, like the book and math tasks, a model cannot solve by retrieval alone. Because the headline score averages several unrelated metrics (accuracy, ROUGE, exact match, an
+error-position count) across tasks of very different difficulty, a similar overall number can hide very
+different per-task profiles, so check the per-task breakdown rather than the average alone.
 Given this page could not confirm a current leaderboard, treat any recent ∞Bench number with the
 understanding that it is being compared against a 2024 reference point rather than an actively tracked
 ranking.

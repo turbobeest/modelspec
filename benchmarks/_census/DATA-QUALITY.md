@@ -41,3 +41,25 @@ the `opencompass`/`arxiv` source pairing already present in the same record) sho
 a matching harness source over a bare name search, or at minimum flag a mismatch when a hint's own `sources` list
 carries other, disagreeing signals. Re-check other `_census` hint records for the same failure mode, especially
 short, generic, or reused acronyms.
+
+## 2026-09-08: `benchmarks/math_500.md`'s "How to run it" section understates current lm-evaluation-harness coverage
+
+Written while researching `benchmarks/math.md` (not modified, per this batch's instructions not to touch a page
+outside the assigned id list). `math_500.md`'s "How to run it" section states: "No task specific to the 500-item
+split was confirmed in lm-evaluation-harness's current task list, which lists `hendrycks_math` and `minerva_math`
+for the full MATH set." As of 2026-09-08, that is no longer accurate: the live
+`EleutherAI/lm-evaluation-harness` repository ships `lm_eval/tasks/hendrycks_math/hendrycks_math500.yaml`
+(`dataset_path: HuggingFaceH4/MATH-500`, the exact dataset `math_500.md` documents) and a parallel
+`lm_eval/tasks/minerva_math/minerva_math500.yaml`, both alongside the full-set `hendrycks_math`/`minerva_math`
+groups in the same directories. Whether this task existed but was missed, or was added to the harness after
+`math_500.md`'s 2026-09-07 research date, was not established here. Action: whoever next reviews or refreshes
+`math_500.md` should update its "How to run it" section to name `hendrycks_math500` and `minerva_math500`
+directly, rather than saying no such task was confirmed. `benchmarks/math.md`'s own "How to run it" section
+documents this finding correctly for the family page.
+
+## 2026-09-08: MATH-500 harness claim (RESOLVED)
+
+A batch-2 writer found that `benchmarks/math_500.md` claimed no lm-evaluation-harness task existed for the
+500-item split. Verified against the harness's own task directory: `hendrycks_math/hendrycks_math500.yaml` and
+`minerva_math/minerva_math500.yaml` both exist and load `HuggingFaceH4/MATH-500`. The page and its `harness.lm_eval`
+field have been corrected. No further action.

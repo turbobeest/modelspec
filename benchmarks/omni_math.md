@@ -135,14 +135,14 @@ and the original MATH dataset test, which the authors argue were already solved 
 The official protocol extracts a model's final answer and checks it against the reference answer with
 GPT-4o as an equivalence judge, following a documented few-shot prompt; because free-form
 mathematical answers can be written in more than one equivalent form, exact string matching is not
-used. Because GPT-4o judging is expensive to run at scale, the authors separately released
-"Omni-Judge," a Llama-3-8B-Instruct model fine-tuned on 21,451 of their own GPT-4o judgments, which
-they report agrees with GPT-4o about 95% of the time on a held-out internal test set of 2,690
-examples. A rule-based evaluator, adapted from Qwen2.5-MATH's grading code and covering a subset of
-problems suited to exact-match checking, was released in December 2024 as a third, cheaper option;
-the authors report it is "generally consistent" with the GPT-4o-judged leaderboard. Because three
-different graders exist, two reported Omni-MATH scores are only safely comparable once you confirm
-they used the same one.
+used. Because GPT-4o judging is expensive at scale, the authors separately released "Omni-Judge," a
+Llama-3-8B-Instruct model fine-tuned on 21,451 of their own GPT-4o judgments, which they report
+agrees with GPT-4o about 95% of the time on a held-out internal test set of 2,690 examples. A
+rule-based evaluator, adapted from Qwen2.5-MATH's grading code and covering a subset of problems
+suited to exact-match checking, was released in December 2024 as a third, cheaper option, which the
+authors report is "generally consistent" with the GPT-4o-judged leaderboard. Because three different
+graders exist, two reported scores are only safely comparable once you confirm they used the same
+one.
 
 ## Dataset and licence
 
@@ -198,8 +198,7 @@ A high Omni-MATH score is decent evidence a model can solve genuinely hard, olym
 rather than the routine competition mathematics that MATH-500 and GSM8K now saturate on -- at launch,
 even the best reasoning models cleared barely 60%, with accuracy nearly halving on the hardest
 quarter of problems. Because grading depends on an LLM judge, an unfavourably-phrased correct answer
-can be marked wrong and a plausible-looking wrong one can slip through, so a single Omni-MATH number
-is noisier than a fixed-format multiple-choice score. The benchmark's own leaderboard is now roughly
-two years stale relative to the frontier, so treat any Omni-MATH number for a current model as coming
-from the reporting lab's own run rather than an independently verified leaderboard entry, and check
-which grader produced it.
+can be marked wrong and a plausible-looking wrong one can slip through, so a single score is noisier
+than a fixed-format multiple-choice one. The benchmark's own leaderboard is roughly two years stale
+relative to the frontier, so treat any current-model number as coming from the reporting lab's own
+run rather than a verified leaderboard entry, and check which grader produced it.

@@ -165,10 +165,10 @@ gating.
 
 LawBench comes from Zhiwei Fei, Xiaoyu Shen, Dawei Zhu, Fengzhe Zhou, Zhuo Han, Songyang Zhang, Kai Chen,
 Zongwen Shen and Jidong Ge, working across Shanghai AI Laboratory, Amazon Alexa AI, Saarland University and
-Nanjing University, posted to arXiv in September 2023. The paper evaluated 51 models: 20 multilingual
-general-purpose models, 22 Chinese-oriented models, and 9 legal-domain fine-tuned models. The authors
-maintain the reference data, predictions and evaluation code at github.com/open-compass/LawBench, and the
-benchmark is integrated into the OpenCompass evaluation platform from the same organisation.
+Nanjing University, posted to arXiv in September 2023. The paper evaluated 51 models: 20 general-purpose
+multilingual models, 22 Chinese-oriented models, and 9 legal-domain fine-tuned models. The authors maintain
+the reference data and code at github.com/open-compass/LawBench, integrated into the OpenCompass platform
+from the same organisation.
 
 ## Lineage
 
@@ -192,11 +192,9 @@ by 2026.
 ## How to run it
 
 The authors' own evaluation code and per-task prompt templates live under `evaluation/` in
-open-compass/LawBench, truncating inputs to 2048 tokens and outputs to 1024, decoding open-source models
-greedily and GPT models at temperature 0.7 with top-p 1.0, and evaluating both zero-shot and one-shot.
-OpenCompass registers the benchmark as `lawbench`, with separate zero-shot and one-shot config files
-matching that protocol. It was not confirmed in the lm-evaluation-harness, HELM or BIG-bench task lists, so
-a score from one of those suites should not be assumed without checking a specific implementation.
+open-compass/LawBench, decoding open-source models greedily and GPT models at temperature 0.7 with top-p
+1.0. OpenCompass registers the benchmark as `lawbench`, with separate zero-shot and one-shot config files
+matching that protocol. Not confirmed in the lm-evaluation-harness, HELM or BIG-bench task lists.
 
 ## Reading the numbers
 

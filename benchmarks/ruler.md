@@ -182,13 +182,13 @@ essays and QA datasets it draws on for two of its 13 tasks are themselves old an
 NVIDIA/RULER is the reference implementation, distributed with Docker images and TensorRT-LLM
 integration for large-scale runs; `bash run.sh` drives the full 13-task, six-length sweep.
 lm-evaluation-harness ships all 13 tasks individually (for example `niah_single_1`, `ruler_vt`,
-`ruler_qa_squad`) grouped under a `ruler` group and a `longcxt` tag, and requires a tokenizer to be
-specified so it can size the generated documents correctly; its default maximum sequence length is
-4096 unless a longer list is passed explicitly. OpenCompass instead ships a separate config file per
-context length (`ruler_4k_gen.py` through `ruler_1m_gen.py`), so a reported OpenCompass RULER score
-is tied to one specific length rather than the paper's six-length average. Because both the
-underlying documents and the task templates are regenerated rather than fixed, exact reported numbers
-can vary slightly by implementation even at the same nominal length.
+`ruler_qa_squad`) grouped under a `ruler` group and a `longcxt` tag, and requires a tokenizer so it
+can size the generated documents correctly; its default maximum sequence length is 4096 unless a
+longer list is passed explicitly. OpenCompass instead ships a separate config file per context length
+(`ruler_4k_gen.py` through `ruler_1m_gen.py`), so a reported OpenCompass RULER score is tied to one
+specific length rather than the paper's six-length average. Because both the documents and task
+templates are regenerated rather than fixed, exact numbers can vary slightly by implementation even
+at the same nominal length.
 
 ## Reading the numbers
 

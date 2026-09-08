@@ -59,7 +59,7 @@ contamination:
   risk: high
   note: "Answers and solutions are distributed in the open dataset. The source MATH corpus has circulated since 2021 and was the subject of a January 2025 DMCA takedown by Art of Problem Solving alleging over 10,000 of its 12,500 problems were copied from AoPS's Alcumus platform. Wu et al. 2025 (arXiv 2507.10532) report memorization-consistent behaviour by Qwen2.5-series models specifically on MATH-500."
 harness:
-  lm_eval: ""
+  lm_eval: "hendrycks_math500, minerva_math500"
   inspect_evals: ""
   helm: ""
   opencompass: ""
@@ -177,10 +177,11 @@ models from each other by very little, and says nothing about whether that separ
 
 OpenAI's openai/simple-evals repository is the reference implementation (`math_eval.py`), which
 loads the `math_500_test` split and grades with the equality-checker protocol described above. The
-dataset is also mirrored at HuggingFaceH4/MATH-500 for use with other harnesses. No task specific to
-the 500-item split was confirmed in lm-evaluation-harness's current task list, which lists
-`hendrycks_math` and `minerva_math` for the full MATH set; check a harness's own task list before
-assuming it runs the 500-item split rather than the full one. Because grading depends on an LLM
+dataset is also mirrored at HuggingFaceH4/MATH-500. lm-evaluation-harness ships two tasks for this
+split, `hendrycks_math500` and `minerva_math500`, both loading `HuggingFaceH4/MATH-500` directly and
+differing only in the answer-extraction and grading style they inherit from `hendrycks_math` and
+`minerva_math` respectively; those two parent tasks still run the full 5,000-item set, so check which
+task name produced a number before comparing it. Because grading depends on an LLM
 equality checker rather than exact string match, scores depend on which model performs that check
 and on the exact prompt template, a common source of small cross-paper differences.
 

@@ -209,14 +209,13 @@ Python-only task.
 
 A completion is graded by executing it against a held-out set of unit tests; a problem counts as
 solved only if all tests pass. The paper's own headline metric is few-shot pass@1, sampled with a
-fixed 3-shot prompt (task IDs 2, 3 and 4, per the reference repository) and estimated across
-multiple samples; most current reporters instead run one greedy completion and call it pass@1,
-which is cheaper but not numerically identical to the paper's estimate. Because at least three
-differently sized, differently filtered versions of the dataset are in active use -- the original
-974-problem full set, a smaller hand-verified "sanitized" subset, and EvalPlus's further-filtered,
-test-augmented MBPP+ -- two "MBPP pass@1" numbers can disagree by double digits without either
-being wrong, simply because they were computed against different problems with different test
-suites. Always check which version produced a given score before comparing it to another.
+fixed 3-shot prompt (task IDs 2, 3 and 4) and estimated across multiple samples; most current
+reporters instead run one greedy completion and call it pass@1, which is cheaper but not numerically
+identical. Because at least three differently sized, differently filtered versions of the dataset
+are in active use -- the original 974-problem full set, a smaller hand-verified "sanitized" subset,
+and EvalPlus's further-filtered, test-augmented MBPP+ -- two "MBPP pass@1" numbers can disagree by
+double digits without either being wrong, simply because they were computed against different
+problems with different tests.
 
 ## Dataset and licence
 

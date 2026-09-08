@@ -148,15 +148,15 @@ numbers are only comparable once you know which variant produced them.
 ## Dataset and licence
 
 The dataset consists of 10,022 narrative passages -- 4,869 for development and 5,153 for test --
-drawn from 1,331 and 1,332 disjoint novels respectively, filtered down from an initial 200,000
-candidate passages judged by Amazon Mechanical Turk workers under the two-stage criterion above. A
-separate "training data" release supplies the full text of 2,662 further novels (203 million words),
-disjoint from the dev/test novels, intended as background corpus for language models under test
-rather than additional eval passages; the Hugging Face mirror's `train` split of 2,662 rows
-corresponds to these full novels, not further cloze items. Hugging Face lists the dataset under a CC
-BY 4.0 licence; the original Zenodo archive (published 2016-08-07, coinciding with the paper's ACL
-2016 presentation) did not display a licence in the page content this research could read, so that
-reading is not independently confirmed against the primary host.
+drawn from 1,331 and 1,332 disjoint novels respectively, filtered from an initial 200,000 candidate
+passages judged by Mechanical Turk workers under the two-stage criterion above. A separate "training
+data" release supplies the full text of 2,662 further novels (203 million words), disjoint from the
+dev/test novels, intended as background corpus for language models under test rather than additional
+eval passages; the Hugging Face mirror's `train` split of 2,662 rows corresponds to these full
+novels, not further cloze items. Hugging Face lists the dataset under a CC BY 4.0 licence; the
+original Zenodo archive (published 2016-08-07, coinciding with the paper's ACL 2016 presentation)
+did not display a licence in the page content this research could read, so that reading is not
+independently confirmed against the primary host.
 
 ## Who publishes it
 
@@ -180,12 +180,11 @@ descendant benchmark carrying the LAMBADA name has its own page in this reposito
 LAMBADA saturated early relative to today's models. GPT-3's paper (Brown et al., May 2020) reported
 86.4% few-shot accuracy, an 8-point jump over the prior published state of the art (68.0%), with
 GPT-3's own zero-shot and one-shot settings at 76.2% and 72.5%. No later, larger-scale published
-number was found during this research: the benchmark has largely fallen out of frontier system-card
-reporting since around 2020, and no model card in this repository's own corpus currently carries a
-lambada score. Contamination risk is high: the passages and answers have been public since 2016, are
-widely mirrored, and GPT-3's own paper explicitly notes the dataset "appears to be present" in its
-training data, so any model trained on a broad web or books crawl since then should be assumed to
-have seen these exact passages.
+number was found: the benchmark has largely fallen out of frontier system-card reporting since around
+2020, and no model card in this repository's own corpus currently carries a lambada score.
+Contamination risk is high: the passages and answers have been public since 2016 and are widely
+mirrored, and GPT-3's own paper notes the dataset "appears to be present" in its training data, so
+any model trained on a broad web or books crawl since should be assumed to have seen these passages.
 
 ## How to run it
 
