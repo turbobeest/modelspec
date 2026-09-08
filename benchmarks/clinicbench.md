@@ -152,7 +152,7 @@ The wider ClinicBench suite this task is drawn from was built by Fenglin Liu, Zh
 
 ## Lineage
 
-This is a case where a harness id points to a narrow fragment of a much better-known, much larger project sharing its exact name. Liu et al.'s full ClinicBench aggregates eleven existing clinical datasets (including MedQA, MedMCQA and MMLU-Med, separately documented elsewhere in this repository) with six the authors built themselves, of which "Pharmacology QA for Emerging Drugs" is one; the other five novel datasets (open-ended clinical decision-making, long document processing, drug-interaction analysis) are not implemented here and have no page in this repository. Anyone citing a "ClinicBench" score should specify whether it comes from this narrow task or from Liu et al.'s full suite run through their own code, since the two are not comparable.
+This is a case where a harness id points to a narrow fragment of a much better-known, much larger project sharing its exact name. Liu et al.'s full ClinicBench aggregates eleven existing clinical datasets (including MedQA and MedMCQA, both separately documented elsewhere in this repository, plus MMLU-Med, which is not) with six the authors built themselves, of which "Pharmacology QA for Emerging Drugs" is one; the other five novel datasets (open-ended clinical decision-making, long document processing, drug-interaction analysis) are not implemented here and have no page in this repository. Anyone citing a "ClinicBench" score should specify whether it comes from this narrow task or from Liu et al.'s full suite run through their own code, since the two are not comparable.
 
 ## Saturation and contamination
 
