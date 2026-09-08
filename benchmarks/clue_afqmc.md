@@ -132,7 +132,7 @@ AFQMC's construction the way several other CLUE tasks have one.
 
 The task holds 34,334 training, 4,316 validation and 3,861 test pairs; CLUE withholds the test
 labels for its own leaderboard submissions (every test row in the public mirror carries a
-placeholder label), so most harnesses, including OpenCompass, score the public validation split
+dummy label of -1), so most harnesses, including OpenCompass, score the public validation split
 instead. Read a reported score against two anchors: 50% is chance on this balanced binary task, and
 81.0% is CLUE's own human majority-vote baseline. The strongest score on CLUE's live leaderboard
 (86.92, dated December 2022) already clears that human figure, so treat AFQMC as a task current

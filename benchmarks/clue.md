@@ -170,24 +170,23 @@ CLUE gives a model several distinct Chinese-language understanding tasks under o
 sentences or sentence pairs to classify (news topics, long app descriptions, semantic similarity,
 pronoun coreference, paper keyword-abstract matching), sentence pairs to judge for entailment,
 neutrality or contradiction, and passages to answer questions about, either by extracting a text
-span or by picking one of several free-form multiple-choice options. The paper frames this
-explicitly as filling for Chinese the gap GLUE and SuperGLUE filled for English: one benchmark
-spanning several well-established task types on original Chinese text, rather than one task alone.
+span or by picking a free-form multiple-choice option. The paper frames this explicitly as filling
+for Chinese the gap GLUE and SuperGLUE filled for English.
 
-The published paper counts nine core tasks. CLUE's own GitHub release additionally distributes
-CMNLI and DRCD, an older NLI task and a Traditional-Chinese reading-comprehension task
-respectively, both documented in this repository (clue_cmnli, clue_drcd) but absent from the
-paper's nine and, for DRCD, from the live scored leaderboard entirely.
+The published paper counts nine core tasks. CLUE's GitHub release additionally distributes CMNLI
+and DRCD, an older NLI task and a Traditional-Chinese reading-comprehension task, both documented
+here (clue_cmnli, clue_drcd) but absent from the paper's nine and, for DRCD, from the live
+leaderboard entirely.
 
 ## How it is scored
 
 Each component task uses its own metric -- accuracy for classification and NLI, exact match or F1
-for span extraction, accuracy for multiple choice -- and CLUE averages the tasks a given leaderboard
-revision scores into one composite "Score." The current CLUE1.1 leaderboard scores nine columns
-(AFQMC, TNEWS, IFLYTEK, OCNLI_50K, WSC, CSL, CMRC2018, CHID, C3); CMNLI and DRCD are not among them.
-Submission requires predicting on each task's held-out test split and uploading results to
-cluebenchmarks.com; the CLUE team itself supplies one reference "HUMAN" row rather than treating
-every task's number as independently validated.
+for span extraction, accuracy for multiple choice -- and CLUE averages whichever tasks a given
+leaderboard revision scores into one composite "Score." The current CLUE1.1 leaderboard scores nine
+columns (AFQMC, TNEWS, IFLYTEK, OCNLI_50K, WSC, CSL, CMRC2018, CHID, C3); CMNLI and DRCD are not
+among them. Submission means predicting each task's held-out test split and uploading to
+cluebenchmarks.com; the CLUE team supplies one reference "HUMAN" row rather than independently
+validating every submitted number.
 
 ## Dataset and licence
 
@@ -199,63 +198,56 @@ elsewhere may carry their own stated licence -- see clue_cmrc and clue_c3.
 
 ## Who publishes it
 
-CLUE comes from a 32-author community collaboration led by Liang Xu and Hai Hu, first released under
-the working name ChineseGLUE via the CLUEbenchmark GitHub organisation (repository created November
-2019, with the team's own human-baseline submission dated December 2019) and formally published as
-"CLUE: A Chinese Language Understanding Evaluation Benchmark" at COLING 2020. Several co-authors
-also authored individual component tasks adopted into the suite: Yiming Cui (CMRC2018), Kai Sun and
-Dian Yu (C3), and Hai Hu, Kyle Richardson and Lu Li (OCNLI, with its own later EMNLP Findings 2020
-paper). The same organisation now promotes SuperCLUE, a separate foundation-model benchmark, more
-prominently than CLUE's original leaderboard.
+CLUE comes from a 32-author community collaboration led by Liang Xu and Hai Hu, first released as
+ChineseGLUE via the CLUEbenchmark GitHub organisation (repository created November 2019, human
+baseline dated December 2019) and formally published as "CLUE: A Chinese Language Understanding
+Evaluation Benchmark" at COLING 2020. Several co-authors also authored individual component tasks
+later adopted into the suite: Yiming Cui (CMRC2018), Kai Sun and Dian Yu (C3), and Hai Hu, Kyle
+Richardson and Lu Li (OCNLI). The same organisation now promotes SuperCLUE, a separate
+foundation-model benchmark, more prominently than this original leaderboard.
 
 ## Lineage
 
-CLUE has no predecessor in this repository; its authors cite GLUE and SuperGLUE as the English-language
-model it adapts for Chinese. Six of CLUE's component tasks are documented here as subset pages
-carrying `lineage.family: clue`: clue_afqmc, clue_c3, clue_cmnli, clue_cmrc, clue_drcd and
-clue_ocnli. Adoption varies by task: OCNLI was built from scratch for CLUE (non-translated,
-collected specifically for the benchmark) and later given its own EMNLP Findings 2020 paper;
-CMRC2018, DRCD and C3 were each adopted wholesale from separately published datasets (CMRC2018 and
-C3 with their original authors co-authoring the CLUE paper; DRCD from an entirely separate team with
-no author overlap); CMNLI was assembled by the CLUE team itself by machine-translating MultiNLI and
-XNLI into Chinese, then formally replaced by OCNLI on CLUE's own leaderboard from the 1.1 revision
-onward (the GitHub README states this plainly); and AFQMC repackages a 2018 Ant Financial (Alipay)
-developer-competition dataset with no academic paper of its own. TNEWS, IFLYTEK, CLUEWSC2020, CSL
-and ChID are further component tasks without pages in this batch. CLUE also underlies FewCLUE (a
-few-shot variant) and ZeroCLUE (a zero-shot variant), both hosted under the same GitHub organisation
-without their own pages here yet; some FewCLUE tasks are queued separately in this repository's
-census.
+CLUE has no predecessor here; its authors cite GLUE and SuperGLUE as the English-language model it
+adapts for Chinese. Six component tasks are subset pages carrying `lineage.family: clue`:
+clue_afqmc, clue_c3, clue_cmnli, clue_cmrc, clue_drcd and clue_ocnli. Adoption varies by task: OCNLI
+was built from scratch for CLUE, then given its own EMNLP Findings 2020 paper. CMRC2018, DRCD and C3
+were each adopted wholesale from separately published datasets -- CMRC2018 and C3 with their
+original authors co-authoring the CLUE paper; DRCD from a separate team with no author overlap.
+CMNLI was assembled by the CLUE team itself, machine-translating MultiNLI and XNLI into Chinese,
+then formally replaced by OCNLI on the leaderboard from the 1.1 revision onward (the README states
+this plainly). AFQMC repackages a 2018 Ant Financial competition dataset with no paper of its own.
+TNEWS, IFLYTEK, CLUEWSC2020, CSL and ChID are further tasks without pages in this batch. CLUE also
+underlies FewCLUE and ZeroCLUE (few-shot and zero-shot variants), hosted under the same organisation
+without their own pages here yet.
 
 ## Saturation and contamination
 
-The composite leaderboard reads as saturated: the top entry (87.050, NetEase Fuxi, dated
-2023-07-31) sits above the CLUE team's own 86.678 human baseline (dated 2019-12-01), and no row
-among the top 20 read for this page is dated later than mid-2023, consistent with the publisher's
-own promotional shift toward SuperCLUE. Contamination risk is high: every component task's training
-and development data has been public with real labels since 2019-2020, and OpenCompass -- the
-harness that carries all six of this batch's tasks -- scores the public development split by
-default rather than submitting to CLUE's own withheld test set, so most numbers a current paper
-reports for these tasks never touch CLUE's held-out answers at all.
+The composite leaderboard reads as saturated: the top entry (87.050, NetEase Fuxi, 2023-07-31) sits
+above the CLUE team's own 86.678 human baseline (2019-12-01), and no row among the top 20 read here
+is dated later than mid-2023, consistent with the publisher's promotional shift toward SuperCLUE.
+Contamination risk is high: every component task's training and development data has been public
+with real labels since 2019-2020, and OpenCompass -- the harness carrying all six of this batch's
+tasks -- scores the public development split by default rather than submitting to CLUE's withheld
+test set, so most numbers a current paper reports never touch CLUE's held-out answers at all.
 
 ## How to run it
 
-OpenCompass ships each task as its own `CLUE_<task>` dataset-config directory (for example
-CLUE_afqmc, CLUE_cmnli, CLUE_CMRC, CLUE_DRCD, CLUE_ocnli, CLUE_C3), each with a generative (`_gen`)
-config and, for most tasks, a perplexity-based (`_ppl`) config; several load a dataset OpenCompass
-itself mirrors under the `opencompass` Hugging Face organisation rather than CLUE's own release.
-No lm-evaluation-harness, inspect_evals or HELM implementation was found for any CLUE task under
-this name (lm-evaluation-harness's similarly-named `aclue` task is an unrelated Ancient Chinese
-benchmark). The original TensorFlow/PyTorch baselines and the official submission format live in
-the CLUEbenchmark/CLUE repository.
+OpenCompass ships each task as its own `CLUE_<task>` config directory (CLUE_afqmc, CLUE_cmnli,
+CLUE_CMRC, CLUE_DRCD, CLUE_ocnli, CLUE_C3), each with a generative (`_gen`) config and, for most
+tasks, a perplexity-based (`_ppl`) config; several load a dataset OpenCompass mirrors under its own
+`opencompass` Hugging Face organisation rather than CLUE's release. No lm-evaluation-harness,
+inspect_evals or HELM implementation was found under this name (harness's similarly-named `aclue`
+is an unrelated Ancient Chinese benchmark). Original baselines and the submission format live in the
+CLUEbenchmark/CLUE repository.
 
 ## Reading the numbers
 
 A strong CLUE composite score signals broad Chinese sentence- and passage-level understanding
 across several classic task types, largely as BERT-era encoder models understood them -- the
-leaderboard's active period (2019-2023) and its top submissions (large in-house pretrained
-encoders, not general chat or reasoning LLMs) both predate most of today's frontier model releases.
-Because most reported numbers are computed on each task's public development split rather than
-CLUE's withheld test set, treat a CLUE score more as a contamination-exposed sanity check on basic
-Chinese NLU than as a clean held-out measurement. Always check which specific component tasks a
-reported "CLUE" number actually averages, since the scored task set itself changed between the 1.0
-and 1.1 leaderboard revisions.
+leaderboard's active period (2019-2023) and its top submissions (in-house pretrained encoders, not
+general chat or reasoning LLMs) both predate most of today's frontier releases. Because most
+reported numbers are computed on each task's public development split rather than CLUE's withheld
+test set, treat a CLUE score as a contamination-exposed sanity check on basic Chinese NLU rather
+than a clean held-out measurement. Always check which component tasks a reported "CLUE" number
+actually averages, since the scored task set changed between the 1.0 and 1.1 revisions.
