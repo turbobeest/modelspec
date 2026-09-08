@@ -2,58 +2,58 @@
  "queue": "queue_p2.json",
  "slices": {
   "A": [
-   "livecodebench",
-   "livecodebench_pro",
    "gpqa",
    "livebench",
    "air_bench",
    "medcalc_bench",
-   "mle_bench"
+   "mle_bench",
+   "bigcodebench",
+   "piqa"
   ],
   "B": [
-   "bigcodebench",
-   "piqa",
    "mbpp",
    "lab_bench",
    "eq_bench",
    "core_bench",
-   "agieval"
+   "agieval",
+   "cruxeval",
+   "triviaqa"
   ],
   "C": [
-   "cruxeval",
-   "triviaqa",
    "drop",
    "lambada",
    "math",
    "omni_math",
-   "ruler"
+   "ruler",
+   "vstar_bench",
+   "acp_bench"
   ],
   "D": [
-   "vstar_bench",
-   "acp_bench",
    "model_written_evals",
    "financebench",
    "r_bench",
    "discrim_eval",
-   "novelty_bench"
+   "novelty_bench",
+   "aci_bench",
+   "compute_eval"
   ],
   "E": [
-   "aci_bench",
-   "compute_eval",
    "big_bench",
    "ceval",
    "charm",
    "chembench",
-   "commonsense_qa"
+   "commonsense_qa",
+   "coqa",
+   "cve_bench"
   ],
   "F": [
-   "coqa",
-   "cve_bench",
    "headqa",
    "healthbench",
    "ifbench",
    "infinitebench",
-   "lawbench"
+   "lawbench",
+   "livecodebench_pro",
+   "logiqa"
   ]
  },
  "hints": {
@@ -137,32 +137,6 @@
    },
    "category_hint": "",
    "score": 60.9
-  },
-  "livecodebench": {
-   "name": "LiveCodeBench",
-   "aliases": [
-    "livecodebench"
-   ],
-   "sources": [
-    "aggregator:artificialanalysis.ai",
-    "aggregator:evalplus.github.io",
-    "aggregator:llm-stats.com",
-    "aggregator:vals.ai",
-    "opencompass"
-   ],
-   "urls": [
-    "https://artificialanalysis.ai/evaluations",
-    "https://evalplus.github.io/leaderboard.html",
-    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livecodebench",
-    "https://livecodebench.github.io/leaderboard.html",
-    "https://llm-stats.com/benchmarks",
-    "https://www.vals.ai/benchmarks"
-   ],
-   "harness": {
-    "opencompass": "livecodebench"
-   },
-   "category_hint": "",
-   "score": 58.0
   },
   "medcalc_bench": {
    "name": "MedCalc-Bench",
@@ -939,6 +913,25 @@
    "harness": {
     "inspect_evals": "livecodebench_pro",
     "opencompass": "livecodebench_pro"
+   },
+   "category_hint": "",
+   "score": 28.0
+  },
+  "logiqa": {
+   "name": "logiqa",
+   "aliases": [
+    "LogiQA"
+   ],
+   "sources": [
+    "awesome:onejune2018/Awesome-LLM-Eval",
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/logiqa",
+    "https://github.com/lgw863/LogiQA-dataset"
+   ],
+   "harness": {
+    "lm_eval": "logiqa"
    },
    "category_hint": "",
    "score": 28.0

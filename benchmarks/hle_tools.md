@@ -116,7 +116,7 @@ Treat any other source's "with tools" HLE number as unverified until its own con
 
 Tool access consistently raises HLE scores over the same model's no-tools baseline — Anthropic's
 November 2025 figures show roughly an 8 to 13 point gain across six models — reflecting that some HLE
-questions are answerable by finding a source online despite the benchmark's intent to resist lookup. A high `hle_tools` score is therefore better read as research and tool-use
-competence than pure knowledge, and should be paired with the same model's plain `hle` score to see
-how much of it is retrieval. Contamination is a bigger concern here, since live search can retrieve a
+questions are answerable by finding a source online despite the benchmark's intent to resist lookup.
+A high `hle_tools` score is therefore better read as research and tool-use competence than pure
+knowledge, and should be paired with the same model's plain `hle` score to see how much is retrieval. Contamination is a bigger concern here, since live search can retrieve a
 leaked answer directly; check the decontamination method, if any, before trusting a reported number.

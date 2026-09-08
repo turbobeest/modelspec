@@ -196,20 +196,19 @@ model (Multimodal Bard) but still 10.4 points short of the 60.3% human baseline.
 leaderboard, fetched directly for this page, lists its top testmini entry as "DreamPRM (o4-mini)" at
 85.2%, dated June 2025, well clear of the human baseline, with no newer entry recorded as of this
 research — a roughly 35-point gain in about twenty months, pointing toward saturation, though this
-snapshot may lag the true state of the art. Contamination risk sits at medium: testmini has been fully public with released answers for close to
-two years and is the split nearly everyone reports, even though a larger, answer-withheld test subset
-exists to guard against this.
+snapshot may lag the true state of the art. Contamination risk sits at medium: testmini has been
+fully public with released answers for close to two years and is the split nearly everyone reports,
+even though a larger, answer-withheld test subset exists to guard against this.
 
 ## How to run it
 
-UK AISI's `inspect_evals` package implements the benchmark as the `mathvista` task over the public
-`testmini` split, but scores answers with a regular-expression match against a fixed answer-format
-instruction rather than the paper's own GPT-4-based answer extractor — a protocol difference that can
-affect comparability, particularly for free-form numeric answers where formatting varies. No
-lm-evaluation-harness, HELM, OpenCompass or BIG-bench task was confirmed for this benchmark. Because
-most published numbers report testmini rather than the larger held-out test subset, and extraction
-method differs between the paper's protocol and at least one third-party harness, treat scores from
-different sources as only roughly comparable.
+UK AISI's `inspect_evals` package implements this as the `mathvista` task over the public `testmini`
+split, but scores answers with a regular-expression match against a fixed answer-format instruction
+rather than the paper's own GPT-4-based extractor — a protocol difference that can affect
+comparability, particularly for free-form numeric answers. No lm-evaluation-harness, HELM,
+OpenCompass or BIG-bench task was confirmed for this benchmark. Because most published numbers report
+testmini rather than the larger held-out test subset, and extraction method differs by harness, treat
+scores from different sources as only roughly comparable.
 
 ## Reading the numbers
 
