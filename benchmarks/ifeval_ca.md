@@ -138,25 +138,22 @@ Part of the [IFEval](ifeval.md) family.
 
 ## What it measures
 
-ifeval_ca is a professional Catalan translation of IFEval by Projecte AINA and the Barcelona
-Supercomputing Center: 541 prompts, matching the English source's 541-row "train" split one for one.
-Rather than translating only the prompt text and running IFEval's English verification code,
-lm-evaluation-harness ships a dedicated Catalan instruction registry that reimplements every checker,
-using language detection and Unicode-aware case folding so Catalan responses are judged by Catalan
-rules rather than English ones. The released prompts exercise the same 25 instruction types as English
-IFEval, just relabelled with a `ca:` prefix; the registry's code additionally defines 5 more checks
-(two punctuation checks, three "special character" checks), but none of the 541 prompts actually use
-them, confirmed by reading every prompt's instruction_id_list directly. Those unused checks are also,
-on inspection, not truly Catalan: they test for the Spanish letter n-with-tilde and Spanish-only acute
-accents, missing Catalan's own grave accents and c-cedilla, which reads as an unadapted carry-over from
-the Spanish sibling implementation rather than a Catalan-specific design choice.
+ifeval_ca is a professional Catalan translation of IFEval: 541 prompts, matching the English source's
+541-row "train" split one for one. Rather than translating only the prompt text and reusing IFEval's
+English checking code, lm-evaluation-harness ships a dedicated Catalan instruction registry that
+reimplements every checker, using language detection and Unicode-aware case folding so responses are
+judged by Catalan rules. The released prompts exercise the same 25 instruction types as English IFEval,
+just relabelled `ca:`; the registry's code also defines 5 more checks (two punctuation, three "special
+character"), but none of the 541 prompts use them -- confirmed by reading every instruction_id_list
+directly. Those unused checks are also not truly Catalan on inspection: they test for the Spanish
+letter n-with-tilde and Spanish-only acute accents, missing Catalan's own grave accents and c-cedilla,
+reading as an unadapted carry-over from the Spanish sibling file.
 
 ## Reading the numbers
 
 A high ifeval_ca score shows a model reliably follows explicit, checkable instructions written in
 Catalan -- the same narrow claim English IFEval supports for English, not general Catalan fluency.
-Because scoring runs on an independently maintained Catalan checker codebase rather than the English
-one, a Catalan and an English IFEval score are comparable in spirit but not strictly the same
-measurement, even though the item count and instruction taxonomy line up exactly. As with English
-IFEval, check whether a reported figure is strict or loose, and prompt-level or instruction-level,
-before comparing two scores.
+Because scoring runs on an independently maintained Catalan checker codebase, a Catalan and an English
+IFEval score are comparable in spirit but not strictly the same measurement, even though the item count
+and instruction taxonomy line up exactly. As with English IFEval, check whether a figure is strict or
+loose, and prompt-level or instruction-level, before comparing two scores.

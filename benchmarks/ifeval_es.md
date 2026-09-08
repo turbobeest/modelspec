@@ -142,14 +142,13 @@ ifeval_es is the Barcelona Supercomputing Center's professional Spanish translat
 prompts, matching the English source's 541-row "train" split one for one. As with the sibling Catalan
 translation, lm-evaluation-harness does not run the translated prompts through IFEval's English
 checking code; it ships a dedicated Spanish instruction registry that reimplements every checker, using
-language detection and Unicode-aware case folding so Spanish responses are judged by Spanish rules
-rather than English ones. The released prompts exercise the same 25 instruction types as English
-IFEval, just relabelled with an `es:` prefix; the registry's code additionally defines 5 more checks
-(two punctuation checks, three "special character" checks for the letter n-with-tilde and accented
-vowels), but none of the 541 prompts actually use them, confirmed by reading every prompt's
+language detection and Unicode-aware case folding so responses are judged by Spanish rules. The
+released prompts exercise the same 25 instruction types as English IFEval, just relabelled `es:`; the
+registry's code also defines 5 more checks (two punctuation, three "special character" checks for
+n-with-tilde and accented vowels), but none of the 541 prompts use them -- confirmed by reading every
 instruction_id_list directly. Unlike the sibling Catalan file, where the equivalent unused checks test
-for the wrong language's diacritics, the Spanish versions of these checks do target genuine Spanish
-orthography -- they are simply unexercised by this particular dataset.
+for the wrong language's diacritics, these Spanish versions do target genuine Spanish orthography; they
+are simply unexercised here.
 
 ## Reading the numbers
 
