@@ -219,7 +219,12 @@ then formally replaced by OCNLI on the leaderboard from the 1.1 revision onward 
 this plainly). AFQMC repackages a 2018 Ant Financial competition dataset with no paper of its own.
 TNEWS, IFLYTEK, CLUEWSC2020, CSL and ChID are further tasks without pages in this batch. CLUE also
 underlies FewCLUE and ZeroCLUE (few-shot and zero-shot variants), hosted under the same organisation
-without their own pages here yet.
+without their own pages here yet. CLUE is not a predecessor of this repository's other Chinese
+benchmarks -- CMMLU (`cmmlu`, 2023-06), C-Eval (`ceval`, 2023-05) and Chinese SimpleQA
+(`chinese_simpleqa`, 2024-11) -- but a distinct, earlier sibling: those three test broad academic
+knowledge or short-answer factuality with MMLU/SimpleQA-style formats built for the LLM era, while
+CLUE tests classification, inference and reading comprehension in formats built three to five years
+earlier for BERT-era encoders, and none reuses CLUE's data or task design.
 
 ## Saturation and contamination
 
