@@ -34,6 +34,13 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 
+# The offline path: answers from a local snapshot of the published export, with
+# no database and no network. This is what dpf calls.
+from . import offline as _offline  # noqa: E402
+
+app.add_typer(_offline.app, name="offline")
+app.add_typer(_offline.snapshot_app, name="snapshot")
+
 console = Console()
 
 # ───────────────────────────────────────────────────────────────
@@ -52,6 +59,8 @@ def _get_graph():
         return db.select_graph(_GRAPH_NAME)
     except Exception as exc:
         console.print(f"[bold red]Error:[/] Could not connect to FalkorDB at {_FALKORDB_HOST}:{_FALKORDB_PORT}")
+        console.print("[dim]The graph commands need a local FalkorDB. For an answer without one, "
+                      "use `modelspec snapshot fetch` then `modelspec offline rank`.[/]")
         console.print(f"  {exc}")
         raise typer.Exit(1)
 
