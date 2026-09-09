@@ -361,10 +361,23 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
       }
     };
 
-    window.addEventListener("resize", function () {
-      graph.width(window.innerWidth).height(window.innerHeight);
-    });
-    graph.width(window.innerWidth).height(window.innerHeight);
+    // Size from the container, not the window, and keep watching it. Sizing
+    // once from window.innerWidth leaves the canvas stranded at its initial
+    // dimensions whenever the viewport changes after load — a resized window, a
+    // rotated phone, or an embedding pane that settles late.
+    var scene = el("scene");
+    function fit() {
+      var w = scene.clientWidth || window.innerWidth;
+      var h = scene.clientHeight || window.innerHeight;
+      graph.width(w).height(h);
+    }
+    if (window.ResizeObserver) {
+      new ResizeObserver(fit).observe(scene);
+    } else {
+      window.addEventListener("resize", fit);
+    }
+    window.addEventListener("orientationchange", fit);
+    fit();
 
     return loadView(first.key);
   }
