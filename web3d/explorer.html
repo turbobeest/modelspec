@@ -111,9 +111,9 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
     Hardware:   "#c98fb8"
   };
   var FALLBACK = "#9aa5b6";
-  // Above this an interactive force layout stops being readable. The export
-  // already tells us which views are dense; this is the client-side ceiling.
-  var MAX_EDGES = 3000;
+  // The export decides what is legible and publishes the limit it used. Keeping
+  // a second number here would let the two drift apart silently.
+  var DEFAULT_EDGE_LIMIT = 4000;
 
   var el = function (id) { return document.getElementById(id); };
   var status = el("status"), note = el("note");
@@ -263,9 +263,10 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
       }
 
       // An illegible view is sampled rather than rendered whole, and says so.
+      var limit = view.legible_edge_limit || DEFAULT_EDGE_LIMIT;
       var sampled = false;
-      if (links.length > MAX_EDGES) {
-        links = links.slice(0, MAX_EDGES);
+      if (links.length > limit) {
+        links = links.slice(0, limit);
         var keep = {};
         links.forEach(function (l) { keep[l.source] = 1; keep[l.target] = 1; });
         nodes = nodes.filter(function (n) { return keep[n.key]; });
@@ -294,7 +295,7 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
                                  links.length.toLocaleString() + " edges";
       setStatus("");
       if (sampled) {
-        setNote("Showing the first " + MAX_EDGES.toLocaleString() + " of " +
+        setNote("Showing the first " + limit.toLocaleString() + " of " +
                 view.counts.edges.toLocaleString() + " edges. This view is too dense to " +
                 "draw whole — the full data is in the API.");
       }

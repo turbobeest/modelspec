@@ -1,6 +1,20 @@
 #!/usr/bin/env python3
 """Compute COMPETES_WITH derived edges in the ModelSpec FalkorDB graph.
 
+SUPERSEDED, 2026-09-09. The rule below now lives in `pipeline/competition.py`
+and runs inside `python -m pipeline.build` against the in-memory derivation, so
+the competition view is published without a database. This script is kept as
+the reference implementation the port was checked against, and for populating a
+local FalkorDB for Cypher exploration. Change the rule in pipeline/competition.py,
+not here — and if you change it in both, they will disagree.
+
+Two intentional differences in the port: it emits one edge per unordered pair
+rather than both directions, and it keeps each model's closest competitors
+(top 6) rather than every qualifying pair, because 12,561 edges cannot be drawn
+legibly. It also uses the build date rather than the hardcoded COMPUTED_DATE
+below, which was five months stale by the time the port was written.
+
+
 Two models compete if:
   - Same model_type (primary type)
   - Parameter count within 3x of each other (if both have params)
