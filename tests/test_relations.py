@@ -186,3 +186,46 @@ def test_no_evidence_renders_nothing() -> None:
         front = {"benchmarks": {"scores": {"humaneval": 90.0}}}
 
     assert evidence_section(FakeModel()) == ""
+
+
+# ── the front door ───────────────────────────────────────────────────────────
+
+def test_the_landing_page_links_to_the_site() -> None:
+    """Everything was live and unreachable from modelspec.dev itself.
+
+    The landing page predates the site and was copied into the build verbatim,
+    so its only links were to GitHub. A visitor saw the same holding page as
+    before and reasonably concluded nothing had shipped.
+    """
+    from pipeline.build import wire_landing
+
+    html = wire_landing(
+        '<nav><a href="https://github.com/turbobeest/modelspec">GitHub</a></nav>',
+        {"models": 1, "providers": 1, "edges": 1, "benchmarks": 1, "fields": 1},
+    )
+    for route in ("/graph/", "/downselect/", "/models/", "/providers/"):
+        assert f'href="{route}"' in html, f"the front door does not link to {route}"
+
+
+def test_landing_statistics_come_from_the_build() -> None:
+    """They were hand-written and had drifted — 750 fields against an actual 693."""
+    from pipeline.build import wire_landing
+
+    html = wire_landing(
+        '<div class="stats" aria-label="x"><div><b>OLD</b>model cards</div></div></section>',
+        {"models": 1225, "providers": 47, "edges": 37020, "benchmarks": 1106, "fields": 693},
+    )
+    assert "OLD" not in html
+    assert "1,225" in html and "693" in html
+
+
+def test_field_count_is_leaves_not_sections() -> None:
+    """len(model_fields) is 20 sections, and would advertise "20 fields per card"."""
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+    from pipeline.build import _schema_field_count
+    from schema.card import ModelCard
+
+    assert _schema_field_count(ModelCard) > 600

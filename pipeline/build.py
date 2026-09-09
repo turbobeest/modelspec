@@ -24,6 +24,81 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 
 
+def _schema_field_count(model_cls) -> int:
+    """Every leaf field, not the 20 top-level sections.
+
+    `len(ModelCard.model_fields)` counts sections and would have put "20 fields
+    per card" on the front page of a project whose whole pitch is the depth of
+    the schema.
+    """
+    total = 0
+    for field in model_cls.model_fields.values():
+        annotation = field.annotation
+        if hasattr(annotation, "model_fields"):
+            total += _schema_field_count(annotation)
+        else:
+            total += 1
+    return total
+
+
+def wire_landing(html: str, stats: dict[str, int]) -> str:
+    """Point the front door at the site, and keep its numbers honest.
+
+    The landing page was written before there was anything behind it. It was
+    copied verbatim into the build, which meant every page this pipeline
+    generates — the graph, the wizard, 1,225 model pages — was live and
+    unreachable from modelspec.dev itself. A visitor saw the same holding page
+    as before and reasonably concluded nothing had shipped.
+
+    Its statistics were hand-written too, and had drifted. They are now injected
+    from the build, so they cannot go stale again.
+    """
+    nav_old = '<a href="https://github.com/turbobeest/modelspec">GitHub</a>'
+    nav_new = (
+        '<a href="/graph/">Graph</a>\n'
+        '      <a href="/downselect/">Downselect</a>\n'
+        '      <a href="/models/">Models</a>\n'
+        '      <a href="/providers/">Providers</a>\n'
+        '      <a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>\n'
+        '      <a href="https://github.com/turbobeest/modelspec">GitHub</a>'
+    )
+    if nav_old in html:
+        html = html.replace(nav_old, nav_new, 1)
+
+    # A question with no way to answer it is a poster. Put the answer one click
+    # away, immediately under the question the page asks.
+    answer_anchor = ('<div class="a">That question, answered from evidence, '
+                     'and kept current as the models change underneath you.</div>')
+    if answer_anchor in html:
+        html = html.replace(answer_anchor, answer_anchor + (
+            '\n      <div class="go" style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap">'
+            '<a href="/downselect/" style="background:#f5b342;color:#1a1200;padding:11px 20px;'
+            'border-radius:9px;font-weight:700;text-decoration:none">Answer it now &rarr;</a>'
+            '<a href="/graph/" style="border:1px solid #2a3140;padding:11px 20px;border-radius:9px;'
+            'text-decoration:none">Explore the graph</a>'
+            '<a href="/models/" style="border:1px solid #2a3140;padding:11px 20px;border-radius:9px;'
+            'text-decoration:none">Browse every model</a>'
+            "</div>"), 1)
+
+    # Replace the hand-written statistics with the build's own counts.
+    start = html.find('<div class="stats"')
+    if start != -1:
+        end = html.find("</div>", html.rfind("<div>", start, html.find("</section>", start)))
+        end = html.find("</div>", end + 6)
+        if end != -1:
+            live = (
+                f'<div class="stats" aria-label="What the graph holds today">'
+                f'<div><b>{stats["models"]:,}</b>model cards</div>'
+                f'<div><b>{stats["providers"]}</b>providers</div>'
+                f'<div><b>{stats["edges"]:,}</b>relationships</div>'
+                f'<div><b>{stats["benchmarks"]:,}</b>benchmarks</div>'
+                f'<div><b>{stats["fields"]}</b>fields per card</div>'
+                f"</div>"
+            )
+            html = html[:start] + live + html[end + 6:]
+    return html
+
+
 def _copy_static(src: Path, dest: Path) -> bool:
     """Copy a prebuilt landing page tree if it exists. Never overwrite generated pages."""
     if not (src / "index.html").is_file():
@@ -159,7 +234,17 @@ def main(argv: list[str] | None = None) -> int:
         r.catalogue_page(benchmarks, catalogue, build, coverage), encoding="utf-8")
 
     # Landing pages: use the designed ones when present, else a plain index.
-    if not _copy_static(root / "site/holding", ms):
+    if _copy_static(root / "site/holding", ms):
+        landing = ms / "index.html"
+        from schema.card import ModelCard
+        landing.write_text(wire_landing(landing.read_text(encoding="utf-8"), {
+            "models": len(models),
+            "providers": len(by_provider),
+            "edges": graph_counts["edges"],
+            "benchmarks": len(benchmarks),
+            "fields": _schema_field_count(ModelCard),
+        }), encoding="utf-8")
+    elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
             f"The open knowledge graph of AI models. {len(models)} cards, "
