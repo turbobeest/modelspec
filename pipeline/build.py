@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from pipeline import export as exporter
+from pipeline import graph as graph_export
 from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
@@ -81,6 +82,13 @@ def main(argv: list[str] | None = None) -> int:
                             parts=("index", "models"))
     exporter.write(bg / "api", models, benchmarks, catalogue, build,
                    parts=("catalogue", "benchmarks"))
+
+    # The graph is derived through the same code path as the FalkorDB ingest, so
+    # the published graph and the database cannot disagree about the cards.
+    from schema.card import ModelCard
+    from schema.graph import derive_graph
+    cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
+    graph_counts = graph_export.write(ms / "api" / "graph", derive_graph(cards), build.to_json())
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)
@@ -150,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = {
         **counts,
+        "graph": graph_counts,
         "commit": build.commit[:12],
         "modelspec_urls": len(ms_paths),
         "benchgraph_urls": len(bg_paths),

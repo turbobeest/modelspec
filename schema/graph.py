@@ -105,6 +105,10 @@ def ingest_model_card(graph, card) -> dict[str, int]:
     """
     from .card import ModelCard
 
+    # Accept either a sink or a raw FalkorDB handle, so existing callers such
+    # as scripts/ingest_all.py keep working unchanged.
+    sink = graph if hasattr(graph, "node") else CypherSink(graph)
+
     stats = {"nodes_created": 0, "edges_created": 0}
     ident = card.identity
     arch = card.architecture
@@ -141,42 +145,42 @@ def ingest_model_card(graph, card) -> dict[str, int]:
 
     # Filter out None values for cleaner Cypher
     props = {k: v for k, v in model_props.items() if v is not None}
-    _merge_node(graph, "Model", "id", ident.model_id, props)
+    sink.node("Model", "id", ident.model_id, props)
     stats["nodes_created"] += 1
 
     # ── 2. Upsert :Provider and :MADE_BY ───────────────────
     if ident.provider:
-        _merge_node(graph, "Provider", "id", ident.provider, {
+        sink.node("Provider", "id", ident.provider, {
             "id": ident.provider,
             "display_name": ident.provider_display or ident.provider,
             "country": lic.origin_country,
         })
-        _merge_edge(graph, "Model", ident.model_id, "MADE_BY", "Provider", ident.provider)
+        sink.edge("Model", ident.model_id, "MADE_BY", "Provider", ident.provider)
         stats["nodes_created"] += 1
         stats["edges_created"] += 1
 
     # ── 3. Upsert :License and :LICENSED_AS ────────────────
     if lic.license_type:
         license_id = lic.license_type.value
-        _merge_node(graph, "License", "id", license_id, {
+        sink.node("License", "id", license_id, {
             "id": license_id,
             "name": license_id,
             "commercial_ok": lic.commercial_use,
             "defense_ok": lic.defense_use.value,
             "government_ok": lic.government_use.value,
         })
-        _merge_edge(graph, "Model", ident.model_id, "LICENSED_AS", "License", license_id)
+        sink.edge("Model", ident.model_id, "LICENSED_AS", "License", license_id)
         stats["edges_created"] += 1
 
     # ── 4. Upsert :DERIVED_FROM (lineage) ──────────────────
     if card.lineage.base_model:
-        _merge_node(graph, "Model", "id", card.lineage.base_model, {
+        sink.node("Model", "id", card.lineage.base_model, {
             "id": card.lineage.base_model,
         })
         edge_props = {}
         if card.lineage.base_model_relation:
             edge_props["relation"] = card.lineage.base_model_relation.value
-        _merge_edge(graph, "Model", ident.model_id, "DERIVED_FROM",
+        sink.edge("Model", ident.model_id, "DERIVED_FROM",
                      "Model", card.lineage.base_model, edge_props)
         stats["edges_created"] += 1
 
@@ -184,23 +188,23 @@ def ingest_model_card(graph, card) -> dict[str, int]:
     cap_map = _extract_capabilities(card.capabilities)
     for cap_id, tier in cap_map.items():
         category = cap_id.split(":")[0] if ":" in cap_id else "general"
-        _merge_node(graph, "Capability", "id", cap_id, {
+        sink.node("Capability", "id", cap_id, {
             "id": cap_id,
             "category": category,
             "name": cap_id.split(":")[-1].replace("_", " ").title(),
         })
-        _merge_edge(graph, "Model", ident.model_id, "HAS_CAPABILITY",
+        sink.edge("Model", ident.model_id, "HAS_CAPABILITY",
                      "Capability", cap_id, {"tier": tier})
         stats["edges_created"] += 1
 
     # ── 6. Benchmarks → :SCORED_ON edges ───────────────────
     for bench_id, value in card.benchmarks.scores.items():
         if isinstance(value, (int, float)):
-            _merge_node(graph, "Benchmark", "id", bench_id, {
+            sink.node("Benchmark", "id", bench_id, {
                 "id": bench_id,
                 "name": bench_id.replace("_", " ").title(),
             })
-            _merge_edge(graph, "Model", ident.model_id, "SCORED_ON",
+            sink.edge("Model", ident.model_id, "SCORED_ON",
                          "Benchmark", bench_id, {
                              "value": float(value),
                              "date": card.benchmarks.benchmark_as_of,
@@ -210,7 +214,7 @@ def ingest_model_card(graph, card) -> dict[str, int]:
     # ── 7. Hardware profiles → :FITS_ON edges ──────────────
     for hw_id, profile in card.deployment.hardware_profiles.items():
         if profile.fits:
-            _merge_node(graph, "Hardware", "id", hw_id, {"id": hw_id, "display_name": hw_id})
+            sink.node("Hardware", "id", hw_id, {"id": hw_id, "display_name": hw_id})
             edge_props = {k: v for k, v in {
                 "quantization": profile.best_quant,
                 "vram_usage_gb": profile.vram_usage_gb or profile.ram_usage_gb,
@@ -219,7 +223,7 @@ def ingest_model_card(graph, card) -> dict[str, int]:
                 "max_context_tokens": profile.max_context_at_quant,
                 "inference_engine": profile.inference_engine,
             }.items() if v}
-            _merge_edge(graph, "Model", ident.model_id, "FITS_ON",
+            sink.edge("Model", ident.model_id, "FITS_ON",
                          "Hardware", hw_id, edge_props)
             stats["edges_created"] += 1
 
@@ -227,7 +231,7 @@ def ingest_model_card(graph, card) -> dict[str, int]:
     for field_name, field_value in card.availability:
         if isinstance(field_value, PlatformEntry_type()) and field_value.available:
             platform_id = field_name
-            _merge_node(graph, "Platform", "id", platform_id, {
+            sink.node("Platform", "id", platform_id, {
                 "id": platform_id,
                 "display_name": field_name.replace("_", " ").title(),
                 "url": field_value.url,
@@ -238,14 +242,14 @@ def ingest_model_card(graph, card) -> dict[str, int]:
                 "gated": field_value.gated,
                 "notes": field_value.notes,
             }.items() if v}
-            _merge_edge(graph, "Model", ident.model_id, "AVAILABLE_ON",
+            sink.edge("Model", ident.model_id, "AVAILABLE_ON",
                          "Platform", platform_id, edge_props)
             stats["edges_created"] += 1
 
     # ── 9. Tags → :TAGGED_WITH edges ──────────────────────
     for tag in ident.tags:
-        _merge_node(graph, "Tag", "id", tag, {"id": tag})
-        _merge_edge(graph, "Model", ident.model_id, "TAGGED_WITH", "Tag", tag)
+        sink.node("Tag", "id", tag, {"id": tag})
+        sink.edge("Model", ident.model_id, "TAGGED_WITH", "Tag", tag)
         stats["edges_created"] += 1
 
     return stats
@@ -261,31 +265,73 @@ def PlatformEntry_type():
 # Helpers
 # ═══════════════════════════════════════════════════════════════
 
-def _merge_node(graph, label: str, key_field: str, key_value: str, props: dict[str, Any]) -> None:
-    """MERGE a node by its key field, setting properties."""
-    extra_props = {k: v for k, v in props.items() if k != key_field}
-    if extra_props:
-        prop_str = ", ".join(f"n.{k} = ${k}" for k in extra_props)
-        query = f"MERGE (n:{label} {{{key_field}: ${key_field}}}) SET {prop_str}"
-    else:
-        query = f"MERGE (n:{label} {{{key_field}: ${key_field}}})"
-    graph.query(query, props)
+class CypherSink:
+    """Writes the derived graph into FalkorDB, one MERGE at a time."""
+
+    def __init__(self, graph) -> None:
+        self.graph = graph
+
+    def node(self, label: str, key_field: str, key_value: str, props: dict[str, Any]) -> None:
+        extra_props = {k: v for k, v in props.items() if k != key_field}
+        if extra_props:
+            prop_str = ", ".join(f"n.{k} = ${k}" for k in extra_props)
+            query = f"MERGE (n:{label} {{{key_field}: ${key_field}}}) SET {prop_str}"
+        else:
+            query = f"MERGE (n:{label} {{{key_field}: ${key_field}}})"
+        self.graph.query(query, props)
+
+    def edge(self, from_label: str, from_id: str, edge_type: str,
+             to_label: str, to_id: str, props: dict[str, Any] | None = None) -> None:
+        if props:
+            prop_str = " {" + ", ".join(f"{k}: ${k}" for k in props) + "}"
+        else:
+            prop_str = ""
+        params = {"from_id": from_id, "to_id": to_id, **(props or {})}
+        query = (
+            f"MATCH (a:{from_label} {{id: $from_id}}) "
+            f"MATCH (b:{to_label} {{id: $to_id}}) "
+            f"MERGE (a)-[:{edge_type}{prop_str}]->(b)"
+        )
+        self.graph.query(query, params)
 
 
-def _merge_edge(graph, from_label: str, from_id: str, edge_type: str,
-                to_label: str, to_id: str, props: dict[str, Any] | None = None) -> None:
-    """MERGE an edge between two nodes identified by their id fields."""
-    if props:
-        prop_str = " {" + ", ".join(f"{k}: ${k}" for k in props) + "}"
-    else:
-        prop_str = ""
-    params = {"from_id": from_id, "to_id": to_id, **(props or {})}
-    query = (
-        f"MATCH (a:{from_label} {{id: $from_id}}) "
-        f"MATCH (b:{to_label} {{id: $to_id}}) "
-        f"MERGE (a)-[:{edge_type}{prop_str}]->(b)"
-    )
-    graph.query(query, params)
+class CollectingSink:
+    """Accumulates the derived graph in memory, with no database.
+
+    This is what lets the build emit the graph as JSON. It reproduces MERGE
+    semantics: a node seen twice keeps the union of its properties, later
+    non-null values winning, so a model referenced as another model's base
+    before its own card is read still ends up complete.
+    """
+
+    def __init__(self) -> None:
+        self.nodes: dict[tuple[str, str], dict[str, Any]] = {}
+        self.edges: list[dict[str, Any]] = []
+
+    def node(self, label: str, key_field: str, key_value: str, props: dict[str, Any]) -> None:
+        existing = self.nodes.setdefault((label, key_value), {key_field: key_value})
+        for key, value in props.items():
+            if value is not None:
+                existing[key] = value
+
+    def edge(self, from_label: str, from_id: str, edge_type: str,
+             to_label: str, to_id: str, props: dict[str, Any] | None = None) -> None:
+        self.edges.append({
+            "type": edge_type,
+            "from": from_id,
+            "from_label": from_label,
+            "to": to_id,
+            "to_label": to_label,
+            **({"props": props} if props else {}),
+        })
+
+
+def derive_graph(cards) -> CollectingSink:
+    """Derive the whole graph from model cards, without touching a database."""
+    sink = CollectingSink()
+    for card in cards:
+        ingest_model_card(sink, card)
+    return sink
 
 
 def _extract_capabilities(caps) -> dict[str, str]:
