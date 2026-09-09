@@ -122,8 +122,9 @@ Data <span class="mono">CC BY-SA</span>, code <span class="mono">MIT</span>.</p>
 """
 
 
-MS_NAV = [("Models", "/models/"), ("Providers", "/providers/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
-BG_NAV = [("Catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"), ("API", "/api/catalogue.json")]
+MS_NAV = [("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
+BG_NAV = [("Catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"),
+          ("Graph", "https://modelspec.dev/graph/"), ("API", "/api/catalogue.json")]
 
 
 def _write(path: Path, text: str) -> None:

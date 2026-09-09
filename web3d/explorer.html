@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph explorer — ModelSpec</title>
+<meta name="description" content="The ModelSpec knowledge graph: every model, provider, benchmark and platform, and the relationships between them.">
+<link rel="canonical" href="https://modelspec.dev/graph/">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#04060a; --panel:rgba(10,14,20,.82); --line:rgba(120,140,170,.16);
+  --ink:#e8edf5; --mute:#8d99ab; --dim:#5a6474; --amber:#f5b342;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ground);color:var(--ink);
+  font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+#scene{position:fixed;inset:0}
+/* A faint vignette gives the volume a floor without adding geometry. */
+#vignette{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 35%,rgba(0,0,0,.55) 100%)}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+
+header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;
+  padding:14px 20px;z-index:10;pointer-events:none}
+header>*{pointer-events:auto}
+.brand{font-weight:700;letter-spacing:-.02em;text-decoration:none;font-size:17px}
+.brand span{color:var(--amber)}
+select,input{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:7px 11px;font:inherit;font-size:14px;backdrop-filter:blur(9px)}
+input{width:210px}
+select:focus,input:focus{outline:none;border-color:var(--amber)}
+.spacer{flex:1}
+.hint{color:var(--dim);font-size:12.5px;letter-spacing:.02em}
+
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  backdrop-filter:blur(11px);z-index:10}
+#legend{left:20px;bottom:20px;padding:13px 15px;min-width:186px}
+#legend h4{margin:0 0 9px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);font-weight:500}
+.row{display:flex;align-items:center;gap:9px;font-size:13px;padding:2.5px 0;cursor:pointer;opacity:.95}
+.row:hover{opacity:1}
+.row.off{opacity:.3}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor}
+.row .n{margin-left:auto;color:var(--dim);font-size:11.5px}
+
+#detail{right:20px;top:66px;width:312px;max-height:calc(100vh - 110px);overflow:auto;padding:16px 18px;display:none}
+#detail h3{margin:0 0 3px;font-size:17px;letter-spacing:-.01em}
+#detail .kind{color:var(--amber);font-size:11px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:11px}
+#detail table{width:100%;border-collapse:collapse;font-size:13px}
+#detail th{text-align:left;color:var(--mute);font-weight:400;padding:3px 9px 3px 0;vertical-align:top;white-space:nowrap}
+#detail td{padding:3px 0;word-break:break-word}
+#detail .go{display:inline-block;margin-top:13px;font-size:13px;color:var(--amber);text-decoration:none}
+#detail .go:hover{text-decoration:underline}
+#close{position:absolute;top:11px;right:13px;cursor:pointer;color:var(--dim);font-size:17px;line-height:1}
+#close:hover{color:var(--ink)}
+
+#status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:20}
+#status .t{font-size:14px;color:var(--mute);letter-spacing:.03em}
+#note{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10;
+  padding:8px 15px;font-size:12.5px;color:var(--mute);display:none;max-width:min(560px,90vw);text-align:center}
+#question{position:fixed;left:20px;top:62px;z-index:10;font-size:13px;color:var(--mute);max-width:290px;line-height:1.45}
+@media(max-width:760px){#detail{left:20px;right:20px;width:auto}#legend{display:none}#question{display:none}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="vignette"></div>
+
+<header>
+  <a class="brand" href="/">Model<span>Spec</span></a>
+  <select id="view" aria-label="Graph view"></select>
+  <input id="search" type="search" placeholder="Search the graph…" autocomplete="off" aria-label="Search">
+  <div class="spacer"></div>
+  <div class="hint mono" id="counts"></div>
+</header>
+
+<div id="question"></div>
+
+<div class="panel" id="legend"><h4>Node types</h4><div id="legendRows"></div></div>
+
+<div class="panel" id="detail">
+  <div id="close" role="button" aria-label="Close">&times;</div>
+  <div class="kind" id="dKind"></div>
+  <h3 id="dName"></h3>
+  <table id="dProps"></table>
+  <a class="go" id="dGo" href="#">Open page &rarr;</a>
+</div>
+
+<div id="status"><div class="t mono">Loading the graph…</div></div>
+<div class="panel" id="note"></div>
+
+<script src="/graph/vendor/three.min.js"></script>
+<script src="/graph/vendor/3d-force-graph.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Hue carries meaning: one node type, one colour. Saturation stays low so the
+  // amber accent is the only thing that shouts, and so the graph reads as an
+  // instrument rather than a toy.
+  var PALETTE = {
+    Model:      "#dbe6f5",
+    Provider:   "#f5b342",
+    Benchmark:  "#63c9d9",
+    Platform:   "#8fa4d4",
+    Capability: "#78b5a2",
+    License:    "#9aa5b6",
+    Tag:        "#6c778a",
+    Hardware:   "#c98fb8"
+  };
+  var FALLBACK = "#9aa5b6";
+  // Above this an interactive force layout stops being readable. The export
+  // already tells us which views are dense; this is the client-side ceiling.
+  var MAX_EDGES = 3000;
+
+  var el = function (id) { return document.getElementById(id); };
+  var status = el("status"), note = el("note");
+  var graph = null, nodesById = {}, currentView = null, hidden = {};
+
+  function setStatus(text) {
+    if (text) { status.style.display = "block"; status.firstElementChild.textContent = text; }
+    else { status.style.display = "none"; }
+  }
+  function setNote(text) {
+    if (text) { note.style.display = "block"; note.textContent = text; }
+    else { note.style.display = "none"; }
+  }
+  function getJSON(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) { throw new Error(url + " -> HTTP " + r.status); }
+      return r.json();
+    });
+  }
+
+  // A glow sprite behind each node. This is what makes the scene read as
+  // science fiction rather than a ball pit, and it costs one texture shared by
+  // every node rather than a post-processing pass.
+  var glowTexture = (function () {
+    var c = document.createElement("canvas");
+    c.width = c.height = 128;
+    var g = c.getContext("2d").createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0.00, "rgba(255,255,255,1)");
+    g.addColorStop(0.18, "rgba(255,255,255,.55)");
+    g.addColorStop(0.45, "rgba(255,255,255,.13)");
+    g.addColorStop(1.00, "rgba(255,255,255,0)");
+    var ctx = c.getContext("2d");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
+
+  var materialCache = {};
+  function coreMaterial(color) {
+    if (!materialCache[color]) {
+      materialCache[color] = new THREE.MeshBasicMaterial({ color: color });
+    }
+    return materialCache[color];
+  }
+  var spriteCache = {};
+  function glowMaterial(color) {
+    if (!spriteCache[color]) {
+      spriteCache[color] = new THREE.SpriteMaterial({
+        map: glowTexture, color: color,
+        transparent: true, opacity: 0.62,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+    }
+    return spriteCache[color];
+  }
+
+  var sphere = new THREE.SphereGeometry(1, 12, 10);
+
+  function nodeObject(node) {
+    var color = PALETTE[node.label] || FALLBACK;
+    var r = node.__r;
+    var group = new THREE.Group();
+    var core = new THREE.Mesh(sphere, coreMaterial(color));
+    core.scale.setScalar(r);
+    group.add(core);
+    var glow = new THREE.Sprite(glowMaterial(color));
+    glow.scale.setScalar(r * 5.5);
+    group.add(glow);
+    return group;
+  }
+
+  function renderLegend(nodes) {
+    var counts = {};
+    nodes.forEach(function (n) { counts[n.label] = (counts[n.label] || 0) + 1; });
+    var rows = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
+    el("legendRows").innerHTML = rows.map(function (label) {
+      var color = PALETTE[label] || FALLBACK;
+      return '<div class="row' + (hidden[label] ? " off" : "") + '" data-label="' + label + '">' +
+             '<span class="dot" style="background:' + color + ';color:' + color + '"></span>' +
+             label + '<span class="n mono">' + counts[label] + "</span></div>";
+    }).join("");
+    Array.prototype.forEach.call(el("legendRows").querySelectorAll(".row"), function (row) {
+      row.onclick = function () {
+        var label = row.dataset.label;
+        hidden[label] = !hidden[label];
+        row.classList.toggle("off", !!hidden[label]);
+        applyVisibility();
+      };
+    });
+  }
+
+  function applyVisibility() {
+    if (!graph) { return; }
+    graph.nodeVisibility(function (n) { return !hidden[n.label]; })
+         .linkVisibility(function (l) {
+           var s = typeof l.source === "object" ? l.source : nodesById[l.source];
+           var t = typeof l.target === "object" ? l.target : nodesById[l.target];
+           return s && t && !hidden[s.label] && !hidden[t.label];
+         });
+  }
+
+  function pageFor(node) {
+    if (node.label === "Model") { return "/m/" + node.id + "/"; }
+    if (node.label === "Provider") { return "/p/" + node.id + "/"; }
+    if (node.label === "Benchmark") { return "https://benchgraph.dev/b/" + node.id + "/"; }
+    return null;
+  }
+
+  var SKIP = { key: 1, id: 1, label: 1, __r: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
+               index: 1, __threeObj: 1, fx: 1, fy: 1, fz: 1 };
+
+  function showDetail(node) {
+    el("dKind").textContent = node.label;
+    el("dName").textContent = node.display_name || node.name || node.id;
+    var rows = Object.keys(node).filter(function (k) {
+      return !SKIP[k] && node[k] !== null && node[k] !== "" && typeof node[k] !== "object";
+    }).sort();
+    el("dProps").innerHTML = rows.map(function (k) {
+      return "<tr><th>" + k.replace(/_/g, " ") + "</th><td>" + String(node[k]) + "</td></tr>";
+    }).join("");
+    var href = pageFor(node);
+    el("dGo").style.display = href ? "inline-block" : "none";
+    if (href) { el("dGo").href = href; }
+    el("detail").style.display = "block";
+  }
+  el("close").onclick = function () { el("detail").style.display = "none"; };
+
+  function loadView(key) {
+    setStatus("Loading " + key + "…");
+    setNote("");
+    return getJSON("/api/graph/views/" + key + ".json").then(function (view) {
+      currentView = view;
+      el("question").textContent = view.question || "";
+
+      var nodes = view.nodes.slice();
+      var links = view.edges.map(function (e) {
+        return { source: e.from, target: e.to, type: e.type };
+      });
+
+      if (!links.length) {
+        setStatus("");
+        setNote("This view is empty — no " + view.edge_types.join(", ") +
+                " relationships exist in the data yet.");
+        if (graph) { graph.graphData({ nodes: [], links: [] }); }
+        el("counts").textContent = "0 nodes · 0 edges";
+        el("legendRows").innerHTML = "";
+        return;
+      }
+
+      // An illegible view is sampled rather than rendered whole, and says so.
+      var sampled = false;
+      if (links.length > MAX_EDGES) {
+        links = links.slice(0, MAX_EDGES);
+        var keep = {};
+        links.forEach(function (l) { keep[l.source] = 1; keep[l.target] = 1; });
+        nodes = nodes.filter(function (n) { return keep[n.key]; });
+        sampled = true;
+      }
+
+      // Size by degree, so the eye finds the hubs first. Compressed hard,
+      // because a linear map makes one node a planet and the rest dust.
+      var degree = {};
+      links.forEach(function (l) {
+        degree[l.source] = (degree[l.source] || 0) + 1;
+        degree[l.target] = (degree[l.target] || 0) + 1;
+      });
+      nodes.forEach(function (n) {
+        n.__r = 2.6 + Math.pow(degree[n.key] || 0, 0.42) * 1.9;
+      });
+
+      nodesById = {};
+      nodes.forEach(function (n) { nodesById[n.key] = n; });
+
+      graph.__framed = false;
+      graph.graphData({ nodes: nodes, links: links });
+      applyVisibility();
+      renderLegend(nodes);
+      el("counts").textContent = nodes.length.toLocaleString() + " nodes · " +
+                                 links.length.toLocaleString() + " edges";
+      setStatus("");
+      if (sampled) {
+        setNote("Showing the first " + MAX_EDGES.toLocaleString() + " of " +
+                view.counts.edges.toLocaleString() + " edges. This view is too dense to " +
+                "draw whole — the full data is in the API.");
+      }
+    });
+  }
+
+  function init(views) {
+    var select = el("view");
+    select.innerHTML = views.map(function (v) {
+      return '<option value="' + v.key + '"' + (v.empty ? " data-empty=1" : "") + ">" +
+             v.title + "</option>";
+    }).join("");
+
+    graph = ForceGraph3D()(el("scene"))
+      .backgroundColor("#04060a")
+      .showNavInfo(false)
+      .nodeId("key")
+      .nodeLabel(function (n) { return n.display_name || n.name || n.id; })
+      .nodeThreeObject(nodeObject)
+      .linkColor(function () { return "#93a9cc"; })
+      .linkOpacity(0.42)
+      .linkWidth(0)
+      .linkDirectionalParticles(0)
+      .warmupTicks(24)
+      .cooldownTime(9000)
+      .onNodeClick(function (node) {
+        // Ease the camera to the node rather than cutting, so the viewer keeps
+        // their bearings in the volume.
+        var d = 62;
+        var dist = Math.hypot(node.x, node.y, node.z) || 1;
+        var k = 1 + d / dist;
+        graph.cameraPosition({ x: node.x * k, y: node.y * k, z: node.z * k },
+                             node, 900);
+        showDetail(node);
+      })
+      .onBackgroundClick(function () { el("detail").style.display = "none"; })
+      .onEngineStop(function () {
+        // Frame what was actually laid out, once, rather than leaving the
+        // viewer to find the graph themselves.
+        if (!graph.__framed) { graph.__framed = true; graph.zoomToFit(900, 60); }
+      });
+
+    graph.d3Force("charge").strength(-95);
+
+    var first = views.filter(function (v) { return !v.empty; })[0] || views[0];
+    select.value = first.key;
+    select.onchange = function () { loadView(select.value); };
+
+    el("search").oninput = function () {
+      var q = this.value.trim().toLowerCase();
+      if (!q) { graph.nodeThreeObject(nodeObject); return; }
+      var hit = null;
+      Object.keys(nodesById).some(function (k) {
+        var n = nodesById[k];
+        var name = String(n.display_name || n.name || n.id).toLowerCase();
+        if (name.indexOf(q) !== -1) { hit = n; return true; }
+        return false;
+      });
+      if (hit) {
+        var dist = Math.hypot(hit.x, hit.y, hit.z) || 1;
+        var k = 1 + 70 / dist;
+        graph.cameraPosition({ x: hit.x * k, y: hit.y * k, z: hit.z * k }, hit, 700);
+        showDetail(hit);
+      }
+    };
+
+    window.addEventListener("resize", function () {
+      graph.width(window.innerWidth).height(window.innerHeight);
+    });
+    graph.width(window.innerWidth).height(window.innerHeight);
+
+    return loadView(first.key);
+  }
+
+  getJSON("/api/graph/views.json")
+    .then(function (d) { return init(d.views); })
+    .catch(function (err) {
+      setStatus("");
+      setNote("Could not load the graph: " + err.message);
+    });
+})();
+</script>
+</body>
+</html>

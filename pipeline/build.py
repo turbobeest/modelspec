@@ -100,6 +100,18 @@ def main(argv: list[str] | None = None) -> int:
         (ms / "m" / model.model_id / "index.html").write_text(
             r.model_page(model, build, bench_by_id, catalogue), encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
+    # The graph explorer: a full-viewport canvas app, so it is copied rather
+    # than rendered through the document shell. Its libraries are vendored so
+    # the page does not depend on a CDN at runtime.
+    explorer = root / "web3d/explorer.html"
+    if explorer.is_file():
+        (ms / "graph").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(explorer, ms / "graph/index.html")
+        vendor = root / "web3d/vendor"
+        if vendor.is_dir():
+            shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+        ms_paths.append("/graph/")
+
     (ms / "models").mkdir(exist_ok=True)
     (ms / "models/index.html").write_text(r.models_index(models, build), encoding="utf-8")
     (ms / "providers").mkdir(exist_ok=True)
