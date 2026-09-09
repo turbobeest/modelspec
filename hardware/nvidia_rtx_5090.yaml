@@ -1,0 +1,32 @@
+id: nvidia_rtx_5090
+display_name: NVIDIA GeForce RTX 5090
+vendor: nvidia
+family: GeForce RTX 50
+device_class: consumer
+released: 2025-01
+memory:
+  capacity_gb: 32
+  bandwidth_gb_s: 1792
+  type: GDDR7
+  bus_bits: 512
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 575
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.

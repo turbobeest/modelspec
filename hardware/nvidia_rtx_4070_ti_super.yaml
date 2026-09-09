@@ -1,0 +1,31 @@
+id: nvidia_rtx_4070_ti_super
+display_name: NVIDIA GeForce RTX 4070 Ti SUPER
+vendor: nvidia
+family: GeForce RTX 40
+device_class: consumer
+released: 2024-01
+memory:
+  capacity_gb: 16
+  bandwidth_gb_s: 672
+  type: GDDR6X
+  bus_bits: 256
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 285
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4070-family/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.

@@ -1,0 +1,30 @@
+id: amd_rx_7900_xt
+display_name: AMD Radeon RX 7900 XT
+vendor: amd
+family: Radeon RX 7000
+device_class: consumer
+released: 2022-12
+memory:
+  capacity_gb: 20
+  bandwidth_gb_s: 800
+  type: GDDR6
+  bus_bits: 320
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 315
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/graphics/radeon-rx-7000-series
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.

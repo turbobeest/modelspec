@@ -1,0 +1,37 @@
+id: apple_m3_max
+display_name: Apple M3 Max
+vendor: apple
+family: Apple M3
+device_class: integrated
+released: 2023-10
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 400
+  type: unified LPDDR5X
+  bus_bits: null
+  unified_with_host: true
+  capacity_options_gb:
+  - 36
+  - 48
+  - 64
+  - 96
+  - 128
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: null
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: true
+sources:
+- https://www.apple.com/mac/compare/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: 'up to 16-core CPU, up to 40-core GPU. Unified memory: the whole capacity is
+  addressable by the GPU, minus what the OS holds. Sustained clocks differ from boost
+  in thin chassis. Transcribed from vendor specifications; not yet confirmed.'

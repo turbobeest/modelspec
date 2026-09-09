@@ -1,0 +1,31 @@
+id: nvidia_rtx_4060_ti_16gb
+display_name: NVIDIA GeForce RTX 4060 Ti 16GB
+vendor: nvidia
+family: GeForce RTX 40
+device_class: consumer
+released: 2023-07
+memory:
+  capacity_gb: 16
+  bandwidth_gb_s: 288
+  type: GDDR6
+  bus_bits: 128
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 165
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.

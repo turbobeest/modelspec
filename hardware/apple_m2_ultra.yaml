@@ -1,0 +1,35 @@
+id: apple_m2_ultra
+display_name: Apple M2 Ultra
+vendor: apple
+family: Apple M2
+device_class: integrated
+released: 2023-06
+memory:
+  capacity_gb: 192
+  bandwidth_gb_s: 800
+  type: unified LPDDR5X
+  bus_bits: null
+  unified_with_host: true
+  capacity_options_gb:
+  - 64
+  - 128
+  - 192
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: null
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: true
+sources:
+- https://www.apple.com/mac/compare/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: 'up to 24-core CPU, up to 76-core GPU. Unified memory: the whole capacity is
+  addressable by the GPU, minus what the OS holds. Sustained clocks differ from boost
+  in thin chassis. Transcribed from vendor specifications; not yet confirmed.'

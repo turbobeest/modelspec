@@ -1,0 +1,35 @@
+id: apple_m3_ultra
+display_name: Apple M3 Ultra
+vendor: apple
+family: Apple M3
+device_class: integrated
+released: 2025-03
+memory:
+  capacity_gb: 512
+  bandwidth_gb_s: 819
+  type: unified LPDDR5X
+  bus_bits: null
+  unified_with_host: true
+  capacity_options_gb:
+  - 96
+  - 256
+  - 512
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: null
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: true
+sources:
+- https://www.apple.com/mac/compare/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: 'up to 32-core CPU, up to 80-core GPU. Unified memory: the whole capacity is
+  addressable by the GPU, minus what the OS holds. Sustained clocks differ from boost
+  in thin chassis. Transcribed from vendor specifications; not yet confirmed.'

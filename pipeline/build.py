@@ -87,12 +87,14 @@ def main(argv: list[str] | None = None) -> int:
     # the published graph and the database cannot disagree about the cards.
     from schema.card import ModelCard
     from schema.graph import derive_graph
-    from pipeline import competition
+    from pipeline import competition, hardware
     cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
     derived = derive_graph(cards)
     competition_counts = competition.compute(derived, today)
+    hardware_counts = hardware.compute(derived, cards, hardware.load_devices(root))
     graph_counts = graph_export.write(ms / "api" / "graph", derived, build.to_json())
     graph_counts["competition"] = competition_counts
+    graph_counts["hardware"] = hardware_counts
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)

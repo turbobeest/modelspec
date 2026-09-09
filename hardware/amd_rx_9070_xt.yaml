@@ -1,0 +1,30 @@
+id: amd_rx_9070_xt
+display_name: AMD Radeon RX 9070 XT
+vendor: amd
+family: Radeon RX 9000
+device_class: consumer
+released: 2025-03
+memory:
+  capacity_gb: 16
+  bandwidth_gb_s: 645
+  type: GDDR6
+  bus_bits: 256
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 304
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/graphics/radeon-rx-9000-series
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.

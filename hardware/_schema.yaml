@@ -1,0 +1,38 @@
+# The shape of a hardware definition. Every field that is not marked optional is
+# required, and validation rejects a device that omits one.
+id: string                      # stable slug, e.g. nvidia_rtx_5090
+display_name: string
+vendor: string                  # nvidia | amd | apple | intel | qualcomm
+family: string                  # e.g. "GeForce RTX 50", "Apple M4"
+device_class: string            # consumer | workstation | datacentre | edge | integrated
+released: string                # ISO date or YYYY-MM
+
+memory:
+  capacity_gb: number           # as configured for this record
+  bandwidth_gb_s: number        # REQUIRED. the number that sets decode speed
+  type: string                  # GDDR7 | HBM3e | LPDDR5X | unified
+  bus_bits: number|null         # optional
+  unified_with_host: boolean    # true for Apple silicon and similar
+
+compute:                        # optional, but if present each entry is qualified
+  - precision: string           # fp16 | bf16 | fp8 | int8 | int4 | fp4
+    tflops: number|null
+    tops: number|null
+    sparsity: string            # dense | 2:4-structured
+    note: string|null
+
+precisions_native: [string]     # what the silicon accelerates natively
+
+interconnect:                   # optional
+  pcie_gen: number|null
+  link: string|null             # nvlink | infinity-fabric | none
+  link_gb_s: number|null
+
+power:
+  tdp_w: number|null
+  sustained_differs_from_boost: boolean|null   # laptops throttle
+
+sources: [string]               # REQUIRED. URLs
+figures_are: string             # vendor-specification | independent-measurement | mixed
+verified_at: string             # ISO date the figures were checked
+notes: string|null

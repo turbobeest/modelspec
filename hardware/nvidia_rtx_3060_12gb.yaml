@@ -1,0 +1,30 @@
+id: nvidia_rtx_3060_12gb
+display_name: NVIDIA GeForce RTX 3060 12GB
+vendor: nvidia
+family: GeForce RTX 30
+device_class: consumer
+released: 2021-02
+memory:
+  capacity_gb: 12
+  bandwidth_gb_s: 360
+  type: GDDR6
+  bus_bits: 192
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 170
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/
+figures_are: vendor-specification-unconfirmed
+verified_at: null
+notes: Transcribed from vendor specifications; not yet confirmed against the linked
+  source. See MODEL-22.
