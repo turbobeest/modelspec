@@ -202,6 +202,10 @@ class BenchmarkCategory(str, Enum):
     DOMAIN = "domain"
     AGENTIC = "agentic"
     COMPOSITE = "composite"
+    REASONING = "reasoning"
+    INSTRUCTION_FOLLOWING = "instruction-following"
+    LONG_CONTEXT = "long-context"
+    TRANSLATION = "translation"
 
 
 class QuantFormat(str, Enum):

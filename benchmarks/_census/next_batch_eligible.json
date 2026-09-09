@@ -1,0 +1,61 @@
+{
+ "queue": "eligibility/eligible-candidates.json",
+ "eligibility_as_of": "2026-09-08",
+ "eligible_ids": [
+  "aa_briefcase",
+  "aa_lcr",
+  "automationbench_aa",
+  "critpt",
+  "gdp_pdf_aa",
+  "gdpval_aa",
+  "scicode"
+ ],
+ "slices": {
+  "A": [
+   "aa_briefcase",
+   "gdp_pdf_aa",
+   "gdpval_aa"
+  ]
+ },
+ "hints": {
+  "aa_briefcase": {
+   "name": "AA-Briefcase",
+   "sources": [
+    "independently reviewed eligibility evidence"
+   ],
+   "urls": [
+    "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+   ],
+   "category_hint": "agentic",
+   "census_slug": "aa_briefcase",
+   "census_rank_score": null,
+   "_note": "census_rank_score ranks discovery support for this name; it is not a benchmark result or eligibility evidence"
+  },
+  "gdp_pdf_aa": {
+   "name": "GDP.pdf (AA implementation)",
+   "sources": [
+    "independently reviewed eligibility evidence"
+   ],
+   "urls": [
+    "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+   ],
+   "category_hint": "long_context",
+   "census_slug": "gdp_pdf_aa",
+   "census_rank_score": null,
+   "_note": "census_rank_score ranks discovery support for this name; it is not a benchmark result or eligibility evidence"
+  },
+  "gdpval_aa": {
+   "name": "GDPval-AA",
+   "sources": [
+    "independently reviewed eligibility evidence"
+   ],
+   "urls": [
+    "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+   ],
+   "category_hint": "agentic",
+   "census_slug": "gdpval_aa",
+   "census_rank_score": null,
+   "_note": "census_rank_score ranks discovery support for this name; it is not a benchmark result or eligibility evidence"
+  }
+ }
+}

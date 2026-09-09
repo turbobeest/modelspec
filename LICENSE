@@ -1,3 +1,22 @@
+ModelSpec is licensed in two parts.
+
+  Code    — everything except the data directories below — MIT, as set out in
+            full beneath this notice.
+
+  Data    — the curated corpora in `models/` and `benchmarks/` — Creative
+            Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0),
+            set out in full in LICENSE-DATA.
+
+The data is share-alike so that anyone who builds on the corpus and
+redistributes it publishes their improvements under the same terms. The code is
+permissive so the CLI can be embedded anywhere. Individual cards and pages
+record the source and licence of the third-party material they draw on; those
+terms govern that material and are not altered by this file.
+
+Decided by the operator on 2026-09-08.
+
+-----------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2026 ModelRank Contributors

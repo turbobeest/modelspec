@@ -1,0 +1,4923 @@
+[
+ {
+  "id": "ai2d",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 39,
+  "top_scores": [
+   {
+    "model": "Gemini 2.5 Pro Preview TTS",
+    "score": 95.8
+   },
+   {
+    "model": "Gemini 2.5 Pro Preview 06-05",
+    "score": 95.8
+   },
+   {
+    "model": "Gemini 2.5 Pro Preview 05-06",
+    "score": 95.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "aider_polyglot",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 116,
+  "top_scores": [
+   {
+    "model": "Gemini 2.5 Pro Preview 06-05",
+    "score": 83.1
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 82.1
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 82.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "aime_2025",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 29,
+  "top_scores": [
+   {
+    "model": "GLM 5.1",
+    "score": 95.3
+   },
+   {
+    "model": "o3-pro",
+    "score": 94.0
+   },
+   {
+    "model": "o3-deep-research",
+    "score": 91.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2, domain-",
+   "lmarena.ai, provider-reports, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "alpaca_eval",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 56,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 55.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 55.2
+   },
+   {
+    "model": "GPT-4 Turbo",
+    "score": 55.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arc_agi_2",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 42.5
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arc_challenge",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 72.7
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 71.4
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 71.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_coding",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 210,
+  "top_scores": [
+   {
+    "model": "GLM 5.1",
+    "score": 1520.3
+   },
+   {
+    "model": "GLM 5",
+    "score": 1488.6
+   },
+   {
+    "model": "GLM 4.7",
+    "score": 1486.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_hard_prompts",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 103,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 1534.7
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 1507.2
+   },
+   {
+    "model": "Grok 4.20 (Reasoning)",
+    "score": 1505.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_math",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 209,
+  "top_scores": [
+   {
+    "model": "GLM 5",
+    "score": 1458.3
+   },
+   {
+    "model": "GLM 5.1",
+    "score": 1457.4
+   },
+   {
+    "model": "o3-pro",
+    "score": 1440.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_overall",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 211,
+  "top_scores": [
+   {
+    "model": "GLM 5.1",
+    "score": 1467.4
+   },
+   {
+    "model": "GLM 5",
+    "score": 1455.6
+   },
+   {
+    "model": "GLM 4.7",
+    "score": 1442.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_style_control",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 103,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 1502.8
+   },
+   {
+    "model": "Grok 4.20 (Reasoning)",
+    "score": 1490.4
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 1483.6
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo_vision",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "arena_elo",
+  "models_reporting": 55,
+  "top_scores": [
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 1310.0
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 1310.0
+   },
+   {
+    "model": "GPT-4o (2024-05-13)",
+    "score": 1310.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "artificial_analysis_quality_index",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "artificial_analysis",
+  "models_reporting": 130,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 88.0
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 88.0
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 88.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "artificial_analysis_speed_index",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "artificial_analysis",
+  "models_reporting": 129,
+  "top_scores": [
+   {
+    "model": "GPT-4.1 nano",
+    "score": 94.0
+   },
+   {
+    "model": "Gemini 2.0 Flash Lite",
+    "score": 93.0
+   },
+   {
+    "model": "Skywork Reward V2 Llama 3.1 8B",
+    "score": 92.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "bbh",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 221,
+  "top_scores": [
+   {
+    "model": "DeepSeek Reasoner",
+    "score": 68.7
+   },
+   {
+    "model": "DeepSeek R1 0528 NVFP4 v2",
+    "score": 68.7
+   },
+   {
+    "model": "DeepSeek R1 0528",
+    "score": 68.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "bbq",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 66,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 88.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 88.2
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 87.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, safety-evals, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "beir",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 69,
+  "top_scores": [
+   {
+    "model": "NV Embed v2",
+    "score": 58.5
+   },
+   {
+    "model": "Qwen3 VL Embedding 8B",
+    "score": 57.5
+   },
+   {
+    "model": "Qwen3 Embedding 8B",
+    "score": 57.5
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "browsecomp",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 3,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 86.9
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 83.7
+   },
+   {
+    "model": "GLM 5.1",
+    "score": 68.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "zai-org-model-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "chartqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 64,
+  "top_scores": [
+   {
+    "model": "Claude Sonnet 3.5 v2",
+    "score": 90.8
+   },
+   {
+    "model": "Claude Sonnet 3.5",
+    "score": 90.8
+   },
+   {
+    "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "score": 90.0
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "charxiv_reasoning",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "charxiv",
+  "models_reporting": 3,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 86.4
+   },
+   {
+    "model": "Claude Mythos Preview",
+    "score": 86.1
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 61.5
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "charxiv_reasoning_tools",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "charxiv",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 93.2
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 78.9
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "deepsearchqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 74.8
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "docvqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 67,
+  "top_scores": [
+   {
+    "model": "Qwen3 VL 32B Instruct",
+    "score": 96.5
+   },
+   {
+    "model": "Qwen3 VL 8B Instruct",
+    "score": 96.1
+   },
+   {
+    "model": "Claude Sonnet 3.5 v2",
+    "score": 95.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "finbench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 13,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 71.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 71.2
+   },
+   {
+    "model": "Gemini 2.5 Pro Preview TTS",
+    "score": 69.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, domain-evals, open-llm-leaderboard-v"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "flores_en_de",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "flores",
+  "models_reporting": 15,
+  "top_scores": [
+   {
+    "model": "GPT-4o mini",
+    "score": 67.3
+   },
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 67.3
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 67.3
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, domain-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "flores_en_es",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "flores",
+  "models_reporting": 15,
+  "top_scores": [
+   {
+    "model": "GPT-4o mini",
+    "score": 71.2
+   },
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 71.2
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 71.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, domain-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "flores_en_ja",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "flores",
+  "models_reporting": 15,
+  "top_scores": [
+   {
+    "model": "GPT-4o mini",
+    "score": 61.4
+   },
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 61.4
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 61.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, domain-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "flores_en_zh",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "flores",
+  "models_reporting": 15,
+  "top_scores": [
+   {
+    "model": "GPT-4o mini",
+    "score": 59.7
+   },
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 59.7
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 59.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, domain-eval",
+   "lmarena.ai, provider-reports, multimodal-evals, llm-stats, intlpull, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "frontierscience_research",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 38.3
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "gpqa_diamond",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 356,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 94.55
+   },
+   {
+    "model": "Gemini 3.1 Pro Preview",
+    "score": 94.3
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 92.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "graphwalks_bfs_256k_1m",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "graphwalks",
+  "models_reporting": 3,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 80.0
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 38.7
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 21.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "lmarena.ai, provider-reports, anthropic-system-card-mythos, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "graphwalks_parents_256k_1m",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "graphwalks",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 97.7
+   }
+  ],
+  "score_sources": [
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "gsm8k",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 130,
+  "top_scores": [
+   {
+    "model": "Kimi K2.5 NVFP4",
+    "score": 97.3
+   },
+   {
+    "model": "Kimi K2.5",
+    "score": 97.3
+   },
+   {
+    "model": "Kimi K2 Turbo",
+    "score": 97.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "llm-stats",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "healthbench_hard",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 42.8
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "hellaswag",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 89.1
+   },
+   {
+    "model": "Mixtral 8x7B Instruct v0.1",
+    "score": 87.6
+   },
+   {
+    "model": "Nous Hermes 2 Mixtral 8x7B DPO",
+    "score": 87.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "helm_safety",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 71,
+  "top_scores": [
+   {
+    "model": "Llama Guard 3 8B INT8",
+    "score": 95.2
+   },
+   {
+    "model": "Llama Guard 3 8B",
+    "score": 95.2
+   },
+   {
+    "model": "shieldgemma 27B",
+    "score": 94.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, safety-evals, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "hle",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "hle",
+  "models_reporting": 6,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 56.8
+   },
+   {
+    "model": "Muse Spark",
+    "score": 50.2
+   },
+   {
+    "model": "Gemini 3.1 Pro Preview",
+    "score": 44.4
+   }
+  ],
+  "score_sources": [
+   "anthropic-system-card-mythos, domain-evals",
+   "meta-blog, officechai, artificial-analysis",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "hle_tools",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "hle",
+  "models_reporting": 5,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 64.7
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 53.1
+   },
+   {
+    "model": "GLM 5.1",
+    "score": 52.3
+   }
+  ],
+  "score_sources": [
+   "anthropic-system-card-mythos, domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "zai-org-model-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "humaneval",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 200,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 93.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 93.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 93.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "ifeval",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 354,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 92.5
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 92.5
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 92.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "ipho_2025_theory",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 82.6
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "lab_bench_figqa",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "lab_bench_figqa",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 79.7
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 58.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "lab_bench_figqa_tools",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "lab_bench_figqa",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 89.0
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 75.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "legalbench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 20,
+  "top_scores": [
+   {
+    "model": "Mistral Medium 3.1",
+    "score": 89.4
+   },
+   {
+    "model": "Mistral Medium 3",
+    "score": 89.4
+   },
+   {
+    "model": "Mistral Medium (latest)",
+    "score": 89.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, domain-evals",
+   "livecodebench, aider, swe-bench, terminal-bench, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, domain-evals, open-llm-leaderboard-v"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "live_code_bench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 144,
+  "top_scores": [
+   {
+    "model": "Gemini 3 Pro Preview",
+    "score": 91.7
+   },
+   {
+    "model": "GPT-5.2 Pro",
+    "score": 88.9
+   },
+   {
+    "model": "GPT-5.1 Chat",
+    "score": 86.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "math_500",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 354,
+  "top_scores": [
+   {
+    "model": "DeepSeek R1 0528 NVFP4 v2",
+    "score": 97.5
+   },
+   {
+    "model": "DeepSeek R1 0528",
+    "score": 97.5
+   },
+   {
+    "model": "o3-pro",
+    "score": 97.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mathvista",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 66,
+  "top_scores": [
+   {
+    "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "score": 73.7
+   },
+   {
+    "model": "Llama 4 Maverick 17B 128E Instruct",
+    "score": 73.7
+   },
+   {
+    "model": "Llama-4-Scout-17B-16E-Instruct-FP8",
+    "score": 70.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "medmcqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 4,
+  "top_scores": [
+   {
+    "model": "medgemma 27B it",
+    "score": 74.2
+   },
+   {
+    "model": "Gemma 3 27B",
+    "score": 62.6
+   },
+   {
+    "model": "medgemma 4B it",
+    "score": 55.7
+   }
+  ],
+  "score_sources": [
+   "domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2,, domain"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "medqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 51,
+  "top_scores": [
+   {
+    "model": "o1",
+    "score": 96.5
+   },
+   {
+    "model": "Gemini 3.1 Pro Preview",
+    "score": 96.4
+   },
+   {
+    "model": "GPT-5.1",
+    "score": 96.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "domain-evals",
+   "lmarena.ai, provider-reports, llm-stats, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "medxpertqa_multimodal",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 78.4
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mgsm",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 45,
+  "top_scores": [
+   {
+    "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "score": 92.3
+   },
+   {
+    "model": "Llama 4 Maverick 17B 128E Instruct",
+    "score": 92.3
+   },
+   {
+    "model": "Cerebras-Llama-4-Maverick-17B-128E-Instruct",
+    "score": 92.3
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval",
+   "lmarena.ai, provider-reports, llm-stats"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "miracl",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "bge m3",
+    "score": 67.8
+   },
+   {
+    "model": "nomic embed text v2 moe GGUF",
+    "score": 65.8
+   },
+   {
+    "model": "nomic embed text v2 moe",
+    "score": 65.8
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_abstract_algebra",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 58.0
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 58.0
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 56.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_anatomy",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 80.0
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 80.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 77.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_astronomy",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 93.4
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 93.4
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 93.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_biology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 40,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 88.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 88.2
+   },
+   {
+    "model": "GPT-4.1",
+    "score": 87.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_business_ethics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 86.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 86.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 86.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_chemistry",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 40,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 82.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 82.5
+   },
+   {
+    "model": "GPT-4.1",
+    "score": 81.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_clinical_knowledge",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 87.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 87.5
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 86.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_college_biology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 91.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 91.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 91.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_college_chemistry",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 9B Chat",
+    "score": 59.0
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 57.0
+   },
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 56.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_college_computer_science",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 72.0
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 70.0
+   },
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 70.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_college_mathematics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B",
+    "score": 59.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 58.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 58.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_college_medicine",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 81.5
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 81.5
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 81.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_college_physics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 59.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 59.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 59.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_computer_science",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 40,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 88.8
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 88.8
+   },
+   {
+    "model": "GPT-4.1",
+    "score": 88.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_computer_security",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 86.0
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 86.0
+   },
+   {
+    "model": "Yi 1.5 9B",
+    "score": 85.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_conceptual_physics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 84.7
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 83.8
+   },
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 81.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_econometrics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 72.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 72.8
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 72.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_electrical_engineering",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 80.7
+   },
+   {
+    "model": "Yi 34B Chat",
+    "score": 80.0
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 78.6
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_elementary_mathematics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 75.4
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 75.4
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 74.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_formal_logic",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B",
+    "score": 67.5
+   },
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 66.7
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 66.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_global_facts",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 59.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 59.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 59.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_biology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 90.0
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 89.7
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 89.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_chemistry",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 70.9
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 69.5
+   },
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 69.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_computer_science",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_european_history",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 88.5
+   },
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 87.9
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 87.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_geography",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B",
+    "score": 93.4
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 92.9
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.9
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_government_and_politics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 98.4
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 98.4
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 98.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_macroeconomics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 83.8
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 83.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 83.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_mathematics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 55.6
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 55.6
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 54.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_microeconomics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 88.7
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 88.7
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 88.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_physics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 62.3
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 62.3
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 62.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_psychology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 94.1
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 94.1
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 94.1
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_statistics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 73.6
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 73.6
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 73.6
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_us_history",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.2
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.2
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.2
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_high_school_world_history",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.8
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_human_aging",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 82.5
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 82.1
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 82.1
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_human_sexuality",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 34B Chat",
+    "score": 89.3
+   },
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 89.3
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 88.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_international_law",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.6
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.6
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.6
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_jurisprudence",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 89.8
+   },
+   {
+    "model": "Yi 34B Chat",
+    "score": 88.9
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 88.9
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_logical_fallacies",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 34B 200K",
+    "score": 88.3
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 87.1
+   },
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 87.1
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_machine_learning",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 70.5
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 70.5
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 70.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_management",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 92.2
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 91.3
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 89.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_marketing",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 95.3
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 94.9
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 94.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_medical_genetics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_miscellaneous",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 91.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 91.8
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 91.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_moral_disputes",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 84.7
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 84.4
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 84.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_moral_scenarios",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 71.1
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 70.8
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 70.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_nutrition",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 87.9
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 87.6
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 87.6
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_philosophy",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 82.6
+   },
+   {
+    "model": "Yi 34B 200K",
+    "score": 82.0
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 81.4
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_physics",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 40,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 85.1
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 85.1
+   },
+   {
+    "model": "Gemini 2.5 Pro",
+    "score": 84.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_prehistory",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 90.1
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 90.1
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 90.1
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_pro",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "mmlu",
+  "models_reporting": 354,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 86.0
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 86.0
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 86.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_professional_accounting",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 72.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 72.5
+   },
+   {
+    "model": "GPT-4.1",
+    "score": 71.8
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_professional_law",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 90,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 78.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 78.2
+   },
+   {
+    "model": "GPT-4.1",
+    "score": 77.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "open-llm-leaderboard-v1",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "mmlu_professional_medicine",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 89.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 89.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 89.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_professional_psychology",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 85.3
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 85.3
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 85.3
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_public_relations",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 77.3
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 76.4
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 75.5
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_security_studies",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 84.5
+   },
+   {
+    "model": "Nous Hermes 2 Yi 34B",
+    "score": 84.1
+   },
+   {
+    "model": "Yi 34B Chat",
+    "score": 83.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_sociology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 92.0
+   },
+   {
+    "model": "Meta Llama 3 70B",
+    "score": 92.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_us_foreign_policy",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 96.0
+   },
+   {
+    "model": "Yi 1.5 9B Chat 16K",
+    "score": 93.0
+   },
+   {
+    "model": "Yi 1.5 9B 32K",
+    "score": 93.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_virology",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B Chat 16K",
+    "score": 62.7
+   },
+   {
+    "model": "Yi 1.5 34B Chat",
+    "score": 62.7
+   },
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 59.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmlu_world_religions",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mmlu",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 90.6
+   },
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 90.6
+   },
+   {
+    "model": "Meta Llama 3 70B Instruct",
+    "score": 90.1
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmmlu",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 92.67
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 91.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mmmu",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 68,
+  "top_scores": [
+   {
+    "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "score": 73.4
+   },
+   {
+    "model": "Llama 4 Maverick 17B 128E Instruct",
+    "score": 73.4
+   },
+   {
+    "model": "Qwen3 VL 32B Instruct",
+    "score": 72.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03"
+  ]
+ },
+ {
+  "id": "mt_bench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 46,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 9.4
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 9.4
+   },
+   {
+    "model": "Claude Mythos Preview",
+    "score": 9.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_classification",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 94,
+  "top_scores": [
+   {
+    "model": "NV Embed v2",
+    "score": 73.5
+   },
+   {
+    "model": "Qwen3 VL Embedding 8B",
+    "score": 72.5
+   },
+   {
+    "model": "Qwen3 Embedding 8B",
+    "score": 72.5
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_clustering",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 94,
+  "top_scores": [
+   {
+    "model": "NV Embed v2",
+    "score": 53.8
+   },
+   {
+    "model": "bge m3",
+    "score": 52.3
+   },
+   {
+    "model": "Qwen3 VL Embedding 8B",
+    "score": 52.0
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_overall",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 96,
+  "top_scores": [
+   {
+    "model": "bge reranker v2 m3",
+    "score": 70.1
+   },
+   {
+    "model": "NV Embed v2",
+    "score": 69.5
+   },
+   {
+    "model": "jina reranker v2 base multilingual",
+    "score": 68.5
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_pair_classification",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 93,
+  "top_scores": [
+   {
+    "model": "e5 mistral 7B instruct",
+    "score": 87.0
+   },
+   {
+    "model": "multilingual e5 large instruct",
+    "score": 86.2
+   },
+   {
+    "model": "Voyage 3",
+    "score": 86.0
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_reranking",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 93,
+  "top_scores": [
+   {
+    "model": "Qwen3 VL Embedding 8B",
+    "score": 65.6
+   },
+   {
+    "model": "Qwen3 Embedding 8B",
+    "score": 65.6
+   },
+   {
+    "model": "Qwen3 Embedding 4B",
+    "score": 65.1
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_retrieval",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 96,
+  "top_scores": [
+   {
+    "model": "bge reranker v2 m3",
+    "score": 68.5
+   },
+   {
+    "model": "NV Embed v2",
+    "score": 67.2
+   },
+   {
+    "model": "jina reranker v2 base multilingual",
+    "score": 66.2
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_sts",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 93,
+  "top_scores": [
+   {
+    "model": "jina embeddings v5 text small retrieval",
+    "score": 86.2
+   },
+   {
+    "model": "jina embeddings v5 text small",
+    "score": 86.2
+   },
+   {
+    "model": "jina embeddings v5 text nano",
+    "score": 86.2
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "mteb_summarization",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "mteb",
+  "models_reporting": 93,
+  "top_scores": [
+   {
+    "model": "e5 mistral 7B instruct",
+    "score": 31.5
+   },
+   {
+    "model": "Voyage 3",
+    "score": 30.5
+   },
+   {
+    "model": "SFR Embedding 2 R",
+    "score": 30.5
+   }
+  ],
+  "score_sources": [
+   "mteb-leaderboard, miracl",
+   "mteb-leaderboard"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 89.3
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 89.3
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 86.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_cpp",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 88.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 88.5
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 85.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_csharp",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 89.2
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 89.2
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 89.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_go",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 85.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 85.5
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 82.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_java",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 91.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 91.2
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 89.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_javascript",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 91.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 91.5
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 89.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_julia",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 129,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 71.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 71.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 71.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_kotlin",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 83.5
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 83.5
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 83.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_lua",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 66.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 66.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 66.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_perl",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 129,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 63.5
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 63.5
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 63.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_php",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 86.5
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 86.5
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 86.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_python",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 95.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 95.5
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 93.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_r",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 129,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 69.5
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 69.5
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 69.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_ruby",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 79.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 79.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 79.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_rust",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 82.1
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 82.1
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 78.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_scala",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 73.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 73.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 73.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_swift",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 135,
+  "top_scores": [
+   {
+    "model": "GPT-5.1 Codex mini",
+    "score": 77.8
+   },
+   {
+    "model": "GPT-5.1 Codex Max",
+    "score": 77.8
+   },
+   {
+    "model": "GPT-5.1 Codex",
+    "score": 77.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "multipl_e_typescript",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "multipl_e",
+  "models_reporting": 37,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 90.8
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 90.8
+   },
+   {
+    "model": "Claude Sonnet 4.5 (latest)",
+    "score": 88.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2",
+   "bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "musr",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 221,
+  "top_scores": [
+   {
+    "model": "Falcon3 7B Instruct",
+    "score": 48.3
+   },
+   {
+    "model": "Falcon3 7B Base",
+    "score": 47.0
+   },
+   {
+    "model": "deepseek llm 7B chat",
+    "score": 46.7
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04",
+   "2025-03",
+   "2024-07"
+  ]
+ },
+ {
+  "id": "ocrbench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 21,
+  "top_scores": [
+   {
+    "model": "Qwen3 VL 8B Instruct",
+    "score": 89.6
+   },
+   {
+    "model": "MiniCPM V 4 5 gguf",
+    "score": 89.4
+   },
+   {
+    "model": "MiniCPM V 4 5",
+    "score": 89.4
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "multimodal-evals",
+   "multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals, safety-eval"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "osworld",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 3,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 79.6
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 75.0
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 72.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "lmarena.ai, provider-reports, anthropic-system-card-mythos, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "pubmedqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 4,
+  "top_scores": [
+   {
+    "model": "medgemma 27B it",
+    "score": 76.8
+   },
+   {
+    "model": "medgemma 4B it",
+    "score": 73.4
+   },
+   {
+    "model": "medgemma 1.5 4B it",
+    "score": 73.4
+   }
+  ],
+  "score_sources": [
+   "domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2,, domain"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "realworldqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 8,
+  "top_scores": [
+   {
+    "model": "GPT-4o (2024-11-20)",
+    "score": 75.4
+   },
+   {
+    "model": "GPT-4o (2024-08-06)",
+    "score": 75.4
+   },
+   {
+    "model": "GPT-4o (2024-05-13)",
+    "score": 75.4
+   }
+  ],
+  "score_sources": [
+   "multimodal-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, "
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "screenspot_pro",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "screenspot_pro",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 79.5
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 57.7
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "screenspot_pro_tools",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "screenspot_pro",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 92.8
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 83.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "swe_bench_agent",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "swe_bench",
+  "models_reporting": 61,
+  "top_scores": [
+   {
+    "model": "o3-pro",
+    "score": 62.8
+   },
+   {
+    "model": "o3-mini",
+    "score": 62.8
+   },
+   {
+    "model": "o3-deep-research",
+    "score": 62.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "swe_bench_multilingual",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "swe_bench",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 87.3
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 77.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "swe_bench_multimodal",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "swe_bench",
+  "models_reporting": 2,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 59.0
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 27.1
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "swe_bench_pro",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "swe_bench",
+  "models_reporting": 5,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 77.8
+   },
+   {
+    "model": "GLM 5.1",
+    "score": 58.4
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 57.7
+   }
+  ],
+  "score_sources": [
+   "anthropic-system-card-mythos, domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "zai-org-model-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "swe_bench_verified",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "swe_bench",
+  "models_reporting": 120,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 93.9
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 80.8
+   },
+   {
+    "model": "Gemini 3.1 Pro Preview",
+    "score": 80.6
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "tau_bench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 54,
+  "top_scores": [
+   {
+    "model": "GLM 5.1",
+    "score": 70.6
+   },
+   {
+    "model": "Claude Opus 4.6",
+    "score": 68.2
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 68.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, domain-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "terminal_bench",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "terminal_bench",
+  "models_reporting": 53,
+  "top_scores": [
+   {
+    "model": "o3-pro",
+    "score": 58.2
+   },
+   {
+    "model": "o3-mini",
+    "score": 58.2
+   },
+   {
+    "model": "o3-deep-research",
+    "score": 58.2
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "terminal_bench_2",
+  "priority": 1,
+  "page_kind_hint": "subset",
+  "family_hint": "terminal_bench",
+  "models_reporting": 29,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 82.0
+   },
+   {
+    "model": "GPT-5.3 Codex Spark",
+    "score": 77.3
+   },
+   {
+    "model": "GPT-5.3 Codex",
+    "score": 77.3
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, "
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "toxigen",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 71,
+  "top_scores": [
+   {
+    "model": "Llama Guard 3 8B INT8",
+    "score": 97.5
+   },
+   {
+    "model": "Llama Guard 3 8B",
+    "score": 97.5
+   },
+   {
+    "model": "shieldgemma 27B",
+    "score": 96.8
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals",
+   "lmarena.ai, provider-reports, safety-evals, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "truthfulqa",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 50,
+  "top_scores": [
+   {
+    "model": "Mistral 7B Instruct v0.2",
+    "score": 68.3
+   },
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 68.1
+   },
+   {
+    "model": "Mixtral 8x7B Instruct v0.1",
+    "score": 65.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "usamo_2026",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 5,
+  "top_scores": [
+   {
+    "model": "Claude Mythos Preview",
+    "score": 97.6
+   },
+   {
+    "model": "GPT-5.4",
+    "score": 95.2
+   },
+   {
+    "model": "GLM 5.1",
+    "score": 83.8
+   }
+  ],
+  "score_sources": [
+   "anthropic-system-card-mythos, domain-evals",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "anthropic-system-card",
+   "zai-org-model-card"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "wildbench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 45,
+  "top_scores": [
+   {
+    "model": "Claude Opus 4.6",
+    "score": 82.5
+   },
+   {
+    "model": "Claude Opus 4",
+    "score": 82.5
+   },
+   {
+    "model": "GPT-4.1 nano",
+    "score": 80.5
+   }
+  ],
+  "score_sources": [
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
+   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa",
+   "lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2",
+   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "winogrande",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 60,
+  "top_scores": [
+   {
+    "model": "Mixtral 8x22B Instruct v0.1",
+    "score": 85.2
+   },
+   {
+    "model": "Yi 1.5 34B",
+    "score": 84.1
+   },
+   {
+    "model": "Yi 1.5 34B 32K",
+    "score": 84.0
+   }
+  ],
+  "score_sources": [
+   "open-llm-leaderboard-v1, open-llm-leaderboard-v2",
+   "open-llm-leaderboard-v1",
+   "open-llm-leaderboard-v2, open-llm-leaderboard-v1",
+   "llm-stats, open-llm-leaderboard-v1, open-llm-leaderboard-v2"
+  ],
+  "score_dates": [
+   "2024-07",
+   "2026-04"
+  ]
+ },
+ {
+  "id": "zerobench",
+  "priority": 1,
+  "page_kind_hint": "benchmark",
+  "family_hint": "",
+  "models_reporting": 1,
+  "top_scores": [
+   {
+    "model": "Muse Spark",
+    "score": 33.0
+   }
+  ],
+  "score_sources": [
+   "meta-blog, officechai, artificial-analysis"
+  ],
+  "score_dates": [
+   "2026-04"
+  ]
+ },
+ {
+  "id": "arena_elo",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "arena_elo",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "artificial_analysis",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "artificial_analysis",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "charxiv",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "charxiv",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "flores",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "flores",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "graphwalks",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "graphwalks",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "mmlu",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "mmlu",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "mteb",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "mteb",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ },
+ {
+  "id": "swe_bench",
+  "priority": 1,
+  "page_kind_hint": "family",
+  "family_hint": "swe_bench",
+  "models_reporting": 0,
+  "top_scores": [],
+  "score_sources": [],
+  "score_dates": [],
+  "note": "family page: subsets exist in the cards, the family itself has no score key"
+ }
+]

@@ -1,0 +1,42 @@
+# Discovery sources for the benchmark census. Scraping is limited to these hosts; search-result
+# titles and descriptions from anywhere are used as leads without scraping.
+registries:
+  - id: lm_eval
+    url: https://raw.githubusercontent.com/EleutherAI/lm-evaluation-harness/main/lm_eval/tasks/README.md
+  - id: inspect_evals
+    url: https://raw.githubusercontent.com/UKGovernmentBEIS/inspect_evals/main/tools/listing.yaml
+  - id: bigbench
+    url: https://raw.githubusercontent.com/google/BIG-bench/main/bigbench/benchmark_tasks/README.md
+  - id: helm
+    repo: stanford-crfm/helm
+    path: src/helm/benchmark/scenarios
+  - id: opencompass
+    repo: open-compass/opencompass
+    path: opencompass/configs/datasets
+scrape_allow:
+  - llm-stats.com
+  - artificialanalysis.ai
+  - lmarena.ai
+  - vals.ai
+  - scale.com
+  - epoch.ai
+  - livebench.ai
+  - evalplus.github.io
+  - hal.cs.princeton.edu
+  - huggingface.co
+  - github.com
+  - raw.githubusercontent.com
+  - paperswithcode.com
+  - crfm.stanford.edu
+  - openreview.net
+aggregator_pages:
+  - https://llm-stats.com/benchmarks
+  - https://artificialanalysis.ai/evaluations
+  - https://lmarena.ai/leaderboard
+  - https://www.vals.ai/benchmarks
+  - https://scale.com/leaderboard
+  - https://epoch.ai/benchmarks
+  - https://livebench.ai/
+  - https://evalplus.github.io/leaderboard.html
+  - https://hal.cs.princeton.edu/
+  - https://crfm.stanford.edu/helm/

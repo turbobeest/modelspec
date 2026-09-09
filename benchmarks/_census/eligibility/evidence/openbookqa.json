@@ -1,0 +1,25 @@
+{
+  "candidate_id": "openbookqa",
+  "canonical_id": "openbookqa",
+  "domain": "general",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://github.com/allenai/OpenBookQA",
+    "rationale": "Canonical dataset exists; its 2018 identity does not establish a recent comparison. No qualifying recent pair verified."
+  },
+  "task": "",
+  "metric": "",
+  "protocol": "",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://github.com/allenai/OpenBookQA"
+  },
+  "results": [],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Canonical dataset exists; its 2018 identity does not establish a recent comparison. No qualifying recent pair verified."
+  }
+}

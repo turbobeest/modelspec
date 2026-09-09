@@ -123,7 +123,11 @@ modelspec contribute
 
 ## Contribute
 
-ModelSpec is community-driven. Three ways to contribute research:
+ModelSpec is community-driven. Read [CONTRIBUTING.md](CONTRIBUTING.md) first, and sign off your commits
+with `git commit -s` to agree to the [contributor licence agreement](CLA.md). The rule that matters: every
+fact carries a source and the date it was read, and unknown means an empty field rather than a guess.
+
+Three ways to contribute research:
 
 ### 1. Web UI (easiest)
 
@@ -262,4 +266,17 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 ## License
 
-MIT
+Two licences, because the code and the corpus want different things.
+
+| Part | Licence |
+| --- | --- |
+| Code (everything outside the data directories) | MIT |
+| Data (`models/`, `benchmarks/`) | CC BY-SA 4.0 |
+
+The corpus is share-alike: build on it, including commercially, but if you
+redistribute it or a derivative, credit ModelSpec and publish yours under the same
+terms. The code is permissive so the CLI can go anywhere. Full text in `LICENSE`
+and `LICENSE-DATA`.
+
+Every card and page records the sources it draws on and the date each was read.
+Those sources keep their own licences.

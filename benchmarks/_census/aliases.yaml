@@ -1,0 +1,57 @@
+# Census slug disambiguation.
+#
+# `aliases` maps a census slug (usually a harness config directory name) onto the canonical page id
+# it belongs to. next_batch.py folds these in: if the canonical page exists, the slug is not queued,
+# and the alias is added to that page's front matter instead of becoming a second page.
+#
+# `rename` maps a census slug onto the id its page should actually carry, for slugs that are real
+# gaps but badly named (harness typos, abbreviations). The queue offers the renamed id.
+#
+# `not_a_benchmark` drops slugs that name a harness, framework, organisation or leaderboard shell
+# rather than an evaluation with its own questions and metric.
+
+aliases:
+  aexams: arabic_exams
+  arc_c: arc_challenge
+  arc_e: arc_easy
+  anthropics_evals: model_written_evals
+  livecodebench: live_code_bench
+  aime2024: aime_2024
+  aime2026: aime_2026
+  commonsenseqa: commonsense_qa
+  social_iqa: siqa
+  hendrycks_math: math
+  hendrycks_math500: math_500
+  minerva_math: math
+  minerva_math500: math_500
+  gpqa_main: gpqa
+  gpqa_extended: gpqa
+  bigbench: big_bench
+  bbh_zeroshot: bbh
+  humaneval_multi: multipl_e
+
+# EvalPlus's HumanEval+ and MBPP+, and MMLU-Pro+, are separate benchmarks with their own item sets and
+# pass rates, not spellings of their parents. They stay in the queue and get their own pages.
+#
+# humaneval_multi is OpenCompass's own name for MultiPL-E's HumanEval-derived, "reworded"-variant
+# translations (opencompass/configs/datasets/humaneval_multi points at a directory literally named
+# humaneval_multipl-e and copies MultiPL-E's own dataset-card wording); it folds into multipl_e above.
+# See _census/DATA-QUALITY.md, 2026-09-08, for the evidence. humanevalx (CodeGeeX's HumanEval-X, 5
+# hand-written languages) and humaneval_cn (OpenCompass's Chinese-instruction HumanEval) are each a
+# different benchmark from multipl_e and from each other, and are not in this alias map.
+
+rename:
+  arc_e: arc_easy
+  bangla_poenbookqa: bangla_openbookqa
+
+not_a_benchmark:
+  - custom_mcqa     # HELM template: the user supplies their own JSONL, so two scores are never comparable
+  - unitxt          # IBM's evaluation framework, not an evaluation
+  - lm_eval         # a harness
+  - inspect_evals   # a harness
+  - opencompass     # a harness
+  - helm            # a harness
+  - leaderboard
+  - leaderboards
+  - open_llm_leaderboard
+  - evalplus        # a leaderboard shell over HumanEval/MBPP variants

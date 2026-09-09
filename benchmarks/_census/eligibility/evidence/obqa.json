@@ -1,0 +1,25 @@
+{
+  "candidate_id": "obqa",
+  "canonical_id": "openbookqa",
+  "domain": "general",
+  "researcher": "Codex coordinator / official harness mapping",
+  "identity": {
+    "url": "https://github.com/open-compass/opencompass/blob/main/opencompass/configs/datasets/obqa/obqa_gen_9069e4.py",
+    "rationale": "Official OpenCompass obqa config names openbookqa and openbookqa_fact with their dataset paths; this directory is not another independent benchmark. Preserve main/fact protocol distinctions."
+  },
+  "task": "",
+  "metric": "",
+  "protocol": "",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://github.com/open-compass/opencompass/blob/main/opencompass/configs/datasets/obqa/obqa_gen_9069e4.py"
+  },
+  "results": [],
+  "review": {
+    "reviewer": "GPT-5.6 Luna / freshness_pilot independent review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "approved",
+    "rationale": "Official OpenCompass config maps the obqa directory to the OpenBookQA dataset: the main protocol uses abbr openbookqa with path opencompass/openbookqa_test and name main, while the separate fact protocol uses abbr openbookqa_fact with path opencompass/openbookqa_fact and name additional. The obqa directory is therefore a harness/configuration location, not an independent benchmark; preserve the main/fact protocol distinction."
+  }
+}

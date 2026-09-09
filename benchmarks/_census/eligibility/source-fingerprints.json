@@ -1,0 +1,61 @@
+{
+  "note": "Response fingerprints record inspected public sources. They do not establish evaluation dates, verify claims, or substitute for stable upstream versions. Dynamic HTML may change without a substantive result update. Full source bodies are not redistributed.",
+  "sources": [
+    {
+      "url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+      "retrieved_at": "2026-09-09T03:25:40.335787+00:00",
+      "http_status": 200,
+      "sha256": "6c82f032d9d409feaf76d97ac91d991ccb6c06307946f7109b1acd4ae4b83064",
+      "bytes": 537176,
+      "final_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3"
+    },
+    {
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "retrieved_at": "2026-09-09T03:25:40.336051+00:00",
+      "http_status": 200,
+      "sha256": "731b2f8df97f2b0ffd39ef715c1c0bce421dd970800e636e2d2aea209eddd4f3",
+      "bytes": 713516,
+      "final_url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking"
+    },
+    {
+      "url": "https://artificialanalysis.ai/models/glm-5-3",
+      "retrieved_at": "2026-09-09T03:25:40.336136+00:00",
+      "http_status": 200,
+      "sha256": "f9b737320bbcadd1e121fe830a228f2df1e2befe9cbc3e824c352654ba0d4b76",
+      "bytes": 3564398,
+      "final_url": "https://artificialanalysis.ai/models/glm-5-3"
+    },
+    {
+      "url": "https://artificialanalysis.ai/models/gpt-6-astra",
+      "retrieved_at": "2026-09-09T03:25:40.336183+00:00",
+      "http_status": 200,
+      "sha256": "6b8bd16664efa8367634be9211be945d8952ce238af71db36c1d685196d75a64",
+      "bytes": 3487116,
+      "final_url": "https://artificialanalysis.ai/models/gpt-6-astra"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/open-compass/opencompass/main/opencompass/configs/datasets/obqa/obqa_gen_9069e4.py",
+      "retrieved_at": "2026-09-09T03:25:40.501774+00:00",
+      "http_status": 200,
+      "sha256": "61a6367b78ba0a5459b12eedef330912c23c22dd75d903ecc9ed6b75a4830320",
+      "bytes": 1904,
+      "final_url": "https://raw.githubusercontent.com/open-compass/opencompass/main/opencompass/configs/datasets/obqa/obqa_gen_9069e4.py"
+    },
+    {
+      "url": "https://togetherbench.com/",
+      "retrieved_at": "2026-09-09T03:25:40.591417+00:00",
+      "http_status": 200,
+      "sha256": "6257cf8f3de3b5801a3f323aef2157179f94c03de685a8ec4b3b7897711cd7f3",
+      "bytes": 27726,
+      "final_url": "https://togetherbench.com/"
+    },
+    {
+      "url": "https://cdn.sanity.io/images/6vfeftx9/articles/971805b0a4b0877da6653842f240267721a56498-2256x4032.png?auto=format&w=1200",
+      "publication_context": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+      "published": "2026-09-04",
+      "sha256": "c47ae0c461c5b192a5e5a98175b12673661ba02af37443ec4e8d9ef5e973d71b",
+      "bytes": 920609,
+      "note": "Fixed per-model chart linked within dated release; values must be read from this chart, not backdated from live comparison tables."
+    }
+  ]
+}

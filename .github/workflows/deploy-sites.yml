@@ -1,0 +1,142 @@
+name: Build and deploy the sites
+
+# The published state of both domains should always be a commit, never whatever
+# somebody last pushed from a laptop. Build on every merge to main; deploy only
+# from main, and only after the build has succeeded.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'models/**'
+      - 'benchmarks/**'
+      - 'pipeline/**'
+      - 'site/**'
+      - '.github/workflows/deploy-sites.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-sites-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build both sites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pydantic pyyaml
+
+      - name: Build
+        id: build
+        run: |
+          python -m pipeline.build --out dist | tee summary.json
+          {
+            echo '### Site build'
+            echo
+            echo '```json'
+            cat summary.json
+            echo '```'
+            echo
+            echo "modelspec.dev: $(find dist/modelspec -type f | wc -l) files, $(du -sh dist/modelspec | cut -f1)"
+            echo "benchgraph.dev: $(find dist/benchgraph -type f | wc -l) files, $(du -sh dist/benchgraph | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guard the Cloudflare Pages limits
+        run: |
+          # Pages refuses a deployment over 20,000 files or with any file over 25 MiB.
+          # Failing here is far cheaper than a rejected deploy.
+          for site in modelspec benchgraph; do
+            count=$(find "dist/$site" -type f | wc -l)
+            if [ "$count" -ge 20000 ]; then
+              echo "::error::$site has $count files, at or over the Pages limit of 20,000"
+              exit 1
+            fi
+            big=$(find "dist/$site" -type f -size +25M | head -1)
+            if [ -n "$big" ]; then
+              echo "::error::$site contains a file over 25 MiB: $big"
+              exit 1
+            fi
+          done
+
+      - name: Check the pages we promise actually exist
+        run: |
+          set -e
+          test -s dist/modelspec/index.html
+          test -s dist/modelspec/models/index.html
+          test -s dist/modelspec/sitemap.xml
+          test -s dist/modelspec/404.html
+          test -s dist/benchgraph/index.html
+          test -s dist/benchgraph/benchmarks/index.html
+          test -s dist/benchgraph/sitemap.xml
+          test -s dist/benchgraph/404.html
+          test -s dist/benchgraph/api/catalogue.json
+          test -s dist/modelspec/api/index.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sites
+          path: dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check the deploy credentials are present
+        id: creds
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Skip rather than fail when the repository has no Cloudflare
+          # credentials yet, so main does not sit red for a missing secret
+          # while the build itself is healthy.
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            {
+              echo '### Deploy skipped'
+              echo
+              echo 'CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set on this'
+              echo 'repository, so the built sites were not published. The build artifact'
+              echo 'is attached to this run.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          name: sites
+          path: dist
+
+      - name: Deploy modelspec.dev
+        if: steps.creds.outputs.ready == 'true' 
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/modelspec --project-name=modelspec --branch=main
+
+      - name: Deploy benchgraph.dev
+        if: steps.creds.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/benchgraph --project-name=benchgraph --branch=main

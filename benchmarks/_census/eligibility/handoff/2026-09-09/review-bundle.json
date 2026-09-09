@@ -1,0 +1,141 @@
+{
+  "created_at": "2026-09-09T10:18:23.311050+00:00",
+  "purpose": "Durable handoff snapshot of reconciled review decisions. Recheck eligibility and page hashes before integration. Original review rejections are retained alongside subsequent corrections; coordinator_status identifies the reconciled disposition.",
+  "coordinator_status": {
+    "updated_at": "2026-09-09T04:12:20.816059+00:00",
+    "phase": "curated-batch-reviewed",
+    "pages": [
+      {
+        "id": "aa_briefcase",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "c64648fb0a28b734e37de705b04ab77dfe4886119c3f0900ee79acdd33e1520b",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/aa_briefcase/review.json",
+          "benchmarks/_census/cache/eligible-20260908/corrections-001/aa_briefcase.review.json"
+        ]
+      },
+      {
+        "id": "aa_lcr",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "477caef62705187118c78d0292c5fabc14f6d4478c4b586dabe39cc81c27237e",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/corrections-001/aa_lcr.review.json"
+        ]
+      },
+      {
+        "id": "automationbench_aa",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "32a14a5ed3b88880e1301f6d5c6aa773e1caa72a9585eec231987607defb98f2",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/automationbench_aa/review.json"
+        ]
+      },
+      {
+        "id": "critpt",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "f4dcac5895ef5eae8af3f2ee1cd1ad7b6610b83cf0ab0a9a929077af835215ab",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/critpt/review.json"
+        ]
+      },
+      {
+        "id": "gdp_pdf_aa",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "d300493bb5ae9a0f3160c16fc595d01fd27c8138f2fed11e503e5a1bdb6a2960",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/gdp_pdf_aa/review.json",
+          "benchmarks/_census/cache/eligible-20260908/corrections-001/gdp_pdf_aa.review.json"
+        ]
+      },
+      {
+        "id": "gdpval_aa",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "c8548398aaf2bd615d7139d9e2b60483fe566a05fb75634602fd67bd262a27a2",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/gdpval_aa/review.json"
+        ]
+      },
+      {
+        "id": "scicode",
+        "status": "reviewed-ready-for-integration",
+        "page_sha256": "18a1d4ecd318bca9d22616798fc09349904ac8ffc8567499c10bdd47a893a9a6",
+        "review_evidence": [
+          "benchmarks/_census/cache/eligible-20260908/run-001/jobs/scicode/review.json",
+          "benchmarks/_census/cache/eligible-20260908/corrections-001/scicode.review.json"
+        ]
+      }
+    ],
+    "published": false,
+    "note": "Reconciles original Grok reviews with source-checked corrections and full Luna AA-LCR fallback review. Recheck hashes/eligibility before integration. Does not mark the entire catalogue or sites complete."
+  },
+  "review_documents": {
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/aa_briefcase/review.json": {
+      "id": "aa_briefcase",
+      "verdict": "rejected",
+      "reason": "Who publishes it says Index v4.2 added AA-Briefcase 'at 15% of the Agents group'; Artificial Analysis methodology version history (v4.2 and v4.3) and the v4.3 weight table list it as 15% of the Intelligence Index, with the Agents category at 30%. Reading the numbers also calls GPT-6 Astra (max) 53% 'a little above' the GPT-5.5 (medium)=1000 Elo anchor; the same methodology maps Index display as clamp((Elo-500)/2000), so 1000 Elo is 25% and 53% is Elo ~1560."
+    },
+    "benchmarks/_census/cache/eligible-20260908/corrections-001/aa_briefcase.review.json": {
+      "id": "aa_briefcase",
+      "verdict": "approved",
+      "reviewer": "Codex correction review",
+      "reviewed_at": "2026-09-09T04:08:32Z",
+      "reviewed_page_sha256": "c64648fb0a28b734e37de705b04ab77dfe4886119c3f0900ee79acdd33e1520b",
+      "scope": "Focused correction check against the prior rejection; not a full new source audit.",
+      "reason": "The prior rejection items are resolved. The final page states AA-Briefcase is 15% of the Intelligence Index within the Agents category, matching the Artificial Analysis methodology table (Agents 30%, AA-Briefcase 15%) and the v4.2/v4.3 version history: https://artificialanalysis.ai/methodology/intelligence-benchmarking. The page also uses the documented normalization clamp((Elo - 500) / 2000), explicitly maps the 1000 Elo anchor to 25%, and no longer calls 53% a little above that anchor; the formula and anchor are documented at https://artificialanalysis.ai/methodology/intelligence-benchmarking. The v4.2 article independently confirms AA-Briefcase was added as a private held-out evaluation and identifies its leaderboard context: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2. This approval checks the requested corrections and surrounding claims only; it does not assert a fresh audit of every article fact."
+    },
+    "benchmarks/_census/cache/eligible-20260908/corrections-001/aa_lcr.review.json": {
+      "id": "aa_lcr",
+      "verdict": "approved",
+      "reviewer": "Codex independent source review",
+      "reviewed_at": "2026-09-09T04:10:44Z",
+      "reviewed_page_sha256": "477caef62705187118c78d0292c5fabc14f6d4478c4b586dabe39cc81c27237e",
+      "scope": "Full independent source review of substantive claims, including dataset, licence, protocol, versioning, scoring, current comparison caveats, chronology, saturation, contamination, and harness details.",
+      "reason": "APPROVED. The existing validator passes aa_lcr.md. The dataset card independently supports the core dataset claims: 100 questions; 30 document sets; 234 documents; 2,979,757 total tokens; 99,325 average tokens per set; the seven category counts; the Apache-2.0 question-set licence; and no licence claim for the public-source document texts: https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR and https://huggingface.co/datasets/ArtificialAnalysis/AA-LCR/raw/main/README.md. The same card confirms v1.1 (September 2026), sixteen corrected answer keys, four substantive answer corrections, the added judge system prompt, unchanged questions/document sets, the v1.0.0 revision, the human first-attempt 40-60% range, the prompt construction and ordered document loading, and the v1.1 equality-checker JSON protocol. Artificial Analysis's methodology independently confirms that v1.1 adds the system prompt, corrects 16 answer keys, uses approximately 100k cl100k_base tokens per question and a minimum 128K context, evaluates 100 questions in seven categories, uses GPT-5.6 Luna medium as the equality checker, and scores pass@1: https://artificialanalysis.ai/methodology/intelligence-benchmarking. It also confirms the 5% General Index weight and v4.2/v4.3 chronology. The official leaderboard independently confirms the long-context scope, 100-question design, multi-document synthesis requirement, current v1.1 label, 28-of-516 coverage, and live Kimi K3 88.7% table while making clear that this live table is distinct from the dated snapshot: https://artificialanalysis.ai/evaluations/artificial-analysis-long-context-reasoning. The v4.2 release article establishes the dated 4 September 2026 release context and the Index update: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2. I independently inspected the v4.2 chart image referenced by that article: its AA-LCR v1.1 panel labels GPT-6 Astra (max) 81% and GLM-5.3 (max) 80%, matching the page and evidence record; the rounded values are correctly described as a dated, non-compute-matched pair rather than live scores. The OpenCompass configuration independently confirms AA-LCR, n=3, and the older user-only CORRECT/INCORRECT judge template, while the loader confirms the AA-LCR dataset files, test construction, ordered source filenames, and token field: https://raw.githubusercontent.com/open-compass/opencompass/main/opencompass/configs/datasets/aa_lcr/aa_lcr_gen.py and https://raw.githubusercontent.com/open-compass/opencompass/main/opencompass/datasets/aa_lcr.py. The page correctly distinguishes this approximation from official v1.1, states that execution dates and hidden prompt pins are not established, separates live from dated results, records medium contamination risk for public questions/documents, and avoids claiming a random or human baseline in the schema fields. No substantive unsupported conflict was found."
+    },
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/automationbench_aa/review.json": {
+      "id": "automationbench_aa",
+      "reason": "Opened AA eval page, methodology #automation-bench-aa, 6 Jul 2026 launch, 7 Sep 2026 Index v4.3 article, arXiv:2604.18934, zapier/AutomationBench README/LICENSE/CHANGELOG, and zapier.com/benchmarks. Confirmed AA scoring variant (objectives; guardrail or error zeros the task; mean of 657 per-task scores), private v1.0.6 split, API toolset/one pass/50-turn cap, 5% Agents weight replacing tau3-Banking, accepted pair GPT-6 Astra (max) 68.5% and GLM-5.3 (max) 62.2%, Astra Tasks Completed 41.6%, live 67.2/67.0 cluster and 89% objectives, Zapier 41.4% as a different metric, 40-vs-47 apps disagreement, and 1.0.6 dated 2026-07-31. Canonical identity and eligibility scores match; no unsourced numbers.",
+      "verdict": "approved"
+    },
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/critpt/review.json": {
+      "id": "critpt",
+      "verdict": "approved",
+      "reason": "Opened the cited primaries (arXiv 2509.26574 v4 HTML/abs, ar5iv earlier draft, HF CritPt-Benchmark/CritPt card+API+datasets-server+README, GitHub README+API, critpt.com/example, OpenCompass CritPt_main config and critpt.py, AA live CritPt page, AA Index v4.2 article plus per-model chart, AA methodology CritPt section, AA CritPt grading API docs). They confirm the identity, 70-row Hub test dump vs 71/190 in Table 1, Apache-2.0 on the Hub (no GitHub licence file), held-out answers, 5x70 mean / AA pass@1 two-step official grader with no tools, authors' 2025-11 table 12.6/10.6/5.7 and Gemini-3 Pro 9.1, v4 abstract 5.7%/~10% with code, ar5iv 4.0/9.4/11.7, v4.2 integer bars GPT-6 Astra (max) 32% and GLM-5.3 (max) 19% (not compute-matched), live AA headline GPT-5.6 Sol (max) 32.3% / Astra (max) 31.7% / Astra (xhigh) 31.4%, OpenCompass CritPt_main max_out_len 32768 submit=False, 10% Index weight, and 10 batch submissions/24h. Body 751 words, required sections, empty human baseline, saturation 32.3 still open. No material unsourced or contradicted claim."
+    },
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/gdp_pdf_aa/review.json": {
+      "id": "gdp_pdf_aa",
+      "verdict": "rejected",
+      "reason": "Lineage says GDPval-AA has no page here yet, but benchmarks/gdpval_aa.md exists as a complete article (id gdpval_aa). Who publishes it also calls Suhaas Garre, Emily Ritchie, Sushant Mehta, and Edwin Chen equal authors; arXiv:2607.11192 v3 and the HTML paper list them as authors with correspondence only to Garre, with no equal-contribution statement."
+    },
+    "benchmarks/_census/cache/eligible-20260908/corrections-001/gdp_pdf_aa.review.json": {
+      "id": "gdp_pdf_aa",
+      "verdict": "approved",
+      "reviewer": "Codex correction review",
+      "reviewed_at": "2026-09-09T04:08:32Z",
+      "reviewed_page_sha256": "d300493bb5ae9a0f3160c16fc595d01fd27c8138f2fed11e503e5a1bdb6a2960",
+      "scope": "Focused correction check against the prior rejection; not a full new source audit.",
+      "reason": "The prior rejection items are resolved. The final page now links GDPval-AA to the existing gdpval_aa.md page in Lineage and distinguishes GDP.pdf-AA from GDPval-AA. The page no longer claims the four paper authors are equal authors; it lists Suhaas Garre, Emily Ritchie, Sushant Mehta, and Edwin Chen without that unsupported characterization. The arXiv record confirms exactly those four authors: https://arxiv.org/abs/2607.11192. The Artificial Analysis methodology independently identifies GDP.pdf as its implementation of Surge AI's benchmark, gives the 100-task/10-domain/1,275-criteria protocol, and links the same paper: https://artificialanalysis.ai/methodology/intelligence-benchmarking. The v4.2 article confirms GDP.pdf's addition and 33.2% GPT-6 Astra result: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2. This approval checks the requested corrections and surrounding claims only; it does not assert a fresh audit of every article fact."
+    },
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/gdpval_aa/review.json": {
+      "id": "gdpval_aa",
+      "verdict": "approved",
+      "reason": "Independently opened the 2026-09-04 v4.2 article and its per-model/weights charts, the live methodology and evaluations/gdpval-aa table, openai/gdpval HF card/README/API/datasets-server, arXiv:2510.04374 and the OpenAI GDPval post, Stirrup MIT, and the GPT-6 Astra / GLM-5.3 pages. Dated chart GDPval-AA v2 (Elo-500)/2000 reads GPT-6 Astra (max) 54%, GLM-5.3 (max) 59%, Claude Fable 5.1 (max with fallback) 63%; v4.2 and v4.3 both weight it 10% Agents. Methodology confirms 220 public gold tasks, 1 repeat, 250-turn Stirrup/E2B, human-anchored Bradley-Terry Elo, three-judge panel (GPT-5.5 medium, Gemini 3.1 Pro Preview high, Claude Opus 4.8 high effort), clamp((Elo-500)/2000). Live table still shows Fable 5.1 max-with-fallback 1764 raw Elo as a separate unit. HF default/train is 220 rows, no SPDX licence, canary matches, lastModified 2026-02-10. Identity is AA's gold-set rescore, not OpenAI win rates. Validator passes (728-word body). Licence, execution dates, and prompt pins left empty."
+    },
+    "benchmarks/_census/cache/eligible-20260908/run-001/jobs/scicode/review.json": {
+      "id": "scicode",
+      "verdict": "rejected",
+      "reason": "The dated AA v4.2 Intelligence Evaluations chart (4 Sep 2026; https://cdn.sanity.io/images/6vfeftx9/articles/971805b0a4b0877da6653842f240267721a56498-2256x4032.png) labels GLM-5.3 (max) at 59% SciCode subproblem pass@1 and GPT-6 Astra (max) at 56%. The page's baseline_note, saturation.note, and How it is scored all state both models at 56%. Eligibility's 56/56 pair does not override the figure. Publisher facts (80/338, 4.6%/12.3%, o3-mini-low 10.8%/33.3%, Apache-2.0, 15/65 split) match arXiv 2407.13168, the GitHub README, and Hugging Face, but the accepted current pair is wrong."
+    },
+    "benchmarks/_census/cache/eligible-20260908/corrections-001/scicode.review.json": {
+      "id": "scicode",
+      "verdict": "approved",
+      "reviewer": "GPT-5.6 Luna / freshness_pilot independent correction review",
+      "reviewed_at": "2026-09-09T04:08:29Z",
+      "reviewed_page_sha256": "18a1d4ecd318bca9d22616798fc09349904ac8ffc8567499c10bdd47a893a9a6",
+      "scope": "focused correction review following full Grok source audit",
+      "reason": "The original full-resolution AA v4.2 chart confirms GPT-6 Astra (max) at 56% and GLM-5.3 (max) at 59% SciCode subproblem pass@1. The prior 56/56 pair was a label-reading error recorded by the initial coordinator/researcher; Grok's independent full-source audit correctly rejected it. The corrected article page and erratum now carry the 56/59 pair, with GLM-5.3 (max) distinguished from GLM-5.3-Flash. The other five batch-002 pairs were rechecked against the same chart and remain unchanged.",
+      "source_url": "https://cdn.sanity.io/images/6vfeftx9/articles/971805b0a4b0877da6653842f240267721a56498-2256x4032.png",
+      "source_sha256": "51e3c6852b9344d9e6f73d99f35380397baa9f8db46d60f1e23ac91ab6cda529"
+    }
+  }
+}

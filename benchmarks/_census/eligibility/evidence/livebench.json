@@ -1,0 +1,25 @@
+{
+  "candidate_id": "livebench",
+  "canonical_id": "livebench",
+  "domain": "general",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://livebench.ai/",
+    "rationale": "Pilot has no attributable recent date for a current frontier/open result pair; benchmark release date does not date model evaluations."
+  },
+  "task": "",
+  "metric": "",
+  "protocol": "",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://livebench.ai/"
+  },
+  "results": [],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Pilot has no attributable recent date for a current frontier/open result pair; benchmark release date does not date model evaluations."
+  }
+}

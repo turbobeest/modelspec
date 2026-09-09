@@ -1,0 +1,766 @@
+{
+ "queue": "queue_p2.json",
+ "slices": {
+  "A": [
+   "bangla_boolqa",
+   "bangla_commonsenseqa",
+   "bangla_piqa",
+   "bangla_openbookqa",
+   "arabic_leaderboard_complete",
+   "arabic_leaderboard_light"
+  ],
+  "B": [
+   "autobencher_capabilities",
+   "autobencher_safety",
+   "qasper",
+   "race",
+   "scicode",
+   "squad",
+   "storycloze"
+  ],
+  "C": [
+   "swe_lancer",
+   "wikitext",
+   "wmdp",
+   "xcopa",
+   "abstention_bench",
+   "acp_bench_hard",
+   "advancedif"
+  ],
+  "D": [
+   "aexams",
+   "agent_bench",
+   "agent_threat_bench",
+   "arabic_exams",
+   "aradice",
+   "arc_easy",
+   "arc_prize_public_evaluation"
+  ],
+  "E": [
+   "arxivrollbench",
+   "assistant_bench",
+   "babi_qa",
+   "basque_bench",
+   "bertaqa",
+   "beyondaime",
+   "bridging_anaphora_resolution_barqa"
+  ],
+  "F": [
+   "buysidefinbench",
+   "cardbiomedbench",
+   "careqa",
+   "catalan_bench",
+   "chem_exam",
+   "chinese_simpleqa",
+   "ci_mcqa"
+  ],
+  "G": [
+   "cibench"
+  ]
+ },
+ "hints": {
+  "qasper": {
+   "name": "qasper",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/qasper",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/qasper"
+   ],
+   "harness": {
+    "lm_eval": "qasper",
+    "opencompass": "qasper"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "qasper"
+  },
+  "race": {
+   "name": "race",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/race",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/race"
+   ],
+   "harness": {
+    "lm_eval": "race",
+    "opencompass": "race"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "race"
+  },
+  "scicode": {
+   "name": "scicode",
+   "aliases": [],
+   "sources": [
+    "inspect_evals",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/scicode",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/scicode"
+   ],
+   "harness": {
+    "inspect_evals": "scicode",
+    "opencompass": "scicode"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "scicode"
+  },
+  "squad": {
+   "name": "squad",
+   "aliases": [
+    "SQuAD"
+   ],
+   "sources": [
+    "awesome:onejune2018/Awesome-LLM-Eval",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/squad",
+    "https://rajpurkar.github.io/SQuAD-explorer/"
+   ],
+   "harness": {
+    "inspect_evals": "squad"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "squad"
+  },
+  "storycloze": {
+   "name": "storycloze",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/storycloze",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/storycloze"
+   ],
+   "harness": {
+    "lm_eval": "storycloze",
+    "opencompass": "storycloze"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "storycloze"
+  },
+  "swe_lancer": {
+   "name": "swe_lancer",
+   "aliases": [
+    "SWE-Lancer"
+   ],
+   "sources": [
+    "awesome:benchflow-ai/awesome-evals",
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://arxiv.org/abs/2502.12115",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/swe_lancer"
+   ],
+   "harness": {
+    "inspect_evals": "swe_lancer"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "swe_lancer"
+  },
+  "wikitext": {
+   "name": "wikitext",
+   "aliases": [],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/wikitext",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/wikitext"
+   ],
+   "harness": {
+    "lm_eval": "wikitext",
+    "opencompass": "wikitext"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "wikitext"
+  },
+  "wmdp": {
+   "name": "wmdp",
+   "aliases": [],
+   "sources": [
+    "inspect_evals",
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/wmdp",
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/wmdp"
+   ],
+   "harness": {
+    "lm_eval": "wmdp",
+    "inspect_evals": "wmdp"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "wmdp"
+  },
+  "xcopa": {
+   "name": "xcopa",
+   "aliases": [
+    "XCOPA"
+   ],
+   "sources": [
+    "lm_eval",
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/xcopa",
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/XCOPA"
+   ],
+   "harness": {
+    "lm_eval": "xcopa",
+    "opencompass": "XCOPA"
+   },
+   "category_hint": "",
+   "score": 25.0,
+   "census_slug": "xcopa"
+  },
+  "abstention_bench": {
+   "name": "abstention_bench",
+   "aliases": [],
+   "sources": [
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/abstention_bench"
+   ],
+   "harness": {
+    "inspect_evals": "abstention_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "abstention_bench"
+  },
+  "acp_bench_hard": {
+   "name": "acp_bench_hard",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/acp_bench_hard"
+   ],
+   "harness": {
+    "lm_eval": "acp_bench_hard"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "acp_bench_hard"
+  },
+  "advancedif": {
+   "name": "advancedIF",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/advancedIF"
+   ],
+   "harness": {
+    "opencompass": "advancedIF"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "advancedif"
+  },
+  "aexams": {
+   "name": "aexams",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/aexams"
+   ],
+   "harness": {
+    "lm_eval": "aexams"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "aexams"
+  },
+  "agent_bench": {
+   "name": "agent_bench",
+   "aliases": [],
+   "sources": [
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/agent_bench"
+   ],
+   "harness": {
+    "inspect_evals": "agent_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "agent_bench"
+  },
+  "agent_threat_bench": {
+   "name": "agent_threat_bench",
+   "aliases": [],
+   "sources": [
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/agent_threat_bench"
+   ],
+   "harness": {
+    "inspect_evals": "agent_threat_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "agent_threat_bench"
+  },
+  "arabic_exams": {
+   "name": "arabic_exams",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/arabic_exams_scenario.py"
+   ],
+   "harness": {
+    "helm": "arabic_exams"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arabic_exams"
+  },
+  "arabic_leaderboard_complete": {
+   "name": "arabic_leaderboard_complete",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/arabic_leaderboard_complete"
+   ],
+   "harness": {
+    "lm_eval": "arabic_leaderboard_complete"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arabic_leaderboard_complete"
+  },
+  "arabic_leaderboard_light": {
+   "name": "arabic_leaderboard_light",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/arabic_leaderboard_light"
+   ],
+   "harness": {
+    "lm_eval": "arabic_leaderboard_light"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arabic_leaderboard_light"
+  },
+  "aradice": {
+   "name": "AraDICE",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/AraDICE"
+   ],
+   "harness": {
+    "lm_eval": "AraDICE"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "aradice"
+  },
+  "arc_easy": {
+   "name": "ARC_e",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ARC_e"
+   ],
+   "harness": {
+    "opencompass": "ARC_e"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arc_e"
+  },
+  "arc_prize_public_evaluation": {
+   "name": "ARC_Prize_Public_Evaluation",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/ARC_Prize_Public_Evaluation"
+   ],
+   "harness": {
+    "opencompass": "ARC_Prize_Public_Evaluation"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arc_prize_public_evaluation"
+  },
+  "arxivrollbench": {
+   "name": "arxivrollbench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/arxivrollbench"
+   ],
+   "harness": {
+    "opencompass": "arxivrollbench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "arxivrollbench"
+  },
+  "assistant_bench": {
+   "name": "assistant_bench",
+   "aliases": [],
+   "sources": [
+    "inspect_evals"
+   ],
+   "urls": [
+    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/assistant_bench"
+   ],
+   "harness": {
+    "inspect_evals": "assistant_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "assistant_bench"
+  },
+  "autobencher_capabilities": {
+   "name": "autobencher_capabilities",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/autobencher_capabilities_scenario.py"
+   ],
+   "harness": {
+    "helm": "autobencher_capabilities"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "autobencher_capabilities"
+  },
+  "autobencher_safety": {
+   "name": "autobencher_safety",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/autobencher_safety_scenario.py"
+   ],
+   "harness": {
+    "helm": "autobencher_safety"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "autobencher_safety"
+  },
+  "babi_qa": {
+   "name": "babi_qa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/babi_qa_scenario.py"
+   ],
+   "harness": {
+    "helm": "babi_qa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "babi_qa"
+  },
+  "bangla_boolqa": {
+   "name": "bangla_boolQA",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/bangla_boolQA"
+   ],
+   "harness": {
+    "lm_eval": "bangla_boolQA"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bangla_boolqa"
+  },
+  "bangla_commonsenseqa": {
+   "name": "bangla_commonsenseQA",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/bangla_commonsenseQA"
+   ],
+   "harness": {
+    "lm_eval": "bangla_commonsenseQA"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bangla_commonsenseqa"
+  },
+  "bangla_piqa": {
+   "name": "bangla_piQA",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/bangla_piQA"
+   ],
+   "harness": {
+    "lm_eval": "bangla_piQA"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bangla_piqa"
+  },
+  "bangla_openbookqa": {
+   "name": "bangla_poenbookQA",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/bangla_poenbookQA"
+   ],
+   "harness": {
+    "lm_eval": "bangla_poenbookQA"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bangla_poenbookqa"
+  },
+  "basque_bench": {
+   "name": "basque_bench",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/basque_bench"
+   ],
+   "harness": {
+    "lm_eval": "basque_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "basque_bench"
+  },
+  "bertaqa": {
+   "name": "bertaqa",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/bertaqa"
+   ],
+   "harness": {
+    "lm_eval": "bertaqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bertaqa"
+  },
+  "beyondaime": {
+   "name": "BeyondAIME",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/BeyondAIME"
+   ],
+   "harness": {
+    "opencompass": "BeyondAIME"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "beyondaime"
+  },
+  "bridging_anaphora_resolution_barqa": {
+   "name": "bridging_anaphora_resolution_barqa",
+   "aliases": [],
+   "sources": [
+    "bigbench"
+   ],
+   "urls": [
+    "https://github.com/google/BIG-bench/tree/main/bigbench/benchmark_tasks/bridging_anaphora_resolution_barqa"
+   ],
+   "harness": {
+    "bigbench": "bridging_anaphora_resolution_barqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "bridging_anaphora_resolution_barqa"
+  },
+  "buysidefinbench": {
+   "name": "BuySideFinBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/BuySideFinBench"
+   ],
+   "harness": {
+    "opencompass": "BuySideFinBench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "buysidefinbench"
+  },
+  "cardbiomedbench": {
+   "name": "CARDBiomedBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CARDBiomedBench"
+   ],
+   "harness": {
+    "opencompass": "CARDBiomedBench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "cardbiomedbench"
+  },
+  "careqa": {
+   "name": "careqa",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/careqa"
+   ],
+   "harness": {
+    "lm_eval": "careqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "careqa"
+  },
+  "catalan_bench": {
+   "name": "catalan_bench",
+   "aliases": [],
+   "sources": [
+    "lm_eval"
+   ],
+   "urls": [
+    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/catalan_bench"
+   ],
+   "harness": {
+    "lm_eval": "catalan_bench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "catalan_bench"
+  },
+  "chem_exam": {
+   "name": "chem_exam",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/chem_exam"
+   ],
+   "harness": {
+    "opencompass": "chem_exam"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "chem_exam"
+  },
+  "chinese_simpleqa": {
+   "name": "chinese_simpleqa",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/chinese_simpleqa"
+   ],
+   "harness": {
+    "opencompass": "chinese_simpleqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "chinese_simpleqa"
+  },
+  "ci_mcqa": {
+   "name": "ci_mcqa",
+   "aliases": [],
+   "sources": [
+    "helm"
+   ],
+   "urls": [
+    "https://github.com/stanford-crfm/helm/blob/main/src/helm/benchmark/scenarios/ci_mcqa_scenario.py"
+   ],
+   "harness": {
+    "helm": "ci_mcqa"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "ci_mcqa"
+  },
+  "cibench": {
+   "name": "CIBench",
+   "aliases": [],
+   "sources": [
+    "opencompass"
+   ],
+   "urls": [
+    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/CIBench"
+   ],
+   "harness": {
+    "opencompass": "CIBench"
+   },
+   "category_hint": "",
+   "score": 18.0,
+   "census_slug": "cibench"
+  }
+ }
+}
