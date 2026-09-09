@@ -1,0 +1,50 @@
+{
+  "candidate_id": "aa_lcr",
+  "canonical_id": "aa_lcr",
+  "domain": "long_context",
+  "researcher": "Codex coordinator / dated chart extraction",
+  "identity": {
+    "url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+    "rationale": "Named component in the dated release and attached per-model chart. Retain the exact AA scoring profile; do not substitute parent benchmark or other-version scores."
+  },
+  "task": "Answer questions requiring long-document reasoning.",
+  "metric": "Correct-answer rate under AA-LCR v1.1 grading.",
+  "protocol": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+  "usefulness": {
+    "verdict": "useful",
+    "rationale": "The release reports current-model comparisons with remaining headroom. The profile measures its stated capability; rounded values do not establish statistical significance or equal compute.",
+    "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+  },
+  "results": [
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "benchmark_version": "AA-LCR v1.1 / AA v4.2",
+      "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+      "score": 81,
+      "unit": "percent",
+      "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+      "evidence_date": "2026-09-04",
+      "date_type": "published",
+      "verified_at": "2026-09-08",
+      "source_kind": "independent_evaluator"
+    },
+    {
+      "model_id": "GLM-5.3 (max)",
+      "benchmark_version": "AA-LCR v1.1 / AA v4.2",
+      "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+      "score": 80,
+      "unit": "percent",
+      "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+      "evidence_date": "2026-09-04",
+      "date_type": "published",
+      "verified_at": "2026-09-08",
+      "source_kind": "independent_evaluator"
+    }
+  ],
+  "review": {
+    "reviewer": "GPT-5.6 Luna / freshness_pilot independent review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "approved",
+    "rationale": "AA-LCR v1.1 v4.2 chart reports the verified 81% and 80% values for the exact GPT-6 Astra (max) and GLM-5.3 (max) displays. The methodology supports v1.1, 100 questions, three repeats, equality-checker scoring, corrected answer keys, and the stated grader; v1.0 scores must remain separate. The fixed 2026-09-04 article/chart is dated inside the window; execution dates and hidden pins remain unknown. The OpenAI/Z AI identity and closed/open-weight distinction are supported by separate reference-model sources. Researcher and reviewer are separate."
+  }
+}

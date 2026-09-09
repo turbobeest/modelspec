@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "aa_briefcase",
+    "name": "AA-Briefcase",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "agentic"
+  },
+  {
+    "slug": "aa_lcr",
+    "name": "AA-LCR",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "long_context"
+  },
+  {
+    "slug": "automationbench_aa",
+    "name": "AutomationBench-AA",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+      "https://artificialanalysis.ai/methodology/intelligence-benchmarking#automationbench-aa"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "agentic"
+  },
+  {
+    "slug": "critpt",
+    "name": "CritPt",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "scientific_reasoning"
+  },
+  {
+    "slug": "gdp_pdf_aa",
+    "name": "GDP.pdf (AA implementation)",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "long_context"
+  },
+  {
+    "slug": "gdpval_aa",
+    "name": "GDPval-AA",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "agentic"
+  },
+  {
+    "slug": "scicode",
+    "name": "SciCode",
+    "urls": [
+      "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+    ],
+    "sources": [
+      "independently reviewed eligibility evidence"
+    ],
+    "category_hint": "coding"
+  }
+]

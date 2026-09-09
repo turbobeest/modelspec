@@ -1,0 +1,50 @@
+{
+  "candidate_id": "swe_together",
+  "canonical_id": "swe_together",
+  "domain": "agentic",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://togetherbench.com/",
+    "rationale": "Explicit inspected runs are June 8\u201328, 2026, outside the 60-day window; current reference-set coverage also unverified."
+  },
+  "task": "Solve repository tasks with interactive user feedback.",
+  "metric": "pass@1.",
+  "protocol": "109 tasks; opencode; k=2; official judge-based scoring.",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://togetherbench.com/"
+  },
+  "results": [
+    {
+      "model_id": "gpt-5.5",
+      "benchmark_version": "109-task release",
+      "configuration": "109 tasks; opencode; k=2; official judge-based scoring.",
+      "score": 48.0,
+      "unit": "percent",
+      "source_url": "https://togetherbench.com/",
+      "evidence_date": "2026-06-28",
+      "date_type": "evaluated",
+      "verified_at": "2026-09-08",
+      "source_kind": "benchmark_author"
+    },
+    {
+      "model_id": "glm-5.2",
+      "benchmark_version": "109-task release",
+      "configuration": "109 tasks; opencode; k=2; official judge-based scoring.",
+      "score": 42.0,
+      "unit": "percent",
+      "source_url": "https://togetherbench.com/",
+      "evidence_date": "2026-06-17",
+      "date_type": "evaluated",
+      "verified_at": "2026-09-08",
+      "source_kind": "benchmark_author"
+    }
+  ],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Explicit inspected runs are June 8\u201328, 2026, outside the 60-day window; current reference-set coverage also unverified."
+  }
+}

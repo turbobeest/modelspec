@@ -1,0 +1,25 @@
+{
+  "candidate_id": "automationbench",
+  "canonical_id": "automationbench",
+  "domain": "agentic",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://github.com/zapier/AutomationBench",
+    "rationale": "Distinct original benchmark protocol; pilot did not verify its own dated current frontier/open result pair."
+  },
+  "task": "",
+  "metric": "",
+  "protocol": "",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://github.com/zapier/AutomationBench"
+  },
+  "results": [],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Distinct original benchmark protocol; pilot did not verify its own dated current frontier/open result pair."
+  }
+}

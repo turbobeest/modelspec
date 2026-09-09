@@ -1,0 +1,38 @@
+{
+  "candidate_id": "terminal_bench_v4_0",
+  "canonical_id": "terminal_bench_v4_0",
+  "domain": "agentic",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking#terminal-bench-v40",
+    "rationale": "Real v4.0 version established by evaluator methodology; missing an exact dated open-model result in the inspected publication."
+  },
+  "task": "Complete tasks in a terminal environment.",
+  "metric": "Average pass@1.",
+  "protocol": "66 tasks, three repeats, mini-SWE-agent v2.4.6; 500 steps; per-task verification.",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking#terminal-bench-v40"
+  },
+  "results": [
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "benchmark_version": "4.0",
+      "configuration": "66 tasks, three repeats, mini-SWE-agent v2.4.6; 500 steps; per-task verification.",
+      "score": 59.1,
+      "unit": "percent",
+      "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+      "evidence_date": "2026-09-07",
+      "date_type": "published",
+      "verified_at": "2026-09-08",
+      "source_kind": "independent_evaluator"
+    }
+  ],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Real v4.0 version established by evaluator methodology; missing an exact dated open-model result in the inspected publication."
+  }
+}

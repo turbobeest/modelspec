@@ -1,0 +1,25 @@
+{
+  "candidate_id": "openml_benchmark",
+  "canonical_id": "openml_benchmark",
+  "domain": "general",
+  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "identity": {
+    "url": "https://docs.openml.org/benchmark/",
+    "rationale": "Generic platform/suite discovery entry; no distinct benchmark identity or dated current frontier/open result pair established."
+  },
+  "task": "",
+  "metric": "",
+  "protocol": "",
+  "usefulness": {
+    "verdict": "unknown",
+    "rationale": "Not established for current frontier/open comparisons in this pilot.",
+    "source_url": "https://docs.openml.org/benchmark/"
+  },
+  "results": [],
+  "review": {
+    "reviewer": "Codex coordinator / independent primary-source review",
+    "reviewed_at": "2026-09-08",
+    "verdict": "needs_work",
+    "rationale": "Generic platform/suite discovery entry; no distinct benchmark identity or dated current frontier/open result pair established."
+  }
+}

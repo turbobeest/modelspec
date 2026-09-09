@@ -1,0 +1,400 @@
+{
+  "active_ids": [
+    "aa_briefcase",
+    "aa_lcr",
+    "automationbench_aa",
+    "critpt",
+    "gdp_pdf_aa",
+    "gdpval_aa",
+    "scicode"
+  ],
+  "as_of": "2026-09-09",
+  "mechanical_validation_note": "Mechanical validation does not prove source truth; reviewer approval is required.",
+  "rows": [
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "AA-Briefcase / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 53.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "normalized Elo percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "AA-Briefcase / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 51.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "normalized Elo percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "aa_briefcase",
+      "canonical_id": "aa_briefcase",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "AA-LCR v1.1 / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 81.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "AA-LCR v1.1 / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 80.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "aa_lcr",
+      "canonical_id": "aa_lcr",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "automationbench",
+      "canonical_id": "automationbench",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "task, metric, and protocol are incomplete",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://github.com/zapier/AutomationBench"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "AutomationBench 1.0.6 / AA held-out split",
+          "configuration": "AA v4.3: private 657-task split; single run; 50-turn cap; objective-credit score with guardrail-zeroing; both models at max reasoning (not equal compute).",
+          "date_type": "published",
+          "evidence_date": "2026-09-07",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 68.5,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "AutomationBench 1.0.6 / AA held-out split",
+          "configuration": "AA v4.3: private 657-task split; single run; 50-turn cap; objective-credit score with guardrail-zeroing; both models at max reasoning (not equal compute).",
+          "date_type": "published",
+          "evidence_date": "2026-09-07",
+          "model_id": "GLM-5.3 (max)",
+          "score": 62.2,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "automationbench_aa",
+      "canonical_id": "automationbench_aa",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+        "https://artificialanalysis.ai/methodology/intelligence-benchmarking#automationbench-aa"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "CritPt / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 32.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "CritPt / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 19.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "critpt",
+      "canonical_id": "critpt",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "GDP.pdf / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 33.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "GDP.pdf / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 12.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "gdp_pdf_aa",
+      "canonical_id": "gdp_pdf_aa",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "GDPval-AA v2 / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 54.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "normalized Elo percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "GDPval-AA v2 / AA v4.2",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 59.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "normalized Elo percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "gdpval_aa",
+      "canonical_id": "gdpval_aa",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "livebench",
+      "canonical_id": "livebench",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "task, metric, and protocol are incomplete",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://livebench.ai/"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "obqa",
+      "canonical_id": "openbookqa",
+      "reasons": [
+        "independently reviewed alias; retain canonical benchmark and protocol distinctions"
+      ],
+      "source_evidence": [
+        "https://github.com/open-compass/opencompass/blob/main/opencompass/configs/datasets/obqa/obqa_gen_9069e4.py"
+      ],
+      "status": "alias"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "openbookqa",
+      "canonical_id": "openbookqa",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "task, metric, and protocol are incomplete",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://github.com/allenai/OpenBookQA"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "openml_benchmark",
+      "canonical_id": "openml_benchmark",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "task, metric, and protocol are incomplete",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://docs.openml.org/benchmark/"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "openml_benchmarks",
+      "canonical_id": "openml_benchmarks",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "task, metric, and protocol are incomplete",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://docs.openml.org/benchmark/"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [
+        {
+          "benchmark_version": "SciCode / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 56.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        },
+        {
+          "benchmark_version": "SciCode / AA v4.2 implementation",
+          "configuration": "AA v4.2 published comparison; both models labelled max; model-dependent reasoning is not compute-matched. Values read from fixed release chart, not live tables. Undisclosed code/prompt pins are not inferred.",
+          "date_type": "published",
+          "evidence_date": "2026-09-04",
+          "model_id": "GLM-5.3 (max)",
+          "score": 59.0,
+          "source_kind": "independent_evaluator",
+          "source_url": "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2",
+          "unit": "percent",
+          "verified_at": "2026-09-08"
+        }
+      ],
+      "candidate_id": "scicode",
+      "canonical_id": "scicode",
+      "reasons": [
+        "qualifying current coverage"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2"
+      ],
+      "status": "active"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "swe_together",
+      "canonical_id": "swe_together",
+      "reasons": [
+        "model glm-5.2 is absent from reference set for domain agentic",
+        "model gpt-5.5 is absent from reference set for domain agentic",
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://togetherbench.com/"
+      ],
+      "status": "unverified"
+    },
+    {
+      "accepted_results": [],
+      "candidate_id": "terminal_bench_v4_0",
+      "canonical_id": "terminal_bench_v4_0",
+      "reasons": [
+        "no qualifying current frontier/open coverage from different organizations",
+        "review is not approved",
+        "usefulness is not established",
+        "usefulness is unknown"
+      ],
+      "source_evidence": [
+        "https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3",
+        "https://artificialanalysis.ai/methodology/intelligence-benchmarking#terminal-bench-v40"
+      ],
+      "status": "unverified"
+    }
+  ]
+}

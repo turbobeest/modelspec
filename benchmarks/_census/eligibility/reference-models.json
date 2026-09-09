@@ -1,0 +1,77 @@
+{
+  "as_of": "2026-09-08",
+  "models": [
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "organization": "OpenAI",
+      "domain": "agentic",
+      "cohort": "frontier",
+      "openness": "closed",
+      "source_url": "https://artificialanalysis.ai/models/gpt-6-astra",
+      "rationale": "September 7 evaluator release places this exact configuration among current leaders and publishes its agentic results."
+    },
+    {
+      "model_id": "GLM-5.3 (max)",
+      "organization": "Z AI",
+      "domain": "agentic",
+      "cohort": "open",
+      "openness": "open_weight",
+      "source_url": "https://artificialanalysis.ai/models/glm-5-3",
+      "rationale": "Evaluator identifies Z AI, open weights and August 2026 release; September 7 report includes current agentic results. This label does not assert open-source licensing."
+    },
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "organization": "OpenAI",
+      "domain": "coding",
+      "cohort": "frontier",
+      "openness": "closed",
+      "source_url": "https://artificialanalysis.ai/models/gpt-6-astra",
+      "rationale": "Current frontier text model selected for coding based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and closed status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "GLM-5.3 (max)",
+      "organization": "Z AI",
+      "domain": "coding",
+      "cohort": "open",
+      "openness": "open_weight",
+      "source_url": "https://artificialanalysis.ai/models/glm-5-3",
+      "rationale": "Current open text model selected for coding based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and open_weight status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "organization": "OpenAI",
+      "domain": "long_context",
+      "cohort": "frontier",
+      "openness": "closed",
+      "source_url": "https://artificialanalysis.ai/models/gpt-6-astra",
+      "rationale": "Current frontier text model selected for long_context based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and closed status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "GLM-5.3 (max)",
+      "organization": "Z AI",
+      "domain": "long_context",
+      "cohort": "open",
+      "openness": "open_weight",
+      "source_url": "https://artificialanalysis.ai/models/glm-5-3",
+      "rationale": "Current open text model selected for long_context based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and open_weight status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "organization": "OpenAI",
+      "domain": "scientific_reasoning",
+      "cohort": "frontier",
+      "openness": "closed",
+      "source_url": "https://artificialanalysis.ai/models/gpt-6-astra",
+      "rationale": "Current frontier text model selected for scientific_reasoning based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and closed status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "GLM-5.3 (max)",
+      "organization": "Z AI",
+      "domain": "scientific_reasoning",
+      "cohort": "open",
+      "openness": "open_weight",
+      "source_url": "https://artificialanalysis.ai/models/glm-5-3",
+      "rationale": "Current open text model selected for scientific_reasoning based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and open_weight status; exact evaluation display configuration is retained."
+    }
+  ]
+}
