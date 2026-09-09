@@ -15,10 +15,10 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from .enums import (
     ArchitectureType,
@@ -489,6 +489,55 @@ class Availability(BaseModel):
 # Section 9: Benchmarks
 # ═══════════════════════════════════════════════════════════════
 
+class BenchmarkEvidence(BaseModel):
+    """One score, with everything needed to check it.
+
+    The flat `scores` dict below carries one collection date for a whole card
+    and a comma-joined source list, so no individual number can be attributed,
+    dated or rechecked. This record is the shape the benchmark catalogue's
+    evidence contract requires, and it mirrors the census evidence ledger so the
+    two can be reconciled rather than diverging.
+
+    Every field here is required. A record that cannot say where a number came
+    from or when is not evidence, and admitting a partial one would quietly
+    reintroduce exactly the problem this replaces.
+    """
+
+    benchmark_id: str
+    model_id_as_evaluated: str
+    score: float
+    unit: str
+    source_url: str
+    #: benchmark author, independent evaluator, or the provider's own claim.
+    #: Provider self-report is legitimate and must be visibly distinguishable.
+    source_kind: Literal["benchmark_author", "independent_evaluator", "provider_self_report"]
+    evidence_date: str
+    #: `evaluated` when the run date is disclosed; `published` when only the
+    #: publication date is. Never infer a run date from a retrieval timestamp.
+    date_type: Literal["evaluated", "published"]
+    verified_at: str
+    benchmark_version: str = ""
+    configuration: str = ""
+    limitations: str = ""
+
+    @field_validator("source_url")
+    @classmethod
+    def _url_must_be_real(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("source_url must be a URL; a score without one is not evidence")
+        return value
+
+    @field_validator("evidence_date", "verified_at")
+    @classmethod
+    def _dates_must_be_iso(cls, value: str) -> str:
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
+        return value
+
+
 class Benchmarks(BaseModel):
     # All benchmark scores in a single open-ended dictionary.
     # Keys are benchmark identifiers (e.g. "humaneval", "mmlu_pro",
@@ -496,13 +545,24 @@ class Benchmarks(BaseModel):
     # No fixed schema — any benchmark can be added without code changes.
     scores: dict[str, float] = {}
 
-    # Meta
+    #: Verified, per-score evidence. Everything in `scores` above that has no
+    #: matching record here is unverified-legacy and must be presented as such.
+    evidence: list[BenchmarkEvidence] = []
+
+    # Meta. These describe `scores` only, and are the reason it cannot be
+    # attributed: one date and one source list for the whole card.
     benchmark_source: str = ""
     benchmark_as_of: str = ""
     benchmark_notes: str = ""
 
     def filled_count(self) -> int:
         return len(self.scores)
+
+    def verified_ids(self) -> set[str]:
+        return {e.benchmark_id for e in self.evidence}
+
+    def is_verified(self, benchmark_id: str) -> bool:
+        return benchmark_id in self.verified_ids()
 
 
 # ═══════════════════════════════════════════════════════════════

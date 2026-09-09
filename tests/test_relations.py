@@ -132,3 +132,57 @@ def test_parameter_counts_are_human_readable() -> None:
     assert human_count(1_500_000_000) == "1.5B"
     assert human_count(70_000_000_000) == "70B"
     assert human_count(None) == "None"
+
+
+# ── catalogue freshness and verified evidence ────────────────────────────────
+
+def test_a_stale_catalogue_discloses_itself() -> None:
+    """A complete-looking catalogue months behind is worse than a small current one."""
+    from pipeline.render import freshness_notice
+
+    class FakeModel:
+        def __init__(self, released):
+            self.front = {"release_date": released}
+
+    stale = freshness_notice([FakeModel("2020-01-01")])
+    assert "months ago" in stale
+    assert "known gap" in stale
+
+
+def test_a_current_catalogue_says_nothing() -> None:
+    from datetime import date
+
+    from pipeline.render import freshness_notice
+
+    class FakeModel:
+        def __init__(self, released):
+            self.front = {"release_date": released}
+
+    assert freshness_notice([FakeModel(date.today().isoformat())]) == ""
+
+
+def test_verified_evidence_renders_apart_from_legacy_scores() -> None:
+    """The two kinds of number must never be mistaken for each other."""
+    from pipeline.render import evidence_section
+
+    class FakeModel:
+        front = {"benchmarks": {"evidence": [{
+            "benchmark_id": "scicode", "model_id_as_evaluated": "GPT-6 Astra (max)",
+            "score": 56.0, "unit": "percent", "source_url": "https://example.test/x",
+            "source_kind": "independent_evaluator", "evidence_date": "2026-09-04",
+            "date_type": "published", "verified_at": "2026-09-09"}]}}
+
+    html = evidence_section(FakeModel())
+    assert "Verified benchmark evidence" in html
+    assert "checked against its source by a reviewer" in html
+    assert "GPT-6 Astra (max)" in html, "the identifier as evaluated must be shown"
+    assert "56.0%" in html
+
+
+def test_no_evidence_renders_nothing() -> None:
+    from pipeline.render import evidence_section
+
+    class FakeModel:
+        front = {"benchmarks": {"scores": {"humaneval": 90.0}}}
+
+    assert evidence_section(FakeModel()) == ""

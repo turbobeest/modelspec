@@ -40,6 +40,21 @@ precision and sparsity assumption, or the number is noise. `precisions_native`
 is separate and matters on its own: a device without FP8 hardware gains nothing
 from an FP8 quantisation.
 
+## Deriving bandwidth, rather than transcribing it
+
+Vendors rarely publish memory bandwidth directly, but they do publish the two
+numbers it comes from. For a discrete card:
+
+    bandwidth GB/s  =  bus_width_bits / 8  x  memory_data_rate_Gbps
+
+An RTX 5090 is 512-bit GDDR7 at 28 Gbps, which is 512/8 x 28 = 1792 GB/s. That
+is a derivation from two published figures rather than a number copied from a
+review, and it should be preferred wherever the inputs are available. Record
+both inputs so the derivation can be rechecked.
+
+Unified-memory parts (Apple, Strix Halo) do not work this way and the figure has
+to come from the vendor's own material.
+
 ## Provenance is required
 
 Every device carries `sources`, and `figures_are` says what kind of claim the

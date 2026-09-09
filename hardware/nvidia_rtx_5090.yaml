@@ -10,6 +10,7 @@ memory:
   type: GDDR7
   bus_bits: 512
   unified_with_host: false
+  bandwidth_derivation: 512 bits / 8 x 28 Gbps GDDR7 = 1792 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -28,5 +29,7 @@ sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
 figures_are: vendor-specification-unconfirmed
 verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+notes: Capacity (32 GB), type (GDDR7), bus width (512-bit) and TDP (575 W) confirmed
+  against the linked NVIDIA product page on 2026-09-09. Bandwidth is derived from
+  bus width and the GDDR7 data rate rather than transcribed; the data rate itself
+  is not on that page and still needs a primary source. See MODEL-29.

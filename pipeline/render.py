@@ -310,6 +310,31 @@ def competitors_section(relations: Any) -> str:
                     note + _table(["Model", "Capability overlap", "Derived"], rows))
 
 
+def evidence_section(model: Model) -> str:
+    """Per-score evidence: the reviewed kind, with a source and a date each."""
+    block = model.front.get("benchmarks") or {}
+    records = block.get("evidence") if isinstance(block, dict) else None
+    if not records:
+        return ""
+    rows = []
+    for rec in records:
+        kind = str(rec.get("source_kind") or "")
+        rows.append(
+            f'<tr><td>{esc(rec.get("benchmark_id"))}</td>'
+            f'<td>{esc(rec.get("model_id_as_evaluated"))}</td>'
+            f'<td class="num">{esc(format_score(rec.get("score"), rec.get("unit")))}</td>'
+            f'<td>{esc(rec.get("evidence_date"))} '
+            f'<span class="pill">{esc(rec.get("date_type"))}</span></td>'
+            f'<td><span class="pill">{esc(kind.replace("_", " "))}</span></td>'
+            f'<td><a href="{esc(rec.get("source_url"))}" rel="nofollow noopener">source</a></td></tr>')
+    note = ('<div class="notice ok">Each row was checked against its source by a reviewer, '
+            'and carries the model identifier as actually evaluated — which is not always the '
+            'same as this card\'s.</div>')
+    return _section("Verified benchmark evidence",
+                    note + _table(["Benchmark", "Evaluated as", "Score", "Evidence date",
+                                   "Source kind", ""], rows))
+
+
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None) -> str:
     front = model.front
@@ -368,6 +393,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <div class="panel"><table>{id_rows}</table></div>
 {unresearched}
 {sections}
+{evidence_section(model)}
 <h2>Reported benchmark scores</h2>
 {stale if scores else '<p class="lede">This card reports no benchmark scores yet.</p>'}
 <div class="scroll"><table>
@@ -386,6 +412,40 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
     )
 
 
+def catalogue_freshness(models: list[Model]) -> dict[str, Any]:
+    """How current the catalogue itself is.
+
+    Individual scores disclose their age. The catalogue as a whole did not, and
+    it stops in April 2026 — a visitor had no way to tell. A complete-looking
+    catalogue that is months behind is more misleading than a small current one,
+    because its completeness is what makes it look trustworthy.
+    """
+    dates = sorted(
+        str(m.front.get("release_date"))
+        for m in models
+        if m.front.get("release_date")
+    )
+    return {"newest_release": dates[-1] if dates else None, "models": len(models)}
+
+
+def freshness_notice(models: list[Model]) -> str:
+    info = catalogue_freshness(models)
+    if not info["newest_release"]:
+        return ""
+    from datetime import date as _date
+    try:
+        newest = _date.fromisoformat(info["newest_release"])
+    except ValueError:
+        return ""
+    days = (_date.today() - newest).days
+    if days < 45:
+        return ""
+    return ('<div class="notice">The newest model in this catalogue was released on '
+            f'<strong>{esc(info["newest_release"])}</strong>, about {days // 30} months ago. '
+            'Anything released since is missing, so a "best model" answer here excludes it. '
+            'This is a known gap, not a claim that nothing newer exists.</div>')
+
+
 def models_index(models: list[Model], build: Build) -> str:
     by_provider: dict[str, list[Model]] = {}
     for model in models:
@@ -398,7 +458,7 @@ def models_index(models: list[Model], build: Build) -> str:
         )
         blocks.append(f'<h3>{esc(provider)}</h3><ul class="cols">{items}</ul>')
     body = (f'<h1>Every model</h1><p class="lede">{len(models)} cards across '
-            f'{len(by_provider)} providers.</p>' + "".join(blocks))
+            f'{len(by_provider)} providers.</p>' + freshness_notice(models) + "".join(blocks))
     return shell(title="Every model — ModelSpec",
                  description=f"All {len(models)} model cards in ModelSpec, by provider.",
                  canonical="https://modelspec.dev/models/", body=body, build=build,
