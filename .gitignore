@@ -16,3 +16,6 @@ web/node_modules/
 
 # CodeGraph index (local, not shared)
 .codegraph/
+
+# Personal Claude Code overrides (permissions, connector ids)
+.claude/settings.local.json
