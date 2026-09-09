@@ -248,3 +248,64 @@ def test_rankings_disclose_their_evidence_basis() -> None:
     """A ranking built on undated card scores must not read as verified."""
     for result in rank(_real(), "coding", limit=10):
         assert result["evidence_basis"] in {"unverified-legacy", "none"}
+
+
+# ── verified evidence in a ranking ───────────────────────────────────────────
+
+def test_reviewed_evidence_beats_the_flat_block_for_the_same_benchmark() -> None:
+    """Same measurement, checked. The reviewed value wins."""
+    import glob as _glob
+
+    from pipeline.ranking import build_candidates
+    from schema.graph import CollectingSink
+
+    files = [f for f in sorted(_glob.glob(str(REPO_ROOT / "models/**/*.md"), recursive=True))
+             if f.endswith("gpt-6-astra.md")]
+    assert files, "expected a card carrying reviewed evidence"
+    cards = [ModelCard.from_yaml_file(files[0])]
+    candidate = build_candidates(cards, CollectingSink())[0]
+    for record in cards[0].benchmarks.evidence:
+        assert candidate.benchmark_scores[record.benchmark_id] == record.score
+        assert record.benchmark_id in candidate.verified_benchmarks
+
+
+def test_evidence_basis_distinguishes_verified_from_legacy() -> None:
+    from pipeline.ranking import _basis
+
+    assert _basis(0, 0) == "none"
+    assert _basis(3, 3) == "verified"
+    assert _basis(3, 1) == "mixed"
+    assert _basis(3, 0) == "unverified-legacy"
+
+
+def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
+    profile = USE_CASE_PROFILES["coding"]
+    plain = _candidate(benchmark_scores={"humaneval": 90.0})
+    checked = _candidate(benchmark_scores={"humaneval": 90.0},
+                         verified_benchmarks={"humaneval"})
+    assert score(plain, profile)["evidence_basis"] == "unverified-legacy"
+    assert score(checked, profile)["evidence_basis"] == "verified"
+    assert score(checked, profile)["verified_contributions"] == 1
+
+
+def test_the_verified_benchmarks_and_the_ranked_ones_do_not_yet_overlap() -> None:
+    """Documents the structural gap found in MODEL-13, so it is visible.
+
+    The census verified the benchmarks that had current dated evidence. The
+    ranking profiles weight the classic benchmarks. The two sets are disjoint,
+    so reviewed evidence cannot yet influence any ranking. MODEL-32.
+
+    When someone closes that gap this test fails, which is the point.
+    """
+    import json as _json
+
+    report = _json.loads(
+        (REPO_ROOT / "benchmarks/_census/eligibility/current-report.json").read_text())
+    active = set(report["active_ids"])
+    weighted = set()
+    for profile in USE_CASE_PROFILES.values():
+        weighted |= set(profile.get("benchmark_weights") or {})
+    assert not (active & weighted), (
+        "verified and ranked benchmarks now overlap — delete this test and "
+        "check the rankings actually changed"
+    )

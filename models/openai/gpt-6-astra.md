@@ -663,7 +663,104 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_briefcase
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 53.0
+    unit: normalized Elo percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AA-Briefcase / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 81.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AA-LCR v1.1 / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: automationbench_aa
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 68.5
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-07'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AutomationBench 1.0.6 / AA held-out split
+    configuration: 'AA v4.3: private 657-task split; single run; 50-turn cap; objective-credit
+      score with guardrail-zeroing; both models at max reasoning (not equal compute).'
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 32.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: CritPt / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: gdp_pdf_aa
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 33.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: GDP.pdf / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 54.0
+    unit: normalized Elo percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: GDPval-AA v2 / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 56.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: SciCode / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

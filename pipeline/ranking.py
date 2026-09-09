@@ -51,6 +51,10 @@ class Candidate:
     open_weights: bool = False
     scores_as_of: str | None = None
     fits: dict[str, float] = field(default_factory=dict)  # hardware id -> predicted tok/s
+    #: Benchmarks whose score came from a reviewed evidence record rather than
+    #: the card's undated flat block. A ranking is only as good as the weakest
+    #: evidence under it, so this is tracked per benchmark, not per model.
+    verified_benchmarks: set[str] = field(default_factory=set)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -61,7 +65,7 @@ class Candidate:
             "capability_tiers": self.capability_tiers,
             "cost_input": self.cost_input, "context_window": self.context_window,
             "open_weights": self.open_weights, "scores_as_of": self.scores_as_of,
-            "fits": self.fits,
+            "fits": self.fits, "verified_benchmarks": sorted(self.verified_benchmarks),
         }
 
 
@@ -83,14 +87,22 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
     out = []
     for card in cards:
         ident = card.identity
+        # Reviewed evidence takes precedence over the flat block for the same
+        # benchmark: it is the same measurement, checked.
+        scores = {k: float(v) for k, v in card.benchmarks.scores.items()
+                  if isinstance(v, (int, float))}
+        verified: set[str] = set()
+        for record in card.benchmarks.evidence:
+            scores[record.benchmark_id] = float(record.score)
+            verified.add(record.benchmark_id)
         out.append(Candidate(
             model_id=ident.model_id,
             display_name=ident.display_name or ident.model_id,
             provider=ident.provider_display or ident.provider or "",
             model_type=ident.model_type.value if ident.model_type else None,
             model_subtypes=[s.value for s in ident.model_subtypes] if ident.model_subtypes else [],
-            benchmark_scores={k: float(v) for k, v in card.benchmarks.scores.items()
-                              if isinstance(v, (int, float))},
+            benchmark_scores=scores,
+            verified_benchmarks=verified,
             capability_tiers=tiers.get(ident.model_id, {}),
             cost_input=card.cost.input,
             context_window=card.modalities.text.context_window,
@@ -113,6 +125,7 @@ def score(candidate: Candidate, profile: dict[str, Any],
     bench_weights = profile.get("benchmark_weights", {})
     bench_raw = 0.0
     contributions: dict[str, float] = {}
+    contributing_verified = 0
     for bench_id, weight in bench_weights.items():
         raw = candidate.benchmark_scores.get(bench_id)
         if raw is None:
@@ -120,6 +133,8 @@ def score(candidate: Candidate, profile: dict[str, Any],
         contribution = _normalize_benchmark(bench_id, raw) * weight
         bench_raw += contribution
         contributions[bench_id] = round(contribution, 2)
+        if bench_id in candidate.verified_benchmarks:
+            contributing_verified += 1
     bench = bench_raw * 0.40
 
     cap_weights = profile.get("capability_weights", {})
@@ -180,12 +195,22 @@ def score(candidate: Candidate, profile: dict[str, Any],
         "context_window": candidate.context_window,
         "cost_input": candidate.cost_input,
         "open_weights": candidate.open_weights,
-        # Every benchmark contribution comes from a card score that carries one
-        # date per card and no per-score source. The ranking is only as good as
-        # that, and must say so.
-        "evidence_basis": "unverified-legacy" if contributions else "none",
+        # A ranking is only as good as the evidence under it. Say which kind
+        # rather than averaging the two into a single reassuring label.
+        "evidence_basis": _basis(len(contributions), contributing_verified),
+        "verified_contributions": contributing_verified,
         "scores_as_of": candidate.scores_as_of,
     }
+
+
+def _basis(contributing: int, verified: int) -> str:
+    if not contributing:
+        return "none"
+    if verified == contributing:
+        return "verified"
+    if verified:
+        return "mixed"
+    return "unverified-legacy"
 
 
 def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
