@@ -12,9 +12,12 @@ Usage:
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+import yaml
 
 # Ensure the repo root is importable
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -92,6 +95,32 @@ def _collect_filled(obj: object, prefix: str, result: set[str]) -> None:
 # ─── File discovery ────────────────────────────────────────────
 
 
+def is_model_card(filepath: str) -> bool:
+    """True only for files that actually declare a model card.
+
+    `models/` also holds prose such as LICENSE.md, which is not a card and must
+    not be validated as one. The test is semantic rather than name-based: a card
+    is a Markdown file whose YAML front matter declares `model_id`.
+    """
+    path = REPO_ROOT / filepath
+    if not path.is_file():
+        return False
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    match = re.match(r"---\n(.*?)\n---", text, re.S)
+    if not match:
+        return False
+    try:
+        front = yaml.safe_load(match.group(1))
+    except yaml.YAMLError:
+        # Malformed front matter in a file that looks like a card is a real
+        # failure; let the validator report it rather than silently skipping.
+        return True
+    return isinstance(front, dict) and "model_id" in front
+
+
 def get_changed_model_files() -> list[str]:
     """Get model card files changed in this PR (vs origin/main)."""
     result = subprocess.run(
@@ -106,7 +135,7 @@ def get_changed_model_files() -> list[str]:
     return [
         f
         for f in result.stdout.strip().split("\n")
-        if f.startswith("models/") and f.endswith(".md") and f.strip()
+        if f.startswith("models/") and f.endswith(".md") and f.strip() and is_model_card(f)
     ]
 
 
@@ -114,7 +143,9 @@ def get_all_model_files() -> list[str]:
     """Get every model card file in the repo."""
     models_dir = REPO_ROOT / "models"
     return sorted(
-        str(p.relative_to(REPO_ROOT)) for p in models_dir.rglob("*.md")
+        str(p.relative_to(REPO_ROOT))
+        for p in models_dir.rglob("*.md")
+        if is_model_card(str(p.relative_to(REPO_ROOT)))
     )
 
 
