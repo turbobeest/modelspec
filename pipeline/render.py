@@ -122,6 +122,51 @@ Data <span class="mono">CC BY-SA</span>, code <span class="mono">MIT</span>.</p>
 """
 
 
+#: `.title()` turns aws_bedrock into "Aws Bedrock" and gpt4all into "Gpt4All".
+#: Acronyms and brand casing have to be spelled out; anything absent falls back
+#: to title case, which is right for the plain ones.
+PROPER_NAMES = {
+    "aws_bedrock": "AWS Bedrock", "azure_ai_foundry": "Azure AI Foundry",
+    "google_vertex_ai": "Google Vertex AI", "nvidia_nim": "NVIDIA NIM",
+    "ibm_watsonx": "IBM watsonx", "gpt4all": "GPT4All", "lm_studio": "LM Studio",
+    "openrouter": "OpenRouter", "together_ai": "Together AI",
+    "fireworks_ai": "Fireworks AI", "deepinfra": "DeepInfra",
+    "huggingface": "Hugging Face", "sambanova": "SambaNova",
+    "github_copilot": "GitHub Copilot", "chatgpt": "ChatGPT",
+    "claude_ai": "Claude.ai", "grok_xai": "Grok (xAI)", "gemini_app": "Gemini",
+    "deepseek": "DeepSeek", "ai21_labs": "AI21 Labs", "jan_ai": "Jan",
+    "mlx_community": "MLX Community", "open_webui": "Open WebUI",
+    "modelscope": "ModelScope", "kaggle_models": "Kaggle Models",
+    "mistral_plateforme": "Mistral La Plateforme", "zhipu_glm": "Zhipu GLM",
+    "qwen_alibaba": "Qwen (Alibaba)", "baidu_ernie": "Baidu ERNIE",
+    "bytedance_doubao": "ByteDance Doubao", "tencent_hunyuan": "Tencent Hunyuan",
+    "moonshot_kimi": "Moonshot Kimi", "zero_one_ai": "01.AI",
+    "tii_falcon": "TII Falcon", "upstage_solar": "Upstage Solar",
+    "samsung_gauss": "Samsung Gauss", "copilot_microsoft": "Microsoft Copilot",
+    "meta_ai": "Meta AI", "snowflake_cortex": "Snowflake Cortex",
+    "stability_ai": "Stability AI", "poe": "Poe", "raycast": "Raycast",
+}
+
+
+def proper_name(node_id: str, fallback: str = "") -> str:
+    if node_id in PROPER_NAMES:
+        return PROPER_NAMES[node_id]
+    return fallback or node_id.replace("_", " ").title()
+
+
+def human_count(value: Any) -> str:
+    """8000000000 is unreadable; 8B is the number a person means."""
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return esc(value)
+    for limit, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M")):
+        if n >= limit:
+            trimmed = f"{n / limit:.1f}".rstrip("0").rstrip(".")
+            return f"{trimmed}{suffix}"
+    return f"{n:,.0f}"
+
+
 MS_NAV = [("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
 BG_NAV = [("Catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"),
           ("Graph", "https://modelspec.dev/graph/"), ("API", "/api/catalogue.json")]
@@ -134,8 +179,139 @@ def _write(path: Path, text: str) -> None:
 
 # ── modelspec.dev ────────────────────────────────────────────────────────────
 
+def _section(title: str, body: str, lede: str = "") -> str:
+    """Render a section, or nothing at all.
+
+    A section with no rows is omitted rather than rendered as an empty shell.
+    Null in this schema means "not yet researched", and an empty table asserts
+    the opposite — that we looked and there was nothing.
+    """
+    if not body:
+        return ""
+    return f"<h2>{esc(title)}</h2>" + (f'<p class="lede">{lede}</p>' if lede else "") + body
+
+
+def _table(headers: list[str], rows: list[str]) -> str:
+    if not rows:
+        return ""
+    head = "".join(f"<th>{esc(h)}</th>" for h in headers)
+    return ('<div class="scroll"><table><thead><tr>' + head +
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>")
+
+
+def lineage_section(relations: Any) -> str:
+    rows = []
+    for entry in relations.ancestors:
+        relation = str(entry.get("relation") or "").strip()
+        phrase = f"Is a <strong>{esc(relation)}</strong> of" if relation else "Derived from"
+        rows.append(f'<tr><td>{phrase}</td>'
+                    f'<td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td></tr>')
+    for entry in relations.descendants:
+        relation = str(entry.get("relation") or "").strip()
+        phrase = (f"Is the base of this <strong>{esc(relation)}</strong>"
+                  if relation else "Is the base of")
+        rows.append(f'<tr><td>{phrase}</td>'
+                    f'<td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td></tr>')
+    return _section("Lineage", _table(["Relationship", "Model"], rows))
+
+
+def platforms_section(relations: Any) -> str:
+    """Only render columns that carry data on at least one row.
+
+    An always-empty column is the table equivalent of an empty section: it
+    asserts we looked and found nothing, when in fact nobody has researched it.
+    """
+    entries = relations.platforms
+    if not entries:
+        return ""
+    any_ids = any(e.get("model_id_on_platform") for e in entries)
+    any_flags = any(e.get("fine_tuning") or e.get("gated") for e in entries)
+
+    rows = []
+    for entry in entries:
+        cells = [f'<td>{esc(proper_name(str(entry["id"]), ""))}</td>']
+        if any_ids:
+            cells.append(f'<td class="mono">{esc(entry.get("model_id_on_platform") or "")}</td>')
+        if any_flags:
+            flags = []
+            if entry.get("fine_tuning"):
+                flags.append("fine-tuning")
+            if entry.get("gated"):
+                flags.append("gated")
+            cells.append("<td>" + " ".join(
+                '<span class="pill">' + esc(f) + "</span>" for f in flags) + "</td>")
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+
+    headers = ["Platform"]
+    if any_ids:
+        headers.append("Id on that platform")
+    if any_flags:
+        headers.append("")
+    return _section("Where it runs", _table(headers, rows),
+                    "Taken from the card's availability section.")
+
+
+def hardware_section(relations: Any) -> str:
+    rows = []
+    for entry in relations.hardware:
+        device = entry.get("device") or {}
+        bandwidth = device.get("memory_bandwidth_gb_s")
+        rows.append(
+            f'<tr><td>{esc(entry["name"])}</td>'
+            f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>'
+            f'<td class="num">{esc(bandwidth)} GB/s</td>'
+            f'<td>{esc(entry.get("quantization"))}</td>'
+            f'<td class="num">{esc(entry.get("weights_gb"))} GB</td>'
+            f'<td class="num">~{esc(entry.get("predicted_decode_tps"))}</td>'
+            f'<td class="num">~{esc(entry.get("fastest_predicted_decode_tps"))} '
+            f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')
+    if not rows:
+        return ""
+    moe = any(e.get("moe_prediction_is_conservative") for e in relations.hardware)
+    caveat = (" This is a mixture-of-experts model and no card carries active-parameter "
+              "counts, so these predictions use total parameters and understate the real "
+              "speed." if moe else "")
+    note = ('<div class="notice">Every figure here is <strong>computed</strong>, not measured. '
+            'Fit is weights at each quantisation against device memory, with a 25% allowance '
+            'for the KV cache, activations and the OS. Decode rate is the memory-bandwidth '
+            'roofline at 70% efficiency. Nobody has run this model on these devices.'
+            + esc(caveat) + '</div>')
+    return _section(
+        "What it fits on",
+        note + _table(["Device", "Memory", "Bandwidth", "Best quality",
+                       "Weights", "tok/s", "Fastest"], rows),
+        "Ordered by predicted speed. Bandwidth sets decode rate; memory decides whether it runs at all.")
+
+
+def capabilities_section(relations: Any) -> str:
+    if not relations.capabilities:
+        return ""
+    pills = " ".join(
+        f'<span class="pill">{esc(str(e["name"]))}'
+        + (f' &middot; {esc(e["tier"])}' if e.get("tier") else "") + "</span>"
+        for e in relations.capabilities)
+    return _section("Capabilities", f"<p>{pills}</p>")
+
+
+def competitors_section(relations: Any) -> str:
+    rows = []
+    for entry in relations.competitors[:12]:
+        rows.append(
+            f'<tr><td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td>'
+            f'<td class="num">{esc(entry.get("overlap_score"))}</td>'
+            f'<td>{esc(entry.get("computed_date"))}</td></tr>')
+    if not rows:
+        return ""
+    note = ('<div class="notice">Derived, not authored. Two models compete if they share a '
+            'type, sit within 3x on parameters, and report at least one benchmark in common; '
+            'the score is the overlap of their capability sets. The shared-benchmark test '
+            'rests on card scores that carry one date per card and no per-score source.</div>')
+    return _section("What competes with it",
+                    note + _table(["Model", "Capability overlap", "Derived"], rows))
+
+
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
-               catalogue: Catalogue) -> str:
+               catalogue: Catalogue, relations: Any = None) -> str:
     front = model.front
     scores = model.scores
     as_of = model.scores_as_of
@@ -162,15 +338,36 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
         ("Status", front.get("status")),
         ("Released", front.get("release_date")),
         ("Updated", front.get("last_updated")),
+        ("Parameters", human_count(front["architecture"]["total_parameters"])
+         if isinstance(front.get("architecture"), dict)
+         and front["architecture"].get("total_parameters") else None),
+        ("Open weights", ("yes" if front["licensing"].get("open_weights") else None)
+         if isinstance(front.get("licensing"), dict) else None),
     ]
     id_rows = "".join(
         f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>" for k, v in identity if v not in (None, "", [])
     )
 
+    rel = relations
+    sections = ""
+    if rel is not None:
+        sections = (lineage_section(rel) + capabilities_section(rel)
+                    + hardware_section(rel) + platforms_section(rel)
+                    + competitors_section(rel))
+
+    unresearched = ""
+    if rel is not None and rel.is_empty:
+        unresearched = ('<div class="notice">Nothing beyond the card\'s own fields has been '
+                        'researched for this model yet — no lineage, platforms, capabilities or '
+                        'hardware fit. That is a gap in the data, not a statement about the '
+                        'model.</div>')
+
     body = f"""
 <h1>{esc(model.display_name)}</h1>
 <p class="lede">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
 <div class="panel"><table>{id_rows}</table></div>
+{unresearched}
+{sections}
 <h2>Reported benchmark scores</h2>
 {stale if scores else '<p class="lede">This card reports no benchmark scores yet.</p>'}
 <div class="scroll"><table>
@@ -178,11 +375,12 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <tbody>{''.join(rows)}</tbody></table></div>
 <h2>Data</h2>
 <p><a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a> &middot;
+<a href="/graph/">See it in the graph</a> &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/{esc(model.path.relative_to(model.path.parents[2]))}">Edit on GitHub</a></p>
 """
     return shell(
         title=f"{model.display_name} — ModelSpec",
-        description=f"{model.display_name} by {model.provider_display}: benchmark scores, capabilities and availability, with the date on every number.",
+        description=f"{model.display_name} by {model.provider_display}: benchmark scores, lineage, platforms and hardware fit, with the date on every number.",
         canonical=f"https://modelspec.dev/m/{model.model_id}/",
         body=body, build=build, site="ModelSpec", nav_links=MS_NAV,
     )

@@ -96,6 +96,12 @@ def main(argv: list[str] | None = None) -> int:
     graph_counts["competition"] = competition_counts
     graph_counts["hardware"] = hardware_counts
 
+    # Per-model views of the derived graph, so a page can show what a model is
+    # descended from, where it runs and what it fits on.
+    from pipeline.relations import Relations
+    relations = Relations(derived)
+    graph_counts["relations"] = relations.counts()
+
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)
 
@@ -104,7 +110,8 @@ def main(argv: list[str] | None = None) -> int:
     for model in models:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
         (ms / "m" / model.model_id / "index.html").write_text(
-            r.model_page(model, build, bench_by_id, catalogue), encoding="utf-8")
+            r.model_page(model, build, bench_by_id, catalogue,
+                         relations.for_model(model.model_id)), encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
     # The graph explorer: a full-viewport canvas app, so it is copied rather
     # than rendered through the document shell. Its libraries are vendored so
