@@ -451,6 +451,18 @@ def card_to_yaml_clean(card: ModelCard) -> str:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--new-only", action="store_true",
+        help="Only write cards that do not exist yet. Required for any scheduled run: "
+             "without it this script overwrites every card, discarding curation.")
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Report what would be written without writing anything.")
+    args = parser.parse_args()
+
     print("Fetching models.dev API...")
     resp = httpx.get(
         "https://models.dev/api.json",
@@ -464,7 +476,9 @@ def main() -> None:
 
     models_dir = PROJECT_ROOT / "models"
     total_created = 0
+    total_skipped_existing = 0
     total_errors = 0
+    created_ids: list[str] = []
     total_completeness = 0.0
     seen_model_ids: set[str] = set()
 
@@ -496,12 +510,26 @@ def main() -> None:
                 file_slug = slugify(raw_model.get("id", model_key))
                 file_path = provider_dir / f"{file_slug}.md"
 
+                # A card that already exists may carry research this script
+                # cannot reproduce — enrichment, hardware profiles, reviewed
+                # evidence. Overwriting it silently discards that.
+                if args.new_only and file_path.exists():
+                    total_skipped_existing += 1
+                    continue
+
+                if args.dry_run:
+                    print(f"    NEW {card.identity.model_id}")
+                    created_ids.append(card.identity.model_id)
+                    total_created += 1
+                    continue
+
                 # Write the card
                 content = card_to_yaml_clean(card)
                 file_path.write_text(content, encoding="utf-8")
 
                 # Validate by round-tripping
                 loaded = ModelCard.from_yaml_file(file_path)
+                created_ids.append(card.identity.model_id)
                 completeness = loaded.card_completeness
                 total_completeness += completeness
                 total_created += 1
@@ -527,3 +555,13 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _summary(created_ids: list[str], skipped: int, errors: int) -> str:
+    """A run summary a workflow can paste into a pull request."""
+    lines = [f"{len(created_ids)} new cards, {skipped} existing left untouched, {errors} errors"]
+    for model_id in sorted(created_ids)[:50]:
+        lines.append(f"- {model_id}")
+    if len(created_ids) > 50:
+        lines.append(f"- ...and {len(created_ids) - 50} more")
+    return "\n".join(lines)
