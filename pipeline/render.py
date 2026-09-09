@@ -167,7 +167,7 @@ def human_count(value: Any) -> str:
     return f"{n:,.0f}"
 
 
-MS_NAV = [("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
+MS_NAV = [("Downselect", "/downselect/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
 BG_NAV = [("Catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"),
           ("Graph", "https://modelspec.dev/graph/"), ("API", "/api/catalogue.json")]
 

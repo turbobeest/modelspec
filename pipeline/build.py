@@ -102,6 +102,9 @@ def main(argv: list[str] | None = None) -> int:
     relations = Relations(derived)
     graph_counts["relations"] = relations.counts()
 
+    from pipeline import ranking
+    ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
+
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)
 
@@ -116,6 +119,12 @@ def main(argv: list[str] | None = None) -> int:
     # The graph explorer: a full-viewport canvas app, so it is copied rather
     # than rendered through the document shell. Its libraries are vendored so
     # the page does not depend on a CDN at runtime.
+    wizard = root / "web3d/downselect.v2.html"
+    if wizard.is_file():
+        (ms / "downselect").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(wizard, ms / "downselect/index.html")
+        ms_paths.append("/downselect/")
+
     explorer = root / "web3d/explorer.html"
     if explorer.is_file():
         (ms / "graph").mkdir(parents=True, exist_ok=True)
@@ -184,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
     summary = {
         **counts,
         "graph": graph_counts,
+        "ranking": ranking_counts,
         "commit": build.commit[:12],
         "modelspec_urls": len(ms_paths),
         "benchgraph_urls": len(bg_paths),

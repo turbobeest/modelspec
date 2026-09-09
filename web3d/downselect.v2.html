@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downselect — ModelSpec</title>
+<meta name="description" content="What is the best model you can actually run, for your use case, on your hardware, under your rules? Ranked in your browser, with the reasoning shown.">
+<link rel="canonical" href="https://modelspec.dev/downselect/">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#f3f4f6;--mute:#9aa3b2;--dim:#5b6472;--ground:#000;--panel:#0b0e14;
+--line:#1f2430;--amber:#f5b342;--good:#34d399;--warn:#fbbf24}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--ground);color:var(--ink);
+font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-size:17px;line-height:1.6}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--amber)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 8px;
+border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap;gap:12px}
+nav .brand{font-weight:700;font-size:18px;text-decoration:none;letter-spacing:-.02em}
+nav .links{display:flex;gap:20px;font-size:15px;flex-wrap:wrap}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--ink)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--mute);font-size:18px;margin-bottom:22px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;
+background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:17px 19px;margin-bottom:8px}
+label{display:block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+select,input{width:100%;background:#05070c;color:var(--ink);border:1px solid var(--line);
+border-radius:7px;padding:8px 10px;font:inherit;font-size:15px}
+select:focus,input:focus{outline:none;border-color:var(--amber)}
+.check{display:flex;align-items:center;gap:9px;margin-top:26px;font-size:15px}
+.check input{width:auto}
+.meta{color:var(--dim);font-size:13.5px;margin:12px 0 18px}
+.notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:16px 0;font-size:15px}
+.result{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 18px;margin-bottom:11px}
+.result .top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.rank{font-family:"JetBrains Mono",monospace;color:var(--dim);font-size:14px;min-width:30px}
+.name{font-weight:700;font-size:18px;text-decoration:none}
+.prov{color:var(--mute);font-size:14px}
+.total{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:19px;color:var(--amber)}
+.bars{display:flex;gap:3px;margin:11px 0 8px;height:7px}
+.bar{border-radius:3px;min-width:2px}
+.why{font-size:14px;color:var(--mute);display:flex;gap:16px;flex-wrap:wrap}
+.why b{color:var(--ink);font-weight:500}
+.contrib{margin-top:9px;font-size:13px;color:var(--dim)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+color:var(--mute);margin-right:5px;font-family:"JetBrains Mono",monospace}
+footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
+#status{color:var(--mute);padding:30px 0}
+</style>
+</head>
+<body><div class="wrap">
+<nav><a class="brand" href="/">ModelSpec</a><div class="links">
+<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a><a href="/models/">Models</a><a href="/providers/">Providers</a>
+<a href="https://benchgraph.dev/benchmarks/">Benchmarks</a><a href="/api/index.json">API</a></div></nav>
+
+<h1>Downselect</h1>
+<p class="lede">What is the best model you can actually run, for your use case, on your hardware,
+under your rules? Ranked here in your browser — no account, no key, no server.</p>
+
+<div class="controls">
+  <div><label for="profile">Use case</label><select id="profile"></select></div>
+  <div><label for="hardware">Must fit on</label><select id="hardware"></select></div>
+  <div><label for="context">Minimum context</label><select id="context"></select></div>
+  <div><label for="cost">Maximum $ / M input</label><input id="cost" type="number" min="0" step="0.5" placeholder="any"></div>
+  <div><div class="check"><input type="checkbox" id="open"><label for="open" style="margin:0;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)">Open weights only</label></div></div>
+</div>
+<div class="meta mono" id="summary"></div>
+
+<div class="notice" id="evidence">
+Every ranking here is computed from the benchmark scores on the model cards. Those carry
+one collection date per card and a source list rather than a source per score, so they are
+<strong>not verified evidence</strong>. Treat this as a shortlist to investigate, not a verdict.
+</div>
+
+<div id="status">Loading the catalogue…</div>
+<div id="results"></div>
+
+<footer>
+<p>Ranking runs entirely in your browser against the published export. The same four stages as
+the server engine: filter, score, rank, explain.</p>
+<p><a href="/api/rank/candidates.json">The data behind this</a> &middot;
+<a href="https://github.com/turbobeest/modelspec">Source on GitHub</a></p>
+</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var DATA = null, PROFILES = null, RANGES = null, DEVICES = [];
+
+  // ── the scoring, mirroring pipeline/ranking.py ────────────────────────────
+  function normalize(benchId, raw) {
+    var r = RANGES[benchId];
+    if (!r) { return Math.max(0, Math.min(100, raw)); }
+    var low = r[0], high = r[1];
+    if (high <= low) { return 50; }
+    return Math.max(0, Math.min(100, ((raw - low) / (high - low)) * 100));
+  }
+  var TIER_POINTS = { "tier-1": 10, "tier-2": 6, "tier-3": 3, "n/a": 0 };
+  var TIER_RANK = { "tier-1": 1, "tier-2": 2, "tier-3": 3, "n/a": 99 };
+
+  function score(c, profile) {
+    var benchWeights = profile.benchmark_weights || {};
+    var benchRaw = 0, contributions = [];
+    Object.keys(benchWeights).forEach(function (id) {
+      var raw = c.benchmark_scores[id];
+      if (raw === undefined || raw === null) { return; }
+      var contribution = normalize(id, raw) * benchWeights[id];
+      benchRaw += contribution;
+      contributions.push({ id: id, raw: raw, points: contribution * 0.4 });
+    });
+    var bench = benchRaw * 0.40;
+
+    var capWeights = profile.capability_weights || {};
+    var totalCapWeight = 0;
+    Object.keys(capWeights).forEach(function (k) { totalCapWeight += capWeights[k]; });
+    if (!totalCapWeight) { totalCapWeight = 1; }
+    var capRaw = 0;
+    Object.keys(capWeights).forEach(function (name) {
+      var tier = c.capability_tiers[name];
+      if (tier) {
+        capRaw += (TIER_POINTS[tier] || 0) * (capWeights[name] / totalCapWeight);
+        return;
+      }
+      var subs = Object.keys(c.capability_tiers)
+        .filter(function (cid) { return cid.indexOf(name + ":") === 0; })
+        .map(function (cid) { return c.capability_tiers[cid]; });
+      if (subs.length) {
+        subs.sort(function (a, b) { return (TIER_RANK[a] || 50) - (TIER_RANK[b] || 50); });
+        capRaw += (TIER_POINTS[subs[0]] || 0) * 0.7 * (capWeights[name] / totalCapWeight);
+      }
+    });
+    var cap = capRaw * 2.0;
+
+    var costWeight = profile.cost_weight === undefined ? 0.10 : profile.cost_weight;
+    var costRaw = 0;
+    if (c.cost_input !== null && c.cost_input !== undefined) {
+      if (c.cost_input === 0) { costRaw = 10; }
+      else {
+        var clamped = Math.max(c.cost_input, 0.10);
+        costRaw = Math.max(0, Math.min(9.5, 9 + 2 * Math.log10(0.10 / clamped)));
+      }
+    }
+    var cost = costRaw * costWeight * 10;
+
+    var ctxWeight = profile.context_weight === undefined ? 0.10 : profile.context_weight;
+    var ctxRaw = 0;
+    if (c.context_window > 0) {
+      ctxRaw = Math.min(10, Math.max(0, (Math.log10(c.context_window) - 3.5) * 3));
+    }
+    var ctx = ctxRaw * ctxWeight * 10;
+
+    var preferred = profile.preferred_types || [];
+    var typeBonus = 0, bestIdx = null;
+    [c.model_type].concat(c.model_subtypes || []).forEach(function (t) {
+      var i = preferred.indexOf(t);
+      if (i !== -1 && (bestIdx === null || i < bestIdx)) { bestIdx = i; }
+    });
+    if (bestIdx !== null) { typeBonus = Math.max(5, 15 - bestIdx * 3); }
+
+    contributions.sort(function (a, b) { return b.points - a.points; });
+    return {
+      c: c,
+      total: Math.max(0, Math.min(100, bench + cap + cost + ctx + typeBonus)),
+      bench: bench, cap: cap, cost: cost, ctx: ctx, type: typeBonus,
+      contributions: contributions.slice(0, 4)
+    };
+  }
+
+  // ── filter, rank, render ──────────────────────────────────────────────────
+  function currentState() {
+    return {
+      profile: $("profile").value,
+      hardware: $("hardware").value,
+      context: $("context").value,
+      cost: $("cost").value,
+      open: $("open").checked ? "1" : ""
+    };
+  }
+
+  function run() {
+    var s = currentState();
+    var profile = PROFILES[s.profile];
+    var pool = DATA.candidates;
+    var dropped = { open: 0, hardware: 0, context: 0, cost: 0 };
+
+    pool = pool.filter(function (c) {
+      if (s.open && !c.open_weights) { dropped.open++; return false; }
+      if (s.hardware && !(c.fits && c.fits[s.hardware])) { dropped.hardware++; return false; }
+      if (s.context && !(c.context_window >= Number(s.context))) { dropped.context++; return false; }
+      if (s.cost !== "" && !(c.cost_input !== null && c.cost_input <= Number(s.cost))) {
+        dropped.cost++; return false;
+      }
+      return true;
+    });
+
+    var ranked = pool.map(function (c) { return score(c, profile); })
+      .sort(function (a, b) {
+        return b.total - a.total || a.c.display_name.localeCompare(b.c.display_name);
+      })
+      .slice(0, 25);
+
+    var reasons = [];
+    if (dropped.open) { reasons.push(dropped.open + " not open-weights"); }
+    if (dropped.hardware) { reasons.push(dropped.hardware + " do not fit"); }
+    if (dropped.context) { reasons.push(dropped.context + " below context"); }
+    if (dropped.cost) { reasons.push(dropped.cost + " over budget or unpriced"); }
+    $("summary").textContent =
+      pool.length.toLocaleString() + " of " + DATA.candidates.length.toLocaleString() +
+      " models considered" + (reasons.length ? " — excluded: " + reasons.join(", ") : "");
+
+    render(ranked, s);
+    var query = Object.keys(s).filter(function (k) { return s[k]; })
+      .map(function (k) { return k + "=" + encodeURIComponent(s[k]); }).join("&");
+    history.replaceState(null, "", query ? "?" + query : location.pathname);
+  }
+
+  function bar(value, max, color) {
+    var pct = max > 0 ? Math.max(0, value) / max * 100 : 0;
+    return '<div class="bar" style="width:' + pct.toFixed(1) + '%;background:' + color + '"></div>';
+  }
+
+  function render(ranked, state) {
+    $("status").style.display = "none";
+    if (!ranked.length) {
+      $("results").innerHTML =
+        '<div class="notice">Nothing matches those constraints. That is a real answer — ' +
+        'loosen one of them, or the data does not yet cover what you need.</div>';
+      return;
+    }
+    $("results").innerHTML = ranked.map(function (r, i) {
+      var c = r.c;
+      var why = [];
+      if (r.bench > 0) { why.push("<b>" + r.bench.toFixed(1) + "</b> benchmarks"); }
+      if (r.cap > 0) { why.push("<b>" + r.cap.toFixed(1) + "</b> capabilities"); }
+      if (r.type > 0) { why.push("<b>" + r.type.toFixed(1) + "</b> type match"); }
+      if (r.ctx > 0) { why.push("<b>" + r.ctx.toFixed(1) + "</b> context"); }
+      if (r.cost > 0) { why.push("<b>" + r.cost.toFixed(1) + "</b> cost"); }
+
+      var contrib = r.contributions.length
+        ? '<div class="contrib">Strongest benchmarks: ' + r.contributions.map(function (x) {
+            return x.id.replace(/_/g, " ") + " (" + x.raw + ")";
+          }).join(", ") + "</div>"
+        : '<div class="contrib">No benchmark scores on this card contribute to this use case.</div>';
+
+      var speed = "";
+      if (state.hardware && c.fits && c.fits[state.hardware]) {
+        speed = '<span class="pill">~' + Math.round(c.fits[state.hardware]) + ' tok/s predicted</span>';
+      }
+      var openPill = c.open_weights ? '<span class="pill">open weights</span>' : "";
+      var stale = c.scores_as_of ? '<span class="pill">scores ' + c.scores_as_of + "</span>" : "";
+
+      return '<div class="result"><div class="top">' +
+        '<span class="rank">' + (i + 1) + "</span>" +
+        '<a class="name" href="/m/' + c.model_id + '/">' + c.display_name + "</a>" +
+        '<span class="prov">' + c.provider + "</span>" +
+        '<span class="total">' + r.total.toFixed(1) + "</span></div>" +
+        '<div class="bars">' +
+          bar(r.bench, 100, "#63c9d9") + bar(r.cap, 100, "#78b5a2") +
+          bar(r.type, 100, "#f5b342") + bar(r.ctx, 100, "#8fa4d4") +
+          bar(r.cost, 100, "#9aa5b6") +
+        "</div>" +
+        '<div class="why">' + why.join("") + "</div>" +
+        contrib +
+        '<div style="margin-top:9px">' + openPill + speed + stale + "</div>" +
+        "</div>";
+    }).join("");
+  }
+
+  // ── boot ──────────────────────────────────────────────────────────────────
+  function option(value, label, selected) {
+    return '<option value="' + value + '"' + (selected ? " selected" : "") + ">" + label + "</option>";
+  }
+
+  Promise.all([
+    fetch("/api/rank/candidates.json").then(function (r) { return r.json(); }),
+    fetch("/api/rank/profiles.json").then(function (r) { return r.json(); }),
+    fetch("/api/graph/views/hardware.json").then(function (r) { return r.json(); })
+      .catch(function () { return { nodes: [] }; })
+  ]).then(function (all) {
+    DATA = all[0];
+    PROFILES = all[1].profiles;
+    RANGES = all[1].benchmark_ranges;
+    DEVICES = (all[2].nodes || []).filter(function (n) { return n.label === "Hardware"; });
+
+    var params = new URLSearchParams(location.search);
+    var featured = all[1].featured;
+
+    $("profile").innerHTML = featured.map(function (k) {
+      return option(k, k.replace(/_/g, " ").replace(/\b\w/g, function (m) { return m.toUpperCase(); }),
+                    params.get("profile") === k);
+    }).join("");
+    if (!params.get("profile")) { $("profile").value = "general"; }
+
+    DEVICES.sort(function (a, b) {
+      return (b.memory_bandwidth_gb_s || 0) - (a.memory_bandwidth_gb_s || 0);
+    });
+    $("hardware").innerHTML = option("", "Anything", !params.get("hardware")) +
+      DEVICES.map(function (d) {
+        return option(d.id, d.display_name + " (" + d.memory_gb + " GB)",
+                      params.get("hardware") === d.id);
+      }).join("");
+
+    var contexts = [["", "Any"], ["32000", "32k"], ["128000", "128k"],
+                    ["200000", "200k"], ["1000000", "1M"]];
+    $("context").innerHTML = contexts.map(function (c) {
+      return option(c[0], c[1], params.get("context") === c[0]);
+    }).join("");
+
+    if (params.get("cost")) { $("cost").value = params.get("cost"); }
+    if (params.get("open")) { $("open").checked = true; }
+
+    ["profile", "hardware", "context", "cost", "open"].forEach(function (id) {
+      $(id).addEventListener("change", run);
+      $(id).addEventListener("input", run);
+    });
+    run();
+  }).catch(function (err) {
+    $("status").textContent = "Could not load the catalogue: " + err.message;
+  });
+})();
+</script>
+</body></html>
