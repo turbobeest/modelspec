@@ -46,10 +46,10 @@ def test_featured_profiles_all_exist() -> None:
 #: normalisation falls back to "assume 0-100, higher is better". Tracked in
 #: MODEL-30. Three of these are actively wrong rather than merely imprecise:
 #: wer_librispeech and fid are lower-is-better, and mos_tts is a 1-5 scale.
-KNOWN_UNRANGED = {
-    "medqa", "finbench", "legalbench",          # roughly 0-100, fallback is fair
-    "wer_librispeech", "fid", "mos_tts", "clip_score",  # wrong, see MODEL-30
-}
+#: clip_score alone remains unranged. Its convention is genuinely ambiguous —
+#: a 0-1 cosine similarity in some papers, a 0-40 scaled value in others — and a
+#: guessed range would be worse than an honest gap. See MODEL-30.
+KNOWN_UNRANGED = {"clip_score"}
 
 
 def test_no_new_benchmark_loses_its_normalisation_range() -> None:
@@ -71,10 +71,32 @@ def test_no_new_benchmark_loses_its_normalisation_range() -> None:
     )
 
 
-def test_the_broken_profiles_are_not_offered_in_the_wizard() -> None:
-    """Until MODEL-30 lands, do not put a knowingly-inverted ranking in front of anyone."""
-    broken = {"speech_to_text", "text_to_speech", "image_generation"}
-    assert not (set(FEATURED_PROFILES) & broken)
+def test_a_profile_resting_on_an_unranged_benchmark_is_not_featured() -> None:
+    """Do not put a ranking we know is guessing in front of anyone.
+
+    image_generation weights clip_score, whose scale is ambiguous, so it stays
+    out of the wizard until MODEL-30 settles the convention.
+    """
+    for key in FEATURED_PROFILES:
+        weighted = set(USE_CASE_PROFILES[key].get("benchmark_weights") or {})
+        assert not (weighted & KNOWN_UNRANGED), (
+            f"featured profile {key!r} weights an unranged benchmark"
+        )
+
+
+def test_a_lower_is_better_metric_is_inverted() -> None:
+    """Word error rate: 2% is excellent, 20% is poor. Higher must not win."""
+    from api.ranking.engine import _normalize_benchmark
+    good = _normalize_benchmark("wer_librispeech", 2.0)
+    poor = _normalize_benchmark("wer_librispeech", 20.0)
+    assert good > poor, "a worse transcriber is outranking a better one"
+    assert good > 90 and poor < 30
+
+
+def test_a_one_to_five_scale_uses_its_whole_range() -> None:
+    from api.ranking.engine import _normalize_benchmark
+    assert _normalize_benchmark("mos_tts", 1.0) == pytest.approx(0.0)
+    assert _normalize_benchmark("mos_tts", 5.0) == pytest.approx(100.0)
 
 
 # ── the arithmetic ───────────────────────────────────────────────────────────
@@ -94,23 +116,41 @@ def test_benchmarks_contribute_and_are_explained() -> None:
 
 
 def test_free_beats_expensive_on_the_cost_axis() -> None:
-    """The cost curve itself is correct, given a profile that weights it."""
-    profile = dict(USE_CASE_PROFILES["general"], cost_weight=0.20)
-    free = score(_candidate(cost_input=0.0), profile)["cost_score"]
-    cheap = score(_candidate(cost_input=0.5), profile)["cost_score"]
-    dear = score(_candidate(cost_input=30.0), profile)["cost_score"]
+    """The cost curve itself is correct, when a caller asks for it."""
+    profile = USE_CASE_PROFILES["general"]
+    free = score(_candidate(cost_input=0.0), profile, cost_weight=0.20)["cost_score"]
+    cheap = score(_candidate(cost_input=0.5), profile, cost_weight=0.20)["cost_score"]
+    dear = score(_candidate(cost_input=30.0), profile, cost_weight=0.20)["cost_score"]
     assert free > cheap > dear
 
 
-def test_every_shipped_profile_currently_ignores_cost() -> None:
-    """Documents a real defect rather than hiding it.
+def test_price_is_ignored_unless_the_caller_asks_for_it() -> None:
+    """Every shipped profile carries cost_weight 0.0, deliberately.
 
-    All 51 profiles carry cost_weight 0.0, so price contributes nothing to any
-    ranking — the "under your rules" axis is inert. MODEL-30 decides the
-    weights. When it lands this test should fail, and that is the signal to
-    delete it.
+    Setting them all to a non-zero weight was tried and produced worse
+    rankings — a nano model topped `coding` on price alone. How much quality
+    someone will trade for price is a property of the person, not of the use
+    case, so it is a query parameter. See MODEL-30.
     """
-    assert all(p.get("cost_weight", 0.10) == 0.0 for p in USE_CASE_PROFILES.values())
+    profile = USE_CASE_PROFILES["general"]
+    free = score(_candidate(model_id="free", cost_input=0.0), profile)
+    dear = score(_candidate(model_id="dear", cost_input=30.0), profile)
+    assert free["cost_score"] == dear["cost_score"] == 0.0
+
+
+def test_price_sensitivity_can_be_turned_on_per_query() -> None:
+    profile = USE_CASE_PROFILES["general"]
+    free = score(_candidate(model_id="free", cost_input=0.0), profile, cost_weight=0.25)
+    dear = score(_candidate(model_id="dear", cost_input=30.0), profile, cost_weight=0.25)
+    assert free["cost_score"] > dear["cost_score"]
+    assert free["score"] > dear["score"]
+
+
+def test_price_sensitivity_reorders_a_real_ranking() -> None:
+    candidates = _real()
+    indifferent = [r["model_id"] for r in rank(candidates, "coding", limit=5)]
+    sensitive = [r["model_id"] for r in rank(candidates, "coding", limit=5, cost_weight=0.25)]
+    assert indifferent != sensitive, "price sensitivity had no effect on a real ranking"
 
 
 def test_context_is_log_scaled() -> None:

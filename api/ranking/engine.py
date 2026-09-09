@@ -224,6 +224,34 @@ BENCHMARK_RANGES: dict[str, tuple[float, float]] = {
 # Use case profiles
 # ═══════════════════════════════════════════════════════════════
 
+
+#: Benchmarks whose score is better when lower. `_normalize_benchmark` assumed
+#: higher-is-better for everything, which silently inverted these: a worse
+#: transcriber outranked a better one. See MODEL-30.
+BENCHMARK_DIRECTIONS: dict[str, str] = {
+    "wer_librispeech": "lower_is_better",
+    "fid": "lower_is_better",
+}
+
+#: Ranges added in MODEL-30 for benchmarks that profiles weight but that had no
+#: entry above, so normalisation fell back to "assume 0-100, higher is better".
+#:
+#: medqa, finbench and legalbench are confirmed from their benchgraph pages —
+#: all three declare higher_is_better with unit % and max_score 100, so the old
+#: fallback happened to be right and this simply makes it explicit.
+#:
+#: wer_librispeech, fid and mos_tts have no benchgraph page. Their *direction*
+#: and scale are not in doubt, and fixing those removes the inversion. The exact
+#: bounds are judgement and are marked for confirmation alongside MODEL-30.
+BENCHMARK_RANGES.update({
+    "medqa": (0.0, 100.0),            # confirmed from page
+    "finbench": (0.0, 100.0),         # confirmed from page
+    "legalbench": (0.0, 100.0),       # confirmed from page
+    "wer_librispeech": (1.5, 25.0),   # word error rate %, bounds unconfirmed
+    "fid": (1.0, 100.0),              # Frechet distance, bounds unconfirmed
+    "mos_tts": (1.0, 5.0),            # mean opinion score, 1-5 by definition
+})
+
 USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "coding": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
@@ -1564,16 +1592,25 @@ class RankingEngine:
 # ═══════════════════════════════════════════════════════════════
 
 def _normalize_benchmark(bench_id: str, raw_value: float) -> float:
-    """Normalize a benchmark score to 0-100 range."""
+    """Normalize a benchmark score to 0-100, higher always meaning better.
+
+    Direction is explicit rather than assumed. A lower-is-better metric such as
+    word error rate is inverted here, so that the rest of the pipeline can treat
+    every normalised score the same way.
+    """
     range_info = BENCHMARK_RANGES.get(bench_id)
     if range_info is None:
-        # Unknown benchmark: assume 0-100 scale
+        # Unknown benchmark: assume a 0-100 scale. This is a guess, and it is
+        # wrong for any lower-is-better metric — add the benchmark to
+        # BENCHMARK_RANGES and BENCHMARK_DIRECTIONS rather than relying on it.
         return max(0.0, min(100.0, raw_value))
 
     low, high = range_info
     if high <= low:
         return 50.0  # Degenerate range
     normalized = ((raw_value - low) / (high - low)) * 100.0
+    if BENCHMARK_DIRECTIONS.get(bench_id) == "lower_is_better":
+        normalized = 100.0 - normalized
     return max(0.0, min(100.0, normalized))
 
 

@@ -33,7 +33,7 @@ from schema.graph import CollectingSink
 FEATURED_PROFILES = (
     "general", "coding", "reasoning", "chat", "agentic", "rag",
     "vision", "multilingual", "math_competition", "writing_technical",
-    "summarization", "embedding",
+    "summarization", "embedding", "speech_to_text", "text_to_speech",
 )
 
 
@@ -101,8 +101,15 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
     return out
 
 
-def score(candidate: Candidate, profile: dict[str, Any]) -> dict[str, Any]:
-    """Score one candidate. Mirrors RankingEngine._score."""
+def score(candidate: Candidate, profile: dict[str, Any],
+          cost_weight: float | None = None) -> dict[str, Any]:
+    """Score one candidate. Mirrors RankingEngine._score.
+
+    `cost_weight` overrides the profile's own. Every shipped profile carries
+    0.0, so price contributes nothing unless a caller asks for it — and how much
+    quality someone will trade for price is a property of the person, not of the
+    use case, so it belongs in the query rather than in the table. See MODEL-30.
+    """
     bench_weights = profile.get("benchmark_weights", {})
     bench_raw = 0.0
     contributions: dict[str, float] = {}
@@ -130,7 +137,8 @@ def score(candidate: Candidate, profile: dict[str, Any]) -> dict[str, Any]:
                 cap_raw += _tier_points(best) * 0.7 * (weight / total_cap_weight)
     cap = cap_raw * 2.0
 
-    cost_weight = profile.get("cost_weight", 0.10)
+    if cost_weight is None:
+        cost_weight = profile.get("cost_weight", 0.0)
     cost_raw = 0.0
     if candidate.cost_input is not None:
         if candidate.cost_input == 0:
@@ -181,14 +189,15 @@ def score(candidate: Candidate, profile: dict[str, Any]) -> dict[str, Any]:
 
 
 def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
-         open_weights_only: bool = False, hardware_id: str | None = None) -> list[dict[str, Any]]:
+         open_weights_only: bool = False, hardware_id: str | None = None,
+         cost_weight: float | None = None) -> list[dict[str, Any]]:
     profile = USE_CASE_PROFILES[profile_key]
     pool = candidates
     if open_weights_only:
         pool = [c for c in pool if c.open_weights]
     if hardware_id:
         pool = [c for c in pool if hardware_id in c.fits]
-    scored = [score(c, profile) for c in pool]
+    scored = [score(c, profile, cost_weight) for c in pool]
     scored.sort(key=lambda r: (-r["score"], r["display_name"].lower()))
     return scored[:limit]
 
