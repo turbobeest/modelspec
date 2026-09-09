@@ -1,0 +1,113 @@
+name: Daily model research
+
+# Looks for models released since the catalogue was last updated and opens a
+# pull request with cards for them. It never merges anything: a card written by
+# a machine from an API is a starting point for research, not a finished record,
+# and the project's value rests on somebody having actually looked.
+#
+# This exists because the catalogue silently drifted five months behind the
+# frontier (MODEL-31) while every tool needed to notice already sat in the repo.
+
+on:
+  schedule:
+    # 06:00 UTC daily, before anyone is likely to be looking at the site.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would change without opening a pull request'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: daily-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    name: Look for new models
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pydantic pyyaml httpx
+
+      - name: What is missing?
+        id: survey
+        run: |
+          # --new-only is not optional. Without it the seeder rewrites every
+          # card in the repository and discards all curation. See MODEL-31.
+          python scripts/seed_models_dev.py --new-only --dry-run > survey.txt 2>&1 || true
+          count=$(grep -c '^    NEW' survey.txt || true)
+          echo "count=${count:-0}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Daily research"
+            echo
+            echo "${count:-0} models on models.dev have no card here."
+            echo
+            echo '```'
+            grep '^    NEW' survey.txt | head -60 || echo "(none)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write the new cards
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: python scripts/seed_models_dev.py --new-only
+
+      - name: Validate everything, not just the new cards
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: |
+          # A new card that fails validation must not reach a pull request, and
+          # neither must a change that broke an existing one.
+          python scripts/validate_pr.py --all > validation.json
+          python - <<'PY'
+          import json, sys
+          report = json.load(open("validation.json"))
+          print(f"{report['total']} cards, {report['valid']} valid, {report['invalid']} invalid")
+          if report["invalid"]:
+              print("::error::new cards failed validation; not opening a pull request")
+              sys.exit(1)
+          PY
+
+      - name: Open a pull request, never merge one
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: research/daily-models
+          delete-branch: true
+          commit-message: |
+            catalogue: ${{ steps.survey.outputs.count }} cards for newly released models
+
+            Written by the daily research job from the models.dev API, with
+            --new-only so no existing card was touched.
+          title: "catalogue: ${{ steps.survey.outputs.count }} newly released models"
+          body: |
+            The daily research job found **${{ steps.survey.outputs.count }} models** on
+            models.dev with no card here, and wrote cards for them.
+
+            **Nothing existing was modified** — the seeder ran with `--new-only`.
+            All cards validate.
+
+            ### This needs a human
+
+            These cards carry only what the API publishes: identity, pricing,
+            context and modalities. Typically around 10% completeness. They are a
+            starting point for research, not finished records, and the project's
+            worth rests on somebody having actually looked at them.
+
+            Check before merging: that the models are real and not preview
+            duplicates, that the provider and type mapping is right, and that
+            nothing here is a rename of a card we already have under a different
+            id.
+
+            🤖 Opened by the daily research workflow
