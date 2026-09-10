@@ -19,3 +19,6 @@ web/node_modules/
 
 # Personal Claude Code overrides (permissions, connector ids)
 .claude/settings.local.json
+
+# Firecrawl scrape cache (pricing pages, etc.)
+.firecrawl/

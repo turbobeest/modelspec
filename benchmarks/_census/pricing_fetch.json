@@ -1,0 +1,981 @@
+{
+ "already": [
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "context_window"
+   ],
+   "model_id": "cerebras/gpt-oss-120b",
+   "sources": [
+    {
+     "name": "gpt-oss-120B",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "GPT-OSS 120B",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "OpenAI GPT OSS 120B",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "minimax/minimax-m2-7",
+   "sources": [
+    {
+     "name": "MiniMax M2.7",
+     "url": "https://www.together.ai/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "minimax/minimax-m3",
+   "sources": [
+    {
+     "name": "MiniMax M3",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Minimax M3",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "MiniMax M3",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "moonshot/kimi-k2-6",
+   "sources": [
+    {
+     "name": "Kimi K2.6",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "moonshot/kimi-k2-7-code",
+   "sources": [
+    {
+     "name": "Kimi K2.7 Code",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output",
+    "context_window"
+   ],
+   "model_id": "moonshot/kimi-k3",
+   "sources": [
+    {
+     "name": "Kimi K3",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Kimi K3",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "Kimi K3",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "qwen/qwen3-5-397b-a17b",
+   "sources": [
+    {
+     "name": "Qwen3.5-397B-A17B",
+     "url": "https://www.together.ai/pricing"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "context_window"
+   ],
+   "model_id": "qwen/qwen3-6-plus",
+   "sources": [
+    {
+     "name": "Qwen3.6-Plus",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.6 Plus",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "context_window"
+   ],
+   "model_id": "qwen/qwen3-7-plus",
+   "sources": [
+    {
+     "name": "Qwen3.7-Plus",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.7 Plus",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output",
+    "context_window"
+   ],
+   "model_id": "qwen/qwen3-8-flash",
+   "sources": [
+    {
+     "name": "Qwen3.8 Flash",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.8 Flash",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "fetched_at": "2026-09-10",
+   "fields": [
+    "cost.input",
+    "cost.output"
+   ],
+   "model_id": "qwen/qwen3-8-max",
+   "sources": [
+    {
+     "name": "Qwen3.8-2.4T-A95B",
+     "url": "https://www.together.ai/pricing"
+    }
+   ]
+  }
+ ],
+ "already_count": 11,
+ "ambiguous_index_slugs": [
+  "claude-haiku-4-5",
+  "claude-opus-4-1",
+  "claude-opus-4-5",
+  "claude-sonnet-4-5",
+  "command-r",
+  "deepseek-ocr-2",
+  "devstral-2",
+  "glm-5-2",
+  "llama-2-13b-hf",
+  "llama-2-7b-chat-hf",
+  "llama-2-7b-hf",
+  "llama-3-1-8b",
+  "llama-3-1-8b-instruct",
+  "llama-3-2-1b",
+  "meta-llama-3-1-8b-instruct",
+  "meta-llama-3-70b-instruct",
+  "meta-llama-3-8b",
+  "meta-llama-3-8b-instruct",
+  "nano-banana-pro",
+  "qwen3-0-6b"
+ ],
+ "benchmarks_untouched": true,
+ "conflict_count": 10,
+ "conflicts": [
+  {
+   "conflicts": [
+    {
+     "existing": 0.25,
+     "fetched": 0.15,
+     "field": "cost.input"
+    },
+    {
+     "existing": 0.69,
+     "fetched": 0.6,
+     "field": "cost.output"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "cerebras/gpt-oss-120b",
+   "sources": [
+    {
+     "name": "gpt-oss-120B",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "GPT-OSS 120B",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "OpenAI GPT OSS 120B",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 0.14,
+     "fetched": 0.22,
+     "field": "cost.input"
+    },
+    {
+     "existing": 0.28,
+     "fetched": 0.66,
+     "field": "cost.output"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "deepseek/deepseek-v4-flash-vision-exp",
+   "sources": [
+    {
+     "name": "DeepSeek V4 Flash Vision Exp",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 0.2,
+     "fetched": 0.39,
+     "field": "cost.input"
+    },
+    {
+     "existing": 0.2,
+     "fetched": 0.97,
+     "field": "cost.output"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "google/gemma-4-31b",
+   "sources": [
+    {
+     "name": "Gemma 4 31B",
+     "url": "https://www.together.ai/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 1048576,
+     "fetched": 524288,
+     "field": "context_window"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "minimax/minimax-m3",
+   "sources": [
+    {
+     "name": "MiniMax M3",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Minimax M3",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "MiniMax M3",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "field": "cost.input",
+     "values": [
+      {
+       "name": "DeepSeek V4 Flash 0731",
+       "source_url": "https://www.together.ai/pricing",
+       "value": 0.14
+      },
+      {
+       "name": "DeepSeek-V4-Flash-0731",
+       "source_url": "https://docs.together.ai/docs/serverless-models",
+       "value": 0.14
+      },
+      {
+       "name": "DeepSeek V4 Flash (0731)",
+       "source_url": "https://docs.fireworks.ai/serverless/pricing",
+       "value": 0.22
+      }
+     ]
+    },
+    {
+     "field": "cost.output",
+     "values": [
+      {
+       "name": "DeepSeek V4 Flash 0731",
+       "source_url": "https://www.together.ai/pricing",
+       "value": 0.28
+      },
+      {
+       "name": "DeepSeek-V4-Flash-0731",
+       "source_url": "https://docs.together.ai/docs/serverless-models",
+       "value": 0.28
+      },
+      {
+       "name": "DeepSeek V4 Flash (0731)",
+       "source_url": "https://docs.fireworks.ai/serverless/pricing",
+       "value": 0.66
+      }
+     ]
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "source_disagreement",
+   "model_id": "qwen/deepseek-v4-flash-0731",
+   "sources": [
+    {
+     "name": "DeepSeek V4 Flash 0731",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "DeepSeek-V4-Flash-0731",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "DeepSeek V4 Flash (0731)",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 1000000,
+     "fetched": 1048576,
+     "field": "context_window"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "qwen/deepseek-v4-flash-0731",
+   "sources": [
+    {
+     "name": "DeepSeek V4 Flash 0731",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "DeepSeek-V4-Flash-0731",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    },
+    {
+     "name": "DeepSeek V4 Flash (0731)",
+     "url": "https://docs.fireworks.ai/serverless/pricing"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 0.1,
+     "fetched": 0.17,
+     "field": "cost.input"
+    },
+    {
+     "existing": 0.3,
+     "fetched": 0.25,
+     "field": "cost.output"
+    },
+    {
+     "existing": 131072,
+     "fetched": 262144,
+     "field": "context_window"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "qwen/qwen3-5-9b",
+   "sources": [
+    {
+     "name": "Qwen3.5 9B",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.5 9B",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 0.276,
+     "fetched": 0.5,
+     "field": "cost.input"
+    },
+    {
+     "existing": 1.651,
+     "fetched": 3.0,
+     "field": "cost.output"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "qwen/qwen3-6-plus",
+   "sources": [
+    {
+     "name": "Qwen3.6-Plus",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.6 Plus",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "field": "cost.input",
+     "values": [
+      {
+       "name": "Qwen3.7-Max",
+       "source_url": "https://www.together.ai/pricing",
+       "value": 1.25
+      },
+      {
+       "name": "Qwen3.7 Max",
+       "source_url": "https://docs.together.ai/docs/serverless-models",
+       "value": 2.5
+      }
+     ]
+    },
+    {
+     "field": "cost.output",
+     "values": [
+      {
+       "name": "Qwen3.7-Max",
+       "source_url": "https://www.together.ai/pricing",
+       "value": 3.75
+      },
+      {
+       "name": "Qwen3.7 Max",
+       "source_url": "https://docs.together.ai/docs/serverless-models",
+       "value": 7.5
+      }
+     ]
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "source_disagreement",
+   "model_id": "qwen/qwen3-7-max",
+   "sources": [
+    {
+     "name": "Qwen3.7-Max",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.7 Max",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  },
+  {
+   "conflicts": [
+    {
+     "existing": 0.5,
+     "fetched": 0.32,
+     "field": "cost.input"
+    },
+    {
+     "existing": 3.0,
+     "fetched": 1.28,
+     "field": "cost.output"
+    }
+   ],
+   "fetched_at": "2026-09-10",
+   "kind": "existing_value",
+   "model_id": "qwen/qwen3-7-plus",
+   "sources": [
+    {
+     "name": "Qwen3.7-Plus",
+     "url": "https://www.together.ai/pricing"
+    },
+    {
+     "name": "Qwen3.7 Plus",
+     "url": "https://docs.together.ai/docs/serverless-models"
+    }
+   ]
+  }
+ ],
+ "credits_after": null,
+ "credits_before": null,
+ "credits_used": null,
+ "dry_run": false,
+ "extracted_rows": 78,
+ "extracted_with_values": 78,
+ "fetched_at": "2026-09-10",
+ "match_rate": 0.2051,
+ "matched_cards": 16,
+ "page_errors": [],
+ "pages": [
+  {
+   "fetched": false,
+   "path": ".firecrawl/together-ai-pricing.md",
+   "rows": 37,
+   "url": "https://www.together.ai/pricing"
+  },
+  {
+   "fetched": false,
+   "path": ".firecrawl/docs-together-ai-docs-serverless-models.md",
+   "rows": 21,
+   "url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "fetched": false,
+   "path": ".firecrawl/fireworks-ai-pricing.md",
+   "rows": 0,
+   "url": "https://fireworks.ai/pricing"
+  },
+  {
+   "fetched": false,
+   "path": ".firecrawl/docs-fireworks-ai-serverless-pricing.md",
+   "rows": 20,
+   "url": "https://docs.fireworks.ai/serverless/pricing"
+  }
+ ],
+ "refused": [
+  {
+   "context_window": null,
+   "input": 1.4,
+   "keys": [
+    "glm-5-2",
+    "glm-52"
+   ],
+   "name": "GLM-5.2",
+   "output": 4.4,
+   "reason": "ambiguous_slug:glm-5-2",
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": 1048575,
+   "input": 1.4,
+   "keys": [
+    "glm-5-2"
+   ],
+   "name": "GLM-5.2",
+   "output": 4.4,
+   "reason": "ambiguous_slug:glm-5-2",
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": null,
+   "input": 1.4,
+   "keys": [
+    "glm-5-2",
+    "glm-5p2"
+   ],
+   "name": "GLM 5.2",
+   "output": 4.4,
+   "reason": "ambiguous_slug:glm-5-2",
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  }
+ ],
+ "refused_count": 3,
+ "unmatched": [
+  {
+   "context_window": null,
+   "input": 0.35,
+   "keys": [
+    "muse-glimmer-30b",
+    "muse-glimmer"
+   ],
+   "name": "Muse Glimmer 30B",
+   "output": 1.5,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.32,
+   "keys": [
+    "deepseek-v4-pro-0813"
+   ],
+   "name": "DeepSeek V4 Pro 0813",
+   "output": 3.96,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.4,
+   "keys": [
+    "glm-5-3"
+   ],
+   "name": "GLM-5.3",
+   "output": 4.4,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.15,
+   "keys": [
+    "glm-5-3-flash"
+   ],
+   "name": "GLM-5.3-Flash",
+   "output": 0.5,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.0,
+   "keys": [
+    "inkling"
+   ],
+   "name": "Inkling",
+   "output": 4.05,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.03,
+   "keys": [
+    "lfm2-5-8b-a1b",
+    "liquid-lfm2-5-8b-a1b"
+   ],
+   "name": "LFM2.5-8B-A1B",
+   "output": 0.12,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.25,
+   "keys": [
+    "cogito-v2-1-671b"
+   ],
+   "name": "Cogito v2.1 671B",
+   "output": 1.25,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.15,
+   "keys": [
+    "rnj-1-instruct"
+   ],
+   "name": "Rnj-1 Instruct",
+   "output": 0.15,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.04,
+   "keys": [
+    "llama-3-3-70b"
+   ],
+   "name": "Llama 3.3 70B",
+   "output": 1.04,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.3,
+   "keys": [
+    "qwen2-5-7b-instruct-turbo"
+   ],
+   "name": "Qwen2.5 7B Instruct Turbo",
+   "output": 0.3,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.14,
+   "keys": [
+    "llama-3-8b-instruct-lite"
+   ],
+   "name": "Llama 3 8B Instruct Lite",
+   "output": 0.14,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.2,
+   "keys": [
+    "qwen3-235b-a22b-instruct-2507-fp8-throughput"
+   ],
+   "name": "Qwen3 235B A22B Instruct 2507 FP8 Throughput",
+   "output": 0.6,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.35,
+   "keys": [
+    "muse-glimmer-30b",
+    "muse-glimmer"
+   ],
+   "name": "Muse Glimmer 30B",
+   "output": 1.5,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.15,
+   "keys": [
+    "glm-5-3-flash"
+   ],
+   "name": "GLM-5.3-Flash",
+   "output": 0.5,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.0,
+   "keys": [
+    "inkling"
+   ],
+   "name": "Inkling",
+   "output": 4.05,
+   "source_url": "https://www.together.ai/pricing"
+  },
+  {
+   "context_window": 524288,
+   "input": 1.0,
+   "keys": [
+    "inkling"
+   ],
+   "name": "Inkling",
+   "output": 4.05,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": null,
+   "input": 2.0,
+   "keys": [
+    "qwen3-8-2-4t-a95b"
+   ],
+   "name": "Qwen3.8-2.4T-A95B",
+   "output": 6.0,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 1048575,
+   "input": 1.4,
+   "keys": [
+    "glm-5-3"
+   ],
+   "name": "GLM-5.3",
+   "output": 4.4,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 1048575,
+   "input": 0.15,
+   "keys": [
+    "glm-5-3-flash"
+   ],
+   "name": "GLM-5.3 Flash",
+   "output": 0.5,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 1048576,
+   "input": 1.32,
+   "keys": [
+    "deepseek-v4-pro-0813"
+   ],
+   "name": "DeepSeek V4 Pro 0813",
+   "output": 3.96,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 131072,
+   "input": 1.04,
+   "keys": [
+    "llama-3-3-70b-instruct-turbo"
+   ],
+   "name": "Llama 3.3 70B Instruct Turbo",
+   "output": 1.04,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 262144,
+   "input": null,
+   "keys": [
+    "ternary-bonsai-27b"
+   ],
+   "name": "Ternary Bonsai 27B",
+   "output": null,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": 131072,
+   "input": 0.35,
+   "keys": [
+    "muse-glimmer-30b"
+   ],
+   "name": "Muse Glimmer 30B",
+   "output": 1.5,
+   "source_url": "https://docs.together.ai/docs/serverless-models"
+  },
+  {
+   "context_window": null,
+   "input": 4.5,
+   "keys": [
+    "kimi-k3-fast"
+   ],
+   "name": "Kimi K3 Fast",
+   "output": 22.5,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 3.3,
+   "keys": [
+    "kimi-k3-us"
+   ],
+   "name": "Kimi K3 US",
+   "output": 16.5,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.32,
+   "keys": [
+    "deepseek-v4-pro-0813"
+   ],
+   "name": "DeepSeek V4 Pro (0813)",
+   "output": 3.96,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.15,
+   "keys": [
+    "glm-5-3-flash",
+    "glm-5p3-flash"
+   ],
+   "name": "GLM 5.3 Flash",
+   "output": 0.5,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 1.4,
+   "keys": [
+    "glm-5-3",
+    "glm-5p3"
+   ],
+   "name": "GLM 5.3",
+   "output": 4.4,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 2.1,
+   "keys": [
+    "glm-5-2-fast"
+   ],
+   "name": "GLM 5.2 Fast",
+   "output": 6.6,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 2.1,
+   "keys": [
+    "glm-5-2-fast-us"
+   ],
+   "name": "GLM 5.2 Fast US",
+   "output": 6.6,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.4,
+   "keys": [
+    "qwen-3-7-plus",
+    "qwen3p7-plus"
+   ],
+   "name": "Qwen 3.7 Plus",
+   "output": 1.6,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 2.0,
+   "keys": [
+    "qwen-3-8-max",
+    "qwen3p8-max"
+   ],
+   "name": "Qwen 3.8 Max",
+   "output": 6.0,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.35,
+   "keys": [
+    "muse-glimmer-30b"
+   ],
+   "name": "Muse Glimmer 30B",
+   "output": 1.5,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.05,
+   "keys": [
+    "nvidia-nemotron-3-5-lightning-30b-a3b",
+    "nemotron-lightning-3p5-30b-a3b"
+   ],
+   "name": "NVIDIA Nemotron 3.5 Lightning 30B A3B",
+   "output": 0.2,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  },
+  {
+   "context_window": null,
+   "input": 0.6,
+   "keys": [
+    "nvidia-nemotron-3-ultra-preview"
+   ],
+   "name": "NVIDIA Nemotron 3 Ultra (Preview)",
+   "output": 2.4,
+   "source_url": "https://docs.fireworks.ai/serverless/pricing"
+  }
+ ],
+ "unmatched_count": 35,
+ "would_write": [],
+ "would_write_count": 0,
+ "written": 0
+}
