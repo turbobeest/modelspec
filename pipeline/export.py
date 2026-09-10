@@ -4,8 +4,11 @@ One export feeds every consumer: the static pages for both sites and, later,
 the CLI snapshot and the recommender. Producing it once means the site and the
 CLI can never disagree about what the data says.
 
-Every export carries the build date and the commit it came from, so a published
-page is traceable to a revision.
+Every export carries the build date, the commit it came from, and
+`export_schema_version` so a published page is traceable to a revision and a
+consumer can tell when the JSON *shape* changed. That field is not the CLI
+`--json` envelope (`schema_version` "1.0") and not the ranking-report document
+(`rankings.json` top-level `schema_version` "2.0").
 """
 
 from __future__ import annotations
@@ -19,6 +22,17 @@ from pathlib import Path
 from typing import Any
 
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
+
+#: Shape of the published JSON tree (`/api/index.json`, per-model files,
+#: `/api/rank/candidates.json`, `/api/rank/profiles.json`, graph views).
+#: Bump the major when a consumer pinning this value would mis-parse those
+#: files. Leave it alone for additive fields.
+#:
+#: Distinct from:
+#: * CLI envelope `schema_version` (`cli.modelspec.offline.SCHEMA_VERSION`, "1.0")
+#: * ranking-report `schema_version` (`rankings.json` and `pipeline.ranking` JSON,
+#:   "2.0") — that file is not what the CLI snapshot fetches.
+EXPORT_SCHEMA_VERSION = "1.0"
 
 
 def _commit(root: Path) -> str:
@@ -39,7 +53,12 @@ class Build:
     as_of: date
 
     def to_json(self) -> dict[str, Any]:
-        return {"commit": self.commit, "built_at": self.built_at, "eligibility_as_of": self.as_of.isoformat()}
+        return {
+            "commit": self.commit,
+            "built_at": self.built_at,
+            "eligibility_as_of": self.as_of.isoformat(),
+            "export_schema_version": EXPORT_SCHEMA_VERSION,
+        }
 
 
 def make_build(catalogue: Catalogue, root: Path | None = None) -> Build:

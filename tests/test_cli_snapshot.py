@@ -80,8 +80,10 @@ def test_loading_never_touches_the_network(cache: Path, monkeypatch) -> None:
 def test_freshness_is_always_reported(cache: Path) -> None:
     _write(cache)
     freshness = snapshot.load(cache).freshness()
-    for key in ("fetched_at", "age_days", "stale", "origin", "build_commit"):
+    for key in ("fetched_at", "age_days", "stale", "origin", "build_commit",
+                "export_schema_version"):
         assert key in freshness
+    assert freshness["export_schema_version"] == snapshot.EXPORT_SCHEMA_VERSION
 
 
 def test_an_old_snapshot_is_stale_but_still_loads(cache: Path) -> None:
@@ -102,6 +104,97 @@ def test_status_reports_absence_without_raising(cache: Path) -> None:
 def test_the_envelope_is_versioned() -> None:
     assert offline.SCHEMA_VERSION
     assert offline.SCHEMA_VERSION[0].isdigit()
+
+
+def test_legacy_snapshot_without_export_schema_version_is_current_shape(cache: Path) -> None:
+    """Snapshots fetched before the field existed are 1.x, not an error."""
+    _write(cache)
+    loaded = snapshot.load(cache)
+    assert loaded.export_schema_version == "1.0"
+    assert "export_schema_version" not in loaded.data["index"].get("build", {})
+
+
+def test_compatible_export_minor_is_accepted(cache: Path) -> None:
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    payload["data"]["index"]["build"]["export_schema_version"] = "1.1"
+    path.write_text(json.dumps(payload))
+    loaded = snapshot.load(cache)
+    assert loaded.export_schema_version == "1.1"
+
+
+def test_incompatible_export_schema_is_refused(cache: Path) -> None:
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    payload["data"]["index"]["build"]["export_schema_version"] = "2.0"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 2.0"):
+        snapshot.load(cache)
+
+
+def test_incompatible_export_schema_is_a_runtime_error_without_traceback(cache: Path) -> None:
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    payload["data"]["index"]["build"]["export_schema_version"] = "2.0"
+    path.write_text(json.dumps(payload))
+    result = _run(["offline", "rank", "coding", "--json"], cache)
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)
+    assert error["schema_version"] == offline.SCHEMA_VERSION
+    assert "export_schema_version" in error["error"]["message"]
+    assert "Traceback" not in result.stderr
+    assert not result.stdout
+
+
+def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monkeypatch) -> None:
+    import httpx
+
+    _write(cache)
+    original = (cache / "snapshot.json").read_text()
+
+    class FakeResponse:
+        def __init__(self, body: dict) -> None:
+            self._body = body
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return self._body
+
+    bodies = {
+        "/api/index.json": {
+            "build": {"commit": "newcommit", "built_at": "2026-09-10T00:00:00+00:00",
+                      "export_schema_version": "2.0"},
+        },
+        "/api/rank/candidates.json": {"candidates": []},
+        "/api/rank/profiles.json": {"profiles": {}},
+        "/api/graph/views/hardware.json": {"nodes": []},
+    }
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str) -> FakeResponse:
+            for route, body in bodies.items():
+                if url.endswith(route):
+                    return FakeResponse(body)
+            raise AssertionError(url)
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 2.0"):
+        snapshot.fetch("https://example.test", cache)
+    assert (cache / "snapshot.json").read_text() == original
 
 
 def test_exit_codes_are_distinct() -> None:
@@ -194,6 +287,8 @@ def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     assert payload["schema_version"] == offline.SCHEMA_VERSION
     assert payload["command"] == "rank"
     assert payload["freshness"]["build_commit"] == "abc123def456"
+    assert payload["freshness"]["export_schema_version"] == snapshot.EXPORT_SCHEMA_VERSION
+    assert "export_schema_version" not in payload  # tree version lives on freshness, not the envelope
     assert payload["ranking_status"] == "complete"
     assert payload["ranked_count"] == 1
     assert payload["unranked_count"] == 0

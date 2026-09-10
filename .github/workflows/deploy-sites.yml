@@ -83,6 +83,53 @@ jobs:
           test -s dist/benchgraph/404.html
           test -s dist/benchgraph/api/catalogue.json
           test -s dist/modelspec/api/index.json
+          test -s dist/modelspec/api/build.json
+          test -s dist/modelspec/api/rank/candidates.json
+          test -s dist/modelspec/api/rank/profiles.json
+          test -s dist/modelspec/api/graph/views/hardware.json
+
+      - name: Check the export carries a pin-able schema version
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(rel):
+              return json.loads(Path(rel).read_text(encoding="utf-8"))
+
+          index = load("dist/modelspec/api/index.json")
+          build = load("dist/modelspec/api/build.json")
+          candidates = load("dist/modelspec/api/rank/candidates.json")
+          profiles = load("dist/modelspec/api/rank/profiles.json")
+          hardware = load("dist/modelspec/api/graph/views/hardware.json")
+          version = build["export_schema_version"]
+          if not version or not str(version)[0].isdigit():
+              raise SystemExit(f"build.json export_schema_version is unusable: {version!r}")
+          for name, payload in (
+              ("index.json", index),
+              ("candidates.json", candidates),
+              ("profiles.json", profiles),
+              ("hardware.json", hardware),
+          ):
+              got = (payload.get("build") or {}).get("export_schema_version")
+              if got != version:
+                  raise SystemExit(
+                      f"{name} build.export_schema_version {got!r} != build.json {version!r}"
+                  )
+          print(f"export_schema_version={version}")
+          PY
+
+      - name: Last good site remains if this build failed
+        if: failure()
+        run: |
+          {
+            echo '### Export failed; last good site remains serving'
+            echo
+            echo 'This job did not produce a deployable tree. The deploy job only'
+            echo 'runs after a successful build on main, so the previous Cloudflare'
+            echo 'Pages deployment of modelspec.dev and benchgraph.dev stays up.'
+            echo 'The store is the static tree, not R2 or D1.'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
