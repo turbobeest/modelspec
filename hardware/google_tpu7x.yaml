@@ -1,0 +1,33 @@
+id: google_tpu7x
+display_name: Google TPU7x (Ironwood)
+vendor: google
+family: Google TPU
+device_class: datacentre
+released: 2025
+memory:
+  capacity_gb: 192
+  bandwidth_gb_s: 7380
+  type: HBM
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- bf16
+- fp8
+interconnect:
+  pcie_gen: null
+  link: ici
+  link_gb_s: 1200
+power:
+  tdp_w: null
+  sustained_differs_from_boost: null
+sources:
+- https://docs.cloud.google.com/tpu/docs/tpu7x
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per chip, not per pod. Google Cloud TPU7x (Ironwood) architecture table lists
+  HBM capacity per chip 192 GiB, HBM bandwidth per chip 7380 GBps, peak compute per
+  chip 2307 TFLOPs (BF16) / 4614 TFLOPs (FP8), two TensorCores per chip, and bidirectional
+  ICI 1200 GBps per chip. Body copy also says approximately 7.37 TB/s, which is the
+  same 7380 GBps figure. A TPU7x Pod is 9216 chips; this file is one chip. Each chip
+  is two chiplets with 96 GB HBM each; frameworks may expose two devices per chip.
+  Capacity is recorded as 192 GB from the published 192 GiB figure. No TDP is published.'

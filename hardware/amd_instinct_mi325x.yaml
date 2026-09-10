@@ -1,0 +1,35 @@
+id: amd_instinct_mi325x
+display_name: AMD Instinct MI325X
+vendor: amd
+family: AMD Instinct MI300
+device_class: datacentre
+released: 2024-10
+memory:
+  capacity_gb: 256
+  bandwidth_gb_s: 6000
+  type: HBM3E
+  bus_bits: 8192
+  unified_with_host: false
+  bandwidth_derivation: 8192 bits / 8 x 6 Gbps HBM3E = 6144 GB/s
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: infinity-fabric
+  link_gb_s: 128
+power:
+  tdp_w: 1000
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/accelerators/instinct/mi300/mi325x.html
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'AMD Instinct MI325X product page lists 256 GB HBM3E, 8192-bit interface, 6 GHz
+  memory clock, 6 TB/s, OAM, PCIe 5.0 x16, 8 Infinity Fabric links at 128 GB/s, launch
+  date 10/10/2024, and Typical Board Power (TBP) 1000 W. DISAGREEMENT: 8192/8 x 6 Gbps
+  = 6144 GB/s; the product page publishes 6 TB/s. bandwidth_gb_s records the published
+  6 TB/s. Distinct from MI300X (192 GB HBM3, 5.3 TB/s, 750 W TBP).'

@@ -1,0 +1,36 @@
+id: nvidia_h100_sxm
+display_name: NVIDIA H100 SXM
+vendor: nvidia
+family: NVIDIA H100
+device_class: datacentre
+released: 2022-03
+memory:
+  capacity_gb: 80
+  bandwidth_gb_s: 3350
+  type: HBM3
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 900
+power:
+  tdp_w: 700
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/h100/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for H100 SXM. NVIDIA H100 product spec table lists 80GB, 3.35 TB/s,
+  NVLink 900 GB/s, PCIe Gen5 128 GB/s, and TDP up to 700 W (configurable). The spec
+  table does not name the memory generation; H100 PCIe is specified as HBM2e on the
+  PCIe product brief, and the H200 product page describes H200 as the first GPU with
+  HBM3e, so this SXM record uses HBM3. Distinct from H100 PCIe (80GB HBM2e, 2,000 GB/s,
+  350 W) and from H100 NVL (94GB, 3.9 TB/s). Bus width is not on the product page,
+  so bandwidth is the published 3.35 TB/s rather than a derivation.'

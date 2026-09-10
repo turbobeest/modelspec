@@ -4,19 +4,17 @@ Everything here is *computed*, never measured, and is labelled as such all the
 way to the page. A predicted figure presented as a measurement is a lie a reader
 will plan around.
 
-What the corpus can actually support, measured 2026-09-09:
+Decode speed for a mixture-of-experts model depends on *active* parameters, not
+total. With no active-parameter data the prediction uses total, which understates
+MoE speed — sometimes by a large factor. Every prediction says so.
 
-* 1,011 of 1,143 cards carry `total_parameters`; 931 of those are open-weights.
-* **Zero** cards carry `active_parameters`, `num_layers`, `num_kv_heads` or
-  `hidden_size`.
-
-That second line constrains this module more than anything else:
-
-* Decode speed for a mixture-of-experts model depends on *active* parameters,
-  not total. With no active-parameter data the prediction uses total, which
-  understates MoE speed — sometimes by a large factor. Every prediction says so.
-* Exact KV-cache size needs layer and head geometry. Without it, a flat working
-  allowance is used rather than a precise figure dressed up as one.
+Max context is leftover memory after weights and the working allowance, divided
+by the KV-cache bytes per token. That needs layer and head geometry
+(`num_layers`, `num_kv_heads` or `num_attention_heads`, `hidden_size`). The
+schema has no `head_dim`; it is derived as `hidden_size / num_attention_heads`.
+When any of that is missing, `max_context_at_quant` is null — never zero, never
+a guess — and `max_context_missing_geometry` is true so a consumer can tell
+"we do not know" from "it does not fit".
 
 `FITS_ON` is only computed for open-weights models. Asking whether a
 closed-weights model "fits" on your GPU is meaningless — you cannot obtain it.
@@ -44,12 +42,15 @@ QUANT_BYTES: dict[str, float] = {
 #: precision first: we want the best quality that fits, not the smallest.
 QUANT_PREFERENCE = ("bf16", "fp16", "fp8", "int8", "q6", "q5", "q4")
 
-#: Headroom for the KV cache, activations, the framework and the OS, as a
-#: fraction of device memory. A blunt instrument, and deliberately so: the
-#: corpus has no layer or head geometry, so a precise-looking KV figure would be
-#: invented. 25% is conservative for a mid-length context on a device that is
-#: also driving a display.
+#: Headroom for activations, the framework and the OS, as a fraction of device
+#: memory. KV-cache size is computed from layer geometry when the card has it;
+#: this allowance is the rest of the working set, not a stand-in for the cache.
 WORKING_ALLOWANCE = 0.25
+
+#: Bytes per KV-cache element. The cache is commonly kept at fp16 even when the
+#: weights are quantised; using QUANT_BYTES for the weight quant would understate
+#: the cache (and overstate how much context fits) at q4/int8.
+KV_BYTES_PER_ELEMENT = 2.0
 
 #: Real bandwidth utilisation. No decoder achieves the theoretical roofline;
 #: measured llama.cpp and vLLM figures typically land in the 60-80% band.
@@ -70,6 +71,20 @@ class Device:
     @property
     def max_capacity_gb(self) -> float:
         return max(self.capacity_options_gb)
+
+
+@dataclass(frozen=True)
+class MaxContext:
+    """Predicted context length at one (device, quant) pair.
+
+    `tokens` is null only when geometry is missing. Zero means the weights fit
+    but leftover memory cannot hold a single token of KV — that is not the
+    same as "we do not know".
+    """
+    tokens: int | None
+    bound_by: str | None
+    missing_geometry: bool
+    kv_heads_from_attention: bool
 
 
 def load_devices(root: Path) -> list[Device]:
@@ -127,6 +142,87 @@ def predicted_decode_tps(bandwidth_gb_s: float, params: float, quant: str) -> fl
     return round(bandwidth_gb_s * BANDWIDTH_EFFICIENCY / per_token_gb, 1)
 
 
+def _kv_geometry(card: Any) -> tuple[float, bool] | None:
+    """(bytes_per_token, kv_heads_taken_from_attention) or None.
+
+    Never infers missing layer counts or hidden size. Absent `num_kv_heads` is
+    MHA, so it falls back to `num_attention_heads` and reports that it did.
+    """
+    arch = card.architecture
+    layers = arch.num_layers
+    attn = arch.num_attention_heads
+    kv = arch.num_kv_heads
+    hidden = arch.hidden_size
+
+    if not layers or layers <= 0:
+        return None
+
+    from_attention = kv is None
+    heads = attn if from_attention else kv
+    if not heads or heads <= 0:
+        return None
+
+    # Schema has no head_dim. For MHA/GQA it is hidden_size / num_attention_heads.
+    if not attn or attn <= 0 or not hidden or hidden <= 0:
+        return None
+    if hidden % attn != 0:
+        return None
+    head_dim = hidden // attn
+    if head_dim <= 0:
+        return None
+
+    bytes_per_token = 2 * layers * heads * head_dim * KV_BYTES_PER_ELEMENT
+    return float(bytes_per_token), from_attention
+
+
+def kv_bytes_per_token(card: Any) -> float | None:
+    """KV-cache bytes per token at KV_BYTES_PER_ELEMENT, or None if geometry is missing.
+
+    Independent of weight quantisation: the cache stays at fp16 even when the
+    weights are q4. GQA/MQA use `num_kv_heads`, not `num_attention_heads`.
+    """
+    geo = _kv_geometry(card)
+    return None if geo is None else geo[0]
+
+
+def predicted_max_context(card: Any, capacity_gb: float, quant: str) -> MaxContext:
+    """How many tokens of context the leftover memory can hold at `quant`.
+
+    `(device_memory - weights - working_allowance) / kv_bytes_per_token`, then
+    clamped to the model's own `context_window`. The clamp, not the raw device
+    figure, is what a reader can actually use.
+    """
+    geo = _kv_geometry(card)
+    if geo is None:
+        return MaxContext(
+            tokens=None,
+            bound_by=None,
+            missing_geometry=True,
+            kv_heads_from_attention=False,
+        )
+    kv_bpt, from_attn = geo
+    params = card.architecture.total_parameters
+    device_memory_bytes = capacity_gb * 1e9
+    weight_bytes = weights_gb(params, quant) * 1e9
+    working_allowance_bytes = device_memory_bytes * WORKING_ALLOWANCE
+    available = device_memory_bytes - weight_bytes - working_allowance_bytes
+    device_tokens = 0 if available <= 0 else int(available / kv_bpt)
+    window = card.modalities.text.context_window
+    if window and window > 0 and device_tokens >= window:
+        return MaxContext(
+            tokens=int(window),
+            bound_by="model",
+            missing_geometry=False,
+            kv_heads_from_attention=from_attn,
+        )
+    return MaxContext(
+        tokens=device_tokens,
+        bound_by="device",
+        missing_geometry=False,
+        kv_heads_from_attention=from_attn,
+    )
+
+
 def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> dict[str, Any]:
     """Add Hardware nodes and FITS_ON edges. Returns counts for the summary."""
     for device in devices:
@@ -142,7 +238,7 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         })
 
     considered = fitted = skipped_closed = skipped_no_params = 0
-    edges = 0
+    edges = edges_with_max_context = 0
 
     for card in cards:
         params = card.architecture.total_parameters
@@ -168,6 +264,9 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
             # first makes a large slow machine look worse than a small fast one
             # purely because it chose a heavier quantisation.
             best, smallest = quants[0], quants[-1]
+            ctx = predicted_max_context(card, capacity, best)
+            if ctx.tokens is not None:
+                edges_with_max_context += 1
             sink.edge("Model", card.identity.model_id, "FITS_ON", "Hardware", device.id, {
                 "quantization": best,
                 "weights_gb": round(weights_gb(params, best), 2),
@@ -179,6 +278,10 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
                 "fastest_predicted_decode_tps": predicted_decode_tps(
                     device.bandwidth_gb_s, params, smallest),
                 "quantizations_that_fit": ",".join(quants),
+                "max_context_at_quant": ctx.tokens,
+                "max_context_bound_by": ctx.bound_by,
+                "max_context_missing_geometry": ctx.missing_geometry,
+                "kv_heads_from_attention_heads": ctx.kv_heads_from_attention,
                 # Everything above is arithmetic, not observation. The page and
                 # the export must never render it as a measurement.
                 "basis": "computed",
@@ -197,6 +300,7 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         "skipped_closed_weights": skipped_closed,
         "skipped_no_parameter_count": skipped_no_params,
         "edges": edges,
+        "edges_with_max_context": edges_with_max_context,
         "working_allowance": WORKING_ALLOWANCE,
         "bandwidth_efficiency": BANDWIDTH_EFFICIENCY,
     }

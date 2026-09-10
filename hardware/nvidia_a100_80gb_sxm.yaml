@@ -1,0 +1,35 @@
+id: nvidia_a100_80gb_sxm
+display_name: NVIDIA A100 80GB SXM
+vendor: nvidia
+family: NVIDIA A100
+device_class: datacentre
+released: 2021-11
+memory:
+  capacity_gb: 80
+  bandwidth_gb_s: 2039
+  type: HBM2e
+  bus_bits: 5120
+  unified_with_host: false
+  bandwidth_derivation: 5120 bits / 8 x 3.186 Gbps HBM2e = 2039 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: nvlink
+  link_gb_s: 600
+power:
+  tdp_w: 400
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/a100/
+- https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for the 80GB SXM variant. NVIDIA A100 product page and r4 datasheet
+  both list 80GB HBM2e, 2,039 GB/s, 400 W TDP (standard SXM; a custom-thermal HGX SKU
+  can support up to 500 W). Distinct from A100 80GB PCIe (1,935 GB/s, 300 W) and from
+  A100 40GB SXM (HBM2, 1,555 GB/s). Derivation uses the same 5120-bit interface as
+  the 40GB SKU at the higher HBM2e data rate and matches the published 2,039 GB/s.'

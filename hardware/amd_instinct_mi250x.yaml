@@ -1,0 +1,35 @@
+id: amd_instinct_mi250x
+display_name: AMD Instinct MI250X
+vendor: amd
+family: AMD Instinct MI200
+device_class: datacentre
+released: 2021-11
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 3200
+  type: HBM2e
+  bus_bits: 8192
+  unified_with_host: false
+  bandwidth_derivation: 8192 bits / 8 x 3.2 Gbps HBM2e (1.6 GHz DDR) = 3276.8 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: infinity-fabric
+  link_gb_s: 100
+power:
+  tdp_w: 560
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/accelerators/instinct/mi200/mi250x.html
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for MI250X, not MI250. AMD Instinct MI250X product page lists
+  128 GB HBM2e, 8192-bit interface, 1.6 GHz memory clock, 3.2 TB/s, OAM module, 8 Infinity
+  Fabric links at 100 GB/s, launch date 11/08/21, and TDP 500W | 560W. tdp_w records
+  the higher published value. DISAGREEMENT: 8192/8 x 3.2 Gbps = 3276.8 GB/s; the product
+  page publishes 3.2 TB/s. bandwidth_gb_s records the published 3.2 TB/s. Dual-GCD package;
+  do not collapse with MI210 (single GCD, 64 GB) or MI250.'

@@ -1,0 +1,36 @@
+id: nvidia_h100_nvl
+display_name: NVIDIA H100 NVL
+vendor: nvidia
+family: NVIDIA H100
+device_class: datacentre
+released: 2023-03
+memory:
+  capacity_gb: 94
+  bandwidth_gb_s: 3900
+  type: HBM3
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 600
+power:
+  tdp_w: 400
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/h100/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for H100 NVL, the PCIe dual-slot SKU on the current H100 product
+  page. Spec table lists 94GB, 3.9 TB/s, NVLink 600 GB/s, PCIe Gen5, and TDP 350-400 W
+  (configurable); tdp_w records the published maximum of that range. Distinct from
+  original H100 PCIe (80GB HBM2e, 2,000 GB/s, 350 W) and from H100 SXM (80GB, 3.35 TB/s,
+  700 W). Body copy also says 188GB HBM3 when two NVL cards are bridged; this file is
+  the single card (94GB). Memory generation is not named in the spec table. Bus width
+  is not published, so bandwidth is the transcribed 3.9 TB/s.'

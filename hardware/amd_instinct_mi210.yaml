@@ -1,0 +1,36 @@
+id: amd_instinct_mi210
+display_name: AMD Instinct MI210
+vendor: amd
+family: AMD Instinct MI200
+device_class: datacentre
+released: 2022-03
+memory:
+  capacity_gb: 64
+  bandwidth_gb_s: 1600
+  type: HBM2e
+  bus_bits: 4096
+  unified_with_host: false
+  bandwidth_derivation: 4096 bits / 8 x 3.2 Gbps HBM2e (1.6 GHz DDR) = 1638.4 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: infinity-fabric
+  link_gb_s: 100
+power:
+  tdp_w: 300
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/accelerators/instinct/mi200/mi210.html
+- https://www.amd.com/content/dam/amd/en/documents/instinct-business-docs/product-briefs/instinct-mi210-brochure.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'AMD Instinct MI210 product page lists 64 GB HBM2e, 4096-bit interface, 1.6 GHz
+  memory clock, 1.6 TB/s peak bandwidth, PCIe 4.0 x16, and 3 Infinity Fabric links at
+  100 GB/s each. Launch date on that page is 3/22/22. TDP is not on the product-page
+  spec table; the MI210 brochure lists Max Power 300W TDP. DISAGREEMENT: 4096/8 x 3.2 Gbps
+  = 1638.4 GB/s; the product page publishes 1.6 TB/s. bandwidth_gb_s records the published
+  1.6 TB/s. Distinct from MI250/MI250X (dual-GCD OAM, 128 GB, ~3.2 TB/s).'

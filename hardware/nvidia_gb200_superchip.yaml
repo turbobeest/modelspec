@@ -1,0 +1,40 @@
+id: nvidia_gb200_superchip
+display_name: NVIDIA GB200 Grace Blackwell Superchip
+vendor: nvidia
+family: NVIDIA GB200
+device_class: datacentre
+released: 2024-03
+memory:
+  capacity_gb: 372
+  bandwidth_gb_s: 16000
+  type: HBM3E
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 3600
+power:
+  tdp_w: null
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/gb200-nvl72/
+- https://dam-cdn.nvd.orangelogic.com/AssetLink/y441155802qub41q118b2852i557jem5.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Single-package figure as published for the GB200 Grace Blackwell Superchip
+  (1 Grace CPU + 2 Blackwell GPUs), which is the NVL2-class package NVIDIA tabulates
+  next to GB200 NVL72. Product page and Blackwell datasheet list 372 GB HBM3E and 16 TB/s
+  for the Superchip, equivalently 186 GB and 8 TB/s per Blackwell GPU. NVIDIA does not
+  publish a Superchip-level TDP; the datasheet lists individual GB200 Blackwell GPUs
+  as configurable up to 1,200 W, so tdp_w is left null rather than estimated. This is
+  not a single GPU. A FITS_ON calculation that treats 372 GB as one device is a two-GPU
+  package, not one die. Distinct from HGX B200 (180 GB / 7.7 TB/s per GPU). NVIDIA does
+  not label a product "GB200 NVL2" on this page; the published package is the Superchip.'

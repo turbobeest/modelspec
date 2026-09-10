@@ -1,0 +1,39 @@
+id: nvidia_h100_pcie
+display_name: NVIDIA H100 PCIe
+vendor: nvidia
+family: NVIDIA H100
+device_class: datacentre
+released: 2022-10
+memory:
+  capacity_gb: 80
+  bandwidth_gb_s: 2000
+  type: HBM2e
+  bus_bits: 5120
+  unified_with_host: false
+  bandwidth_derivation: 5120 bits / 8 x 3.186 Gbps HBM2e (1593 MHz DDR) = 2039 GB/s
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 600
+power:
+  tdp_w: 350
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for the original H100 PCIe 80GB card, not H100 NVL. NVIDIA H100
+  PCIe GPU Product Brief (PB-11133-001_v02, November 2022) lists 80 GB HBM2e, 5,120-bit
+  bus, memory clock 1,593 MHz, peak memory bandwidth 2,000 GB/s, and 350 W default/maximum
+  board power (310 W in the 300 W PSU sense mode). NVLink via three bridges is 600 GB/s.
+  DISAGREEMENT: 5120/8 x 3.186 Gbps (1593 MHz DDR) = 2039 GB/s, but the brief publishes
+  peak bandwidth as 2,000 GB/s (and separately says greater than 2,000 GB/s). bandwidth_gb_s
+  records the published 2,000 GB/s. Distinct from H100 SXM (80GB, 3.35 TB/s, 700 W)
+  and H100 NVL (94GB, 3.9 TB/s). The current H100 product page tabulates SXM and NVL
+  only.'
