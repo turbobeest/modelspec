@@ -10,6 +10,7 @@ memory:
   type: GDDR6X
   bus_bits: 384
   unified_with_host: false
+  bandwidth_derivation: 384 bits / 8 x 21 Gbps GDDR6X = 1008 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -25,7 +26,10 @@ power:
   sustained_differs_from_boost: false
 sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (24 GB GDDR6X), bus width (384-bit) and Total Graphics Power (450 W)
+  from the RTX 4090 product spec table. Memory data rate (21 Gbps) and 1008 GB/s
+  bandwidth are from NVIDIA's Ada GPU Architecture whitepaper comparison table.
+  Bandwidth is derived as 384/8 x 21.

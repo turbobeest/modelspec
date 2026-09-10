@@ -22,15 +22,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 64
+  hidden_size: 5120
+  intermediate_size: 25600
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 151936
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -640,8 +640,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nvidia/Qwen3-32B-NVFP4
+    url: https://huggingface.co/nvidia/Qwen3-32B-NVFP4
     fine_tuning: false
     gated: false
     regions: []

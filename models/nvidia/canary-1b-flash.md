@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 1024
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/canary-1b-flash
+    url: https://huggingface.co/nvidia/canary-1b-flash
     fine_tuning: false
     gated: false
     regions: []

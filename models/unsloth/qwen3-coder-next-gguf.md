@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/Qwen3-Coder-Next-GGUF
+    url: https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF
     fine_tuning: false
     gated: false
     regions: []

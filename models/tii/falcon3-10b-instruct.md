@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 40
+  hidden_size: 3072
+  intermediate_size: 23040
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 12
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 131072
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/Falcon3-10B-Instruct
+    url: https://huggingface.co/tiiuae/Falcon3-10B-Instruct
     fine_tuning: false
     gated: false
     regions: []

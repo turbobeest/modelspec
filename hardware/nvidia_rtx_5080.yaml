@@ -10,6 +10,7 @@ memory:
   type: GDDR7
   bus_bits: 256
   unified_with_host: false
+  bandwidth_derivation: 256 bits / 8 x 30 Gbps GDDR7 = 960 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -26,7 +27,11 @@ power:
   sustained_differs_from_boost: false
 sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5080/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (16 GB GDDR7), bus width (256-bit) and Total Graphics Power (360 W)
+  from the RTX 5080 product spec table. Memory data rate is 30 Gbps GDDR7, not 28
+  (that rate is the 5090); NVIDIA's RTX Blackwell GPU Architecture whitepaper states
+  the 5080 ships with 30 Gbps GDDR7 delivering 960 GB/s (Table 4). Bandwidth is derived
+  as 256/8 x 30.

@@ -7,7 +7,7 @@ released: 2024-10
 memory:
   capacity_gb: 128
   bandwidth_gb_s: 546
-  type: unified LPDDR5X
+  type: unified
   bus_bits: null
   unified_with_host: true
   capacity_options_gb:
@@ -15,6 +15,8 @@ memory:
   - 48
   - 64
   - 128
+  bandwidth_derivation: Apple-published unified memory bandwidth for the 16-core CPU
+    / 40-core GPU configuration (not bus-derived)
 precisions_native:
 - fp16
 - bf16
@@ -28,9 +30,14 @@ power:
   tdp_w: null
   sustained_differs_from_boost: true
 sources:
-- https://www.apple.com/mac/compare/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: '16-core CPU, up to 40-core GPU. Unified memory: the whole capacity is addressable
-  by the GPU, minus what the OS holds. Sustained clocks differ from boost in thin
-  chassis. Transcribed from vendor specifications; not yet confirmed.'
+- https://support.apple.com/en-us/121553
+- https://support.apple.com/en-us/122211
+- https://www.apple.com/newsroom/2024/10/apple-introduces-m4-pro-and-m4-max/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Two SKUs with different bandwidth. This record uses the 16-core CPU / 40-core
+  GPU configuration at 546 GB/s, which is the only SKU that offers 64 GB or 128 GB.
+  The 14-core CPU / 32-core GPU SKU is 410 GB/s (36 GB default; 48 GB also listed
+  for the 16-core SKU). Capacity options listed cover both SKUs as sold. Apple does
+  not publish a TDP or a DRAM generation. Sustained clocks differ from boost in thin
+  chassis.'

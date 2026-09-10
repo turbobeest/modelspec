@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stable-diffusion-x4-upscaler
+    url: https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler
     fine_tuning: false
     gated: false
     regions: []

@@ -16,18 +16,18 @@ pipeline_tag: ''
 architecture:
   type: null
   total_parameters: 7000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 12879659008
+  num_experts: 8
+  experts_per_token: 2
+  num_layers: 32
+  hidden_size: 4096
+  intermediate_size: 14336
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 32
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 32000
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,8 +637,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: mistralai/Mixtral-8x7B-v0.1
+    url: https://huggingface.co/mistralai/Mixtral-8x7B-v0.1
     fine_tuning: false
     gated: false
     regions: []

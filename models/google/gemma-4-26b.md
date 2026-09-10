@@ -18,17 +18,17 @@ architecture:
   type: null
   total_parameters: 26000000000
   active_parameters: null
-  num_experts: null
+  num_experts: 128
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 30
+  hidden_size: 2816
+  intermediate_size: 2112
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 262144
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -646,8 +646,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: google/gemma-4-26B-A4B-it
+    url: https://huggingface.co/google/gemma-4-26B-A4B-it
     fine_tuning: false
     gated: false
     regions: []

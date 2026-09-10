@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: meta-llama/Llama-2-7b-chat-hf
+    url: https://huggingface.co/meta-llama/Llama-2-7b-chat-hf
     fine_tuning: false
     gated: false
     regions: []

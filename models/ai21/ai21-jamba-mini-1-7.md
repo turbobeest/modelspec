@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ai21labs/AI21-Jamba-Mini-1.7
+    url: https://huggingface.co/ai21labs/AI21-Jamba-Mini-1.7
     fine_tuning: false
     gated: false
     regions: []

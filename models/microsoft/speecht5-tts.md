@@ -20,14 +20,14 @@ architecture:
   num_experts: null
   experts_per_token: null
   num_layers: null
-  hidden_size: null
+  hidden_size: 768
   intermediate_size: null
   attention_type: null
   num_attention_heads: null
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 81
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/speecht5_tts
+    url: https://huggingface.co/microsoft/speecht5_tts
     fine_tuning: false
     gated: false
     regions: []

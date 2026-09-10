@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 65536
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/Falcon-Perception
+    url: https://huggingface.co/tiiuae/Falcon-Perception
     fine_tuning: false
     gated: false
     regions: []

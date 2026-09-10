@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 40
+  hidden_size: 2048
+  intermediate_size: 4096
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 100353
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-4.0-1b-speech
+    url: https://huggingface.co/ibm-granite/granite-4.0-1b-speech
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/LTX-2.3-GGUF
+    url: https://huggingface.co/unsloth/LTX-2.3-GGUF
     fine_tuning: false
     gated: false
     regions: []

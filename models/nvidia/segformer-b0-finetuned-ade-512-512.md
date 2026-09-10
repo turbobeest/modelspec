@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/segformer-b0-finetuned-ade-512-512
+    url: https://huggingface.co/nvidia/segformer-b0-finetuned-ade-512-512
     fine_tuning: false
     gated: false
     regions: []

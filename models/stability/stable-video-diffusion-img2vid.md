@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stable-video-diffusion-img2vid
+    url: https://huggingface.co/stabilityai/stable-video-diffusion-img2vid
     fine_tuning: false
     gated: false
     regions: []

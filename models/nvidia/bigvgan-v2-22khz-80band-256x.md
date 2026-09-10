@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/bigvgan_v2_22khz_80band_256x
+    url: https://huggingface.co/nvidia/bigvgan_v2_22khz_80band_256x
     fine_tuning: false
     gated: false
     regions: []

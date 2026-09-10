@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/HY-MT1.5-1.8B-GGUF
+    url: https://huggingface.co/tencent/HY-MT1.5-1.8B-GGUF
     fine_tuning: false
     gated: false
     regions: []

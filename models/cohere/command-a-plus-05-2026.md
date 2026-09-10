@@ -16,17 +16,17 @@ architecture:
   type: null
   total_parameters: null
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 128
+  experts_per_token: 8
+  num_layers: 32
+  hidden_size: 4096
+  intermediate_size: 4096
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 128
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 262144
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: CohereLabs/command-a-plus-05-2026-bf16
+    url: https://huggingface.co/CohereLabs/command-a-plus-05-2026-bf16
     fine_tuning: false
     gated: false
     regions: []

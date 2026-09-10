@@ -16,18 +16,18 @@ pipeline_tag: text-generation
 architecture:
   type: null
   total_parameters: 480000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 15005777920
+  num_experts: 128
+  experts_per_token: 2
+  num_layers: 35
+  hidden_size: 7168
+  intermediate_size: 4864
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 56
+  num_kv_heads: 56
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 32000
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Snowflake/snowflake-arctic-base
+    url: https://huggingface.co/Snowflake/snowflake-arctic-base
     fine_tuning: false
     gated: false
     regions: []

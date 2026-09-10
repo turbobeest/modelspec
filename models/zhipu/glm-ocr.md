@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 16
+  hidden_size: 1536
+  intermediate_size: 4608
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 59392
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -634,9 +634,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/GLM-OCR
+    url: https://huggingface.co/zai-org/GLM-OCR
     fine_tuning: false
     gated: false
     regions: []

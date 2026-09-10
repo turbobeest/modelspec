@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 128256
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,8 +637,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Snowflake/Arctic-LSTM-Speculator-Llama-3.1-8B-Instruct
+    url: https://huggingface.co/Snowflake/Arctic-LSTM-Speculator-Llama-3.1-8B-Instruct
     fine_tuning: false
     gated: false
     regions: []

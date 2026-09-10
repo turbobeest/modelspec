@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 64
+  hidden_size: 4096
+  intermediate_size: 8192
   attention_type: null
   num_attention_heads: null
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 32768
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Mamba-Codestral-7B-v0.1
+    url: https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1
     fine_tuning: false
     gated: false
     regions: []

@@ -16,18 +16,18 @@ pipeline_tag: image-text-to-text
 architecture:
   type: null
   total_parameters: 35000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
+  active_parameters: 2925527040
+  num_experts: 256
+  experts_per_token: 8
+  num_layers: 40
+  hidden_size: 2048
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 2
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 248320
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3.5-35B-A3B
+    url: https://huggingface.co/Qwen/Qwen3.5-35B-A3B
     fine_tuning: false
     gated: false
     regions: []

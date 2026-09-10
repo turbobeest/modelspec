@@ -17,18 +17,18 @@ pipeline_tag: ''
 architecture:
   type: null
   total_parameters: 235000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 22189965312
+  num_experts: 128
+  experts_per_token: 8
+  num_layers: 94
+  hidden_size: 4096
+  intermediate_size: 12288
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 151936
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Qwen/Qwen3-235B-A22B
+    url: https://huggingface.co/Qwen/Qwen3-235B-A22B
     fine_tuning: false
     gated: false
     regions: []

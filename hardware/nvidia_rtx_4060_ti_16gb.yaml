@@ -10,6 +10,7 @@ memory:
   type: GDDR6
   bus_bits: 128
   unified_with_host: false
+  bandwidth_derivation: 128 bits / 8 x 18 Gbps GDDR6 = 288 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -25,7 +26,12 @@ power:
   sustained_differs_from_boost: false
 sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://www.nvidia.com/en-us/geforce/news/rtx-40-series-vram-video-memory-explained/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: This record is the 16 GB SKU. NVIDIA's product spec table lists both 8 GB and
+  16 GB 4060 Ti as 128-bit GDDR6; they share bus width and bandwidth. Total Graphics
+  Power is listed as "165 or 160"; 165 W is the 16 GB SKU and 160 W is the 8 GB SKU.
+  NVIDIA GeForce News ("A Deeper Look At VRAM") states 288 GB/sec peak memory bandwidth
+  for the 4060 Ti, which with a 128-bit bus is 18 Gbps. Do not assign the 8 GB card's
+  160 W TDP to this 16 GB record.

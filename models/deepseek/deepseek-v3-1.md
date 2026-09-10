@@ -19,17 +19,17 @@ architecture:
   type: null
   total_parameters: 671000000000
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 256
+  experts_per_token: 8
+  num_layers: 61
+  hidden_size: 7168
+  intermediate_size: 18432
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 128
+  num_kv_heads: 128
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 129280
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -639,8 +639,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-V3.1
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1
     fine_tuning: false
     gated: false
     regions: []

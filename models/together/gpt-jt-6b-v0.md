@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 50400
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/GPT-JT-6B-v0
+    url: https://huggingface.co/togethercomputer/GPT-JT-6B-v0
     fine_tuning: false
     gated: false
     regions: []

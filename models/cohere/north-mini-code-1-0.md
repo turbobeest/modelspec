@@ -16,17 +16,17 @@ architecture:
   type: null
   total_parameters: null
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 128
+  experts_per_token: 8
+  num_layers: 49
+  hidden_size: 2048
+  intermediate_size: 768
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 32
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 262144
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: CohereLabs/North-Mini-Code-1.0
+    url: https://huggingface.co/CohereLabs/North-Mini-Code-1.0
     fine_tuning: false
     gated: false
     regions: []

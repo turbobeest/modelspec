@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 32
+  hidden_size: 2560
+  intermediate_size: 10240
   attention_type: null
   num_attention_heads: null
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 65536
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/RWKV7-Goose-World3-2.9B-HF
+    url: https://huggingface.co/RWKV/RWKV7-Goose-World3-2.9B-HF
     fine_tuning: false
     gated: false
     regions: []

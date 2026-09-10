@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/canary-qwen-2.5b
+    url: https://huggingface.co/nvidia/canary-qwen-2.5b
     fine_tuning: false
     gated: false
     regions: []

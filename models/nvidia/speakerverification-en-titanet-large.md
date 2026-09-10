@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/speakerverification_en_titanet_large
+    url: https://huggingface.co/nvidia/speakerverification_en_titanet_large
     fine_tuning: false
     gated: false
     regions: []

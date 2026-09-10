@@ -20,15 +20,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 12
+  hidden_size: 768
+  intermediate_size: 3072
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 12
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 30528
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nomic-ai/nomic-embed-text-v1
+    url: https://huggingface.co/nomic-ai/nomic-embed-text-v1
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stable-cascade
+    url: https://huggingface.co/stabilityai/stable-cascade
     fine_tuning: false
     gated: false
     regions: []

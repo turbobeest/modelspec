@@ -26,7 +26,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 30528
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nomic-ai/CodeRankEmbed
+    url: https://huggingface.co/nomic-ai/CodeRankEmbed
     fine_tuning: false
     gated: false
     regions: []

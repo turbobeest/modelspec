@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/paligemma-3b-pt-224
+    url: https://huggingface.co/google/paligemma-3b-pt-224
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: jinaai/jina-clip-v1
+    url: https://huggingface.co/jinaai/jina-clip-v1
     fine_tuning: false
     gated: false
     regions: []
