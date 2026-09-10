@@ -705,6 +705,86 @@ benchmarks:
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: DeepSeek V3 0324
+    score: 40.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: deepseek-v3-0324
+    score: 1395.69
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: DeepSeek V3 0324
+    score: 0.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: DeepSeek V3 0324
+    score: 0.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: DeepSeek V3 0324
+    score: 65.45
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: DeepSeek V3 0324
+    score: 39.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: true

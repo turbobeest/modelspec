@@ -753,6 +753,60 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals, anthropic-system-card-mythos
   benchmark_as_of: 2026-04
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Claude Opus 4.6 (max)
+    score: 78.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: claude-opus-4-6
+    score: 1497.57
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Claude Opus 4.6 (max)
+    score: 12.57
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Claude Opus 4.6 (max)
+    score: 89.6
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false

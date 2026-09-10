@@ -6,7 +6,7 @@ provider_display: DeepSeek
 family: deepseek-flash
 version: deepseek-v4-flash-vision-exp
 release_date: '2026-08-21'
-last_updated: '2026-08-21'
+last_updated: '2026-09-10'
 status: preview
 model_type: llm-reasoning
 model_subtypes: []
@@ -222,8 +222,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.14
-  output: 0.28
+  input: 0.15
+  output: 0.6
   reasoning: null
   cache_read: 0.0028
   cache_write: null
@@ -240,7 +240,11 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: DeepSeek retired V4 Flash Vision Exp; deepseek-v4-flash-vision-exp routes
+    to V4.1-Flash at $0.15/$0.60 off-peak (api-docs.deepseek.com/quick_start/pricing,
+    2026-09-10). Fireworks still lists the retired SKU at $0.22/$0.66 (docs.fireworks.ai/serverless/pricing,
+    2026-09-10). Stored $0.14/$0.28 was V4 Flash 0731's text-only price, not this
+    vision SKU.
 availability:
   primary_provider:
     name: ''
@@ -808,7 +812,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/deepseek
-  provider_docs_url: ''
+  provider_docs_url: https://api-docs.deepseek.com/quick_start/pricing
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -819,7 +823,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

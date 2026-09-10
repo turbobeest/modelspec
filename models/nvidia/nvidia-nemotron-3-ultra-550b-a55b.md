@@ -1,38 +1,44 @@
 ---
-model_id: qwen/glm-5-2
-display_name: GLM-5.2
-provider: qwen
-provider_display: Alibaba / Qwen Team
-family: glm
-version: glm-5.2
-release_date: '2026-06-13'
-last_updated: '2026-06-13'
+model_id: nvidia/nvidia-nemotron-3-ultra-550b-a55b
+display_name: NVIDIA Nemotron 3 Ultra
+provider: nvidia
+provider_display: NVIDIA
+family: nemotron
+version: 3-ultra-550b-a55b
+release_date: '2026-06-04'
+last_updated: '2026-08-24'
 status: active
 model_type: llm-reasoning
-model_subtypes: []
-tags: []
-pipeline_tag: ''
+model_subtypes:
+- llm-code
+tags:
+- text-generation
+- moe
+- latent-moe
+- hybrid-mamba
+pipeline_tag: text-generation
 architecture:
-  type: null
-  total_parameters: null
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  type: hybrid-SSM-transformer
+  total_parameters: 560524578816
+  total_parameters_source: safetensors
+  active_parameters: 55000000000
+  num_experts: 512
+  experts_per_token: 22
+  num_layers: 108
+  hidden_size: 8192
+  intermediate_size: 5120
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
-  positional_encoding: null
-  rope_theta: null
-  vocab_size: null
+  num_attention_heads: 64
+  num_kv_heads: 2
+  positional_encoding: RoPE
+  rope_theta: 10000.0
+  vocab_size: 131072
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
   precision_native: ''
   flash_attention: null
-  tie_word_embeddings: null
+  tie_word_embeddings: false
   sliding_window_size: null
   vision_encoder: ''
   vision_resolution_max: ''
@@ -42,38 +48,39 @@ architecture:
   vae_type: ''
 lineage:
   base_model: ''
-  base_model_relation: null
+  base_model_relation: original
   merge_models: []
   adapter_type: ''
   adapter_rank: null
   training_datasets: []
-  training_data_tokens: null
-  training_data_cutoff: ''
+  training_data_tokens: 20000000000000
+  training_data_cutoff: 2026-05
   training_compute_flops: null
   training_hardware: ''
   training_time: ''
   training_cost_estimate: ''
-  training_method: null
+  training_method: other
   co2_emissions_kg: null
   co2_source: ''
   energy_kwh: null
-  library_name: ''
+  library_name: transformers
 licensing:
   open_weights: true
-  license_type: null
-  license_url: ''
+  license_type: other
+  license_url: https://openmdw.ai/license/1-1/
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
-  commercial_use: null
+  commercial_use: true
   defense_use: unspecified
   government_use: unspecified
   medical_use: unspecified
   academic_use: unspecified
   geographic_restrictions: []
-  export_control_notes: ''
-  origin_country: CN
-  origin_org_type: null
+  export_control_notes: OpenMDW License Agreement, version 1.1. NVIDIA states the
+    model is ready for commercial and non-commercial use.
+  origin_country: US
+  origin_org_type: private
 modalities:
   input:
   - text
@@ -81,12 +88,12 @@ modalities:
   - text
   text:
     max_input_tokens: null
-    max_output_tokens: 131072
-    context_window: 1000000
-    streaming: null
+    max_output_tokens: null
+    context_window: 1048576
+    streaming: true
     fill_in_middle: null
-    json_mode: true
-    system_prompt: null
+    json_mode: null
+    system_prompt: true
   vision:
     supported: false
     ocr: false
@@ -179,7 +186,7 @@ capabilities:
     spatial: false
     temporal: false
     causal: false
-    think_budget_control: false
+    think_budget_control: true
   tool_use:
     overall: null
     function_calling: true
@@ -190,8 +197,8 @@ capabilities:
     tool_error_recovery: false
     computer_use: false
   language:
-    multilingual: false
-    num_languages: null
+    multilingual: true
+    num_languages: 10
     strong_languages: []
     translation_quality: null
     long_context_retrieval: null
@@ -221,11 +228,11 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 1.4
-  output: 4.4
+  input: 0.6
+  output: 2.4
   reasoning: null
-  cache_read: 0.28
-  cache_write: 0.0
+  cache_read: null
+  cache_write: null
   input_audio: null
   output_audio: null
   input_image: null
@@ -239,15 +246,17 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: USD per 1M tokens on Fireworks serverless (census pricing_fetch listed this
+    SKU as 'NVIDIA Nemotron 3 Ultra (Preview)' at $0.60 / $2.40 from docs.fireworks.ai/serverless/pricing).
+    The Hub checkpoint is the 2026-06-04 GA BF16 release, not a separate preview.
 availability:
   primary_provider:
-    name: ''
-    platform_url: ''
+    name: NVIDIA
+    platform_url: https://build.nvidia.com/
     api_endpoint: ''
     npm_package: ''
     env_vars: []
-    model_id_on_platform: ''
+    model_id_on_platform: nvidia/nemotron-3-ultra-550b-a55b
     rate_limit_rpm: null
     rate_limit_tpm: null
     sla_uptime: ''
@@ -283,9 +292,9 @@ availability:
     regions: []
     notes: ''
   nvidia_nim:
-    available: false
-    model_id: ''
-    url: https://build.nvidia.com/
+    available: true
+    model_id: nvidia/nemotron-3-ultra-550b-a55b
+    url: https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b
     fine_tuning: false
     gated: false
     regions: []
@@ -323,8 +332,8 @@ availability:
     regions: []
     notes: ''
   fireworks_ai:
-    available: false
-    model_id: ''
+    available: true
+    model_id: accounts/fireworks/models/nemotron-3-ultra-nvfp4
     url: https://fireworks.ai/
     fine_tuning: false
     gated: false
@@ -339,8 +348,8 @@ availability:
     regions: []
     notes: ''
   deepinfra:
-    available: false
-    model_id: ''
+    available: true
+    model_id: nemotron-3-ultra-550b-a55b
     url: https://deepinfra.com/
     fine_tuning: false
     gated: false
@@ -363,8 +372,8 @@ availability:
     regions: []
     notes: ''
   openrouter:
-    available: false
-    model_id: ''
+    available: true
+    model_id: nvidia/nemotron-3-ultra-550b-a55b
     url: https://openrouter.ai/
     fine_tuning: false
     gated: false
@@ -635,9 +644,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16
+    url: https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16
     fine_tuning: false
     gated: false
     regions: []
@@ -661,17 +670,84 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 79.33
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 3.14
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 29.54
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 86.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 40.28
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
 deployment:
   api_only: false
-  local_inference: false
-  self_hostable: false
+  local_inference: true
+  self_hostable: true
   fine_tuning_supported: false
   fine_tuning_methods: []
-  quantizations_available: []
+  quantizations_available:
+  - NVFP4
+  - BF16
   hardware_profiles:
     nvidia_5090_32gb:
       fits: null
@@ -723,17 +799,17 @@ deployment:
     ollama: false
     ollama_tag: ''
     lm_studio: false
-    vllm: false
+    vllm: true
     trt_llm: false
     mlx: false
     llama_cpp: false
-    sglang: false
-    transformers: false
+    sglang: true
+    transformers: true
     exllamav2: false
     core_ml: false
     onnx: false
     triton: false
-    nim: false
+    nim: true
 risk_governance:
   valid_and_reliable: ''
   safe: ''
@@ -781,8 +857,8 @@ inference_performance:
   quality_per_dollar: null
   quality_per_watt: null
 adoption:
-  huggingface_downloads: null
-  huggingface_likes: null
+  huggingface_downloads: 213329
+  huggingface_likes: 340
   ollama_pulls: null
   community_forks: null
   is_common_distillation_teacher: false
@@ -806,31 +882,27 @@ downselect:
   approval_authority: ''
   next_review_date: ''
 sources:
-  models_dev_url: https://models.dev/alibaba
-  provider_docs_url: ''
-  huggingface_url: ''
-  arxiv_url: ''
-  paper_url: ''
-  github_url: ''
+  models_dev_url: https://models.dev
+  provider_docs_url: https://research.nvidia.com/labs/nemotron/Nemotron-3-Ultra/
+  huggingface_url: https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16
+  arxiv_url: https://arxiv.org/abs/2606.15007
+  paper_url: https://research.nvidia.com/labs/nemotron/files/NVIDIA-Nemotron-3-Ultra-Technical-Report.pdf
+  github_url: https://github.com/NVIDIA-NeMo/Nemotron
   ollama_url: ''
   artificial_analysis_url: ''
   arena_url: ''
-  last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_models_dev: '2026-09-10'
+  last_scraped_huggingface: '2026-09-10'
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
-card_author: models.dev-seeder
-card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_author: modelspec
+card_created: '2026-09-10'
+card_updated: '2026-09-10'
 ---
 
-# GLM-5.2
+# NVIDIA Nemotron 3 Ultra
 
-GLM-5.2 is a Llm Reasoning model from Alibaba / Qwen Team. Part of the glm family.
+NVIDIA's Nemotron 3 flagship, Hub-released 2026-06-04. Post-trained BF16: [nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16). LatentMoE hybrid Mamba-2 + MoE + attention with MTP. Marketed as 550B total / 55B active; Hub safetensors total 560,524,578,816. OpenMDW 1.1. Context up to 1M tokens. The census pricing row named this "NVIDIA Nemotron 3 Ultra (Preview)"; the published checkpoint is the June 2026 GA weights, not a lingering preview SKU. NVFP4 and Base BF16 are quants / the base, not extra cards.
 
-## Key Features
-- Extended reasoning / chain-of-thought
-- Function calling / tool use
-- Structured output (JSON mode)
-- Open weights
+Nemotron 3 Nano and Super are already carded. Live AA ranked components from 2026-09-10 are attached. The Arena NVFP4 row is a serving quant and was not attached.

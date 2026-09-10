@@ -13,13 +13,21 @@ from pydantic import ValidationError
 
 from scripts.fetch_total_parameters import (  # noqa: E402
     already_decided,
+    candidate_repo_ids,
     decide_total,
     extract_safetensors_total,
     is_name_parsed_total,
     published_total_from_readme,
 )
+from schema.card import (  # noqa: E402
+    Architecture,
+    Availability,
+    Identity,
+    Licensing,
+    ModelCard,
+    PlatformEntry,
+)
 from scripts.seed_huggingface import extract_params  # noqa: E402
-from schema.card import Architecture  # noqa: E402
 
 MIXTRAL_ID = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 MIXTRAL_SAFETENSORS = {
@@ -85,10 +93,12 @@ def test_decide_nulls_when_active_exceeds_unverified_total() -> None:
     assert decision.action == "null"
 
 
-def test_decide_keeps_unverified_non_name_parsed() -> None:
+def test_decide_nulls_unverified_legacy_total() -> None:
+    """A Hub miss is not a reason to keep a figure nobody sourced."""
     decision = decide_total(52_000_000_000, None, "", False, None)
-    assert decision.action == "keep"
-    assert decision.value == 52_000_000_000
+    assert decision.action == "null"
+    assert decision.value is None
+    assert decision.reason == "unverified_legacy"
 
 
 def test_decide_keeps_null_when_there_is_no_source() -> None:
@@ -165,6 +175,71 @@ def test_architecture_allows_null_total_with_active() -> None:
 def test_architecture_allows_null_active_with_total() -> None:
     arch = Architecture(total_parameters=46_702_792_704, active_parameters=None)
     assert arch.total_parameters == 46_702_792_704
+
+
+def test_published_total_bert_style_million_parameters() -> None:
+    text = (
+        "BioMed-RoBERTa is a 125 million parameter model trained on "
+        "biomedical literature.\n"
+    )
+    value, why = published_total_from_readme(text, "allenai/biomed_roberta_base")
+    assert value == 125_000_000
+    assert why == "prose_parameters"
+
+
+def test_published_total_ignores_active_window_in_last_resort() -> None:
+    text = "The router activates 3 billion parameters per token.\n"
+    assert published_total_from_readme(text, "example/moe") is None
+
+
+def test_candidate_repo_ids_prefers_huggingface_model_id() -> None:
+    card = ModelCard(
+        identity=Identity(
+            model_id="allen-ai/biomed-roberta-base",
+            display_name="BioMed RoBERTa",
+            provider="allen-ai",
+        ),
+        availability=Availability(
+            huggingface=PlatformEntry(
+                available=True,
+                model_id="allenai/biomed_roberta_base",
+                url="https://huggingface.co/allenai/biomed_roberta_base",
+            )
+        ),
+    )
+    assert candidate_repo_ids(card)[0] == "allenai/biomed_roberta_base"
+
+
+def test_candidate_repo_ids_strips_gguf_sibling() -> None:
+    card = ModelCard(
+        identity=Identity(
+            model_id="ai21/jamba-gguf",
+            display_name="Jamba GGUF",
+            provider="ai21",
+        ),
+        availability=Availability(
+            huggingface=PlatformEntry(
+                available=True,
+                model_id="ai21labs/AI21-Jamba-Reasoning-3B-GGUF",
+            )
+        ),
+    )
+    ids = candidate_repo_ids(card)
+    assert ids[0] == "ai21labs/AI21-Jamba-Reasoning-3B-GGUF"
+    assert "ai21labs/AI21-Jamba-Reasoning-3B" in ids
+
+
+def test_candidate_repo_ids_constructs_zhipu_alias_for_misfiled_zai() -> None:
+    card = ModelCard(
+        identity=Identity(
+            model_id="mistral/zai-glm-5-2",
+            display_name="GLM-5.2",
+            provider="mistral",
+        ),
+        licensing=Licensing(open_weights=True),
+    )
+    ids = candidate_repo_ids(card)
+    assert "zai-org/GLM-5.2" in ids
 
 
 def test_architecture_allows_active_equal_or_below_total() -> None:

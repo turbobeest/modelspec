@@ -693,6 +693,47 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: claude-3-7-sonnet-20250219
+    score: 1371.9
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Claude 3.7 Sonnet
+    score: 0.86
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Claude 3.7 Sonnet
+    score: 77.17
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false

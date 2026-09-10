@@ -6,7 +6,7 @@ provider_display: Alibaba / Qwen Team
 family: qwen
 version: qwen3.6-plus
 release_date: '2026-04-02'
-last_updated: '2026-04-02'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -223,8 +223,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.276
-  output: 1.651
+  input: 0.5
+  output: 3.0
   reasoning: null
   cache_read: 0.028
   cache_write: 0.344
@@ -241,7 +241,11 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: Alibaba Cloud Model Studio international (Singapore) list $0.50/$3.00 per
+    1M at ≤256K input, $2.00/$6.00 above (alibabacloud.com/help/en/model-studio/model-pricing,
+    2026-09-10). Together serverless matches the international ≤256K row. China (Beijing)
+    list is $0.276/$1.651 at ≤256K — the stored figure. Canonical here is the international
+    USD list.
 availability:
   primary_provider:
     name: ''
@@ -663,6 +667,73 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Qwen3.6 Plus
+    score: 78.33
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: qwen3.6-plus
+    score: 1443.74
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Qwen3.6 Plus
+    score: 2.86
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Qwen3.6 Plus
+    score: 28.29
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Qwen3.6 Plus
+    score: 88.18
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false
@@ -805,7 +876,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/alibaba
-  provider_docs_url: ''
+  provider_docs_url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -816,7 +887,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

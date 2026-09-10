@@ -280,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
         "graph": graph_counts,
         "ranking": ranking_counts,
         "commit": build.commit[:12],
+        "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
         "benchgraph_urls": len(bg_paths),
     }

@@ -1,0 +1,38 @@
+{
+ "after": {
+  "bandwidth_efficiency": 0.7,
+  "devices": 40,
+  "edges": 30971,
+  "edges_with_max_context": 21464,
+  "models_considered": 910,
+  "models_fitting_somewhere": 895,
+  "skipped_closed_weights": 247,
+  "skipped_no_parameter_count": 180,
+  "used_active_parameters": 113,
+  "working_allowance": 0.25
+ },
+ "before": {
+  "bandwidth_efficiency": 0.7,
+  "devices": 40,
+  "edges": 32001,
+  "edges_with_max_context": 21009,
+  "models_considered": 908,
+  "models_fitting_somewhere": 896,
+  "skipped_closed_weights": 239,
+  "skipped_no_parameter_count": 89,
+  "used_active_parameters": 102,
+  "working_allowance": 0.25
+ },
+ "delta": {
+  "bandwidth_efficiency": 0.0,
+  "devices": 0,
+  "edges": -1030,
+  "edges_with_max_context": 455,
+  "models_considered": 2,
+  "models_fitting_somewhere": -1,
+  "skipped_closed_weights": 8,
+  "skipped_no_parameter_count": 91,
+  "used_active_parameters": 11,
+  "working_allowance": 0.0
+ }
+}

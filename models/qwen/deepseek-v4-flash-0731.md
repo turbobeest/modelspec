@@ -2,11 +2,11 @@
 model_id: qwen/deepseek-v4-flash-0731
 display_name: DeepSeek V4 Flash 0731
 provider: qwen
-provider_display: Alibaba / Qwen Team
+provider_display: DeepSeek
 family: deepseek-flash
 version: deepseek-v4-flash-0731
 release_date: '2026-07-31'
-last_updated: '2026-07-31'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 304180418494
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null
@@ -221,8 +222,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.2
-  output: 0.4
+  input: 0.14
+  output: 0.28
   reasoning: null
   cache_read: 0.04
   cache_write: null
@@ -239,7 +240,12 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: Context 1,000,000 from DeepSeek API docs (api-docs.deepseek.com, 1M standard,
+    2026-09-10). Together serverless lists 1048576 for deepseek-ai/DeepSeek-V4-Flash-0731
+    (docs.together.ai, 2026-09-10). Prices $0.14/$0.28 from Together's row for that
+    dated checkpoint; Fireworks lists the same 0731 SKU at $0.22/$0.66. DeepSeek's
+    live API has retired this snapshot and routes deepseek-v4-flash to V4.1-Flash
+    at $0.15/$0.60 off-peak as of 2026-09-10.
 availability:
   primary_provider:
     name: ''
@@ -635,9 +641,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: deepseek-ai/DeepSeek-V4-Flash-0731
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731
     fine_tuning: false
     gated: false
     regions: []
@@ -661,7 +667,72 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: DeepSeek V4 Flash 0731 (max)
+    score: 79.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: DeepSeek V4 Flash 0731 (max)
+    score: 16.57
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: DeepSeek V4 Flash 0731 (max)
+    score: 48.39
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: DeepSeek V4 Flash 0731 (max)
+    score: 90.81
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: DeepSeek V4 Flash 0731 (max)
+    score: 50.35
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -807,8 +878,8 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/alibaba
-  provider_docs_url: ''
-  huggingface_url: ''
+  provider_docs_url: https://api-docs.deepseek.com/quick_start/pricing
+  huggingface_url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -818,7 +889,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
@@ -827,7 +898,7 @@ card_updated: '2026-04-05'
 
 # DeepSeek V4 Flash 0731
 
-DeepSeek V4 Flash 0731 is a Llm Reasoning model from Alibaba / Qwen Team. Part of the deepseek-flash family. Knowledge cutoff: 2025-05.
+DeepSeek V4 Flash 0731 is a Llm Reasoning model from DeepSeek. Part of the deepseek-flash family. Knowledge cutoff: 2025-05.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

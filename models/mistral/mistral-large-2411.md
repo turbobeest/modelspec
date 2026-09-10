@@ -17,7 +17,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 123000000000
+  total_parameters: null
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -43,6 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: ''
 lineage:
   base_model: ''
   base_model_relation: null
@@ -723,10 +724,37 @@ benchmarks:
     toxigen: 86.2
     wildbench: 65.8
     medqa: 81.5
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,, domain-evals
-    open-llm-leaderboard-v2
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,,
+    domain-evals open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: critpt
+    model_id_as_evaluated: Mistral Large 2 (Nov)
+    score: 0.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Mistral Large 2 (Nov)
+    score: 48.59
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false

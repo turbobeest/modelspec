@@ -42,6 +42,7 @@ from scripts.fetch_geometry import (  # noqa: E402
     fetch_readme,
     repo_id_of,
 )
+from scripts.resolve_huggingface import ORG_ALIASES  # noqa: E402
 
 MODEL_INFO_URL = "https://huggingface.co/api/models/{repo_id}?blobs=true"
 
@@ -176,6 +177,39 @@ def published_total_from_readme(
     self_total = _self_total_token(plain, slug)
     if not votes and self_total:
         return self_total, "size_token_total"
+
+    # Older Hub cards say "125 million parameters" without the word "total".
+    # Only accept a unique hit, and never one whose window mentions active.
+    if not votes:
+        extra: dict[int, str] = {}
+        extra_patterns = (
+            r"(?:is a|has|contains|with)\s+"
+            + _NUM
+            + r"\s*("
+            + _UNIT
+            + r")\s+parameters?",
+            r"(?:is a|has|contains|with)\s+"
+            + _NUM
+            + r"\s*(billion|million|trillion)\s+"
+            r"(?:parameter\s+)?(?:language\s+)?model",
+            _NUM + r"\s*(billion|million)\s+parameters?(?:\s|[.,;]|$)",
+            r"(?:^|\n)\s*(?:#+\s*)?(?:total\s+)?parameters?\s*[:=]\s*"
+            + _NUM
+            + r"\s*("
+            + _UNIT
+            + r")",
+        )
+        for pattern in extra_patterns:
+            for match in re.finditer(pattern, plain, flags=re.I):
+                window = plain[max(0, match.start() - 48) : match.end() + 48]
+                if re.search(r"activ", window, re.I):
+                    continue
+                parsed = _params_from_num_unit(match.group(1), match.group(2))
+                if parsed:
+                    extra[parsed] = "prose_parameters"
+        if len(extra) == 1:
+            value, why = next(iter(extra.items()))
+            return value, why
     return None
 
 
@@ -255,7 +289,7 @@ def decide_total(
     name_parsed: bool,
     active: int | None,
 ) -> TotalDecision:
-    """Prefer an exact Hub count; never keep a name-parsed guess."""
+    """Prefer an exact Hub count; never keep an unsourced total."""
     if fetched is not None:
         if existing == fetched:
             return TotalDecision("write", fetched, fetched_source, "already_matches")
@@ -268,6 +302,11 @@ def decide_total(
         and active > existing
     ):
         return TotalDecision("null", None, "", "active_exceeds_unverified_total")
+    if existing is not None:
+        # A Hub miss (or no repo) is not evidence the stored figure is right.
+        # Name-parsed leftovers and other legacy fills both produce false
+        # FITS_ON edges; a null is skipped, a wrong total is not.
+        return TotalDecision("null", None, "", "unverified_legacy")
     return TotalDecision("keep", existing, "", "no_source")
 
 
@@ -295,6 +334,79 @@ def _names_for(card: ModelCard, path: Path, repo_id: str) -> tuple[str, ...]:
         repo_id,
         card.availability.huggingface.model_id or "",
     )
+
+
+def _normalise_repo_id(raw: str) -> str:
+    rid = (raw or "").strip()
+    for prefix in ("https://huggingface.co/", "http://huggingface.co/"):
+        if rid.startswith(prefix):
+            rid = rid[len(prefix) :]
+    rid = rid.split("?")[0].strip("/")
+    parts = [p for p in rid.split("/") if p]
+    if len(parts) < 2:
+        return ""
+    return f"{parts[0]}/{parts[1]}"
+
+
+def _gguf_sibling(repo_id: str) -> str:
+    """The non-GGUF repo a GGUF card is converted from, if the name says so."""
+    if not repo_id:
+        return ""
+    org, _, name = repo_id.partition("/")
+    if not name:
+        return ""
+    stripped = re.sub(r"-gguf$", "", name, flags=re.I).rstrip("-_")
+    if stripped == name:
+        return ""
+    return f"{org}/{stripped}"
+
+
+def candidate_repo_ids(card: ModelCard) -> list[str]:
+    """Hub repos to try, in order. Empty means there is no address to fetch.
+
+    `availability.huggingface.model_id` first. A GGUF id also tries its
+    sibling without the suffix. When the card has no Hub id at all, a single
+    org-alias construction is attempted rather than leaving the total as a
+    legacy fill.
+    """
+    seen: list[str] = []
+
+    def add(raw: str) -> None:
+        rid = _normalise_repo_id(raw)
+        if rid and rid not in seen:
+            seen.append(rid)
+
+    add(repo_id_of(card))
+    add(card.availability.huggingface.model_id or "")
+    add(card.availability.huggingface.url or "")
+    add(card.sources.huggingface_url or "")
+    for rid in list(seen):
+        add(_gguf_sibling(rid))
+
+    if seen:
+        return seen
+    if not card.licensing.open_weights:
+        return seen
+
+    org = ORG_ALIASES.get(card.identity.provider, "")
+    suffix = card.identity.model_id.split("/", 1)[-1]
+    if org and suffix:
+        add(f"{org}/{suffix}")
+        dotted = re.sub(r"(\d)-(\d)", r"\1.\2", suffix, count=1)
+        if dotted != suffix:
+            add(f"{org}/{dotted}")
+    # z.ai models misfiled under another provider still carry zai-glm-* .
+    if suffix.startswith("zai-glm-") or suffix.startswith("zai-"):
+        rest = re.sub(r"^zai-", "", suffix)
+        rest = rest.replace("glm-", "GLM-")
+        rest = re.sub(r"(\d)-(\d)", r"\1.\2", rest, count=1)
+        add(f"zai-org/{rest}")
+    if suffix.startswith("deepseek-"):
+        add(f"deepseek-ai/{suffix}")
+        dotted = re.sub(r"(\d)-(\d)", r"\1.\2", suffix, count=1)
+        if dotted != suffix:
+            add(f"deepseek-ai/{dotted}")
+    return seen
 
 
 def _resolve_total(
@@ -380,13 +492,21 @@ def main(argv: list[str] | None = None) -> int:
         "--limit", type=int, default=0, help="only the first N cards"
     )
     parser.add_argument(
+        "--skip",
+        action="append",
+        default=[],
+        help="model_id to leave untouched (repeatable)",
+    )
+    parser.add_argument(
         "--report", default="benchmarks/_census/total_parameters.json"
     )
     args = parser.parse_args(argv)
+    skip_ids = {item.strip() for item in args.skip if item.strip()}
 
-    targets: list[tuple[Path, ModelCard, str]] = []
+    targets: list[tuple[Path, ModelCard, list[str]]] = []
     no_repo: list[tuple[Path, ModelCard]] = []
     unreadable = 0
+    skipped_held = 0
     for path in _card_paths():
         try:
             card = ModelCard.from_yaml_file(path)
@@ -394,9 +514,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  SKIP unreadable {path.relative_to(PROJECT_ROOT)}: {exc}")
             unreadable += 1
             continue
-        repo_id = repo_id_of(card)
-        if repo_id:
-            targets.append((path, card, repo_id))
+        if card.identity.model_id in skip_ids:
+            skipped_held += 1
+            continue
+        repo_ids = candidate_repo_ids(card)
+        if repo_ids:
+            targets.append((path, card, repo_ids))
         else:
             no_repo.append((path, card))
 
@@ -414,8 +537,8 @@ def main(argv: list[str] | None = None) -> int:
     out = PROJECT_ROOT / args.report
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    pending: list[tuple[Path, ModelCard, str]] = []
-    for path, card, repo_id in targets:
+    pending: list[tuple[Path, ModelCard, list[str]]] = []
+    for path, card, repo_ids in targets:
         source = card.architecture.total_parameters_source
         if already_decided(source):
             skipped_decided += 1
@@ -424,10 +547,10 @@ def main(argv: list[str] | None = None) -> int:
                 "existing": card.architecture.total_parameters,
                 "source": source,
                 "reason": "resume",
-                "repo_id": repo_id,
+                "repo_id": repo_ids[0],
             }
         else:
-            pending.append((path, card, repo_id))
+            pending.append((path, card, repo_ids))
     if args.limit:
         pending = pending[: args.limit]
 
@@ -452,6 +575,7 @@ def main(argv: list[str] | None = None) -> int:
             "considered_with_repo": len(targets),
             "considered_without_repo": len(no_repo),
             "pending_with_repo": len(pending),
+            "skipped_held": skipped_held,
             "unreadable": unreadable,
             "skipped_already_decided": skipped_decided,
             "written": written,
@@ -477,14 +601,36 @@ def main(argv: list[str] | None = None) -> int:
     with httpx.Client(
         timeout=30, follow_redirects=True, headers=_hf_headers()
     ) as client:
-        for index, (path, card, repo_id) in enumerate(pending, 1):
+        for index, (path, card, repo_ids) in enumerate(pending, 1):
             model_id = card.identity.model_id
             existing = card.architecture.total_parameters
             active = card.architecture.active_parameters
             name_parsed = is_name_parsed_total(
-                existing, *_names_for(card, path, repo_id)
+                existing, *_names_for(card, path, repo_ids[0])
             )
-            fetched, source, trail = _resolve_total(client, repo_id, card)
+            fetched = None
+            source = ""
+            trail: dict[str, Any] = {"repo_ids": repo_ids}
+            saw_miss = False
+            saw_error = False
+            for repo_id in repo_ids:
+                one, one_source, one_trail = _resolve_total(client, repo_id, card)
+                trail = {**trail, **one_trail, "repo_id": repo_id}
+                if one_source == "rate_limited":
+                    source = "rate_limited"
+                    break
+                if one is not None:
+                    fetched, source = one, one_source
+                    break
+                if one_source == "error":
+                    saw_error = True
+                else:
+                    saw_miss = True
+            else:
+                if saw_miss:
+                    source = ""
+                elif saw_error:
+                    source = "error"
             if source == "rate_limited":
                 rate_limited += 1
                 errors.append({"model_id": model_id, "detail": "rate-limited"})

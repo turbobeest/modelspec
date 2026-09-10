@@ -6,7 +6,7 @@ provider_display: Alibaba / Qwen Team
 family: qwen
 version: ''
 release_date: '2026-02-27'
-last_updated: ''
+last_updated: '2026-09-10'
 status: active
 model_type: vlm
 model_subtypes: []
@@ -85,7 +85,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: null
-    context_window: 131072
+    context_window: 262144
     streaming: null
     fill_in_middle: null
     json_mode: null
@@ -224,8 +224,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.1
-  output: 0.3
+  input: 0.17
+  output: 0.25
   reasoning: null
   cache_read: null
   cache_write: null
@@ -242,7 +242,11 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: Estimated inference cost on popular platforms ($/M tokens)
+  note: Context 262,144 native from Qwen/Qwen3.5-9B model card (huggingface.co/Qwen/Qwen3.5-9B,
+    2026-09-10); stored 131072 was the previous Qwen3 default. Alibaba Cloud Model
+    Studio has no first-party price row for this open-weight SKU. Together serverless
+    $0.17/$0.25 (docs.together.ai/docs/serverless-models, 2026-09-10). DeepInfra/OpenRouter
+    commonly $0.10/$0.15.
 availability:
   primary_provider:
     name: ''
@@ -664,6 +668,59 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Qwen3.5 9B
+    score: 70.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Qwen3.5 9B
+    score: 0.29
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Qwen3.5 9B
+    score: 4.42
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Qwen3.5 9B
+    score: 80.61
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: true
@@ -806,7 +863,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: ''
-  provider_docs_url: ''
+  provider_docs_url: https://huggingface.co/Qwen/Qwen3.5-9B
   huggingface_url: https://huggingface.co/Qwen/Qwen3.5-9B
   arxiv_url: ''
   paper_url: ''
@@ -817,7 +874,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: '2026-04-05'
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

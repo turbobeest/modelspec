@@ -8,6 +8,10 @@ database.
 This module downloads the versioned export from modelspec.dev, caches it, and
 answers from the cache. No credential, no account, no network once fetched.
 
+The pin identity is `build.commit` plus `build.export_schema_version`. The
+latter is the published JSON tree, not the CLI `--json` envelope
+(`offline.SCHEMA_VERSION`) and not `rankings.json`'s `schema_version`.
+
 The continuity rule matters more than freshness: an answer from a snapshot three
 weeks old, clearly labelled as three weeks old, is far more useful than an error.
 Callers are told the age and decide for themselves.
@@ -38,6 +42,11 @@ PARTS = {
 #: Model releases move weekly, so a month-old snapshot is a different world.
 STALE_AFTER_DAYS = 30
 
+#: Major.minor of `build.export_schema_version` this CLI will consume.
+#: Must match `pipeline.export.EXPORT_SCHEMA_VERSION`. A different major is
+#: refused so a breaking export cannot be ranked as if it were the old shape.
+EXPORT_SCHEMA_VERSION = "1.0"
+
 
 def cache_dir() -> Path:
     """Respects XDG, so a user can point it somewhere else or clear it."""
@@ -56,6 +65,7 @@ class Snapshot:
     build_commit: str
     build_at: str
     data: dict[str, Any]
+    export_schema_version: str = EXPORT_SCHEMA_VERSION
 
     @property
     def age_days(self) -> float:
@@ -75,6 +85,7 @@ class Snapshot:
             "origin": self.origin,
             "build_commit": self.build_commit,
             "built_at": self.build_at,
+            "export_schema_version": self.export_schema_version,
         }
 
 
@@ -84,6 +95,80 @@ class SnapshotMissing(RuntimeError):  # noqa: N818 - public compatibility name
 
 class SnapshotInvalid(RuntimeError):  # noqa: N818 - follows SnapshotMissing naming
     """A snapshot exists but cannot be read or does not have the export shape."""
+
+
+def _export_schema_major(version: str) -> int:
+    head = str(version).strip().split(".", 1)[0]
+    if not head.isdigit():
+        raise ValueError(
+            f"export_schema_version {version!r} is not a dotted major.minor version"
+        )
+    return int(head)
+
+
+def _declared_export_schema_version(data: dict[str, Any]) -> str:
+    """Read the tree version from index.build.
+
+    Exports from before this field existed are the current 1.x shape, so a
+    missing value is 1.0 rather than an error.
+    """
+    index = data.get("index")
+    build = index.get("build") if isinstance(index, dict) else None
+    if not isinstance(build, dict):
+        return EXPORT_SCHEMA_VERSION
+    raw = build.get("export_schema_version")
+    if raw is None:
+        return EXPORT_SCHEMA_VERSION
+    return str(raw)
+
+
+def _require_compatible_export_schema(version: str) -> str:
+    try:
+        major = _export_schema_major(version)
+    except ValueError as exc:
+        raise SnapshotInvalid(str(exc)) from exc
+    expected = _export_schema_major(EXPORT_SCHEMA_VERSION)
+    if major != expected:
+        raise SnapshotInvalid(
+            f"export_schema_version {version} is incompatible with this CLI "
+            f"(expected {expected}.x). That field is the published JSON tree, "
+            "not the CLI --json envelope schema_version."
+        )
+    return version
+
+
+def _snapshot_from_raw(path: Path, raw: Any) -> Snapshot:
+    if not isinstance(raw, dict):
+        raise ValueError("top-level JSON value must be an object")
+    meta = raw["meta"]
+    data = raw["data"]
+    if not isinstance(meta, dict) or not isinstance(data, dict):
+        raise ValueError("meta and data must be objects")
+    for key in ("fetched_at", "origin", "build_commit", "built_at"):
+        if key not in meta:
+            raise ValueError(f"meta is missing {key!r}")
+    for key in ("index", "candidates", "profiles", "hardware"):
+        if key not in data or not isinstance(data[key], dict):
+            raise ValueError(f"data is missing object {key!r}")
+    if not isinstance(data["candidates"].get("candidates"), list):
+        raise ValueError("data.candidates.candidates must be a list")
+    if not isinstance(data["profiles"].get("profiles"), dict):
+        raise ValueError("data.profiles.profiles must be an object")
+    if not isinstance(data["hardware"].get("nodes"), list):
+        raise ValueError("data.hardware.nodes must be a list")
+    fetched_at = datetime.fromisoformat(str(meta["fetched_at"]))
+    if fetched_at.tzinfo is None:
+        raise ValueError("meta.fetched_at must include a timezone")
+    version = _require_compatible_export_schema(_declared_export_schema_version(data))
+    return Snapshot(
+        path=path,
+        fetched_at=fetched_at,
+        origin=str(meta["origin"]),
+        build_commit=str(meta["build_commit"]),
+        build_at=str(meta["built_at"]),
+        data=data,
+        export_schema_version=version,
+    )
 
 
 def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
@@ -106,11 +191,20 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
         "build_commit": build.get("commit", "unknown"),
         "built_at": build.get("built_at", "unknown"),
     }
-    # Write to a temporary name and move, so an interrupted fetch cannot leave a
-    # half-written snapshot that later reads as valid.
+    raw = {"meta": meta, "data": payload}
+    final = directory / "snapshot.json"
+    # Validate before replacing the cache, so a bad fetch cannot clobber a
+    # snapshot that still answers.
+    try:
+        parsed = _snapshot_from_raw(final, raw)
+    except SnapshotInvalid:
+        raise
+    except (TypeError, ValueError, KeyError) as exc:
+        raise SnapshotInvalid(f"fetched export is unreadable or invalid: {exc}") from exc
+    raw["meta"]["export_schema_version"] = parsed.export_schema_version
     tmp = directory / f".snapshot.{os.getpid()}.tmp"
-    tmp.write_text(json.dumps({"meta": meta, "data": payload}), encoding="utf-8")
-    tmp.replace(directory / "snapshot.json")
+    tmp.write_text(json.dumps(raw), encoding="utf-8")
+    tmp.replace(final)
     return load(directory)
 
 
@@ -126,35 +220,7 @@ def load(directory: Path | None = None) -> Snapshot:
         if not path.is_file():
             raise ValueError("snapshot.json is not a regular file")
         raw = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(raw, dict):
-            raise ValueError("top-level JSON value must be an object")
-        meta = raw["meta"]
-        data = raw["data"]
-        if not isinstance(meta, dict) or not isinstance(data, dict):
-            raise ValueError("meta and data must be objects")
-        for key in ("fetched_at", "origin", "build_commit", "built_at"):
-            if key not in meta:
-                raise ValueError(f"meta is missing {key!r}")
-        for key in ("index", "candidates", "profiles", "hardware"):
-            if key not in data or not isinstance(data[key], dict):
-                raise ValueError(f"data is missing object {key!r}")
-        if not isinstance(data["candidates"].get("candidates"), list):
-            raise ValueError("data.candidates.candidates must be a list")
-        if not isinstance(data["profiles"].get("profiles"), dict):
-            raise ValueError("data.profiles.profiles must be an object")
-        if not isinstance(data["hardware"].get("nodes"), list):
-            raise ValueError("data.hardware.nodes must be a list")
-        fetched_at = datetime.fromisoformat(str(meta["fetched_at"]))
-        if fetched_at.tzinfo is None:
-            raise ValueError("meta.fetched_at must include a timezone")
-        return Snapshot(
-            path=path,
-            fetched_at=fetched_at,
-            origin=str(meta["origin"]),
-            build_commit=str(meta["build_commit"]),
-            build_at=str(meta["built_at"]),
-            data=data,
-        )
+        return _snapshot_from_raw(path, raw)
     except SnapshotInvalid:
         raise
     except (OSError, UnicodeError, TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:

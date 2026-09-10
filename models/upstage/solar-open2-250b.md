@@ -1,32 +1,34 @@
 ---
-model_id: mistral/zai-glm-5-2
-display_name: GLM-5.2
-provider: mistral
-provider_display: Mistral AI
-family: glm
-version: zai-glm-5-2
-release_date: '2026-06-13'
-last_updated: '2026-06-13'
+model_id: upstage/solar-open2-250b
+display_name: Solar Open2 250B
+provider: upstage
+provider_display: Upstage
+family: solar
+version: solar-open2-250b
+release_date: '2026-07-22'
+last_updated: '2026-07-31'
 status: active
-model_type: llm-reasoning
+model_type: llm-chat
 model_subtypes: []
-tags: []
-pipeline_tag: ''
+tags:
+- text-generation
+pipeline_tag: text-generation
 architecture:
-  type: null
-  total_parameters: null
+  type: MoE
+  total_parameters: 250287810304
+  total_parameters_source: safetensors
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
-  attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
-  positional_encoding: null
-  rope_theta: null
-  vocab_size: null
+  num_experts: 320
+  experts_per_token: 8
+  num_layers: 48
+  hidden_size: 4096
+  intermediate_size: 10240
+  attention_type: GQA
+  num_attention_heads: 64
+  num_kv_heads: 8
+  positional_encoding: RoPE
+  rope_theta: 10000.0
+  vocab_size: 196608
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -42,7 +44,7 @@ architecture:
   vae_type: ''
 lineage:
   base_model: ''
-  base_model_relation: null
+  base_model_relation: original
   merge_models: []
   adapter_type: ''
   adapter_rank: null
@@ -57,10 +59,10 @@ lineage:
   co2_emissions_kg: null
   co2_source: ''
   energy_kwh: null
-  library_name: ''
+  library_name: transformers
 licensing:
   open_weights: true
-  license_type: null
+  license_type: other
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -72,8 +74,8 @@ licensing:
   academic_use: unspecified
   geographic_restrictions: []
   export_control_notes: ''
-  origin_country: FR
-  origin_org_type: null
+  origin_country: KR
+  origin_org_type: private
 modalities:
   input:
   - text
@@ -81,11 +83,11 @@ modalities:
   - text
   text:
     max_input_tokens: null
-    max_output_tokens: 131072
-    context_window: 1000000
+    max_output_tokens: null
+    context_window: 1048576
     streaming: null
     fill_in_middle: null
-    json_mode: true
+    json_mode: null
     system_prompt: null
   vision:
     supported: false
@@ -174,7 +176,7 @@ capabilities:
     scientific: false
     planning: false
     multi_step: false
-    chain_of_thought: true
+    chain_of_thought: false
     self_correction: false
     spatial: false
     temporal: false
@@ -182,7 +184,7 @@ capabilities:
     think_budget_control: false
   tool_use:
     overall: null
-    function_calling: true
+    function_calling: false
     mcp_compatible: false
     parallel_tool_calls: false
     tool_selection_accuracy: null
@@ -221,10 +223,10 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 1.4
-  output: 4.4
+  input: null
+  output: null
   reasoning: null
-  cache_read: 0.14
+  cache_read: null
   cache_write: null
   input_audio: null
   output_audio: null
@@ -242,12 +244,12 @@ cost:
   note: ''
 availability:
   primary_provider:
-    name: ''
-    platform_url: ''
+    name: Upstage
+    platform_url: https://huggingface.co/upstage/Solar-Open2-250B
     api_endpoint: ''
     npm_package: ''
     env_vars: []
-    model_id_on_platform: ''
+    model_id_on_platform: upstage/Solar-Open2-250B
     rate_limit_rpm: null
     rate_limit_tpm: null
     sla_uptime: ''
@@ -635,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: upstage/Solar-Open2-250B
+    url: https://huggingface.co/upstage/Solar-Open2-250B
     fine_tuning: false
     gated: false
     regions: []
@@ -661,14 +663,79 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Solar Open2 250B
+    score: 71.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Solar Open2 250B
+    score: 5.71
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Solar Open2 250B
+    score: 27.64
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Solar Open2 250B
+    score: 85.66
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: Solar Open2 250B
+    score: 48.03
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
 deployment:
   api_only: false
-  local_inference: false
-  self_hostable: false
+  local_inference: true
+  self_hostable: true
   fine_tuning_supported: false
   fine_tuning_methods: []
   quantizations_available: []
@@ -723,12 +790,12 @@ deployment:
     ollama: false
     ollama_tag: ''
     lm_studio: false
-    vllm: false
+    vllm: true
     trt_llm: false
     mlx: false
     llama_cpp: false
     sglang: false
-    transformers: false
+    transformers: true
     exllamav2: false
     core_ml: false
     onnx: false
@@ -781,8 +848,8 @@ inference_performance:
   quality_per_dollar: null
   quality_per_watt: null
 adoption:
-  huggingface_downloads: null
-  huggingface_likes: null
+  huggingface_downloads: 13725
+  huggingface_likes: 754
   ollama_pulls: null
   community_forks: null
   is_common_distillation_teacher: false
@@ -806,9 +873,9 @@ downselect:
   approval_authority: ''
   next_review_date: ''
 sources:
-  models_dev_url: https://models.dev/mistral
+  models_dev_url: ''
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/upstage/Solar-Open2-250B
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -816,21 +883,15 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-10'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
-card_author: models.dev-seeder
-card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_author: modelspec
+card_created: '2026-09-10'
+card_updated: '2026-09-10'
 ---
 
-# GLM-5.2
+# Solar Open2 250B
 
-GLM-5.2 is a Llm Reasoning model from Mistral AI. Part of the glm family.
-
-## Key Features
-- Extended reasoning / chain-of-thought
-- Function calling / tool use
-- Structured output (JSON mode)
-- Open weights
+Carded from Hugging Face Hub [upstage/Solar-Open2-250B](https://huggingface.co/upstage/Solar-Open2-250B) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 250,287,810,304. No benchmark evidence attached.

@@ -291,6 +291,17 @@ def test_classify_skips_non_token_tables() -> None:
     assert classify_table(["Model", "Standard", "Priority"]) == "fireworks_standard"
 
 
+def test_glm_5_2_slug_is_unambiguous_in_the_catalogue() -> None:
+    """A z.ai model filed under mistral or qwen made glm-5-2 unusable."""
+    from scripts.fetch_pricing import build_card_indexes, load_cards
+
+    _index, ambiguous = build_card_indexes(load_cards())
+    assert "glm-5-2" not in ambiguous
+    glm = [c for c in load_cards() if c.suffix == "glm-5-2" or "glm-5-2" in c.model_id]
+    assert len(glm) == 1
+    assert glm[0].model_id == "zhipu/glm-5-2"
+
+
 def test_write_round_trips_through_model_card(tmp_path: Path) -> None:
     from schema.card import ModelCard
 

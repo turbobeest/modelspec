@@ -15,7 +15,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 3000000000000
+  total_parameters: null
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: ''
 lineage:
   base_model: ''
   base_model_relation: null
@@ -691,6 +692,21 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: grok-4.20-multi-agent-beta-0309
+    score: 1470.46
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false
