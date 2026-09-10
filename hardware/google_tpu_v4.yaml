@@ -1,0 +1,31 @@
+id: google_tpu_v4
+display_name: Google TPU v4
+vendor: google
+family: Google TPU
+device_class: datacentre
+released: 2021
+memory:
+  capacity_gb: 32
+  bandwidth_gb_s: 1200
+  type: HBM2
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- bf16
+- int8
+interconnect:
+  pcie_gen: null
+  link: ici
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: null
+sources:
+- https://docs.cloud.google.com/tpu/docs/v4
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per chip, not per pod. Google Cloud TPU v4 system-architecture table lists
+  HBM2 capacity and bandwidth 32 GiB, 1200 GBps, and peak compute per chip 275 teraflops
+  (bf16 or int8). A TPU v4 Pod is 4096 chips; this file is one chip. The same table
+  lists measured min/mean/max power 90/170/192 W, which is measured power, not a published
+  TDP, so tdp_w is null. Capacity is recorded as 32 GB from the published 32 GiB figure.'

@@ -1,0 +1,37 @@
+id: amd_instinct_mi355x
+display_name: AMD Instinct MI355X
+vendor: amd
+family: AMD Instinct MI350
+device_class: datacentre
+released: 2025-06
+memory:
+  capacity_gb: 288
+  bandwidth_gb_s: 8000
+  type: HBM3E
+  bus_bits: 8192
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: infinity-fabric
+  link_gb_s: 153
+power:
+  tdp_w: 1400
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html
+- https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/product-briefs/amd-instinct-mi355x-gpu-brochure.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'AMD Instinct MI355X product page lists 288 GB HBM3E, 8 TB/s, OAM, PCIe 5.0 x16,
+  7 Infinity Fabric links at 153 GB/s, launch date 6/12/2025, and Typical Board Power
+  (TBP) 1400 W. The MI355X GPU brochure also lists memory interface 8192 bits, 8 TB/s,
+  and maximum TBP 1400 W. Memory clock / data rate is not on either source, so bandwidth
+  is the published 8 TB/s rather than a derivation. Distinct from MI350X (same 288 GB /
+  8 TB/s, lower clocks) and from MI325X (256 GB, 6 TB/s).'

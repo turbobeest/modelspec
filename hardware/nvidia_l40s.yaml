@@ -1,0 +1,33 @@
+id: nvidia_l40s
+display_name: NVIDIA L40S
+vendor: nvidia
+family: NVIDIA L40
+device_class: datacentre
+released: 2023-08
+memory:
+  capacity_gb: 48
+  bandwidth_gb_s: 864
+  type: GDDR6
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 350
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/l40s/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'NVIDIA L40S product spec table lists 48GB GDDR6 with ECC, 864 GB/s, PCIe Gen4
+  x16 64 GB/s bidirectional, no NVLink, and max power consumption 350 W. Bus width and
+  memory data rate are not on that table, so bandwidth is transcribed rather than derived.
+  Distinct from NVIDIA L40 (same 48GB / 864 GB/s, 300 W).'

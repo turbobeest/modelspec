@@ -1,0 +1,522 @@
+{
+  "as_of": "2026-09-09",
+  "note": "Provider self-report scores extracted from cached primary-source pages in ranking_evidence/raw/. Mapping onto cards is explicit in scripts/attach_evidence.py LEDGER_TO_CARD. Variants that are not the ranked key, unpinned dates, competitor-table scores, and unit mismatches are omitted here and listed in ranking_evidence/REPORT.md.",
+  "rows": [
+    {
+      "canonical_id": "aime_2025",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Qwen3-32B (thinking)",
+          "score": 72.9,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2505.09388",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-05-14",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "AIME 2025 I+II",
+          "configuration": "Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output 32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25 is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table scores were not attached."
+        }
+      ]
+    },
+    {
+      "canonical_id": "aime_2026",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Gemma 4 31B IT",
+          "score": 89.2,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/google/gemma-4-31B-it",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-02",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "AIME 2026 (no tools)",
+          "configuration": "Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools. Family comparison columns for other Gemma sizes and Gemma 3 were not taken."
+        },
+        {
+          "model_id": "GLM-5.1",
+          "score": 95.3,
+          "unit": "percent",
+          "source_url": "https://z.ai/blog/glm-5.1",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-07",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "AIME 2026",
+          "configuration": "Reasoning tasks: max_new_tokens=163840, temperature=1.0, top_p=0.95. Competitor columns on the same table were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "chartqa",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 88.8,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "ChartQA",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 90.0,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "ChartQA",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "docvqa",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 94.4,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "DocVQA (test)",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 94.4,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "DocVQA (test)",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "gpqa_diamond",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "GPT-6 Astra (max)",
+          "score": 96.0,
+          "unit": "percent",
+          "source_url": "https://openai.com/index/gpt-6-astra/",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-09-03",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Launch page: evaluation scores are the maximum at any effort. Competitor columns were not taken. Publication date is OpenAI's own dating of this article (Research, Sep 3, 2026) on openai.com/index/gpt-5-6/."
+        },
+        {
+          "model_id": "GPT-5.6 Sol",
+          "score": 94.6,
+          "unit": "percent",
+          "source_url": "https://openai.com/index/gpt-5-6/",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-09",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "GPT-5.6 launch table; the row is labelled by model tier (Sol/Terra/Luna) and does not pin a reasoning-effort setting in the cell. Scores are as published for that tier, not the Ultra multi-agent configuration."
+        },
+        {
+          "model_id": "GPT-5.6 Terra",
+          "score": 92.9,
+          "unit": "percent",
+          "source_url": "https://openai.com/index/gpt-5-6/",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-09",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "GPT-5.6 launch table; the row is labelled by model tier (Sol/Terra/Luna) and does not pin a reasoning-effort setting in the cell. Scores are as published for that tier, not the Ultra multi-agent configuration."
+        },
+        {
+          "model_id": "GPT-5.6 Luna",
+          "score": 92.3,
+          "unit": "percent",
+          "source_url": "https://openai.com/index/gpt-5-6/",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-09",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "GPT-5.6 launch table; the row is labelled by model tier (Sol/Terra/Luna) and does not pin a reasoning-effort setting in the cell. Scores are as published for that tier, not the Ultra multi-agent configuration."
+        },
+        {
+          "model_id": "Claude Opus 4.8",
+          "score": 93.6,
+          "unit": "percent",
+          "source_url": "https://www.anthropic.com/claude-opus-4-8-system-card",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-05-28",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond (198)",
+          "configuration": "198-question Diamond subset; mean of 25 trials. Adaptive thinking at max effort unless otherwise noted in Table 8.1.A."
+        },
+        {
+          "model_id": "Gemma 4 31B IT",
+          "score": 84.3,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/google/gemma-4-31B-it",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-02",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools. Family comparison columns for other Gemma sizes and Gemma 3 were not taken."
+        },
+        {
+          "model_id": "GLM-5.1",
+          "score": 86.2,
+          "unit": "percent",
+          "source_url": "https://z.ai/blog/glm-5.1",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-07",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA-Diamond",
+          "configuration": "Reasoning tasks: max_new_tokens=163840, temperature=1.0, top_p=0.95. Competitor columns on the same table were not taken."
+        },
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 57.2,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 69.8,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Qwen3-32B (thinking)",
+          "score": 68.4,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2505.09388",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-05-14",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA-Diamond",
+          "configuration": "Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output 32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25 is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table scores were not attached."
+        },
+        {
+          "model_id": "DeepSeek-V4-Pro (max)",
+          "score": 90.1,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond (Pass@1)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        },
+        {
+          "model_id": "DeepSeek-V4-Flash (max)",
+          "score": 88.1,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "GPQA Diamond (Pass@1)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        }
+      ]
+    },
+    {
+      "canonical_id": "ifeval",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Qwen3-32B (thinking)",
+          "score": 85.0,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2505.09388",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-05-14",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "IFEval (strict prompt)",
+          "configuration": "Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output 32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25 is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table scores were not attached."
+        }
+      ]
+    },
+    {
+      "canonical_id": "math_500",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Qwen3-32B (thinking)",
+          "score": 97.2,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2505.09388",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-05-14",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MATH-500",
+          "configuration": "Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output 32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25 is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table scores were not attached."
+        }
+      ]
+    },
+    {
+      "canonical_id": "mathvista",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 70.7,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MathVista",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 73.7,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MathVista",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "mgsm",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 90.6,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MGSM",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 92.3,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MGSM",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "mmlu_pro",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Gemma 4 31B IT",
+          "score": 85.2,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/google/gemma-4-31B-it",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-02",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMLU-Pro",
+          "configuration": "Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools. Family comparison columns for other Gemma sizes and Gemma 3 were not taken."
+        },
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 74.3,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMLU-Pro",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 80.5,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMLU-Pro",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "DeepSeek-V4-Pro (max)",
+          "score": 87.5,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMLU-Pro (EM)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        },
+        {
+          "model_id": "DeepSeek-V4-Flash (max)",
+          "score": 86.2,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMLU-Pro (EM)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        }
+      ]
+    },
+    {
+      "canonical_id": "mmmu",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Llama 4 Scout Instruct",
+          "score": 69.4,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMMU",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        },
+        {
+          "model_id": "Llama 4 Maverick Instruct",
+          "score": 73.4,
+          "unit": "percent",
+          "source_url": "https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2025-04-05",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "MMMU",
+          "configuration": "Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond 0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table scores and LiveCodeBench date-window scores were not taken."
+        }
+      ]
+    },
+    {
+      "canonical_id": "swe_bench_verified",
+      "status": "active",
+      "accepted_results": [
+        {
+          "model_id": "Claude Opus 4.8",
+          "score": 88.6,
+          "unit": "percent",
+          "source_url": "https://www.anthropic.com/claude-opus-4-8-system-card",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-05-28",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "SWE-bench Verified (500)",
+          "configuration": "Adaptive thinking at max effort, default sampling (temperature, top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem SWE-bench Verified subset."
+        },
+        {
+          "model_id": "Claude Opus 5",
+          "score": 96.0,
+          "unit": "percent",
+          "source_url": "https://www.anthropic.com/claude-opus-5-system-card",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-07-24",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "SWE-bench Verified (500)",
+          "configuration": "Adaptive thinking at max effort, default sampling (temperature, top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem SWE-bench Verified subset."
+        },
+        {
+          "model_id": "Claude Sonnet 5",
+          "score": 85.2,
+          "unit": "percent",
+          "source_url": "https://www.anthropic.com/claude-sonnet-5-system-card",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-06-30",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "SWE-bench Verified (500)",
+          "configuration": "Adaptive thinking at max effort, default sampling (temperature, top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem SWE-bench Verified subset."
+        },
+        {
+          "model_id": "DeepSeek-V4-Pro (max)",
+          "score": 80.6,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "SWE-bench Verified (Resolved)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        },
+        {
+          "model_id": "DeepSeek-V4-Flash (max)",
+          "score": 79.0,
+          "unit": "percent",
+          "source_url": "https://arxiv.org/abs/2606.19348",
+          "source_kind": "provider_self_report",
+          "evidence_date": "2026-04-26",
+          "date_type": "published",
+          "verified_at": "2026-09-09",
+          "benchmark_version": "SWE-bench Verified (Resolved)",
+          "configuration": "Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context), not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page and was not attached to live_code_bench."
+        }
+      ]
+    }
+  ]
+}

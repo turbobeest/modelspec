@@ -681,6 +681,33 @@ benchmarks:
     usamo_2026: 83.8
   benchmark_source: zai-org-model-card
   benchmark_as_of: 2026-04
+  evidence:
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: GLM-5.1
+    score: 95.3
+    unit: percent
+    source_url: https://z.ai/blog/glm-5.1
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: AIME 2026
+    configuration: 'Reasoning tasks: max_new_tokens=163840, temperature=1.0, top_p=0.95.
+      Competitor columns on the same table were not taken.'
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: GLM-5.1
+    score: 86.2
+    unit: percent
+    source_url: https://z.ai/blog/glm-5.1
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA-Diamond
+    configuration: 'Reasoning tasks: max_new_tokens=163840, temperature=1.0, top_p=0.95.
+      Competitor columns on the same table were not taken.'
+    limitations: ''
 deployment:
   api_only: false
   local_inference: true

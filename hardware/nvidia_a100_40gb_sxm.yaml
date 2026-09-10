@@ -1,0 +1,36 @@
+id: nvidia_a100_40gb_sxm
+display_name: NVIDIA A100 40GB SXM
+vendor: nvidia
+family: NVIDIA A100
+device_class: datacentre
+released: 2020-05
+memory:
+  capacity_gb: 40
+  bandwidth_gb_s: 1555
+  type: HBM2
+  bus_bits: 5120
+  unified_with_host: false
+  bandwidth_derivation: 5120 bits / 8 x 2.43 Gbps HBM2 (1215 MHz DDR) = 1555 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: nvlink
+  link_gb_s: 600
+power:
+  tdp_w: 400
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+- https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for the 40GB SXM variant. NVIDIA A100 Tensor Core GPU datasheet
+  (r4) lists A100 40GB SXM as 40GB HBM2, 1,555 GB/s, 400 W TDP. Ampere architecture
+  whitepaper states a 5120-bit HBM2 interface at 1215 MHz DDR delivering 1555 GB/s,
+  which matches the datasheet. Distinct from A100 80GB SXM (HBM2e, 2,039 GB/s) and
+  from A100 40GB PCIe (250 W). The current A100 product page only tabulates the 80GB
+  SKUs.'

@@ -19,10 +19,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from api.ranking.engine import BENCHMARK_RANGES, USE_CASE_PROFILES  # noqa: E402
+from api.ranking.engine import (  # noqa: E402
+    BENCHMARK_RANGES, MIN_BENCHMARK_COUNT, MIN_BENCHMARK_COVERAGE, USE_CASE_PROFILES,
+)
 from pipeline import hardware  # noqa: E402
 from pipeline.ranking import (  # noqa: E402
-    FEATURED_PROFILES, Candidate, build_candidates, rank, score,
+    FEATURED_PROFILES, Candidate, build_candidates, rank, rank_report, score,
 )
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import derive_graph  # noqa: E402
@@ -101,9 +103,11 @@ def test_a_one_to_five_scale_uses_its_whole_range() -> None:
 
 # ── the arithmetic ───────────────────────────────────────────────────────────
 
-def test_a_model_with_no_data_scores_zero() -> None:
+def test_a_model_with_no_data_is_unranked() -> None:
     result = score(_candidate(model_type=None), USE_CASE_PROFILES["coding"])
-    assert result["score"] == 0.0
+    assert result["score"] is None
+    assert result["benchmark_estimate"] is None
+    assert result["rank_status"] == "unranked"
     assert result["evidence_basis"] == "none"
 
 
@@ -143,13 +147,13 @@ def test_price_sensitivity_can_be_turned_on_per_query() -> None:
     free = score(_candidate(model_id="free", cost_input=0.0), profile, cost_weight=0.25)
     dear = score(_candidate(model_id="dear", cost_input=30.0), profile, cost_weight=0.25)
     assert free["cost_score"] > dear["cost_score"]
-    assert free["score"] > dear["score"]
+    assert free["score_lower_bound"] > dear["score_lower_bound"]
 
 
 def test_price_sensitivity_reorders_a_real_ranking() -> None:
     candidates = _real()
-    indifferent = [r["model_id"] for r in rank(candidates, "coding", limit=5)]
-    sensitive = [r["model_id"] for r in rank(candidates, "coding", limit=5, cost_weight=0.25)]
+    indifferent = [r["model_id"] for r in rank_report(candidates, "coding", limit=5)["ranked"]]
+    sensitive = [r["model_id"] for r in rank_report(candidates, "coding", limit=5, cost_weight=0.25)["ranked"]]
     assert indifferent != sensitive, "price sensitivity had no effect on a real ranking"
 
 
@@ -181,6 +185,7 @@ def test_sub_capabilities_are_discounted_against_an_explicit_tier() -> None:
     profile = USE_CASE_PROFILES["coding"]
     explicit = score(_candidate(capability_tiers={"coding": "tier-1"}), profile)["capability_score"]
     implied = score(_candidate(capability_tiers={"coding:debugging": "tier-1"}), profile)["capability_score"]
+    # 0.7 is the subtype discount in score(); update if that factor changes.
     assert implied == pytest.approx(explicit * 0.7, rel=0.01)
 
 
@@ -197,22 +202,38 @@ def test_score_is_clamped_to_a_hundred() -> None:
 def test_open_weights_filter_excludes_closed_models() -> None:
     pool = [_candidate(model_id="open", open_weights=True),
             _candidate(model_id="closed", open_weights=False)]
-    ids = {r["model_id"] for r in rank(pool, "general", open_weights_only=True)}
+    report = rank_report(pool, "general", open_weights_only=True)
+    ids = {r["model_id"] for r in report["ranked"] + report["unranked"]}
     assert ids == {"open"}
 
 
 def test_hardware_filter_keeps_only_models_that_fit() -> None:
     pool = [_candidate(model_id="fits", fits={"gpu": 40.0}),
             _candidate(model_id="too-big", fits={})]
-    ids = {r["model_id"] for r in rank(pool, "general", hardware_id="gpu")}
+    report = rank_report(pool, "general", hardware_id="gpu")
+    ids = {r["model_id"] for r in report["ranked"] + report["unranked"]}
     assert ids == {"fits"}
 
 
 def test_ranking_is_ordered_by_score() -> None:
-    pool = [_candidate(model_id=f"m{i}", benchmark_scores={"humaneval": float(i * 10)})
+    pool = [_candidate(model_id=f"m{i}", benchmark_scores={
+        b: float(i * 10) for b in USE_CASE_PROFILES["coding"]["benchmark_weights"]})
             for i in range(1, 6)]
     scores = [r["score"] for r in rank(pool, "coding")]
     assert scores == sorted(scores, reverse=True)
+
+
+def test_rank_returns_eligible_models_when_the_catalogue_is_sparse() -> None:
+    """Other models lacking coverage is ordinary; rank() must not raise."""
+    candidates = _real()
+    ranked = rank(candidates, "coding", limit=10)
+    report = rank_report(candidates, "coding", limit=10)
+    assert ranked == report["ranked"]
+    # Unranked models are the expected catalogue state. Drop this if coding
+    # ever has enough evidence to order every candidate.
+    assert report["unranked_count"] > 0
+    assert len(ranked) == min(10, report["ranked_count"])
+    assert all(r["score"] is not None and r["rank"] is not None for r in ranked)
 
 
 # ── against the real corpus ──────────────────────────────────────────────────
@@ -227,27 +248,48 @@ def _real():
     return build_candidates(cards, sink)
 
 
-def test_every_featured_profile_returns_a_ranking() -> None:
+def test_every_featured_profile_reports_whether_it_can_rank() -> None:
     candidates = _real()
     for key in FEATURED_PROFILES:
-        results = rank(candidates, key, limit=10)
-        assert results, f"{key} returned nothing"
-        assert results[0]["score"] > 0
+        report = rank_report(candidates, key, limit=10)
+        assert report["ranked"] or report["unranked"], f"{key} returned nothing"
+        assert report["ranking_status"] in {"complete", "partial", "unavailable"}
+        if report["ranked"]:
+            assert report["ranked"][0]["score"] > 0
+        assert all(r["score"] is None for r in report["unranked"])
 
 
 def test_a_hardware_constrained_ranking_is_smaller_and_still_useful() -> None:
     candidates = _real()
-    unconstrained = rank(candidates, "coding", limit=1000)
-    constrained = rank(candidates, "coding", limit=1000,
-                       open_weights_only=True, hardware_id="nvidia_rtx_4090")
+    unconstrained = rank_report(candidates, "coding", limit=1000)["ranked"]
+    constrained = rank_report(candidates, "coding", limit=1000,
+                              open_weights_only=True, hardware_id="nvidia_rtx_4090")["ranked"]
     assert 0 < len(constrained) < len(unconstrained)
     assert all(r["open_weights"] for r in constrained)
 
 
 def test_rankings_disclose_their_evidence_basis() -> None:
-    """A ranking built on undated card scores must not read as verified."""
-    for result in rank(_real(), "coding", limit=10):
-        assert result["evidence_basis"] in {"unverified-legacy", "none"}
+    """Provenance is disclosed; `verified` is not applied to incomplete evidence.
+
+    Ranked rows used to be pinned to `unverified-legacy` because that was the
+    catalogue that day. Attaching reviewed evidence must be allowed to change
+    the label; it must not be allowed to call a sparse or empty input `verified`.
+    """
+    report = rank_report(_real(), "coding", limit=10)
+    for result in report["ranked"]:
+        assert result["evidence_basis"] in {
+            "unverified-legacy", "mixed", "partial-verified", "verified",
+        }
+        assert result["score"] is not None and result["rank"] is not None
+        if result["evidence_basis"] == "verified":
+            assert result["benchmark_coverage"] == pytest.approx(1.0)
+    for result in report["unranked"]:
+        assert result["evidence_basis"] != "verified"
+        assert result["rank"] is result["score"] is None
+        assert (
+            result["benchmark_coverage"] < MIN_BENCHMARK_COVERAGE
+            or result["benchmark_count"] < MIN_BENCHMARK_COUNT
+        )
 
 
 # ── verified evidence in a ranking ───────────────────────────────────────────
@@ -272,10 +314,12 @@ def test_reviewed_evidence_beats_the_flat_block_for_the_same_benchmark() -> None
 def test_evidence_basis_distinguishes_verified_from_legacy() -> None:
     from pipeline.ranking import _basis
 
-    assert _basis(0, 0) == "none"
-    assert _basis(3, 3) == "verified"
-    assert _basis(3, 1) == "mixed"
-    assert _basis(3, 0) == "unverified-legacy"
+    assert _basis(0, 0, 0.0) == "none"
+    assert _basis(3, 3, 1.0) == "verified"
+    # 0.2 is a synthetic incomplete coverage, not a catalogue snapshot.
+    assert _basis(3, 3, 0.2) == "partial-verified"
+    assert _basis(3, 1, 1.0) == "mixed"
+    assert _basis(3, 0, 1.0) == "unverified-legacy"
 
 
 def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
@@ -284,7 +328,7 @@ def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
     checked = _candidate(benchmark_scores={"humaneval": 90.0},
                          verified_benchmarks={"humaneval"})
     assert score(plain, profile)["evidence_basis"] == "unverified-legacy"
-    assert score(checked, profile)["evidence_basis"] == "verified"
+    assert score(checked, profile)["evidence_basis"] == "partial-verified"
     assert score(checked, profile)["verified_contributions"] == 1
 
 

@@ -25,7 +25,9 @@ import json
 import sys
 from typing import Any
 
+import click
 import typer
+from typer.core import TyperCommand, TyperGroup
 
 from . import snapshot as snap
 
@@ -38,8 +40,44 @@ EXIT_NO_MATCH = 2
 EXIT_NO_SNAPSHOT = 3
 EXIT_STALE = 4
 
-app = typer.Typer(help="Answer from the local snapshot. No database, no network, no credential.")
-snapshot_app = typer.Typer(help="Manage the local snapshot.")
+
+class ContractCommand(TyperCommand):
+    """Make Click's syntax/option failures use the CLI's documented code 1."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        try:
+            return super().parse_args(ctx, args)
+        except Exception as exc:  # noqa: BLE001 - Typer wraps Click usage errors
+            if getattr(exc, "exit_code", None) == 2:
+                exc.exit_code = EXIT_ERROR
+            raise
+
+
+class ContractGroup(TyperGroup):
+    """Apply the same usage-error exit code while resolving subcommands."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        try:
+            return super().parse_args(ctx, args)
+        except Exception as exc:  # noqa: BLE001 - Typer wraps Click usage errors
+            if getattr(exc, "exit_code", None) == 2:
+                exc.exit_code = EXIT_ERROR
+            raise
+
+    def resolve_command(self, ctx: click.Context, args: list[str]) -> Any:
+        try:
+            return super().resolve_command(ctx, args)
+        except Exception as exc:  # noqa: BLE001 - Typer wraps Click usage errors
+            if getattr(exc, "exit_code", None) == 2:
+                exc.exit_code = EXIT_ERROR
+            raise
+
+
+app = typer.Typer(
+    cls=ContractGroup,
+    help="Answer from the local snapshot. No database, no network, no credential.",
+)
+snapshot_app = typer.Typer(cls=ContractGroup, help="Manage the local snapshot.")
 app.add_typer(snapshot_app, name="snapshot")
 
 
@@ -48,25 +86,44 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
         typer.echo(json.dumps(payload, indent=2, default=str))
 
 
-def _envelope(command: str, snapshot: snap.Snapshot, result: Any) -> dict[str, Any]:
+def _envelope(command: str, snapshot: snap.Snapshot, result: Any,
+              **metadata: Any) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "command": command,
         "freshness": snapshot.freshness(),
         "result": result,
+        **metadata,
     }
 
 
-def _load_or_exit(require_fresh: bool) -> snap.Snapshot:
+def _emit_error(command: str, message: str, as_json: bool) -> None:
+    if as_json:
+        typer.echo(json.dumps({
+            "schema_version": SCHEMA_VERSION,
+            "command": command,
+            "error": {"message": message},
+        }, indent=2), err=True)
+    else:
+        typer.echo(f"error: {message}", err=True)
+
+
+def _load_or_exit(require_fresh: bool, *, command: str, as_json: bool = False) -> snap.Snapshot:
     try:
         snapshot = snap.load()
     except snap.SnapshotMissing as exc:
-        typer.echo(f"error: {exc}", err=True)
+        _emit_error(command, str(exc), as_json)
         raise typer.Exit(EXIT_NO_SNAPSHOT) from exc
+    except snap.SnapshotInvalid as exc:
+        _emit_error(command, str(exc), as_json)
+        raise typer.Exit(EXIT_ERROR) from exc
     if require_fresh and snapshot.is_stale:
-        typer.echo(
-            f"error: snapshot is {snapshot.age_days:.0f} days old and --require-fresh was given. "
-            "Run `modelspec snapshot fetch`.", err=True)
+        _emit_error(
+            command,
+            f"snapshot is {snapshot.age_days:.0f} days old and --require-fresh was given. "
+            "Run `modelspec snapshot fetch`.",
+            as_json,
+        )
         raise typer.Exit(EXIT_STALE)
     if snapshot.is_stale:
         typer.echo(
@@ -94,7 +151,7 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
     ]
 
 
-@snapshot_app.command("fetch")
+@snapshot_app.command("fetch", cls=ContractCommand)
 def snapshot_fetch(
     origin: str = typer.Option(snap.DEFAULT_ORIGIN, help="Where to fetch from."),
 ) -> None:
@@ -109,12 +166,25 @@ def snapshot_fetch(
     typer.echo(f"cached at {result.path}")
 
 
-@snapshot_app.command("status")
+@snapshot_app.command("status", cls=ContractCommand)
 def snapshot_status(as_json: bool = typer.Option(False, "--json")) -> None:
     """Show what snapshot is cached and how old it is."""
-    info = snap.status()
+    try:
+        info = snap.status()
+    except snap.SnapshotInvalid as exc:
+        _emit_error("status", str(exc), as_json)
+        raise typer.Exit(EXIT_ERROR) from exc
     if as_json:
-        typer.echo(json.dumps({"schema_version": SCHEMA_VERSION, "result": info}, indent=2))
+        freshness_keys = ("fetched_at", "age_days", "stale", "stale_after_days",
+                          "origin", "build_commit", "built_at")
+        freshness = {key: info[key] for key in freshness_keys if key in info} or None
+        result = {key: value for key, value in info.items() if key not in freshness_keys}
+        typer.echo(json.dumps({
+            "schema_version": SCHEMA_VERSION,
+            "command": "status",
+            "freshness": freshness,
+            "result": result,
+        }, indent=2))
     elif not info["present"]:
         typer.echo(info["message"])
     else:
@@ -126,11 +196,13 @@ def snapshot_status(as_json: bool = typer.Option(False, "--json")) -> None:
         raise typer.Exit(EXIT_NO_SNAPSHOT)
 
 
-@app.command("rank")
+@app.command("rank", cls=ContractCommand)
 def rank_offline(
     use_case: str = typer.Argument(..., help="Use-case profile, e.g. coding."),
     limit: int = typer.Option(10, "--limit", "-n"),
-    open_weights: bool = typer.Option(False, "--open-weights", help="Only models you can download."),
+    open_weights: bool = typer.Option(
+        False, "--open-weights", help="Only models you can download."
+    ),
     fits: str = typer.Option(None, "--fits", help="Hardware id the model must fit on."),
     max_cost: float = typer.Option(None, "--max-cost", help="Maximum $ per million input tokens."),
     price_sensitivity: float = typer.Option(
@@ -140,14 +212,20 @@ def rank_offline(
     require_fresh: bool = typer.Option(False, "--require-fresh", help="Fail on a stale snapshot."),
 ) -> None:
     """Rank models for a use case, entirely offline."""
-    snapshot = _load_or_exit(require_fresh)
+    if limit < 0:
+        _emit_error("rank", "--limit must be nonnegative", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    if not 0.0 <= price_sensitivity <= 1.0:
+        _emit_error("rank", "--price-sensitivity must be between 0 and 1", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    snapshot = _load_or_exit(require_fresh, command="rank", as_json=as_json)
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
-    from pipeline.ranking import rank as rank_fn
+    from pipeline.ranking import rank_report
 
     profiles = snapshot.data["profiles"]["profiles"]
     if use_case not in profiles:
         featured = ", ".join(snapshot.data["profiles"].get("featured") or [])
-        typer.echo(f"error: unknown use case {use_case!r}. Try one of: {featured}", err=True)
+        _emit_error("rank", f"unknown use case {use_case!r}. Try one of: {featured}", as_json)
         raise typer.Exit(EXIT_ERROR)
 
     if fits:
@@ -156,32 +234,49 @@ def rank_offline(
         known = {n["id"] for n in snapshot.data["hardware"].get("nodes", [])
                  if n.get("label") == "Hardware"}
         if fits not in known:
-            typer.echo(f"error: unknown device {fits!r}. Run `modelspec offline fit` "
-                       "with no argument to list them.", err=True)
+            _emit_error("rank", f"unknown device {fits!r}. Run `modelspec offline fit` "
+                        "with no argument to list them.", as_json)
             raise typer.Exit(EXIT_ERROR)
 
-    pool = _candidates(snapshot)
-    if max_cost is not None:
-        pool = [c for c in pool if c.cost_input is not None and c.cost_input <= max_cost]
+    try:
+        pool = _candidates(snapshot)
+        if max_cost is not None:
+            pool = [c for c in pool if c.cost_input is not None and c.cost_input <= max_cost]
 
-    results = rank_fn(pool, use_case, limit=limit, open_weights_only=open_weights,
-                      hardware_id=fits, cost_weight=price_sensitivity or None)
+        report = rank_report(pool, use_case, limit=limit, open_weights_only=open_weights,
+                             hardware_id=fits, cost_weight=price_sensitivity or None)
+    except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
+        _emit_error("rank", f"could not rank the snapshot: {exc}", as_json)
+        raise typer.Exit(EXIT_ERROR) from exc
+    results = report["ranked"]
+    ranking_status = report["ranking_status"]
+    ranked_count = report["ranked_count"]
+    unranked_count = report["unranked_count"]
 
     if as_json:
-        typer.echo(json.dumps(_envelope("rank", snapshot, results), indent=2, default=str))
-    elif not results:
-        typer.echo("No model matches those constraints.")
+        typer.echo(json.dumps(_envelope(
+            "rank", snapshot, results,
+            ranking_status=ranking_status,
+            ranked_count=ranked_count,
+            unranked_count=unranked_count,
+        ), indent=2, default=str))
     else:
+        typer.echo(f"{use_case}: {ranking_status} ordering; "
+                   f"{ranked_count} ranked, {unranked_count} unranked.")
         for i, r in enumerate(results, 1):
             typer.echo(f"{i:>3}. {r['score']:>6.2f}  {r['display_name']}  ({r['provider']})")
+        if ranking_status == "empty":
+            typer.echo("No model matches those constraints.")
+        elif ranking_status == "unavailable":
+            typer.echo("No model has enough evidence to be ranked.")
         typer.echo(f"\nfrom a snapshot {snapshot.age_days:.0f} days old, "
                    f"build {snapshot.build_commit[:12]}")
 
-    if not results:
+    if ranking_status in {"empty", "unavailable"}:
         raise typer.Exit(EXIT_NO_MATCH)
 
 
-@app.command("fit")
+@app.command("fit", cls=ContractCommand)
 def fit_offline(
     hardware: str = typer.Argument(None, help="Hardware id. Omit to list the devices."),
     limit: int = typer.Option(20, "--limit", "-n"),
@@ -189,8 +284,13 @@ def fit_offline(
     require_fresh: bool = typer.Option(False, "--require-fresh"),
 ) -> None:
     """What can this machine actually run?"""
-    snapshot = _load_or_exit(require_fresh)
-    devices = [n for n in snapshot.data["hardware"].get("nodes", []) if n.get("label") == "Hardware"]
+    if limit < 0:
+        _emit_error("fit", "--limit must be nonnegative", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    snapshot = _load_or_exit(require_fresh, command="fit", as_json=as_json)
+    devices = [
+        n for n in snapshot.data["hardware"].get("nodes", []) if n.get("label") == "Hardware"
+    ]
 
     if not hardware:
         rows = sorted(devices, key=lambda d: -(d.get("memory_bandwidth_gb_s") or 0))
@@ -198,17 +298,23 @@ def fit_offline(
             typer.echo(json.dumps(_envelope("fit", snapshot, rows), indent=2, default=str))
         else:
             for d in rows:
-                typer.echo(f"  {d['id']:<28} {d.get('memory_gb', '?'):>6} GB  "
-                           f"{d.get('memory_bandwidth_gb_s', '?'):>6} GB/s  {d.get('display_name', '')}")
+                typer.echo(
+                    f"  {d['id']:<28} {d.get('memory_gb', '?'):>6} GB  "
+                    f"{d.get('memory_bandwidth_gb_s', '?'):>6} GB/s  {d.get('display_name', '')}"
+                )
         return
 
     known = {d["id"] for d in devices}
     if hardware not in known:
-        typer.echo(f"error: unknown device {hardware!r}. Run `modelspec offline fit` "
-                   "with no argument to list them.", err=True)
+        _emit_error("fit", f"unknown device {hardware!r}. Run `modelspec offline fit` "
+                    "with no argument to list them.", as_json)
         raise typer.Exit(EXIT_ERROR)
 
-    pool = [c for c in _candidates(snapshot) if hardware in c.fits]
+    try:
+        pool = [c for c in _candidates(snapshot) if hardware in c.fits]
+    except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
+        _emit_error("fit", f"could not read the snapshot: {exc}", as_json)
+        raise typer.Exit(EXIT_ERROR) from exc
     pool.sort(key=lambda c: -c.fits[hardware])
     results = [{"model_id": c.model_id, "display_name": c.display_name,
                 "predicted_decode_tps": c.fits[hardware],

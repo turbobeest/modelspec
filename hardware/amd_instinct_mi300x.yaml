@@ -1,0 +1,35 @@
+id: amd_instinct_mi300x
+display_name: AMD Instinct MI300X
+vendor: amd
+family: AMD Instinct MI300
+device_class: datacentre
+released: 2023-12
+memory:
+  capacity_gb: 192
+  bandwidth_gb_s: 5300
+  type: HBM3
+  bus_bits: 8192
+  unified_with_host: false
+  bandwidth_derivation: 8192 bits / 8 x 5.2 Gbps HBM3 = 5324.8 GB/s
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: infinity-fabric
+  link_gb_s: 128
+power:
+  tdp_w: 750
+  sustained_differs_from_boost: false
+sources:
+- https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'AMD Instinct MI300X product page lists 192 GB HBM3, 8192-bit interface, 5.2 GHz
+  memory clock, 5.3 TB/s peak bandwidth, OAM, PCIe 5.0 x16, 8 Infinity Fabric links at
+  128 GB/s, launch date 12/06/2023, and Typical Board Power (TBP) 750 W. tdp_w records
+  that published TBP. Derivation 8192/8 x 5.2 Gbps = 5324.8 GB/s; the page rounds to
+  5.3 TB/s. Distinct from MI325X (256 GB HBM3E, 6 TB/s, 1000 W TBP).'

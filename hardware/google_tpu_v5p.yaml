@@ -1,0 +1,32 @@
+id: google_tpu_v5p
+display_name: Google TPU v5p
+vendor: google
+family: Google TPU
+device_class: datacentre
+released: 2023
+memory:
+  capacity_gb: 95
+  bandwidth_gb_s: 2765
+  type: HBM
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- bf16
+- fp8
+- int8
+interconnect:
+  pcie_gen: null
+  link: ici
+  link_gb_s: 1200
+power:
+  tdp_w: null
+  sustained_differs_from_boost: null
+sources:
+- https://docs.cloud.google.com/tpu/docs/v5p
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per chip, not per pod. Google Cloud TPU v5p system-architecture table lists
+  HBM capacity per chip 95 GiB, HBM bandwidth per chip 2765 GBps, peak compute per chip
+  459 TFLOPs (BF16 and FP8), two TensorCores per chip, and bidirectional ICI 1200 GBps
+  per chip. A v5p Pod is 8960 chips; this file is one chip. Capacity is recorded as
+  95 GB from the published 95 GiB figure. No TDP is published.'

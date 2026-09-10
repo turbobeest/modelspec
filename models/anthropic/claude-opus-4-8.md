@@ -663,7 +663,34 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Claude Opus 4.8
+    score: 93.6
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-4-8-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-05-28'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond (198)
+    configuration: 198-question Diamond subset; mean of 25 trials. Adaptive thinking
+      at max effort unless otherwise noted in Table 8.1.A.
+    limitations: ''
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: Claude Opus 4.8
+    score: 88.6
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-4-8-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-05-28'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: SWE-bench Verified (500)
+    configuration: Adaptive thinking at max effort, default sampling (temperature,
+      top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem
+      SWE-bench Verified subset.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

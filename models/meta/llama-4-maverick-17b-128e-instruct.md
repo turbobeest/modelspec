@@ -701,6 +701,112 @@ benchmarks:
     safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: chartqa
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 90.0
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: ChartQA
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: docvqa
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 94.4
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: DocVQA (test)
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 69.8
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: mathvista
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 73.7
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MathVista
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: mgsm
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 92.3
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MGSM
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 80.5
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MMLU-Pro
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
+  - benchmark_id: mmmu
+    model_id_as_evaluated: Llama 4 Maverick Instruct
+    score: 73.4
+    unit: percent
+    source_url: https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Instruct
+    source_kind: provider_self_report
+    evidence_date: '2025-04-05'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MMMU
+    configuration: 'Instruction-tuned table: MMLU-Pro 0-shot macro_avg/acc; GPQA Diamond
+      0-shot accuracy; ChartQA 0-shot relaxed_accuracy; DocVQA test ANLS; MMMU 0-shot
+      accuracy; MathVista 0-shot accuracy; MGSM 0-shot average/em. Pretrained-table
+      scores and LiveCodeBench date-window scores were not taken.'
+    limitations: ''
 deployment:
   api_only: false
   local_inference: true

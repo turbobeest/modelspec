@@ -695,6 +695,67 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: Qwen3-32B (thinking)
+    score: 72.9
+    unit: percent
+    source_url: https://arxiv.org/abs/2505.09388
+    source_kind: provider_self_report
+    evidence_date: '2025-05-14'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: AIME 2025 I+II
+    configuration: Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output
+      32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25
+      is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table
+      scores were not attached.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Qwen3-32B (thinking)
+    score: 68.4
+    unit: percent
+    source_url: https://arxiv.org/abs/2505.09388
+    source_kind: provider_self_report
+    evidence_date: '2025-05-14'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA-Diamond
+    configuration: Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output
+      32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25
+      is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table
+      scores were not attached.
+    limitations: ''
+  - benchmark_id: ifeval
+    model_id_as_evaluated: Qwen3-32B (thinking)
+    score: 85.0
+    unit: percent
+    source_url: https://arxiv.org/abs/2505.09388
+    source_kind: provider_self_report
+    evidence_date: '2025-05-14'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: IFEval (strict prompt)
+    configuration: Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output
+      32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25
+      is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table
+      scores were not attached.
+    limitations: ''
+  - benchmark_id: math_500
+    model_id_as_evaluated: Qwen3-32B (thinking)
+    score: 97.2
+    unit: percent
+    source_url: https://arxiv.org/abs/2505.09388
+    source_kind: provider_self_report
+    evidence_date: '2025-05-14'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MATH-500
+    configuration: Thinking mode; temperature 0.6, top-p 0.95, top-k 20; max output
+      32768 tokens (38912 for AIME). GPQA-Diamond is the mean of 10 samples; AIME'25
+      is the mean of 64 samples; IFEval is strict-prompt accuracy. Non-thinking table
+      scores were not attached.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false

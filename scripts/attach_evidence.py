@@ -2,7 +2,9 @@
 """Attach reviewed benchmark evidence from the census ledger onto model cards.
 
 The census verifies results against their sources and records them in
-`benchmarks/_census/eligibility/current-report.json`. Those records identify a
+`benchmarks/_census/eligibility/current-report.json`. Ranking-profile evidence
+extracted from dated primary-source pages lives in
+`benchmarks/_census/ranking_evidence/accepted.json`. Those records identify a
 model by the name the evaluator used — "GPT-6 Astra (max)" — which is not a
 ModelSpec model_id and frequently is not any single card.
 
@@ -31,6 +33,8 @@ import yaml  # noqa: E402
 from schema.card import BenchmarkEvidence, ModelCard  # noqa: E402
 
 REPORT = PROJECT_ROOT / "benchmarks/_census/eligibility/current-report.json"
+RANKING_LEDGER = PROJECT_ROOT / "benchmarks/_census/ranking_evidence/accepted.json"
+LEDGER_PATHS = (REPORT, RANKING_LEDGER)
 
 #: Evaluator's model identifier -> ModelSpec model_id.
 #:
@@ -40,19 +44,40 @@ REPORT = PROJECT_ROOT / "benchmarks/_census/eligibility/current-report.json"
 #: evaluated model is *not* the card you would first reach for.
 LEDGER_TO_CARD: dict[str, str] = {
     "GPT-6 Astra (max)": "openai/gpt-6-astra",
+    "GPT-5.6 Sol": "openai/gpt-5-6-sol",
+    "GPT-5.6 Terra": "openai/gpt-5-6-terra",
+    "GPT-5.6 Luna": "openai/gpt-5-6-luna",
+    "Claude Opus 4.8": "anthropic/claude-opus-4-8",
+    "Claude Opus 5": "anthropic/claude-opus-5",
+    "Claude Sonnet 5": "anthropic/claude-sonnet-5",
+    "Gemma 4 31B IT": "google/gemma-4-31b-it",
+    "GLM-5.1": "zhipu/glm-5-1",
+    "Llama 4 Scout Instruct": "meta/llama-4-scout-17b-16e-instruct",
+    "Llama 4 Maverick Instruct": "meta/llama-4-maverick-17b-128e-instruct",
+    "Qwen3-32B (thinking)": "qwen/qwen3-32b",
+    "DeepSeek-V4-Pro (max)": "deepseek/deepseek-v4-pro",
+    "DeepSeek-V4-Flash (max)": "deepseek/deepseek-v4-flash",
     # "GLM-5.3 (max)": no card exists. GLM cards reach 5.2. Do not map this to
     # glm-5-2 — a score for 5.3 attached to 5.2 would be a fabricated claim.
+    # "Qwen3.8-Max": the Qwen3.8 HF table is dated only as "Updated 27 days ago".
+    # "Claude Fable 5.1": the system card does not report SWE-bench Verified or
+    # GPQA Diamond, and Terminal-Bench 4.0 is not the ranked terminal_bench key.
 }
 
 
 def load_accepted() -> list[tuple[str, dict]]:
-    report = json.loads(REPORT.read_text(encoding="utf-8"))
-    return [
-        (row["canonical_id"], result)
-        for row in report.get("rows", [])
-        if row.get("status") == "active"
-        for result in row.get("accepted_results", [])
-    ]
+    accepted: list[tuple[str, dict]] = []
+    for path in LEDGER_PATHS:
+        if not path.is_file():
+            continue
+        report = json.loads(path.read_text(encoding="utf-8"))
+        accepted.extend(
+            (row["canonical_id"], result)
+            for row in report.get("rows", [])
+            if row.get("status") == "active"
+            for result in row.get("accepted_results", [])
+        )
+    return accepted
 
 
 def to_evidence(benchmark_id: str, raw: dict, verified_at: str) -> BenchmarkEvidence:
@@ -93,16 +118,13 @@ def main() -> int:
     for name, count in sorted(unmapped.items()):
         print(f"  UNMAPPED  {name}: {count} results skipped — no card, or no verified mapping")
 
+    cards = _card_index()
     written = 0
     for model_id, records in sorted(by_card.items()):
-        matches = [
-            path for path in (PROJECT_ROOT / "models").rglob("*.md")
-            if path.name != "LICENSE.md" and _model_id_of(path) == model_id
-        ]
-        if not matches:
+        path = cards.get(model_id)
+        if path is None:
             print(f"  ERROR     {model_id}: mapped but no card file found")
             continue
-        path = matches[0]
         text = path.read_text(encoding="utf-8")
         front_raw, body = text.split("---", 2)[1], text.split("---", 2)[2]
         front = yaml.safe_load(front_raw)
@@ -129,6 +151,17 @@ def main() -> int:
 
     print(f"\n{written} cards updated" if not args.dry_run else "\n(dry run)")
     return 0
+
+
+def _card_index() -> dict[str, Path]:
+    index: dict[str, Path] = {}
+    for path in (PROJECT_ROOT / "models").rglob("*.md"):
+        if path.name == "LICENSE.md":
+            continue
+        model_id = _model_id_of(path)
+        if model_id and model_id not in index:
+            index[model_id] = path
+    return index
 
 
 def _model_id_of(path: Path) -> str | None:

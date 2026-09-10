@@ -663,7 +663,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: Claude Sonnet 5
+    score: 85.2
+    unit: percent
+    source_url: https://www.anthropic.com/claude-sonnet-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-06-30'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: SWE-bench Verified (500)
+    configuration: Adaptive thinking at max effort, default sampling (temperature,
+      top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem
+      SWE-bench Verified subset.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

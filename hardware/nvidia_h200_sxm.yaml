@@ -1,0 +1,35 @@
+id: nvidia_h200_sxm
+display_name: NVIDIA H200 SXM
+vendor: nvidia
+family: NVIDIA H200
+device_class: datacentre
+released: 2023-11
+memory:
+  capacity_gb: 141
+  bandwidth_gb_s: 4800
+  type: HBM3e
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 900
+power:
+  tdp_w: 700
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/h200/
+- https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for H200 SXM. NVIDIA H200 product page and H200 datasheet both
+  list 141GB HBM3e at 4.8 TB/s, NVLink 900 GB/s, PCIe Gen5 128 GB/s, and TDP up to 700 W
+  (configurable). H200 NVL is the same capacity and bandwidth at up to 600 W in a PCIe
+  dual-slot form factor and is not this file. Specs are marked preliminary on the vendor
+  page. Bus width is not published, so bandwidth is the transcribed 4.8 TB/s.'

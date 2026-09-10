@@ -21,7 +21,9 @@ from typing import Any
 from api.ranking.engine import (
     BENCHMARK_RANGES,
     USE_CASE_PROFILES,
-    _normalize_benchmark,
+    RANKING_POLICY,
+    _benchmark_evidence,
+    _ranking_status,
     _tier_points,
     _tier_rank,
 )
@@ -122,20 +124,13 @@ def score(candidate: Candidate, profile: dict[str, Any],
     quality someone will trade for price is a property of the person, not of the
     use case, so it belongs in the query rather than in the table. See MODEL-30.
     """
-    bench_weights = profile.get("benchmark_weights", {})
-    bench_raw = 0.0
-    contributions: dict[str, float] = {}
-    contributing_verified = 0
-    for bench_id, weight in bench_weights.items():
-        raw = candidate.benchmark_scores.get(bench_id)
-        if raw is None:
-            continue
-        contribution = _normalize_benchmark(bench_id, raw) * weight
-        bench_raw += contribution
-        contributions[bench_id] = round(contribution, 2)
-        if bench_id in candidate.verified_benchmarks:
-            contributing_verified += 1
-    bench = bench_raw * 0.40
+    evidence = _benchmark_evidence(candidate.benchmark_scores, profile)
+    contributions = evidence["benchmark_contributions"]
+    contributing_verified = len(contributions.keys() & candidate.verified_benchmarks)
+    weights = profile.get("benchmark_weights", {})
+    total_weight = sum(weights.values())
+    verified_weight = sum(weights[b] for b in contributions if b in candidate.verified_benchmarks)
+    bench = evidence["benchmark_lower_bound"]
 
     cap_weights = profile.get("capability_weights", {})
     total_cap_weight = sum(cap_weights.values()) if cap_weights else 1.0
@@ -180,34 +175,43 @@ def score(candidate: Candidate, profile: dict[str, Any],
         if best_idx is not None:
             type_bonus = max(5.0, 15.0 - best_idx * 3.0)
 
-    total = max(0.0, min(100.0, bench + cap + cost + ctx + type_bonus))
+    other = cap + cost + ctx + type_bonus
+    total = max(0.0, min(100.0, bench + other))
+    upper = max(0.0, min(100.0, evidence["benchmark_upper_bound"] + other))
     return {
         "model_id": candidate.model_id,
         "display_name": candidate.display_name,
         "provider": candidate.provider,
-        "score": round(total, 2),
+        "score": round(total, 2) if evidence["rank_status"] == "ranked" else None,
+        "rank": None,
+        "score_lower_bound": round(total, 2),
+        "score_upper_bound": round(upper, 2),
+        "score_kind": RANKING_POLICY["ordering"],
         "benchmark_score": round(bench, 2),
         "capability_score": round(cap, 2),
         "cost_score": round(cost, 2),
         "context_score": round(ctx, 2),
         "type_bonus": round(type_bonus, 2),
-        "benchmark_contributions": contributions,
+        **evidence,
         "context_window": candidate.context_window,
         "cost_input": candidate.cost_input,
         "open_weights": candidate.open_weights,
         # A ranking is only as good as the evidence under it. Say which kind
         # rather than averaging the two into a single reassuring label.
-        "evidence_basis": _basis(len(contributions), contributing_verified),
+        "evidence_basis": _basis(len(contributions), contributing_verified,
+                                 evidence["benchmark_coverage"]),
         "verified_contributions": contributing_verified,
+        "verified_benchmark_coverage": verified_weight / total_weight if total_weight else 0.0,
         "scores_as_of": candidate.scores_as_of,
     }
 
 
-def _basis(contributing: int, verified: int) -> str:
+def _basis(contributing: int, verified: int, coverage: float) -> str:
+    """Provenance of benchmark inputs, never a certification of the composite."""
     if not contributing:
         return "none"
     if verified == contributing:
-        return "verified"
+        return "verified" if coverage >= 1.0 - 1e-12 else "partial-verified"
     if verified:
         return "mixed"
     return "unverified-legacy"
@@ -216,6 +220,26 @@ def _basis(contributing: int, verified: int) -> str:
 def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
          open_weights_only: bool = False, hardware_id: str | None = None,
          cost_weight: float | None = None) -> list[dict[str, Any]]:
+    """Return the models that can honestly be ordered for this profile.
+
+    Unrankable models are the normal catalogue state, not an error. This
+    returns the ranked shortlist, which may be empty when nothing has enough
+    evidence. Use rank_report() to see withheld models and ranking_status.
+    """
+    return rank_report(candidates, profile_key, limit, open_weights_only,
+                       hardware_id, cost_weight)["ranked"]
+
+
+def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
+                open_weights_only: bool = False, hardware_id: str | None = None,
+                cost_weight: float | None = None) -> dict[str, Any]:
+    """Rank sufficiently covered models and retain all others as unranked.
+
+    `limit` caps the ranked shortlist only. Unranked entries are alphabetical,
+    have null rank/score, and are never truncated or presented as ranked last.
+    """
+    if limit < 0:
+        raise ValueError("limit must be nonnegative")
     profile = USE_CASE_PROFILES[profile_key]
     pool = candidates
     if open_weights_only:
@@ -223,8 +247,18 @@ def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
     if hardware_id:
         pool = [c for c in pool if hardware_id in c.fits]
     scored = [score(c, profile, cost_weight) for c in pool]
-    scored.sort(key=lambda r: (-r["score"], r["display_name"].lower()))
-    return scored[:limit]
+    ranked = [r for r in scored if r["rank_status"] == "ranked"]
+    unranked = [r for r in scored if r["rank_status"] == "unranked"]
+    ranked.sort(key=lambda r: (-r["score"], r["display_name"].lower(), r["model_id"]))
+    unranked.sort(key=lambda r: (r["display_name"].lower(), r["model_id"]))
+    for position, result in enumerate(ranked, 1):
+        result["rank"] = position
+    return {
+        "ranking_status": _ranking_status(ranked, unranked),
+        "profile": profile_key, "policy": dict(RANKING_POLICY),
+        "ranked_count": len(ranked), "unranked_count": len(unranked),
+        "ranked": ranked[:limit], "unranked": unranked,
+    }
 
 
 def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
@@ -247,6 +281,7 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         "featured": list(FEATURED_PROFILES),
         "profiles": USE_CASE_PROFILES,
         "benchmark_ranges": {k: list(v) for k, v in BENCHMARK_RANGES.items()},
+        "ranking_policy": RANKING_POLICY,
     })
     dump("candidates.json", {
         "build": build_json,
@@ -256,12 +291,72 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
 
     precomputed = {}
     for key in FEATURED_PROFILES:
-        precomputed[key] = rank(candidates, key, limit=25)
-    dump("rankings.json", {"build": build_json, "rankings": precomputed})
+        precomputed[key] = rank_report(candidates, key, limit=25)
+    dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed})
 
     return {
         "candidates": len(candidates),
         "profiles": len(USE_CASE_PROFILES),
         "featured": len(FEATURED_PROFILES),
-        "precomputed": {k: len(v) for k, v in precomputed.items()},
+        "precomputed": {k: len(v["ranked"]) for k, v in precomputed.items()},
     }
+
+
+def format_report(report: dict[str, Any]) -> str:
+    """Human-readable contract shared by the report CLI and its tests."""
+    policy = report['policy']
+    lines = [
+        f"{report['profile']}: {report['ranking_status']} ordering; "
+        f"{report['ranked_count']} ranked, {report['unranked_count']} unranked.",
+        "Ranked by conservative composite lower bound; observed benchmark averages "
+        "do not predict missing results.",
+        f"Eligibility: at least {policy['min_benchmark_coverage']:.0%} weighted benchmark coverage "
+        f"and {policy['min_benchmark_count']} benchmarks (or all for a smaller profile). "
+        "Bounds describe missing evidence, not statistical confidence.",
+    ]
+    for row in report["ranked"]:
+        lines.append(
+            f"{row['rank']:>3}. {row['score']:.2f}  {row['display_name']}  "
+            f"coverage {row['benchmark_coverage']:.0%}, "
+            f"bounds [{row['score_lower_bound']:.2f}, {row['score_upper_bound']:.2f}], "
+            f"benchmark basis: {row['evidence_basis']}"
+        )
+    if report["unranked"]:
+        lines.append("Unranked for insufficient benchmark evidence (alphabetical; not ranked low):")
+        for row in report["unranked"]:
+            estimate = row["benchmark_estimate"]
+            observed = "none" if estimate is None else f"{estimate:.2f}/100"
+            lines.append(
+                f"  UNRANKED  {row['display_name']}  coverage {row['benchmark_coverage']:.0%}, "
+                f"observed benchmark average {observed}, benchmark basis: {row['evidence_basis']}"
+            )
+    return "\n".join(lines)
+
+
+def main() -> None:
+    """Report CLI, usable without changes to the legacy list-only CLI."""
+    import argparse
+    import json
+    from pathlib import Path
+    from schema.card import ModelCard
+    from schema.graph import derive_graph
+
+    parser = argparse.ArgumentParser(description="Rank models with explicit incomplete evidence.")
+    parser.add_argument("profile", choices=sorted(USE_CASE_PROFILES))
+    parser.add_argument("--limit", type=int, default=10, help="Maximum ranked rows; all unranked models remain visible.")
+    parser.add_argument("--json", action="store_true", help="Emit the version 2 ranking report.")
+    args = parser.parse_args()
+    if args.limit < 0:
+        parser.error("--limit must be nonnegative")
+    root = Path(__file__).resolve().parents[1]
+    cards = [ModelCard.from_yaml_file(p) for p in sorted((root / "models").rglob("*.md"))
+             if p.name != "LICENSE.md"]
+    report = rank_report(build_candidates(cards, derive_graph(cards)), args.profile, args.limit)
+    if args.json:
+        print(json.dumps({"schema_version": "2.0", **report}, indent=2))
+    else:
+        print(format_report(report))
+
+
+if __name__ == "__main__":
+    main()

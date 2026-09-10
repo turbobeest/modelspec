@@ -1,0 +1,35 @@
+id: nvidia_l4
+display_name: NVIDIA L4
+vendor: nvidia
+family: NVIDIA L4
+device_class: datacentre
+released: 2023-03
+memory:
+  capacity_gb: 24
+  bandwidth_gb_s: 300
+  type: GDDR6
+  bus_bits: 192
+  unified_with_host: false
+  bandwidth_derivation: 192 bits / 8 x 12.5 Gbps GDDR6 (6251 MHz DDR) = 300 GB/s
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 72
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/l4/
+- https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/l4/PB-11316-001_v01.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'NVIDIA L4 product page lists 24GB, 300 GB/s, PCIe Gen4 x16, and 72 W TDP. L4
+  product brief (PB-11316-001) names GDDR6, 192-bit bus, memory clock 6,251 MHz, peak
+  bandwidth 300 GB/s, and 72 W default/maximum board power. Derivation 192/8 x 12.5 Gbps
+  matches the published 300 GB/s.'

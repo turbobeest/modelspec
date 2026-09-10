@@ -1,0 +1,37 @@
+id: nvidia_b200
+display_name: NVIDIA B200
+vendor: nvidia
+family: NVIDIA Blackwell
+device_class: datacentre
+released: 2024-03
+memory:
+  capacity_gb: 180
+  bandwidth_gb_s: 7700
+  type: HBM3E
+  bus_bits: null
+  unified_with_host: false
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: nvlink
+  link_gb_s: 1800
+power:
+  tdp_w: 1000
+  sustained_differs_from_boost: false
+sources:
+- https://dam-cdn.nvd.orangelogic.com/AssetLink/y441155802qub41q118b2852i557jem5.pdf
+- https://www.nvidia.com/en-us/data-center/hgx/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Per-SKU record for the HGX B200 Blackwell GPU, not the GB200 Superchip GPU.
+  NVIDIA Blackwell datasheet individual-GPU row for HGX B200 lists 180 GB HBM3E, 7.7 TB/s,
+  NVLink 1.8 TB/s, PCIe Gen5 128 GB/s, and TDP configurable up to 1,000 W. HGX B200
+  system totals on the HGX product page (8 GPUs, 1.4 TB) are consistent with 180 GB
+  per GPU. Distinct from the GB200 Superchip Blackwell GPU (186 GB HBM3E, 8 TB/s, up
+  to 1,200 W). Bus width is not published, so bandwidth is the transcribed 7.7 TB/s.'

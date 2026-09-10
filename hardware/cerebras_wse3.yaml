@@ -1,0 +1,36 @@
+id: cerebras_wse3
+display_name: Cerebras WSE-3
+vendor: cerebras
+family: Cerebras WSE
+device_class: datacentre
+released: 2024
+memory:
+  capacity_gb: 44
+  bandwidth_gb_s: 21000000
+  type: SRAM
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: published 21 PB/s on-wafer SRAM bandwidth = 21000000 GB/s
+precisions_native:
+- fp16
+- bf16
+interconnect:
+  pcie_gen: null
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: null
+sources:
+- https://cdn.sanity.io/files/e4qjo92p/production/2d7fa58e3b820715664bcf42097e86c05070c161.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: 'Cerebras architecture PDF for WSE-3 (linked from cerebras.ai/chip as the CS-3
+  / WSE-3 datasheet) states 900,000 cores, 48 kB SRAM per core, and 21 PB/s of on-wafer
+  memory bandwidth. Capacity is 900,000 x 48 KiB = 44.2 GB of on-wafer SRAM; this file
+  records 44 GB. Bandwidth is the published 21 PB/s (21,000,000 GB/s), not off-chip
+  HBM. No chip TDP is published in that PDF. CAVEAT: a single WSE-3 cannot hold a large
+  model in on-wafer SRAM. Cerebras streams weights from external MemoryX; the 44 GB
+  is working SRAM, not a GPU-style frame buffer. The single-device FITS_ON calculation
+  is misleading for this part and should not be read as "a 70B model fits on one WSE-3".
+  Do not fabricate a fits story from these numbers.'
