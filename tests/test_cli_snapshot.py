@@ -8,10 +8,14 @@ script has to tell apart.
 
 from __future__ import annotations
 
+import functools
 import json
+import shutil
 import subprocess
 import sys
+import sysconfig
 from datetime import UTC, datetime, timedelta
+from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 import pytest
@@ -107,24 +111,72 @@ def test_exit_codes_are_distinct() -> None:
     assert len(codes) == 5
 
 
+@functools.cache
+def _modelspec_cli() -> str:
+    """Absolute path to the installed ``modelspec`` console script.
+
+    The public entry point is ``[project.scripts] modelspec = cli.modelspec.cli:app``.
+    There is no ``python -m modelspec`` module (``python -m modelspec`` fails), so
+    these tests locate the generated console script for *this* interpreter — the
+    local venv, CI's system Python, or any other install. ``shutil.which`` alone
+    is not enough: ``.venv/bin/python -m pytest`` does not put ``.venv/bin`` on
+    ``PATH``. A missing CLI is an install failure, not a skip.
+    """
+    try:
+        dist = distribution("modelspec")
+    except PackageNotFoundError as exc:
+        raise RuntimeError(
+            "The modelspec package is not installed in this interpreter. "
+            "Install it with `pip install -e '.[dev]'` so the `modelspec` "
+            "console script is created."
+        ) from exc
+    if not any(
+        ep.group == "console_scripts" and ep.name == "modelspec"
+        for ep in dist.entry_points
+    ):
+        raise RuntimeError(
+            "The installed modelspec distribution does not declare a "
+            "`modelspec` console script (pyproject.toml [project.scripts])."
+        )
+
+    searched: list[Path] = [
+        Path(sysconfig.get_path("scripts")) / "modelspec",
+        Path(sys.executable).resolve().parent / "modelspec",
+    ]
+    which = shutil.which("modelspec")
+    if which is not None:
+        searched.append(Path(which))
+
+    seen: set[Path] = set()
+    for path in searched:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if path.is_file():
+            return str(path)
+
+    raise RuntimeError(
+        "modelspec console script is declared but was not found on disk. "
+        "Looked in: " + ", ".join(str(p) for p in searched) + ". "
+        "Install the package into this interpreter."
+    )
+
+
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [str(REPO_ROOT / ".venv/bin/modelspec"), *args],
+        [_modelspec_cli(), *args],
         capture_output=True, text=True, timeout=120,
         env={"PATH": "/usr/bin:/bin", "MODELSPEC_CACHE": str(cache), "HOME": str(cache.parent)},
     )
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_missing_snapshot_exits_three(cache: Path) -> None:
     result = _run(["offline", "rank", "coding"], cache)
     assert result.returncode == offline.EXIT_NO_SNAPSHOT
     assert "snapshot fetch" in result.stderr
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_a_stale_snapshot_fails_only_when_asked(cache: Path) -> None:
     _write(cache, datetime.now(UTC) - timedelta(days=snapshot.STALE_AFTER_DAYS + 5))
     lenient = _run(["offline", "rank", "coding", "--json"], cache)
@@ -134,8 +186,6 @@ def test_a_stale_snapshot_fails_only_when_asked(cache: Path) -> None:
     assert strict.returncode == offline.EXIT_STALE
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     _write(cache)
     result = _run(["offline", "rank", "coding", "--json"], cache)
@@ -150,8 +200,6 @@ def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     assert payload["result"][0]["model_id"] == "a/one"
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_no_match_is_its_own_exit_code(cache: Path) -> None:
     """Not an error. The honest answer is sometimes "nothing fits"."""
     _write(cache)
@@ -161,8 +209,6 @@ def test_no_match_is_its_own_exit_code(cache: Path) -> None:
     assert result.returncode == offline.EXIT_NO_MATCH
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_json_status_has_the_common_envelope(cache: Path) -> None:
     _write(cache)
 
@@ -177,8 +223,6 @@ def test_json_status_has_the_common_envelope(cache: Path) -> None:
     assert result.stderr == ""
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_json_missing_snapshot_is_structured_on_stderr(cache: Path) -> None:
     result = _run(["offline", "rank", "coding", "--json"], cache)
 
@@ -190,8 +234,6 @@ def test_json_missing_snapshot_is_structured_on_stderr(cache: Path) -> None:
     assert "snapshot fetch" in error["error"]["message"]
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_parser_usage_errors_use_runtime_error_code(cache: Path) -> None:
     missing_argument = _run(["offline", "rank"], cache)
     unknown_option = _run(["offline", "rank", "coding", "--not-an-option"], cache)
@@ -202,8 +244,6 @@ def test_parser_usage_errors_use_runtime_error_code(cache: Path) -> None:
     assert "Traceback" not in unknown_option.stderr
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 def test_unknown_use_case_is_a_usage_error(cache: Path) -> None:
     _write(cache)
     result = _run(["offline", "rank", "not-a-use-case"], cache)
@@ -211,8 +251,6 @@ def test_unknown_use_case_is_a_usage_error(cache: Path) -> None:
     assert "unknown use case" in result.stderr
 
 
-@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
-                    reason="CLI not installed in this environment")
 @pytest.mark.parametrize("json_output", [False, True])
 def test_cli_reports_sparse_evidence_without_runtime_error(cache: Path, json_output) -> None:
     _write(cache)
