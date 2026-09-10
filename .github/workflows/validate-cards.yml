@@ -46,14 +46,77 @@ jobs:
       - name: Run validation
         id: validate
         run: |
-          python scripts/validate_pr.py > validation_output.json 2>validation_stderr.txt || true
+          # Keep this step green long enough to publish the diagnostic comment.
+          # The validator's exit status and the report shape are both checked
+          # below, so a crash, invalid card, or incomplete report cannot pass.
+          set +e
+          python scripts/validate_pr.py > validation_output.json 2>validation_stderr.txt
+          validation_status=$?
+          set -e
+
+          echo "validator_status=${validation_status}" >> "$GITHUB_OUTPUT"
           echo "result<<VALIDATION_EOF" >> "$GITHUB_OUTPUT"
           cat validation_output.json >> "$GITHUB_OUTPUT"
           echo "" >> "$GITHUB_OUTPUT"
           echo "VALIDATION_EOF" >> "$GITHUB_OUTPUT"
 
-          # Also set a simple pass/fail flag
-          if python -c "import json,sys; d=json.load(open('validation_output.json')); sys.exit(0 if d.get('invalid',0)==0 and len(d.get('regression_errors',[]))==0 else 1)"; then
+          # Also set a simple pass/fail flag. Do not use permissive .get()
+          # defaults: a valid JSON object such as {} is not a validation pass.
+          if VALIDATOR_STATUS="$validation_status" python - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              with open("validation_output.json", encoding="utf-8") as handle:
+                  report = json.load(handle)
+          except (OSError, json.JSONDecodeError):
+              sys.exit(1)
+
+          required = {
+              "mode",
+              "results",
+              "total",
+              "valid",
+              "invalid",
+              "new_cards",
+              "regression_errors",
+              "labels",
+          }
+          if not isinstance(report, dict) or report.get("mode") != "pr":
+              sys.exit(1)
+          if not required.issubset(report):
+              sys.exit(1)
+          if not isinstance(report["results"], list):
+              sys.exit(1)
+          if not isinstance(report["regression_errors"], list):
+              sys.exit(1)
+          if not isinstance(report["labels"], list):
+              sys.exit(1)
+
+          counts = {name: report[name] for name in ("total", "valid", "invalid", "new_cards")}
+          if any(type(value) is not int or value < 0 for value in counts.values()):
+              sys.exit(1)
+          if counts["valid"] + counts["invalid"] != counts["total"]:
+              sys.exit(1)
+          if len(report["results"]) != counts["total"]:
+              sys.exit(1)
+
+          statuses = []
+          for result in report["results"]:
+              if not isinstance(result, dict) or result.get("status") not in {"valid", "invalid"}:
+                  sys.exit(1)
+              statuses.append(result["status"])
+          if statuses.count("valid") != counts["valid"]:
+              sys.exit(1)
+          if statuses.count("invalid") != counts["invalid"]:
+              sys.exit(1)
+          if os.environ.get("VALIDATOR_STATUS") != "0":
+              sys.exit(1)
+          if counts["invalid"] != 0 or report["regression_errors"]:
+              sys.exit(1)
+          PY
+          then
             echo "passed=true" >> "$GITHUB_OUTPUT"
           else
             echo "passed=false" >> "$GITHUB_OUTPUT"
@@ -223,5 +286,7 @@ jobs:
         if: steps.validate.outputs.passed == 'false'
         run: |
           echo "::error::Model card validation failed. See PR comment for details."
-          cat validation_stderr.txt 2>/dev/null || true
+          if [ -s validation_stderr.txt ]; then
+            cat validation_stderr.txt
+          fi
           exit 1
