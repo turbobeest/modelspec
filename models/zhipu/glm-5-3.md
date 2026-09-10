@@ -680,9 +680,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: AA-Briefcase / AA v4.2
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: aa_lcr
     model_id_as_evaluated: GLM-5.3 (max)
@@ -694,9 +695,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: AA-LCR v1.1 / AA v4.2
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: automationbench_aa
     model_id_as_evaluated: GLM-5.3 (max)
@@ -708,8 +710,9 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: AutomationBench 1.0.6 / AA held-out split
-    configuration: 'AA v4.3: private 657-task split; single run; 50-turn cap; objective-credit
-      score with guardrail-zeroing; both models at max reasoning (not equal compute).'
+    configuration: 'reasoning_effort=max. AA v4.3: private 657-task split; single run;
+      50-turn cap; objective-credit score with guardrail-zeroing; both models at max
+      reasoning (not equal compute).'
     limitations: ''
   - benchmark_id: critpt
     model_id_as_evaluated: GLM-5.3 (max)
@@ -721,9 +724,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: CritPt / AA v4.2 implementation
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: gdp_pdf_aa
     model_id_as_evaluated: GLM-5.3 (max)
@@ -735,9 +739,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: GDP.pdf / AA v4.2 implementation
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: gdpval_aa
     model_id_as_evaluated: GLM-5.3 (max)
@@ -749,9 +754,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: GDPval-AA v2 / AA v4.2
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: scicode
     model_id_as_evaluated: GLM-5.3 (max)
@@ -763,9 +769,10 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-08'
     benchmark_version: SciCode / AA v4.2 implementation
-    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
-      reasoning is not compute-matched. Values read from fixed release chart, not
-      live tables. Undisclosed code/prompt pins are not inferred.
+    configuration: reasoning_effort=max. AA v4.2 published comparison; both models
+      labelled max; model-dependent reasoning is not compute-matched. Values read
+      from fixed release chart, not live tables. Undisclosed code/prompt pins are
+      not inferred.
     limitations: ''
   - benchmark_id: aa_lcr
     model_id_as_evaluated: GLM-5.3 (max)
@@ -1011,4 +1018,4 @@ card_updated: '2026-09-10'
 
 # GLM-5.3
 
-Z.ai (Zhipu) flagship open-weight MoE. The [provider blog](https://z.ai/blog/glm-5.3) (2026-08-14) and [docs](https://docs.z.ai/guides/llm/glm-5.3) state it uses the same base as GLM-5.2, with gains from post-training; text-only; 1M-token context; 128K max output; reasoning always on (`reasoning_effort`: low / high / max, default max). Weights: [zai-org/GLM-5.3](https://huggingface.co/zai-org/GLM-5.3) (Hub safetensors total 753,329,940,480). Licence is the custom GLM-5.3 licence, not MIT. Benchmark scores are not attached on this card.
+Z.ai (Zhipu) flagship open-weight MoE. The [provider blog](https://z.ai/blog/glm-5.3) (2026-08-14) and [docs](https://docs.z.ai/guides/llm/glm-5.3) state it uses the same base as GLM-5.2, with gains from post-training; text-only; 1M-token context; 128K max output; reasoning always on (`reasoning_effort`: low / high / max, default max). Weights: [zai-org/GLM-5.3](https://huggingface.co/zai-org/GLM-5.3) (Hub safetensors total 753,329,940,480). Licence is the custom GLM-5.3 licence, not MIT. Dated AA Index v4.2/v4.3 eligibility scores (reasoning_effort=max) and 2026-09-10 live-board standings are attached as verified evidence.

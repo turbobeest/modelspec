@@ -833,4 +833,4 @@ card_updated: '2026-09-10'
 
 Essential AI's instruction-tuned 8B dense model, Apache 2.0. Hub: [EssentialAI/rnj-1-instruct](https://huggingface.co/EssentialAI/rnj-1-instruct). Post-trained from `EssentialAI/rnj-1` (Gemma 3-like config, YaRN to 32K). Hub safetensors total 8,310,501,376. Changelog dates the initial instruct card to 2025-12-08.
 
-Nearby census hits named `rnj-1-base-evals` are an evaluation dataset, not this model. The base checkpoint `rnj-1` is a distinct card-worthy model and is not this file. Benchmark scores are not attached on this card.
+Nearby census hits named `rnj-1-base-evals` are an evaluation dataset, not this model, and were not attached. The base checkpoint `rnj-1` is a distinct card-worthy model and is not this file. No ranked live-board or eligibility score for this instruct SKU is in the census.

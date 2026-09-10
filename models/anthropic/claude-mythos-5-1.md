@@ -839,4 +839,4 @@ card_updated: '2026-09-10'
 
 Anthropic's current Mythos-class snapshot, introduced 2026-09-01. The [product page](https://www.anthropic.com/claude/mythos) and [Fable/Mythos 5.1 announcement](https://www.anthropic.com/claude-fable-and-mythos-5-1) describe it as the same underlying weights as Claude Fable 5.1, with more permissive safeguards for vetted cyber and life-sciences work. Access remains limited to trusted access programs. Pricing starts at $10 / $50 per million input / output tokens. Weights are closed. Parameter counts are unpublished.
 
-This is a distinct SKU from Claude Mythos 5 (2026-06-09), not a size variant. Benchmark scores are not attached on this card.
+This is a distinct SKU from Claude Mythos 5 (2026-06-09), not a size variant. No ranked primary-source score is attached: the Fable/Mythos 5.1 launch post's Terminal-Bench 4.0 figure is not the ranked `terminal_bench` (v1.0) key, and the cached launch post has no dateline.

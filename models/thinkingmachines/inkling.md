@@ -248,8 +248,9 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: USD per 1M tokens on Together AI (https://www.together.ai/models/inkling; census pricing_fetch).
-    Cached input $0.17/M. Tinker serving context is 64K/256K; open weights support 1M.
+  note: USD per 1M tokens on Together AI (https://www.together.ai/models/inkling;
+    census pricing_fetch). Cached input $0.17/M. Tinker serving context is 64K/256K;
+    open weights support 1M.
 availability:
   primary_provider:
     name: Thinking Machines Lab
@@ -671,7 +672,86 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Inkling
+    score: 77.33
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: inkling
+    score: 1439.42
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Inkling
+    score: 5.43
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Inkling
+    score: 33.26
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Inkling
+    score: 87.17
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: Inkling
+    score: 46.99
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -841,4 +921,4 @@ card_updated: '2026-09-10'
 
 Thinking Machines Lab's first open-weight model, released 2026-07-15 under Apache 2.0. Hub: [thinkingmachines/Inkling](https://huggingface.co/thinkingmachines/Inkling). Official card: 66-layer decoder-only MoE, 6 of 256 routed experts plus 2 shared, native text/image/audio (and video encoder) into a shared hidden space. Hub safetensors total 952,377,623,626. Published active count is 41B. Open weights support 1,048,576-token context; Tinker serving is 64K/256K.
 
-Inkling-Small (276B-A12B) is a distinct later size and is not this card. Benchmark scores are not attached on this card.
+Inkling-Small (276B-A12B) is a distinct later size and is not this card. Live AA ranked components and LM Arena style-control Elo from 2026-09-10 are attached; Inkling Small rows were refused.

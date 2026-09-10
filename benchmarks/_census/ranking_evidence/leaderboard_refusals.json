@@ -8487,5 +8487,101 @@
         "extra": "openai/gpt-5-2"
       }
     ]
+  },
+  "model13": {
+    "as_of": "2026-09-10",
+    "note": "Cards created after the 2026-09-10 live-board harvest. Rescued names are now in LEDGER_TO_CARD. Original refusals.unmapped_name is left as the harvest record.",
+    "rescued_evaluator_names": [
+      "Cogito v2.1",
+      "GLM-5.3 (max)",
+      "GLM-5.3-Flash",
+      "Inkling",
+      "Nemotron 3 Ultra",
+      "Nemotron 3.5 Lightning",
+      "glm-5.3-flash",
+      "glm-5.3-max",
+      "inkling",
+      "muse-glimmer"
+    ],
+    "refusals": [
+      {
+        "name": "Muse Glimmer (high)",
+        "benchmark_id": "gpqa_diamond",
+        "score": 83.54,
+        "cause": "effort_variant"
+      },
+      {
+        "name": "Muse Glimmer (high)",
+        "benchmark_id": "scicode",
+        "score": 44.91,
+        "cause": "effort_variant"
+      },
+      {
+        "name": "Muse Glimmer (high)",
+        "benchmark_id": "aa_lcr",
+        "score": 83.33,
+        "cause": "effort_variant"
+      },
+      {
+        "name": "Muse Glimmer (high)",
+        "benchmark_id": "gdpval_aa",
+        "score": 19.64,
+        "cause": "effort_variant"
+      },
+      {
+        "name": "Muse Glimmer (high)",
+        "benchmark_id": "critpt",
+        "score": 2.57,
+        "cause": "effort_variant"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "gpqa_diamond",
+        "score": 89.49,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "scicode",
+        "score": 49.65,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "aa_lcr",
+        "score": 75.67,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "gdpval_aa",
+        "score": 34.57,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "critpt",
+        "score": 8.29,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "nvidia-nemotron-3-ultra-550b-a55b-nvfp4",
+        "benchmark_id": "arena_elo_style_control",
+        "score": 1426.11,
+        "cause": "serving_quant"
+      },
+      {
+        "name": "Inkling Small",
+        "benchmark_id": "arena_elo_style_control",
+        "score": 1406.66,
+        "cause": "distinct_model"
+      },
+      {
+        "name": "nvidia-nemotron-3.5-lightning-30b-a3b-nvfp4",
+        "benchmark_id": "arena_elo_style_control",
+        "score": 1355.4,
+        "cause": "serving_quant"
+      }
+    ]
   }
 }

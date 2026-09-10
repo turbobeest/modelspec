@@ -212,5 +212,11 @@
   "mistral-small-2506": "mistral/mistral-small-2506",
   "command-a-03-2025": "cohere/command-a-03-2025",
   "glm-4.5v": "zhipu/glm-4-5v",
-  "gpt-oss-120b": "cerebras/gpt-oss-120b"
+  "gpt-oss-120b": "cerebras/gpt-oss-120b",
+  "Inkling": "thinkingmachines/inkling",
+  "inkling": "thinkingmachines/inkling",
+  "Nemotron 3.5 Lightning": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b",
+  "Nemotron 3 Ultra": "nvidia/nvidia-nemotron-3-ultra-550b-a55b",
+  "Cogito v2.1": "deepcogito/cogito-671b-v2-1",
+  "muse-glimmer": "meta/muse-glimmer-30b"
 }

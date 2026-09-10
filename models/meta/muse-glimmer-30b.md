@@ -247,8 +247,8 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: USD per 1M tokens on Together AI (https://www.together.ai/models/muse-glimmer and
-    census pricing_fetch from together.ai/pricing). Cached input $0.04/M.
+  note: USD per 1M tokens on Together AI (https://www.together.ai/models/muse-glimmer
+    and census pricing_fetch from together.ai/pricing). Cached input $0.04/M.
 availability:
   primary_provider:
     name: Hugging Face
@@ -670,7 +670,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: muse-glimmer
+    score: 1427.34
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -840,4 +854,4 @@ card_updated: '2026-09-10'
 
 Meta Superintelligence Labs' local agentic VLM, released 2026-08-10 under Apache 2.0. Hub: [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B). Distilled from Muse Spark. Dense transformer plus a ~1.8B ViT-G/14 perception encoder. Hub safetensors total 29,776,626,688. Text+image in, text out; 131,072-token context. Attention is a 3-local / 1-global pattern with sliding window 2048; `attention_type` left null because that is not a single MHA/GQA/sliding-window value.
 
-Muse Spark is already carded (misfiled at `meta/muse-spark`). This is a distinct, smaller distilled model, not a serving SKU. Benchmark scores are not attached on this card.
+Muse Spark is already carded (misfiled at `meta/muse-spark`). This is a distinct, smaller distilled model, not a serving SKU. LM Arena style-control Elo from 2026-09-10 is attached under the evaluator name `muse-glimmer`. The AA row `Muse Glimmer (high)` is an effort variant and was not attached.

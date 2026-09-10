@@ -272,11 +272,26 @@ LEDGER_TO_CARD: dict[str, str] = {
     "glm-5.3-max": "zhipu/glm-5-3",
     "GLM-5.3-Flash": "zhipu/glm-5-3-flash",
     "glm-5.3-flash": "zhipu/glm-5-3-flash",
+    # MODEL-13: cards that existed only after the live-board harvest.
+    # Unique identity checked against AA slug/creator (or Arena org), not
+    # inferred from a family name. Effort / quant / sibling-size rows stay out.
+    "Inkling": "thinkingmachines/inkling",
+    "inkling": "thinkingmachines/inkling",
+    "Nemotron 3.5 Lightning": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b",
+    "Nemotron 3 Ultra": "nvidia/nvidia-nemotron-3-ultra-550b-a55b",
+    "Cogito v2.1": "deepcogito/cogito-671b-v2-1",
+    "muse-glimmer": "meta/muse-glimmer-30b",
     # Unmapped on purpose:
     # "Claude Opus 5 (high)" / other effort rows — not the product card.
     # "GLM-5.2 (max)" — two cards (mistral/zai-glm-5-2, qwen/glm-5-2).
     # "Qwen3.8-Max" as a *static* HF score still has no stated day;
     # the live AA row is mapped separately as "Qwen3.8 Max".
+    # "Muse Glimmer (high)" — effort row, not meta/muse-glimmer-30b.
+    # "Inkling Small" — distinct later size, not thinkingmachines/inkling.
+    # NVFP4 Lightning/Ultra Arena rows — serving quants, not the BF16 cards.
+    # "Llama Nemotron Ultra" — Llama 3.1 Nemotron Ultra 253B, not 3 Ultra.
+    # "rnj-1" / "rnj-1-base-evals" — a dataset, not essentialai/rnj-1-instruct.
+    # Claude Mythos 5 / 5.1 — no primary ranked score in the census.
 }
 
 
@@ -314,7 +329,13 @@ def to_evidence(benchmark_id: str, raw: dict, verified_at: str) -> BenchmarkEvid
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--only",
+        default="",
+        help="comma-separated model_ids to write; default is every mapped card",
+    )
     args = parser.parse_args()
+    only = {part.strip() for part in args.only.split(",") if part.strip()} or None
 
     accepted = load_accepted()
     today = date.today().isoformat()
@@ -330,12 +351,16 @@ def main() -> int:
         by_card.setdefault(model_id, []).append(to_evidence(benchmark_id, raw, today))
 
     print(f"{len(accepted)} accepted results across {len(by_card)} mapped models")
+    if only:
+        print(f"restricting writes to {len(only)} model_id(s)")
     for name, count in sorted(unmapped.items()):
         print(f"  UNMAPPED  {name}: {count} results skipped — no card, or no verified mapping")
 
     cards = _card_index()
     written = 0
     for model_id, records in sorted(by_card.items()):
+        if only is not None and model_id not in only:
+            continue
         path = cards.get(model_id)
         if path is None:
             print(f"  ERROR     {model_id}: mapped but no card file found")

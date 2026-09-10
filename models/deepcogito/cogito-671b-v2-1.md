@@ -666,7 +666,49 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Cogito v2.1
+    score: 22.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning
+      (reasoning-mode row).
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Cogito v2.1
+    score: 0.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning
+      (reasoning-mode row).
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Cogito v2.1
+    score: 76.77
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning
+      (reasoning-mode row).
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -835,4 +877,4 @@ card_updated: '2026-09-10'
 
 Deep Cogito's 671B MoE hybrid-reasoning model, released 2025-11-19. Hub: [deepcogito/cogito-671b-v2.1](https://huggingface.co/deepcogito/cogito-671b-v2.1). Instruction-tuned from DeepSeek-V3-Base (DeepSeekV3ForCausalLM / MLA MoE). Hub safetensors total 671,019,752,960. MIT licence on the Hub card. Context 128k per the provider README (config `max_position_embeddings` is 163840; the card uses the published 128k figure). Active-parameter count is not stated as an integer on the provider card; left null.
 
-Nearby census Cogito hits that name eval datasets are not this model. Benchmark scores are not attached on this card.
+Nearby census Cogito hits that name eval datasets are not this model. Live AA ranked components from 2026-09-10 for evaluator name `Cogito v2.1` (AA slug `cogito-v2-1-reasoning`) are attached.

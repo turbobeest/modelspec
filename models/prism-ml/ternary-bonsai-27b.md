@@ -841,4 +841,4 @@ card_updated: '2026-09-10'
 
 Prism ML's ternary (weights in {-1, 0, +1}) quant of Qwen3.6-27B, documented at [docs.prismml.com/models/bonsai-27b](https://docs.prismml.com/models/bonsai-27b). Primary artefact: [prism-ml/Ternary-Bonsai-27B-gguf](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf). Parameter count 27,356,728,560 is the Hub safetensors total of the unpacked sibling [prism-ml/Ternary-Bonsai-27B-unpacked](https://huggingface.co/prism-ml/Ternary-Bonsai-27B-unpacked). Architecture is the Qwen3.5/3.6 hybrid (Gated DeltaNet linear attention on 48 of 64 layers, full attention on 16). Context 262,144. Apache 2.0.
 
-The 1-bit `Bonsai 27B` (not ternary) is a distinct operating point and is not this card. Benchmark scores are not attached on this card.
+The 1-bit `Bonsai 27B` (not ternary) is a distinct operating point and is not this card. No ranked live-board or eligibility score for this SKU is in the census.

@@ -1565,6 +1565,54 @@
           "verified_at": "2026-09-10",
           "benchmark_version": "AA-LCR v1.1",
           "configuration": "Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Inkling",
+          "score": 77.33,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "AA-LCR v1.1",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3.5 Lightning",
+          "score": 60.33,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "AA-LCR v1.1",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3 Ultra",
+          "score": 79.33,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "AA-LCR v1.1",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Cogito v2.1",
+          "score": 22.67,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "AA-LCR v1.1",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1. evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning (reasoning-mode row)."
         }
       ]
     },
@@ -2427,6 +2475,30 @@
         {
           "model_id": "gpt-oss-120b",
           "score": 1352.45,
+          "unit": "elo",
+          "source_url": "https://lmarena.ai/leaderboard",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "Text Arena overall, style-controlled",
+          "configuration": "LM Arena live board (text-overall-style_control). Text Arena overall, style-controlled. Style-control overall is not raw overall and is not a category Elo. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "inkling",
+          "score": 1439.42,
+          "unit": "elo",
+          "source_url": "https://lmarena.ai/leaderboard",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "Text Arena overall, style-controlled",
+          "configuration": "LM Arena live board (text-overall-style_control). Text Arena overall, style-controlled. Style-control overall is not raw overall and is not a category Elo. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "muse-glimmer",
+          "score": 1427.34,
           "unit": "elo",
           "source_url": "https://lmarena.ai/leaderboard",
           "source_kind": "independent_evaluator",
@@ -4007,6 +4079,54 @@
           "verified_at": "2026-09-10",
           "benchmark_version": "CritPt",
           "configuration": "Artificial Analysis live LLM leaderboard. Column critpt = CritPt. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Inkling",
+          "score": 5.43,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "CritPt",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column critpt = CritPt. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3.5 Lightning",
+          "score": 0.0,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "CritPt",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column critpt = CritPt. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3 Ultra",
+          "score": 3.14,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "CritPt",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column critpt = CritPt. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Cogito v2.1",
+          "score": 0.0,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "CritPt",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column critpt = CritPt. evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning (reasoning-mode row)."
         }
       ]
     },
@@ -4827,6 +4947,42 @@
         {
           "model_id": "DeepSeek V4 Flash 0731 (max)",
           "score": 48.39,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GDPval-AA v2 normalized Elo percent",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gdpvalNormalized = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Inkling",
+          "score": 33.26,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GDPval-AA v2 normalized Elo percent",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gdpvalNormalized = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3.5 Lightning",
+          "score": 13.34,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GDPval-AA v2 normalized Elo percent",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gdpvalNormalized = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3 Ultra",
+          "score": 29.54,
           "unit": "percent",
           "source_url": "https://artificialanalysis.ai/leaderboards/models",
           "source_kind": "independent_evaluator",
@@ -6749,6 +6905,54 @@
           "verified_at": "2026-09-10",
           "benchmark_version": "GPQA Diamond",
           "configuration": "Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Inkling",
+          "score": 87.17,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3.5 Lightning",
+          "score": 74.34,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3 Ultra",
+          "score": 86.67,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Cogito v2.1",
+          "score": 76.77,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "GPQA Diamond",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond. evidence_date observation_fetch_date=2026-09-10. AA slug cogito-v2-1-reasoning (reasoning-mode row)."
         }
       ]
     },
@@ -7551,6 +7755,42 @@
         {
           "model_id": "DeepSeek V4 Flash 0731 (max)",
           "score": 50.35,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "SciCode",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column scicode = SciCode. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Inkling",
+          "score": 46.99,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "SciCode",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column scicode = SciCode. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3.5 Lightning",
+          "score": 32.06,
+          "unit": "percent",
+          "source_url": "https://artificialanalysis.ai/leaderboards/models",
+          "source_kind": "independent_evaluator",
+          "evidence_date": "2026-09-10",
+          "date_type": "evaluated",
+          "verified_at": "2026-09-10",
+          "benchmark_version": "SciCode",
+          "configuration": "Artificial Analysis live LLM leaderboard. Column scicode = SciCode. evidence_date observation_fetch_date=2026-09-10."
+        },
+        {
+          "model_id": "Nemotron 3 Ultra",
+          "score": 40.28,
           "unit": "percent",
           "source_url": "https://artificialanalysis.ai/leaderboards/models",
           "source_kind": "independent_evaluator",

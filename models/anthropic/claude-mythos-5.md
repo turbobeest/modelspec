@@ -847,4 +847,4 @@ Anthropic's Mythos-class model, launched 2026-06-09 as the successor to [Claude 
 
 Shared specs: 1M-token context, 128k max output, adaptive thinking always on (`effort` controls depth; `thinking: disabled` is unsupported). Pricing shared with Fable 5: $10 / $50 per million input / output tokens. Weights are closed. Parameter counts are unpublished.
 
-A later snapshot, Claude Mythos 5.1, shipped 2026-09-01. This card is the 2026-06-09 Mythos 5 SKU. The existing `anthropic/claude-mythos-preview` card is the April 2026 predecessor and should be related, not overwritten. Benchmark scores are not attached on this card.
+A later snapshot, Claude Mythos 5.1, shipped 2026-09-01. This card is the 2026-06-09 Mythos 5 SKU. The existing `anthropic/claude-mythos-preview` card is the April 2026 predecessor and should be related, not overwritten. No ranked primary-source score is attached: OpenAI competitor-table figures are not a primary source for this card, and Anthropic's published Terminal-Bench 4.0 parenthetical is not the ranked `terminal_bench` (v1.0) key.

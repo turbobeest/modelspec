@@ -53,7 +53,7 @@ lineage:
   adapter_rank: null
   training_datasets: []
   training_data_tokens: null
-  training_data_cutoff: '2026-05'
+  training_data_cutoff: 2026-05
   training_compute_flops: null
   training_hardware: ''
   training_time: ''
@@ -76,8 +76,8 @@ licensing:
   medical_use: unspecified
   academic_use: unspecified
   geographic_restrictions: []
-  export_control_notes: OpenMDW License Agreement, version 1.1. NVIDIA states the model is
-    ready for commercial use.
+  export_control_notes: OpenMDW License Agreement, version 1.1. NVIDIA states the
+    model is ready for commercial use.
   origin_country: US
   origin_org_type: private
 modalities:
@@ -668,7 +668,72 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Nemotron 3.5 Lightning
+    score: 60.33
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Nemotron 3.5 Lightning
+    score: 0.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Nemotron 3.5 Lightning
+    score: 13.34
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Nemotron 3.5 Lightning
+    score: 74.34
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: Nemotron 3.5 Lightning
+    score: 32.06
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -841,4 +906,4 @@ card_updated: '2026-09-10'
 
 NVIDIA's 2026-08-11 Nemotron 3.5 increment: hybrid Mamba-2 + MoE + attention, marketed as 30B total / 3B active. Hub BF16: [nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16). Hub safetensors total 31,577,937,344. OpenMDW 1.1. Published context is up to 1M tokens (config `max_position_embeddings` is 262144; single-H100 BF16 is memory-bound at 256K). NVFP4 is a quant of this model, not a separate card.
 
-Nemotron 3 Nano/Super are already carded; this is a distinct 3.5 checkpoint. Benchmark scores are not attached on this card.
+Nemotron 3 Nano/Super are already carded; this is a distinct 3.5 checkpoint. Live AA ranked components from 2026-09-10 are attached. The Arena NVFP4 row is a serving quant and was not attached.

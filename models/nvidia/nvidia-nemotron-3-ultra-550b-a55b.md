@@ -54,7 +54,7 @@ lineage:
   adapter_rank: null
   training_datasets: []
   training_data_tokens: 20000000000000
-  training_data_cutoff: '2026-05'
+  training_data_cutoff: 2026-05
   training_compute_flops: null
   training_hardware: ''
   training_time: ''
@@ -77,8 +77,8 @@ licensing:
   medical_use: unspecified
   academic_use: unspecified
   geographic_restrictions: []
-  export_control_notes: OpenMDW License Agreement, version 1.1. NVIDIA states the model is
-    ready for commercial and non-commercial use.
+  export_control_notes: OpenMDW License Agreement, version 1.1. NVIDIA states the
+    model is ready for commercial and non-commercial use.
   origin_country: US
   origin_org_type: private
 modalities:
@@ -246,8 +246,8 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: USD per 1M tokens on Fireworks serverless (census pricing_fetch listed this SKU as
-    'NVIDIA Nemotron 3 Ultra (Preview)' at $0.60 / $2.40 from docs.fireworks.ai/serverless/pricing).
+  note: USD per 1M tokens on Fireworks serverless (census pricing_fetch listed this
+    SKU as 'NVIDIA Nemotron 3 Ultra (Preview)' at $0.60 / $2.40 from docs.fireworks.ai/serverless/pricing).
     The Hub checkpoint is the 2026-06-04 GA BF16 release, not a separate preview.
 availability:
   primary_provider:
@@ -670,7 +670,72 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 79.33
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 3.14
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 29.54
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 86.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: Nemotron 3 Ultra
+    score: 40.28
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -840,4 +905,4 @@ card_updated: '2026-09-10'
 
 NVIDIA's Nemotron 3 flagship, Hub-released 2026-06-04. Post-trained BF16: [nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16). LatentMoE hybrid Mamba-2 + MoE + attention with MTP. Marketed as 550B total / 55B active; Hub safetensors total 560,524,578,816. OpenMDW 1.1. Context up to 1M tokens. The census pricing row named this "NVIDIA Nemotron 3 Ultra (Preview)"; the published checkpoint is the June 2026 GA weights, not a lingering preview SKU. NVFP4 and Base BF16 are quants / the base, not extra cards.
 
-Nemotron 3 Nano and Super are already carded. Benchmark scores are not attached on this card.
+Nemotron 3 Nano and Super are already carded. Live AA ranked components from 2026-09-10 are attached. The Arena NVFP4 row is a serving quant and was not attached.
