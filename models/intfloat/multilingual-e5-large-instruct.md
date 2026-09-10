@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 24
+  hidden_size: 1024
+  intermediate_size: 4096
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 16
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 250002
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: intfloat/multilingual-e5-large-instruct
+    url: https://huggingface.co/intfloat/multilingual-e5-large-instruct
     fine_tuning: false
     gated: false
     regions: []

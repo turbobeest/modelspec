@@ -7,13 +7,14 @@ released: 2023-01
 memory:
   capacity_gb: 96
   bandwidth_gb_s: 400
-  type: unified LPDDR5X
+  type: unified
   bus_bits: null
   unified_with_host: true
   capacity_options_gb:
   - 32
   - 64
   - 96
+  bandwidth_derivation: Apple-published unified memory bandwidth (not bus-derived)
 precisions_native:
 - fp16
 - bf16
@@ -27,9 +28,12 @@ power:
   tdp_w: null
   sustained_differs_from_boost: true
 sources:
-- https://www.apple.com/mac/compare/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: '12-core CPU, up to 38-core GPU. Unified memory: the whole capacity is addressable
-  by the GPU, minus what the OS holds. Sustained clocks differ from boost in thin
-  chassis. Transcribed from vendor specifications; not yet confirmed.'
+- https://support.apple.com/en-us/111838
+- https://support.apple.com/en-us/111835
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: '12-core CPU, 30- or 38-core GPU. Unified memory options are 32 GB, 64 GB,
+  and 96 GB (96 GB requires the 38-core GPU). Bandwidth is 400 GB/s on Apple''s MacBook
+  Pro 16-inch (2023) and Mac Studio (2023) tech specs. Apple does not publish a TDP
+  or a DRAM generation on those pages. Sustained clocks differ from boost in thin
+  chassis.'

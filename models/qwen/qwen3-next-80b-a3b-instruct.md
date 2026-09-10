@@ -15,18 +15,18 @@ pipeline_tag: ''
 architecture:
   type: null
   total_parameters: 80000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 3239575552
+  num_experts: 512
+  experts_per_token: 10
+  num_layers: 48
+  hidden_size: 2048
+  intermediate_size: 5120
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 2
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 151936
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3-Next-80B-A3B-Instruct
+    url: https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Instruct
     fine_tuning: false
     gated: false
     regions: []

@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 119547
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: sentence-transformers/distiluse-base-multilingual-cased-v1
+    url: https://huggingface.co/sentence-transformers/distiluse-base-multilingual-cased-v1
     fine_tuning: false
     gated: false
     regions: []

@@ -17,18 +17,18 @@ pipeline_tag: text-generation
 architecture:
   type: null
   total_parameters: 20000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 4186275840
+  num_experts: 32
+  experts_per_token: 4
+  num_layers: 24
+  hidden_size: 2880
+  intermediate_size: 2880
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 201088
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/gpt-oss-20b-GGUF
+    url: https://huggingface.co/unsloth/gpt-oss-20b-GGUF
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/CogVideoX-5b-I2V
+    url: https://huggingface.co/zai-org/CogVideoX-5b-I2V
     fine_tuning: false
     gated: false
     regions: []

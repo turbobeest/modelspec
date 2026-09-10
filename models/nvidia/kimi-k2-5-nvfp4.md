@@ -17,17 +17,17 @@ architecture:
   type: null
   total_parameters: 1000000000000
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 384
+  experts_per_token: 8
+  num_layers: 61
+  hidden_size: 7168
+  intermediate_size: 18432
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 64
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 163840
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Kimi-K2.5-NVFP4
+    url: https://huggingface.co/nvidia/Kimi-K2.5-NVFP4
     fine_tuning: false
     gated: false
     regions: []

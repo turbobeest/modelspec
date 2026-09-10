@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/gemma-3-4b-pt
+    url: https://huggingface.co/google/gemma-3-4b-pt
     fine_tuning: false
     gated: false
     regions: []

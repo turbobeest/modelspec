@@ -10,6 +10,7 @@ memory:
   type: GDDR6
   bus_bits: 320
   unified_with_host: false
+  bandwidth_derivation: 320 bits / 8 x 20 Gbps GDDR6 = 800 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -23,8 +24,12 @@ power:
   tdp_w: 315
   sustained_differs_from_boost: false
 sources:
-- https://www.amd.com/en/products/graphics/radeon-rx-7000-series
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xt.html
+- https://www.amd.com/en/partner/articles/radeon-rx-7900-series-graphics.html
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (20 GB GDDR6), memory speed (up to 20 Gbps), memory bandwidth (up
+  to 800 GB/s) and Typical Board Power (315 W) from the AMD product spec page. The
+  product page does not list bus width; AMD's Radeon RX 7900 Series partner article
+  lists a 320-bit memory interface. Bandwidth is derived as 320/8 x 20, matching
+  the 800 GB/s figure on the product page.

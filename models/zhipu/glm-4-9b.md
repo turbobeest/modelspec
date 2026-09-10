@@ -20,10 +20,10 @@ architecture:
   num_experts: null
   experts_per_token: null
   num_layers: null
-  hidden_size: null
+  hidden_size: 4096
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 32
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/glm-4-9b
+    url: https://huggingface.co/zai-org/glm-4-9b
     fine_tuning: false
     gated: false
     regions: []

@@ -21,15 +21,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 40
+  hidden_size: 5120
+  intermediate_size: 17920
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 40
+  num_kv_heads: 10
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 100352
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -646,8 +646,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: microsoft/phi-4
+    url: https://huggingface.co/microsoft/phi-4
     fine_tuning: false
     gated: false
     regions: []
@@ -720,8 +720,8 @@ benchmarks:
     musr: 23.5
     wildbench: 58.2
     medqa: 77.8
-  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2,, domain-evals
-    llm-stats
+  benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2,,
+    domain-evals llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

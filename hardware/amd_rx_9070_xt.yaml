@@ -6,10 +6,11 @@ device_class: consumer
 released: 2025-03
 memory:
   capacity_gb: 16
-  bandwidth_gb_s: 645
+  bandwidth_gb_s: 640
   type: GDDR6
   bus_bits: 256
   unified_with_host: false
+  bandwidth_derivation: 256 bits / 8 x 20 Gbps GDDR6 = 640 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -23,8 +24,10 @@ power:
   tdp_w: 304
   sustained_differs_from_boost: false
 sources:
-- https://www.amd.com/en/products/graphics/radeon-rx-9000-series
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070xt.html
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (16 GB GDDR6), memory speed (up to 20 Gbps), memory interface
+  (256-bit), memory bandwidth (up to 640 GB/s) and Typical Board Power (304 W) from
+  the AMD product spec page. Bandwidth is derived as 256/8 x 20 = 640 GB/s (the
+  previously transcribed 645 GB/s was not on the vendor page).

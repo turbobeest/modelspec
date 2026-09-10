@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
     fine_tuning: false
     gated: false
     regions: []

@@ -23,7 +23,7 @@ architecture:
   hidden_size: null
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 38
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
@@ -637,8 +637,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: stabilityai/stable-diffusion-3.5-large-controlnet-canny
+    url: https://huggingface.co/stabilityai/stable-diffusion-3.5-large-controlnet-canny
     fine_tuning: false
     gated: false
     regions: []

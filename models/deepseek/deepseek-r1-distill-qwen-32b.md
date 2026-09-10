@@ -21,15 +21,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 64
+  hidden_size: 5120
+  intermediate_size: 27648
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 40
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 152064
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -639,8 +639,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+    url: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
     fine_tuning: false
     gated: false
     regions: []

@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 80
+  hidden_size: 8192
+  intermediate_size: 28672
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 128256
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Hermes-4-70B-FP8
+    url: https://huggingface.co/NousResearch/Hermes-4-70B-FP8
     fine_tuning: false
     gated: false
     regions: []

@@ -19,7 +19,7 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
+  num_layers: 6
   hidden_size: null
   intermediate_size: null
   attention_type: null
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/table-transformer-structure-recognition
+    url: https://huggingface.co/microsoft/table-transformer-structure-recognition
     fine_tuning: false
     gated: false
     regions: []

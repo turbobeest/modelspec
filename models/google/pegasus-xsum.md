@@ -19,7 +19,7 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
+  num_layers: 16
   hidden_size: null
   intermediate_size: null
   attention_type: null
@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 96103
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/pegasus-xsum
+    url: https://huggingface.co/google/pegasus-xsum
     fine_tuning: false
     gated: false
     regions: []

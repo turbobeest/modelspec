@@ -20,7 +20,7 @@ architecture:
   num_experts: null
   experts_per_token: null
   num_layers: null
-  hidden_size: null
+  hidden_size: 768
   intermediate_size: null
   attention_type: null
   num_attention_heads: null
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/swinv2-tiny-patch4-window16-256
+    url: https://huggingface.co/microsoft/swinv2-tiny-patch4-window16-256
     fine_tuning: false
     gated: false
     regions: []

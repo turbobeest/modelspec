@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/DepthCrafter
+    url: https://huggingface.co/tencent/DepthCrafter
     fine_tuning: false
     gated: false
     regions: []

@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: meta-llama/Llama-Guard-3-11B-Vision
+    url: https://huggingface.co/meta-llama/Llama-Guard-3-11B-Vision
     fine_tuning: false
     gated: false
     regions: []

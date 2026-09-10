@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/falcon-mamba-7b-instruct-Q4_K_M-GGUF
+    url: https://huggingface.co/tiiuae/falcon-mamba-7b-instruct-Q4_K_M-GGUF
     fine_tuning: false
     gated: false
     regions: []

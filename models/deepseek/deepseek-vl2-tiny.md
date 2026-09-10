@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: deepseek-ai/deepseek-vl2-tiny
+    url: https://huggingface.co/deepseek-ai/deepseek-vl2-tiny
     fine_tuning: false
     gated: false
     regions: []

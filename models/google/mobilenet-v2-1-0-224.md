@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/mobilenet_v2_1.0_224
+    url: https://huggingface.co/google/mobilenet_v2_1.0_224
     fine_tuning: false
     gated: false
     regions: []

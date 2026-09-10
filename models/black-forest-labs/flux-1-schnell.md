@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: black-forest-labs/FLUX.1-schnell
+    url: https://huggingface.co/black-forest-labs/FLUX.1-schnell
     fine_tuning: false
     gated: false
     regions: []

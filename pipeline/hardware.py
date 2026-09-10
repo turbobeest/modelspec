@@ -135,7 +135,14 @@ def best_quant(params: float, capacity_gb: float, native: tuple[str, ...] = ()) 
 
 
 def predicted_decode_tps(bandwidth_gb_s: float, params: float, quant: str) -> float:
-    """Roofline estimate: bandwidth divided by the bytes read per token."""
+    """Roofline estimate: bandwidth divided by the bytes read per token.
+
+    `params` must be the parameters actually *read* to emit a token, which for a
+    mixture-of-experts model is its active count, not its total. The difference
+    is not marginal: qwen3-coder-next holds 480B and activates 3.2B, a factor of
+    148. Using total parameters there understates its speed by that factor and
+    makes the architecture built for speed look like the worst local choice.
+    """
     per_token_gb = weights_gb(params, quant)
     if per_token_gb <= 0:
         return 0.0
@@ -240,8 +247,13 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
     considered = fitted = skipped_closed = skipped_no_params = 0
     edges = edges_with_max_context = 0
 
+    used_active = 0
     for card in cards:
         params = card.architecture.total_parameters
+        # Capacity and speed read different numbers. Every weight must be
+        # resident, so `fits` uses the total; only the active experts are read
+        # per token, so the decode prediction uses the active count.
+        active = card.architecture.active_parameters or params
         if not card.licensing.open_weights:
             skipped_closed += 1
             continue
@@ -250,6 +262,9 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
             continue
         considered += 1
         is_moe = bool(card.architecture.num_experts)
+        has_active = bool(card.architecture.active_parameters)
+        if has_active:
+            used_active += 1
         fitted_any = False
 
         for device in devices:
@@ -272,11 +287,12 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
                 "weights_gb": round(weights_gb(params, best), 2),
                 "device_memory_gb": capacity,
                 "predicted_decode_tps": predicted_decode_tps(
-                    device.bandwidth_gb_s, params, best),
+                    device.bandwidth_gb_s, active, best),
+                "decode_reads_params": active,
                 "fastest_quantization": smallest,
                 "fastest_weights_gb": round(weights_gb(params, smallest), 2),
                 "fastest_predicted_decode_tps": predicted_decode_tps(
-                    device.bandwidth_gb_s, params, smallest),
+                    device.bandwidth_gb_s, active, smallest),
                 "quantizations_that_fit": ",".join(quants),
                 "max_context_at_quant": ctx.tokens,
                 "max_context_bound_by": ctx.bound_by,
@@ -289,7 +305,8 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
                 "assumes_bandwidth_efficiency": BANDWIDTH_EFFICIENCY,
                 # No card carries active_parameters, so an MoE prediction uses
                 # total parameters and understates its real speed.
-                "moe_prediction_is_conservative": is_moe,
+                # Only conservative where the active count is still unknown.
+                "moe_prediction_is_conservative": is_moe and not has_active,
             })
         fitted += 1 if fitted_any else 0
 
@@ -303,4 +320,5 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         "edges_with_max_context": edges_with_max_context,
         "working_allowance": WORKING_ALLOWANCE,
         "bandwidth_efficiency": BANDWIDTH_EFFICIENCY,
+        "used_active_parameters": used_active,
     }

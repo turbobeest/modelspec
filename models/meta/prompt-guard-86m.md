@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: meta-llama/Prompt-Guard-86M
+    url: https://huggingface.co/meta-llama/Prompt-Guard-86M
     fine_tuning: false
     gated: false
     regions: []

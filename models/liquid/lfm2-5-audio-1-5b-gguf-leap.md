@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: LiquidAI/LFM2.5-Audio-1.5B-GGUF-LEAP
+    url: https://huggingface.co/LiquidAI/LFM2.5-Audio-1.5B-GGUF-LEAP
     fine_tuning: false
     gated: false
     regions: []

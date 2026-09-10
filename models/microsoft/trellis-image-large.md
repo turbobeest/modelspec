@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/TRELLIS-image-large
+    url: https://huggingface.co/microsoft/TRELLIS-image-large
     fine_tuning: false
     gated: false
     regions: []

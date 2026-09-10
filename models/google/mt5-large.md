@@ -26,7 +26,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 250112
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/mt5-large
+    url: https://huggingface.co/google/mt5-large
     fine_tuning: false
     gated: false
     regions: []

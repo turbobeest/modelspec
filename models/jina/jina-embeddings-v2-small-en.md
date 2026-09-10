@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 4
+  hidden_size: 512
+  intermediate_size: 2048
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 8
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 30528
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: jinaai/jina-embeddings-v2-small-en
+    url: https://huggingface.co/jinaai/jina-embeddings-v2-small-en
     fine_tuning: false
     gated: false
     regions: []

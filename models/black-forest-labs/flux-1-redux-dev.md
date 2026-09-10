@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: black-forest-labs/FLUX.1-Redux-dev
+    url: https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev
     fine_tuning: false
     gated: false
     regions: []

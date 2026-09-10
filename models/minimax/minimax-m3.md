@@ -16,17 +16,17 @@ architecture:
   type: null
   total_parameters: null
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 128
+  experts_per_token: 4
+  num_layers: 60
+  hidden_size: 6144
+  intermediate_size: 3072
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 64
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 200064
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: MiniMaxAI/MiniMax-M3
+    url: https://huggingface.co/MiniMaxAI/MiniMax-M3
     fine_tuning: false
     gated: false
     regions: []

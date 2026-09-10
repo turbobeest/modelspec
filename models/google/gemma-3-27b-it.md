@@ -640,8 +640,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: google/gemma-3-27b-it
+    url: https://huggingface.co/google/gemma-3-27b-it
     fine_tuning: false
     gated: false
     regions: []

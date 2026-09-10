@@ -27,9 +27,10 @@ power:
   sustained_differs_from_boost: false
 sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5090/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Capacity (32 GB), type (GDDR7), bus width (512-bit) and TDP (575 W) confirmed
-  against the linked NVIDIA product page on 2026-09-09. Bandwidth is derived from
-  bus width and the GDDR7 data rate rather than transcribed; the data rate itself
-  is not on that page and still needs a primary source. See MODEL-29.
+- https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (32 GB GDDR7), bus width (512-bit) and Total Graphics Power (575 W)
+  from the RTX 5090 product spec table. Memory data rate (28 Gbps) and the matching
+  1792 GB/s peak bandwidth are from NVIDIA's RTX Blackwell GPU Architecture whitepaper
+  (Table 1 / GDDR7 section). Bandwidth is derived as 512/8 x 28.

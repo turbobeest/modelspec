@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 72
+  hidden_size: 5120
+  intermediate_size: 21504
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 20
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 261120
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/Falcon-H1-34B-Base
+    url: https://huggingface.co/tiiuae/Falcon-H1-34B-Base
     fine_tuning: false
     gated: false
     regions: []

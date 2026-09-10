@@ -17,17 +17,17 @@ architecture:
   type: null
   total_parameters: 3000000000
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 1
+  experts_per_token: 1
+  num_layers: 28
+  hidden_size: 2560
+  intermediate_size: 8192
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 20
+  num_kv_heads: 1
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 65536
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ai21labs/AI21-Jamba2-3B
+    url: https://huggingface.co/ai21labs/AI21-Jamba2-3B
     fine_tuning: false
     gated: false
     regions: []

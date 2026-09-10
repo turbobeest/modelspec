@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 28
+  hidden_size: 3584
+  intermediate_size: 18944
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 28
+  num_kv_heads: 4
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 151700
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: openbmb/MiniCPM-o-2_6
+    url: https://huggingface.co/openbmb/MiniCPM-o-2_6
     fine_tuning: false
     gated: false
     regions: []

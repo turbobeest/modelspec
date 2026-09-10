@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 16
+  hidden_size: 4096
+  intermediate_size: 16384
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 32
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 50688
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stablelm-base-alpha-3b
+    url: https://huggingface.co/stabilityai/stablelm-base-alpha-3b
     fine_tuning: false
     gated: false
     regions: []

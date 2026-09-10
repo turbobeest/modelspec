@@ -634,9 +634,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/trocr-base-printed
+    url: https://huggingface.co/microsoft/trocr-base-printed
     fine_tuning: false
     gated: false
     regions: []

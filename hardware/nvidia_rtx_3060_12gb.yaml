@@ -10,6 +10,7 @@ memory:
   type: GDDR6
   bus_bits: 192
   unified_with_host: false
+  bandwidth_derivation: 192 bits / 8 x 15 Gbps GDDR6 = 360 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -23,8 +24,13 @@ power:
   tdp_w: 170
   sustained_differs_from_boost: false
 sources:
-- https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://www.nvidia.com/en-us/geforce/graphics-cards/compare/
+- https://www.nvidia.com/en-us/geforce/news/game-on-you-asked-we-answered-qa/
+- https://nvidianews.nvidia.com/news/nvidia-introduces-geforce-rtx-3060-next-generation-of-the-worlds-most-popular-gpu
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: This record is the 12 GB SKU. NVIDIA's compare table lists RTX 3060 as
+  "12 GB GDDR6 / 8 GB GDDR6" with "192-bit / 128-bit" and Graphics Card Power 170 W.
+  NVIDIA's Game On Q&A states the 12 GB card is 192-bit GDDR6 at 15 Gbps delivering
+  360 GB/s. The later 8 GB RTX 3060 is 128-bit with a different bandwidth and must
+  not be used for this record. Bandwidth is derived as 192/8 x 15.

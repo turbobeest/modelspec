@@ -27,7 +27,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 52327
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/NVIDIA-Nemotron-Parse-v1.1
+    url: https://huggingface.co/nvidia/NVIDIA-Nemotron-Parse-v1.1
     fine_tuning: false
     gated: false
     regions: []
