@@ -15,7 +15,7 @@ tags:
 pipeline_tag: zero-shot-object-detection
 architecture:
   type: null
-  total_parameters: 152000000
+  total_parameters: 153232471
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

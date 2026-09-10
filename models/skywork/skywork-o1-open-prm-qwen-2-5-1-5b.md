@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-classification
 architecture:
   type: null
-  total_parameters: 1500000000
+  total_parameters: 1543714304
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:Qwen/Qwen2.5-Math-1.5B-Instruct
 lineage:
   base_model: Qwen/Qwen2.5-Math-1.5B-Instruct
   base_model_relation: null

@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-to-image
 architecture:
   type: null
-  total_parameters: 3500000000
+  total_parameters: 2567463684
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:stabilityai/sdxl-turbo
 lineage:
   base_model: stabilityai/sdxl-turbo
   base_model_relation: null

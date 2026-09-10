@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 1000000000
+  total_parameters: 1384956928
   active_parameters: 428605440
   num_experts: 32
   experts_per_token: 8
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

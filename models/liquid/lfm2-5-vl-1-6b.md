@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-text-to-text
 architecture:
   type: null
-  total_parameters: 1600000000
+  total_parameters: 1596625904
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: LiquidAI/LFM2.5-1.2B-Base
   base_model_relation: null

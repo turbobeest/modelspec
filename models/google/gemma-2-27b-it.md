@@ -17,7 +17,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 27000000000
+  total_parameters: 27227128320
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -43,6 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: google/gemma-2-27b
   base_model_relation: null

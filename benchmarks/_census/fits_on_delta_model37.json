@@ -1,0 +1,1561 @@
+{
+ "after_edges": 31856,
+ "after_models_fitting_somewhere": 888,
+ "after_stats": {
+  "bandwidth_efficiency": 0.7,
+  "devices": 40,
+  "edges": 31856,
+  "edges_with_max_context": 20897,
+  "models_considered": 899,
+  "models_fitting_somewhere": 888,
+  "skipped_closed_weights": 237,
+  "skipped_no_parameter_count": 89,
+  "used_active_parameters": 98,
+  "working_allowance": 0.25
+ },
+ "before_edges": 33874,
+ "before_models_fitting_somewhere": 924,
+ "before_stats": {
+  "bandwidth_efficiency": 0.7,
+  "devices": 40,
+  "edges": 33874,
+  "edges_with_max_context": 21462,
+  "models_considered": 931,
+  "models_fitting_somewhere": 924,
+  "skipped_closed_weights": 237,
+  "skipped_no_parameter_count": 57,
+  "used_active_parameters": 83,
+  "working_allowance": 0.25
+ },
+ "gained_because_new_hub_total": {
+  "edges": 924,
+  "models": 32
+ },
+ "gained_because_total_corrected_downward": {
+  "edges": 254,
+  "models": 16
+ },
+ "gained_edges": 1178,
+ "headline_false_fits_removed": 3196,
+ "lost_because_total_became_null": {
+  "edges": 2637,
+  "models": 68
+ },
+ "lost_because_total_corrected_upward": {
+  "edges": 559,
+  "models": 43
+ },
+ "lost_edges": 3196,
+ "lost_models": {
+  "ai21/ai21-jamba-reasoning-3b-gguf": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baai/aquilachat2-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan-13b-base": {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan-13b-chat": {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan2-13b-base": {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan2-13b-chat": {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan2-7b-base": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "baichuan/baichuan2-7b-chat": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "black-forest-labs/flux-2-dev": {
+   "after_total": 32223281152,
+   "before_total": 24000000000,
+   "lost_edges": 7,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "black-forest-labs/flux-2-klein-4b-fp8": {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "black-forest-labs/flux-2-klein-9b-fp8": {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "black-forest-labs/flux-2-klein-9b-kv-fp8": {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "black-forest-labs/flux-2-klein-base-4b-fp8": {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "black-forest-labs/flux-2-klein-base-9b-fp8": {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cerebras/gpt-oss-120b": {
+   "after_total": null,
+   "before_total": 120000000000,
+   "lost_edges": 18,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cerebras/llama3-1-8b": {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cerebras/qwen-3-235b-a22b-instruct-2507": {
+   "after_total": null,
+   "before_total": 235000000000,
+   "lost_edges": 8,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cohere/c4ai-aya-expanse-32b": {
+   "after_total": null,
+   "before_total": 32000000000,
+   "lost_edges": 32,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cohere/c4ai-aya-vision-32b": {
+   "after_total": null,
+   "before_total": 32000000000,
+   "lost_edges": 32,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cohere/c4ai-aya-vision-8b": {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "cohere/command-r7b-arabic-02-2025": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "deepseek/deepseek-coder-1-3b-base": {
+   "after_total": null,
+   "before_total": 1300000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "deepseek/deepseek-llm-7b-base": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "deepseek/deepseek-llm-7b-chat": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "deepseek/janus-pro-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "google/gemma-2-2b-it": {
+   "after_total": null,
+   "before_total": 2000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "liquid/lfm2-5-audio-1-5b-gguf-leap": {
+   "after_total": null,
+   "before_total": 1500000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "meta/llama-3-3-8b-instruct": {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "meta/llama-4-maverick-17b-128e-instruct": {
+   "after_total": 401583781376,
+   "before_total": 17000000000,
+   "lost_edges": 37,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "meta/llama-4-scout-17b-16e": {
+   "after_total": 108641793536,
+   "before_total": 17000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "meta/llama-4-scout-17b-16e-instruct": {
+   "after_total": 108641793536,
+   "before_total": 17000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/devstral-small-2-24b-instruct-2512": {
+   "after_total": 24011361840,
+   "before_total": 24000000000,
+   "lost_edges": 6,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/ministral-3b-latest": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "mistral/ministral-8b-latest": {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "mistral/mistral-small-3-1-24b-instruct-2503": {
+   "after_total": 24011361280,
+   "before_total": 24000000000,
+   "lost_edges": 6,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/mistral-small-3-2-24b-instruct-2506": {
+   "after_total": 24011361280,
+   "before_total": 24000000000,
+   "lost_edges": 6,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/mixtral-8x22b-instruct-v0-1": {
+   "after_total": 140630071296,
+   "before_total": 22000000000,
+   "lost_edges": 24,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/mixtral-8x7b-instruct-v0-1": {
+   "after_total": 46702792704,
+   "before_total": 7000000000,
+   "lost_edges": 12,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/mixtral-8x7b-v0-1": {
+   "after_total": 46702792704,
+   "before_total": 7000000000,
+   "lost_edges": 12,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "mistral/open-mistral-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "mistral/pixtral-12b": {
+   "after_total": null,
+   "before_total": 12000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "mistral/voxtral-small-24b-2507": {
+   "after_total": 24261800960,
+   "before_total": 24000000000,
+   "lost_edges": 6,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nous-research/hermes-4-3-36b": {
+   "after_total": 36151104512,
+   "before_total": 36000000000,
+   "lost_edges": 4,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nous-research/nous-hermes-2-mixtral-8x7b-dpo": {
+   "after_total": 46702809088,
+   "before_total": 7000000000,
+   "lost_edges": 12,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nemotron-cascade-2-30b-a3b": {
+   "after_total": 31577937344,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-base-bf16": {
+   "after_total": 31577937344,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16": {
+   "after_total": 31577937344,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8": {
+   "after_total": 31577946256,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16": {
+   "after_total": 123611012096,
+   "before_total": 120000000000,
+   "lost_edges": 3,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-fp8": {
+   "after_total": 123611012096,
+   "before_total": 120000000000,
+   "lost_edges": 3,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/nvlm-d-72b": {
+   "after_total": 79379593344,
+   "before_total": 72000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "nvidia/parakeet-tdt-0-6b-v2": {
+   "after_total": null,
+   "before_total": 600000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "openbmb/minicpm-1b-sft-bf16": {
+   "after_total": null,
+   "before_total": 1000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "openbmb/minicpm-2b-sft-bf16": {
+   "after_total": null,
+   "before_total": 2000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "openbmb/minicpm3-4b": {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "qwen/qwen2-5-72b-instruct": {
+   "after_total": 72706203648,
+   "before_total": 72000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "qwen/qwen2-5-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "qwen/qwen2-5-vl-72b-instruct": {
+   "after_total": 73410777344,
+   "before_total": 72000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "qwen/qwen3-30b-a3b-instruct-2507": {
+   "after_total": 30532122624,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "qwen/qwen3-coder-30b-a3b-instruct": {
+   "after_total": 30532122624,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "qwen/qwen3-vl-30b-a3b": {
+   "after_total": 31070754032,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "qwen/qwen3-vl-30b-a3b-instruct": {
+   "after_total": 31070754032,
+   "before_total": 30000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "rwkv/rwkv-4-14b-pile": {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-4-3b-pile": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-4-7b-pile": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-6-world-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-raven-14b": {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-raven-3b": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/rwkv-raven-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/v5-eagle-7b-hf": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/v6-finch-14b-hf": {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "rwkv/v6-finch-3b-hf": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "salesforce/codegen-350m-mono": {
+   "after_total": null,
+   "before_total": 350000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "salesforce/codet5p-110m-embedding": {
+   "after_total": null,
+   "before_total": 110000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "salesforce/codet5p-220m": {
+   "after_total": null,
+   "before_total": 220000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "salesforce/xlam-8x7b-r": {
+   "after_total": 46702792704,
+   "before_total": 7000000000,
+   "lost_edges": 12,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "snowflake/arctic-lstm-speculator-llama-3-1-8b-instruct": {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "snowflake/llama-3-3-swiftkv-70b-instruct": {
+   "after_total": 73909157888,
+   "before_total": 70000000000,
+   "lost_edges": 1,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "stability/stablelm-base-alpha-3b": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "tencent/hunyuan-a13b-instruct": {
+   "after_total": 80393183232,
+   "before_total": 13000000000,
+   "lost_edges": 19,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "tii/falcon-40b-instruct": {
+   "after_total": null,
+   "before_total": 40000000000,
+   "lost_edges": 28,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "tii/falcon-rw-1b": {
+   "after_total": null,
+   "before_total": 1000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/gpt-jt-6b-v0": {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/gpt-jt-6b-v1": {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/gpt-jt-moderation-6b": {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/gpt-neoxt-chat-base-20b": {
+   "after_total": null,
+   "before_total": 20000000000,
+   "lost_edges": 39,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/llama-2-7b-32k": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/llama-2-7b-32k-instruct": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/pythia-chat-base-7b": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/redpajama-incite-7b-base": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/redpajama-incite-7b-chat": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/redpajama-incite-7b-instruct": {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/redpajama-incite-base-3b-v1": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "together/redpajama-incite-chat-3b-v1": {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "unsloth/gemma-4-e4b-it-gguf": {
+   "after_total": 25200000000,
+   "before_total": 4000000000,
+   "lost_edges": 7,
+   "open_weights": true,
+   "source": "model_card_published:property_table",
+   "why": "corrected_upward"
+  },
+  "unsloth/glm-4-7-flash-fp8-dynamic": {
+   "after_total": 29958495616,
+   "before_total": 9000000000,
+   "lost_edges": 7,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/chatglm2-6b": {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "zhipu/chatglm3-6b-base": {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  "zhipu/glm-4-5": {
+   "after_total": 358337791296,
+   "before_total": 9000000000,
+   "lost_edges": 36,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-5-air": {
+   "after_total": 110468824832,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-5-air-fp8": {
+   "after_total": 110510884480,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-5v": {
+   "after_total": 107710933120,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-5v-fp8": {
+   "after_total": 107751931136,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-6": {
+   "after_total": 356785898816,
+   "before_total": 9000000000,
+   "lost_edges": 36,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-6-fp8": {
+   "after_total": 358458543424,
+   "before_total": 9000000000,
+   "lost_edges": 36,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-6v": {
+   "after_total": 107710933120,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-6v-fp8": {
+   "after_total": 107751931136,
+   "before_total": 9000000000,
+   "lost_edges": 22,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-7": {
+   "after_total": 358337791296,
+   "before_total": 9000000000,
+   "lost_edges": 36,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-7-flash": {
+   "after_total": 31221488576,
+   "before_total": 9000000000,
+   "lost_edges": 8,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  },
+  "zhipu/glm-4-7-fp8": {
+   "after_total": 358458391872,
+   "before_total": 9000000000,
+   "lost_edges": 36,
+   "open_weights": true,
+   "source": "safetensors",
+   "why": "corrected_upward"
+  }
+ },
+ "lost_other": {
+  "downward_edges": 0,
+  "other_edges": 0,
+  "unchanged_total_edges": 0
+ },
+ "models_newly_fit_nowhere": 68,
+ "net_edges": -2018,
+ "newly_nowhere_models": [
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "ai21/ai21-jamba-reasoning-3b-gguf",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "baai/aquilachat2-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan-13b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan-13b-chat",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan2-13b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 13000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan2-13b-chat",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan2-7b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "baichuan/baichuan2-7b-chat",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "model_id": "black-forest-labs/flux-2-klein-4b-fp8",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "model_id": "black-forest-labs/flux-2-klein-9b-fp8",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "model_id": "black-forest-labs/flux-2-klein-9b-kv-fp8",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "model_id": "black-forest-labs/flux-2-klein-base-4b-fp8",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 9000000000,
+   "lost_edges": 40,
+   "model_id": "black-forest-labs/flux-2-klein-base-9b-fp8",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 120000000000,
+   "lost_edges": 18,
+   "model_id": "cerebras/gpt-oss-120b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "model_id": "cerebras/llama3-1-8b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 235000000000,
+   "lost_edges": 8,
+   "model_id": "cerebras/qwen-3-235b-a22b-instruct-2507",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 32000000000,
+   "lost_edges": 32,
+   "model_id": "cohere/c4ai-aya-expanse-32b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 32000000000,
+   "lost_edges": 32,
+   "model_id": "cohere/c4ai-aya-vision-32b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "model_id": "cohere/c4ai-aya-vision-8b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "cohere/command-r7b-arabic-02-2025",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 1300000000,
+   "lost_edges": 40,
+   "model_id": "deepseek/deepseek-coder-1-3b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "deepseek/deepseek-llm-7b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "deepseek/deepseek-llm-7b-chat",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "deepseek/janus-pro-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 2000000000,
+   "lost_edges": 40,
+   "model_id": "google/gemma-2-2b-it",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 1500000000,
+   "lost_edges": 40,
+   "model_id": "liquid/lfm2-5-audio-1-5b-gguf-leap",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "model_id": "meta/llama-3-3-8b-instruct",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "mistral/ministral-3b-latest",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "model_id": "mistral/ministral-8b-latest",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "mistral/open-mistral-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 12000000000,
+   "lost_edges": 40,
+   "model_id": "mistral/pixtral-12b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 600000000,
+   "lost_edges": 40,
+   "model_id": "nvidia/parakeet-tdt-0-6b-v2",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 1000000000,
+   "lost_edges": 40,
+   "model_id": "openbmb/minicpm-1b-sft-bf16",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 2000000000,
+   "lost_edges": 40,
+   "model_id": "openbmb/minicpm-2b-sft-bf16",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 4000000000,
+   "lost_edges": 40,
+   "model_id": "openbmb/minicpm3-4b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "qwen/qwen2-5-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-4-14b-pile",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-4-3b-pile",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-4-7b-pile",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-6-world-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-raven-14b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-raven-3b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/rwkv-raven-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/v5-eagle-7b-hf",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 14000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/v6-finch-14b-hf",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "rwkv/v6-finch-3b-hf",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 350000000,
+   "lost_edges": 40,
+   "model_id": "salesforce/codegen-350m-mono",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 110000000,
+   "lost_edges": 40,
+   "model_id": "salesforce/codet5p-110m-embedding",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 220000000,
+   "lost_edges": 40,
+   "model_id": "salesforce/codet5p-220m",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 8000000000,
+   "lost_edges": 40,
+   "model_id": "snowflake/arctic-lstm-speculator-llama-3-1-8b-instruct",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "stability/stablelm-base-alpha-3b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 40000000000,
+   "lost_edges": 28,
+   "model_id": "tii/falcon-40b-instruct",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 1000000000,
+   "lost_edges": 40,
+   "model_id": "tii/falcon-rw-1b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "model_id": "together/gpt-jt-6b-v0",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "model_id": "together/gpt-jt-6b-v1",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "model_id": "together/gpt-jt-moderation-6b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 20000000000,
+   "lost_edges": 39,
+   "model_id": "together/gpt-neoxt-chat-base-20b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/llama-2-7b-32k",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/llama-2-7b-32k-instruct",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/pythia-chat-base-7b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/redpajama-incite-7b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/redpajama-incite-7b-chat",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 7000000000,
+   "lost_edges": 40,
+   "model_id": "together/redpajama-incite-7b-instruct",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "together/redpajama-incite-base-3b-v1",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 3000000000,
+   "lost_edges": 40,
+   "model_id": "together/redpajama-incite-chat-3b-v1",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "model_id": "zhipu/chatglm2-6b",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  },
+  {
+   "after_total": null,
+   "before_total": 6000000000,
+   "lost_edges": 40,
+   "model_id": "zhipu/chatglm3-6b-base",
+   "open_weights": true,
+   "source": "",
+   "why": "nulled"
+  }
+ ],
+ "note": "lost_edges (3196) are the false-or-unjustified FITS_ON answers removed. 2637 of them vanished because the total was cleared (unknown, so skipped); 559 vanished because the total was corrected upward (weights do not fit). Net -2018 includes 1178 new edges from Hub totals that were previously null or rounded high. All 68 models that now fit nowhere were nulled, not corrected too large for every device."
+}

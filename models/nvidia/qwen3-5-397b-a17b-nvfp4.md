@@ -43,6 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:size_token_total
 lineage:
   base_model: Qwen/Qwen3.5-397B-A17B
   base_model_relation: null

@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:named_markdown_row
 lineage:
   base_model: ''
   base_model_relation: null

@@ -16,7 +16,7 @@ tags:
 pipeline_tag: sentence-similarity
 architecture:
   type: null
-  total_parameters: 137000000
+  total_parameters: 136731648
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:nomic-ai/nomic-embed-text-v1.5
 lineage:
   base_model: nomic-ai/nomic-embed-text-v1.5
   base_model_relation: null

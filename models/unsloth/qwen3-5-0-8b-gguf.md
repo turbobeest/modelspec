@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-text-to-text
 architecture:
   type: null
-  total_parameters: 800000000
+  total_parameters: 873438784
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:Qwen/Qwen3.5-0.8B
 lineage:
   base_model: Qwen/Qwen3.5-0.8B
   base_model_relation: null

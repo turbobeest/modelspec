@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 754000000000
+  total_parameters: 435238854912
   active_parameters: 40000000000
   num_experts: 256
   experts_per_token: 8
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: zai-org/GLM-5
   base_model_relation: null

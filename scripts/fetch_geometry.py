@@ -801,7 +801,7 @@ def fetch_readme(client: httpx.Client, repo_id: str) -> tuple[str, str]:
     return "ok", response.text
 
 
-def _write_architecture(path: Path, gained: dict[str, int]) -> None:
+def _write_architecture(path: Path, gained: dict[str, Any]) -> None:
     """Patch architecture fields in place, then refuse to leave a broken card."""
     original = path.read_text(encoding="utf-8")
     front_raw, body = original.split("---", 2)[1], original.split("---", 2)[2]

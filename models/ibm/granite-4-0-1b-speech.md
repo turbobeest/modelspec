@@ -15,7 +15,7 @@ tags:
 pipeline_tag: automatic-speech-recognition
 architecture:
   type: null
-  total_parameters: 1000000000
+  total_parameters: 2313207132
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ibm-granite/granite-4.0-1b-base
   base_model_relation: null

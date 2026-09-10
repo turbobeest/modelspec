@@ -15,7 +15,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 12000000000
+  total_parameters: 12247782400
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: mistralai/Mistral-Nemo-Base-2407
   base_model_relation: null

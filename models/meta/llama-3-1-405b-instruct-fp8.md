@@ -19,7 +19,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 405000000000
+  total_parameters: 405868625920
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -45,6 +45,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: meta-llama/Llama-3.1-405B-Instruct
   base_model_relation: null

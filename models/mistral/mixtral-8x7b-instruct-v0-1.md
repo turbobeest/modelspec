@@ -15,7 +15,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 7000000000
+  total_parameters: 46702792704
   active_parameters: 12879659008
   num_experts: 8
   experts_per_token: 2
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: mistralai/Mixtral-8x7B-v0.1
   base_model_relation: null

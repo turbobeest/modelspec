@@ -16,7 +16,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 235000000000
+  total_parameters: 235107904512
   active_parameters: 22189965312
   num_experts: 128
   experts_per_token: 8
@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: Qwen/Qwen3-235B-A22B
   base_model_relation: null

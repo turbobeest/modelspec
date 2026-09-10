@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 7000000000
+  total_parameters: 7241732096
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:mistralai/Mistral-7B-v0.1
 lineage:
   base_model: mistralai/Mistral-7B-v0.1
   base_model_relation: null

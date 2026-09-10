@@ -18,7 +18,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: MoE
-  total_parameters: 754000000000
+  total_parameters: 753864139008
   active_parameters: null
   num_experts: 256
   experts_per_token: 8
@@ -44,6 +44,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

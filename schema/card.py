@@ -72,6 +72,10 @@ class Identity(BaseModel):
 class Architecture(BaseModel):
     type: ArchitectureType | None = None
     total_parameters: int | None = None
+    #: How `total_parameters` was obtained. `safetensors` is an exact Hub
+    #: count; values starting `model_card_published:` are a README figure.
+    #: Empty means unknown — either still null, or a legacy fill.
+    total_parameters_source: str = ""
     active_parameters: int | None = None
     num_experts: int | None = None
     experts_per_token: int | None = None
@@ -99,6 +103,25 @@ class Architecture(BaseModel):
     diffusion_scheduler: str = ""
     diffusion_steps_default: int | None = None
     vae_type: str = ""
+
+    @model_validator(mode="after")
+    def _active_cannot_exceed_total(self) -> Architecture:
+        """A stored active count larger than the stored total is a catalogue bug.
+
+        That is how Mixtral-8x7B and GLM-4.5 were filed as 7B / 9B and told they
+        fitted on hardware that cannot hold the weights. Null on either side
+        stays legal — unknown is not a contradiction.
+        """
+        if (
+            self.active_parameters is not None
+            and self.total_parameters is not None
+            and self.active_parameters > self.total_parameters
+        ):
+            raise ValueError(
+                f"active_parameters ({self.active_parameters}) exceeds "
+                f"total_parameters ({self.total_parameters})"
+            )
+        return self
 
 
 # ═══════════════════════════════════════════════════════════════
