@@ -1,16 +1,16 @@
 {
   "as_of": "2026-09-10",
   "credits": {
-    "opening": 5569,
+    "opening": 5566,
     "spent": 0,
-    "closing": 5569,
+    "closing": 5566,
     "guard_hit": false,
     "fetcher": "http_get"
   },
   "page_errors": [],
   "extracted": 2260,
-  "mapped": 590,
-  "unmapped": 1670,
+  "mapped": 1122,
+  "unmapped": 1138,
   "refusals": {
     "aa_field_not_ranked": [
       {
@@ -4455,31 +4455,6 @@
     ],
     "unmapped_name": [
       {
-        "name": "MiMo-V2.5-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "JT-35B-Flash",
         "detail": "no unique exact card match",
         "extra": ""
@@ -4525,31 +4500,6 @@
         "extra": ""
       },
       {
-        "name": "Claude 3.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen2.5 Coder 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Grok 4.20 0309",
         "detail": "no unique exact card match",
         "extra": ""
@@ -4580,11 +4530,6 @@
         "extra": ""
       },
       {
-        "name": "Gemini 2.5 Pro (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Apodex 1.1",
         "detail": "no unique exact card match",
         "extra": ""
@@ -4606,66 +4551,6 @@
       },
       {
         "name": "Apodex 1.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 480B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 480B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 480B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3.5 Sonnet (Oct)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.1 Terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.1 Terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.1 Terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.1 Terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.1 Terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Omni 30B A3B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -4686,96 +4571,6 @@
       },
       {
         "name": "Grok Build 0.1 0616",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek R1 (Jan)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek R1 (Jan)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek R1 (Jan)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek R1 (Jan)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek R1 (Jan)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 1.2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 1.2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 1.2B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -4791,31 +4586,6 @@
       },
       {
         "name": "Magistral Small 1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 30B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -4825,16 +4595,6 @@
         "extra": ""
       },
       {
-        "name": "Claude 3.7 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3.7 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "MiMo-V2-Flash (Feb 2026)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -4846,66 +4606,11 @@
       },
       {
         "name": "MiMo-V2-Flash (Feb 2026)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-1T",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
         "name": "Gemini 1.5 Pro (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 Nemotron Super 49B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 Nemotron Super 49B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 Nemotron Super 49B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -4925,81 +4630,6 @@
         "extra": ""
       },
       {
-        "name": "Qwen2.5 Instruct 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 3 - Llama-3.1 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Qwen3 Next 80B A3B",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5026,31 +4656,6 @@
       },
       {
         "name": "MiMo-V2-Omni-0327",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3.5 Lightning",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3.5 Lightning",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3.5 Lightning",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3.5 Lightning",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3.5 Lightning",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -5075,181 +4680,11 @@
         "extra": ""
       },
       {
-        "name": "Phi-4 Multimodal",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 3.3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 3.3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "HyperCLOVA X SEED Think (32B)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "HyperCLOVA X SEED Think (32B)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "HyperCLOVA X SEED Think (32B)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Micro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Micro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Micro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Sarvam M",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Sarvam M",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Sarvam M",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Mistral Small (Feb)",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
-        "name": "INTELLECT-3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "INTELLECT-3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "INTELLECT-3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniMax M1 40k",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3.1 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3.1 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3.1 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nex-N2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nex-N2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nex-N2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nex-N2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nex-N2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "JT-MINI",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5261,16 +4696,6 @@
       },
       {
         "name": "JT-MINI",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-mini-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-mini-2.0",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -5320,76 +4745,6 @@
         "extra": ""
       },
       {
-        "name": "Ling-3.0-flash-VL",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-3.0-flash-VL",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-3.0-flash-VL",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-3.0-flash-VL",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-3.0-flash-VL",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM-V 4.6 1.3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM-V 4.6 1.3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM-V 4.6 1.3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM-V 4.6 1.3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Kimi K2",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5405,46 +4760,6 @@
         "extra": ""
       },
       {
-        "name": "EXAONE 4.0 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "EXAONE 4.0 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 70B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 70B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 70B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Doubao Seed Code",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5456,81 +4771,6 @@
       },
       {
         "name": "Doubao Seed Code",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "EXAONE 4.5 33B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "EXAONE 4.5 33B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "EXAONE 4.5 33B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "EXAONE 4.5 33B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Large 2 (Nov)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Large 2 (Nov)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.2 Speciale",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.2 Speciale",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek V3.2 Speciale",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.5 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "OLMo 2 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "OLMo 2 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Pro",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -5540,136 +4780,6 @@
         "extra": ""
       },
       {
-        "name": "Kimi Linear 48B A3B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Kimi Linear 48B A3B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 2 Chat 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open 100B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open 100B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open 100B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K2 Think V2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K2 Think V2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K2 Think V2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K2 Think V2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Seed-OSS-36B-Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Seed-OSS-36B-Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Seed-OSS-36B-Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "MiMo-V2-Pro",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5681,66 +4791,11 @@
       },
       {
         "name": "MiMo-V2-Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tri-21B-Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tri-21B-Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tri-21B-Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 30B A3B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 30B A3B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 30B A3B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 30B A3B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 30B A3B 2507",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
         "name": "Mistral Large (Feb)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat Flash Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat Flash Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LongCat Flash Lite",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -5775,46 +4830,6 @@
         "extra": ""
       },
       {
-        "name": "MiniCPM5-2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif-2-12.7B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif-2-12.7B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif-2-12.7B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Ministral 3 3B",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5836,61 +4851,6 @@
       },
       {
         "name": "Ministral 3 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash (Apr)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 2 Chat 13B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 4 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 4 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 4 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 26B A4B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -5910,21 +4870,6 @@
         "extra": ""
       },
       {
-        "name": "Qwen3.5 Omni Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.5 Omni Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.5 Omni Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Magistral Small 1.2",
         "detail": "no unique exact card match",
         "extra": ""
@@ -5941,106 +4886,6 @@
       },
       {
         "name": "Magistral Small 1.2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 14B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 14B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 14B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 14B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 14B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "K-EXAONE",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.1 Nemotron 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.1 Nemotron 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.1 Nemotron 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 2.6B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -6105,41 +4950,6 @@
         "extra": ""
       },
       {
-        "name": "MiniCPM5-1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniCPM5-1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Large",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Large",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Large",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Mistral Saba",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6170,76 +4980,6 @@
         "extra": ""
       },
       {
-        "name": "Nanbeige4.1-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nanbeige4.1-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nanbeige4.1-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nanbeige4.1-3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open2 250B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open2 250B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open2 250B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open2 250B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Open2 250B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Tiny",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Tiny",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Tiny",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Tiny",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Tiny",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Celeris-1",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6261,46 +5001,6 @@
       },
       {
         "name": "Celeris-1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tiny Aya Global",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tiny Aya Global",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tiny Aya Global",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "A.X-K2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "A.X-K2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "A.X-K2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "A.X-K2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "A.X-K2",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -6320,36 +5020,6 @@
         "extra": ""
       },
       {
-        "name": "Hermes 4 405B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 4 405B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hermes 4 405B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "DeepSeek V4 Pro 0813 (max)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6371,156 +5041,6 @@
       },
       {
         "name": "DeepSeek V4 Pro 0813 (max)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude Instant",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash-Lite (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash-Lite (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash-Lite (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling-flash-2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 8B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 8B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apertus 8B Instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Aug)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Aug)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Aug)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano Omni 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 1.0 Pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Agnes 2.5 Pro Alpha",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Agnes 2.5 Pro Alpha",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Agnes 2.5 Pro Alpha",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Agnes 2.5 Pro Alpha",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Agnes 2.5 Pro Alpha",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8 2.4T A95B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8 2.4T A95B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8 2.4T A95B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8 2.4T A95B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8 2.4T A95B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -6560,101 +5080,6 @@
         "extra": ""
       },
       {
-        "name": "Claude 4.5 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 2.6 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 2.6 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 2.6 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 2.6 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 4 Maverick",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 4 Maverick",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 4 Maverick",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 4 Maverick",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 4 Maverick",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.6 Large",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "MiMo-V2-Omni",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6670,51 +5095,6 @@
         "extra": ""
       },
       {
-        "name": "Ministral 3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ministral 3 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.3 70B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Muse Spark 1.3 (max)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6736,106 +5116,6 @@
       },
       {
         "name": "Muse Spark 1.3 (max)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8-Flash-Next",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8-Flash-Next",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8-Flash-Next",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8-Flash-Next",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3.8-Flash-Next",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniMax M1 80k",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniMax M1 80k",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiniMax M1 80k",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 2.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nemotron 3 Nano 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Phi-4 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Phi-4 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Phi-4 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Phi-4 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-1T",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -6865,96 +5145,6 @@
         "extra": ""
       },
       {
-        "name": "Claude 4.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.5 Haiku",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apriel-v1.6-15B-Thinker",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apriel-v1.6-15B-Thinker",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4 Sonnet",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepHermes 3 - Mistral 24B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Llama 3 70B",
         "detail": "no unique exact card match",
         "extra": ""
@@ -6975,46 +5165,11 @@
         "extra": ""
       },
       {
-        "name": "Apriel-v1.5-15B-Thinker",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apriel-v1.5-15B-Thinker",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Apriel-v1.5-15B-Thinker",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Gemini 1.5 Flash (May)",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
-        "name": "Claude 3.5 Sonnet (June)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Step3 VL 10B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Step3 VL 10B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Step3 VL 10B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Llama 4 Scout",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7036,136 +5191,6 @@
       },
       {
         "name": "Llama 4 Scout",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.2 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "ERNIE 4.5 300B A47B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "ERNIE 4.5 300B A47B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Molmo 7B-D",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Molmo 7B-D",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Motif 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.1 Nemotron Nano 4B v1.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 3.1 Nemotron Nano 4B v1.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 3 Sonnet",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7176,66 +5201,11 @@
       },
       {
         "name": "GPT-4o (ChatGPT)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.5 Large",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.7 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen2.5 72B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen2.5 72B",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
         "name": "DeepHermes 3 - Llama-3.1 8B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 3",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7270,21 +5240,6 @@
         "extra": ""
       },
       {
-        "name": "Qwen3 235B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "GPT-5 mini (minimal)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7296,71 +5251,6 @@
       },
       {
         "name": "GPT-5 mini (minimal)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DeepSeek-V2.5 (Dec)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 3n E4B (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2-Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2-Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "MiMo-V2-Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Nov)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Nov)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (Nov)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-39A5B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-39A5B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-39A5B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-39A5B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "G9v3-39A5B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7375,26 +5265,6 @@
         "extra": ""
       },
       {
-        "name": "DiffusionGemma 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DiffusionGemma 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DiffusionGemma 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "DiffusionGemma 26B A4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "GPT-5.5 Instant (June 2026)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7435,71 +5305,6 @@
         "extra": ""
       },
       {
-        "name": "DeepSeek Coder V2 Lite",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemini 2.5 Flash (Sep)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Olmo 3 32B Think",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Devstral Small (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Devstral Small (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Devstral Small (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.1 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.1 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 4.1 Opus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Claude Fable 5 (with fallback)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7521,26 +5326,6 @@
       },
       {
         "name": "Claude Fable 5 (with fallback)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "QwQ-32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "QwQ-32B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama Nemotron Ultra",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama Nemotron Ultra",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7556,106 +5341,6 @@
       },
       {
         "name": "Gemma 3 1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen1.5 Chat 110B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Granite 4.1 30B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Exaone 4.0 1.2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Exaone 4.0 1.2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Exaone 4.0 1.2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 E4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 Coder 30B A3B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Reka Flash 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Reka Flash 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Reka Flash 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Claude 2.0",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Pixtral Large",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7680,81 +5365,6 @@
         "extra": ""
       },
       {
-        "name": "LFM2.5-2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-2.6B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama Nemotron Super 49B v1.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama Nemotron Super 49B v1.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-8B-A1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-8B-A1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2.5-8B-A1B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ling 3.0 Flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "GPT-5.5 Instant (May 2026)",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7766,61 +5376,6 @@
       },
       {
         "name": "GPT-5.5 Instant (May 2026)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen2.5 Coder 7B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Premier",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Premier",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Nova Premier",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Mistral Small 3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Jamba 1.6 Mini",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "GPT-4o (May)",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Cogito v2.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Cogito v2.1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Cogito v2.1",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -7835,51 +5390,6 @@
         "extra": ""
       },
       {
-        "name": "Ring-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Ring-2.6-1T",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Solar Pro 2",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "OpenChat 3.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "Agnes 2.5 Pro Beta",
         "detail": "no unique exact card match",
         "extra": ""
@@ -7901,51 +5411,6 @@
       },
       {
         "name": "Agnes 2.5 Pro Beta",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 VL 4B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B A22B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B A22B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B A22B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B A22B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Qwen3 235B A22B 2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Tulu3 405B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8001,21 +5466,6 @@
       },
       {
         "name": "KAT-Coder-Pro V1",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 24B A2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 24B A2B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "LFM2 24B A2B",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8045,42 +5495,12 @@
         "extra": ""
       },
       {
-        "name": "Gemma 4 12B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 12B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 12B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Gemma 4 12B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Llama 2 Chat 7B",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "muse-spark-1.1",
         "detail": "no unique exact card match",
         "extra": ""
       },
       {
         "name": "gemini-3-pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "qwen3.8-max",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8100,16 +5520,6 @@
         "extra": ""
       },
       {
-        "name": "grok-4.20-multi-agent-beta-0309",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "mimo-v2.5-pro",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "ernie-5.1",
         "detail": "no unique exact card match",
         "extra": ""
@@ -8125,11 +5535,6 @@
         "extra": ""
       },
       {
-        "name": "hy3",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "mimo-v2-pro",
         "detail": "no unique exact card match",
         "extra": ""
@@ -8140,27 +5545,7 @@
         "extra": ""
       },
       {
-        "name": "inkling",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "gemma-4-26b-a4b",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "longcat-flash-chat-2602-exp",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "mimo-v2.5",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "o3-2025-04-16",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8171,11 +5556,6 @@
       },
       {
         "name": "mimo-v2-omni",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "muse-glimmer",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8195,52 +5575,7 @@
         "extra": ""
       },
       {
-        "name": "qwen3-235b-a22b-instruct-2507",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "deepseek-v3.1-terminus",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "gpt-4.1-2025-04-14",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "qwen3-vl-235b-a22b-instruct",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "grok-4-0709",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "Inkling Small",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "o1-2024-12-17",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "longcat-flash-chat",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "qwen3.5-flash",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "o4-mini-2025-04-16",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8251,11 +5586,6 @@
       },
       {
         "name": "hunyuan-turbos-20250416",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "gpt-4.1-mini-2025-04-14",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8275,17 +5605,7 @@
         "extra": ""
       },
       {
-        "name": "gemini-2.0-flash-001",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
         "name": "grok-3-mini-beta",
-        "detail": "no unique exact card match",
-        "extra": ""
-      },
-      {
-        "name": "intellect-3",
         "detail": "no unique exact card match",
         "extra": ""
       },
@@ -8447,34 +5767,24 @@
         "extra": "google/gemma-4-31b"
       },
       {
-        "name": "GLM-5.2 (max)",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
+        "name": "Gemma 4 12B",
+        "detail": "unqualified name has an Instruct/IT/Chat sibling card",
+        "extra": "google/gemma-4-12b"
       },
       {
-        "name": "GLM-5.2 (max)",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
+        "name": "Gemma 4 12B",
+        "detail": "unqualified name has an Instruct/IT/Chat sibling card",
+        "extra": "google/gemma-4-12b"
       },
       {
-        "name": "GLM-5.2 (max)",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
+        "name": "Gemma 4 12B",
+        "detail": "unqualified name has an Instruct/IT/Chat sibling card",
+        "extra": "google/gemma-4-12b"
       },
       {
-        "name": "GLM-5.2 (max)",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
-      },
-      {
-        "name": "GLM-5.2 (max)",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
-      },
-      {
-        "name": "glm-5.2-max",
-        "detail": "name matches more than one card",
-        "extra": "mistral/zai-glm-5-2,qwen/glm-5-2"
+        "name": "Gemma 4 12B",
+        "detail": "unqualified name has an Instruct/IT/Chat sibling card",
+        "extra": "google/gemma-4-12b"
       },
       {
         "name": "gpt-5.1",
@@ -8485,102 +5795,6 @@
         "name": "gpt-5.2",
         "detail": "unqualified name has an Instruct/IT/Chat sibling card",
         "extra": "openai/gpt-5-2"
-      }
-    ]
-  },
-  "model13": {
-    "as_of": "2026-09-10",
-    "note": "Cards created after the 2026-09-10 live-board harvest. Rescued names are now in LEDGER_TO_CARD. Original refusals.unmapped_name is left as the harvest record.",
-    "rescued_evaluator_names": [
-      "Cogito v2.1",
-      "GLM-5.3 (max)",
-      "GLM-5.3-Flash",
-      "Inkling",
-      "Nemotron 3 Ultra",
-      "Nemotron 3.5 Lightning",
-      "glm-5.3-flash",
-      "glm-5.3-max",
-      "inkling",
-      "muse-glimmer"
-    ],
-    "refusals": [
-      {
-        "name": "Muse Glimmer (high)",
-        "benchmark_id": "gpqa_diamond",
-        "score": 83.54,
-        "cause": "effort_variant"
-      },
-      {
-        "name": "Muse Glimmer (high)",
-        "benchmark_id": "scicode",
-        "score": 44.91,
-        "cause": "effort_variant"
-      },
-      {
-        "name": "Muse Glimmer (high)",
-        "benchmark_id": "aa_lcr",
-        "score": 83.33,
-        "cause": "effort_variant"
-      },
-      {
-        "name": "Muse Glimmer (high)",
-        "benchmark_id": "gdpval_aa",
-        "score": 19.64,
-        "cause": "effort_variant"
-      },
-      {
-        "name": "Muse Glimmer (high)",
-        "benchmark_id": "critpt",
-        "score": 2.57,
-        "cause": "effort_variant"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "gpqa_diamond",
-        "score": 89.49,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "scicode",
-        "score": 49.65,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "aa_lcr",
-        "score": 75.67,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "gdpval_aa",
-        "score": 34.57,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "critpt",
-        "score": 8.29,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "nvidia-nemotron-3-ultra-550b-a55b-nvfp4",
-        "benchmark_id": "arena_elo_style_control",
-        "score": 1426.11,
-        "cause": "serving_quant"
-      },
-      {
-        "name": "Inkling Small",
-        "benchmark_id": "arena_elo_style_control",
-        "score": 1406.66,
-        "cause": "distinct_model"
-      },
-      {
-        "name": "nvidia-nemotron-3.5-lightning-30b-a3b-nvfp4",
-        "benchmark_id": "arena_elo_style_control",
-        "score": 1355.4,
-        "cause": "serving_quant"
       }
     ]
   }

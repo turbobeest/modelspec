@@ -784,12 +784,19 @@ def main(argv: list[str] | None = None) -> int:
     cards = load_cards()
     names = [score.evaluator_name for score in all_scores]
     proposed, map_refusals = propose_explicit_maps(names, cards)
+    # Harvest writes only names a human put in LEDGER_TO_CARD. Unique
+    # display/slug proposals are reported beside the ledger; they do not
+    # attach a score until they are copied into that dict.
+    from scripts.attach_evidence import LEDGER_TO_CARD
+
+    map_refusals = [row for row in map_refusals if row.name not in LEDGER_TO_CARD]
     all_refusals.extend(map_refusals)
 
-    mapped_scores = [s for s in all_scores if s.evaluator_name in proposed]
-    unmapped_scores = [s for s in all_scores if s.evaluator_name not in proposed]
+    mapped_scores = [s for s in all_scores if s.evaluator_name in LEDGER_TO_CARD]
+    unmapped_scores = [s for s in all_scores if s.evaluator_name not in LEDGER_TO_CARD]
     print(
-        f"{len(all_scores)} extracted scores; {len(mapped_scores)} with proposed explicit maps; "
+        f"{len(all_scores)} extracted scores; {len(mapped_scores)} with LEDGER_TO_CARD maps "
+        f"({len(proposed)} unique display/slug proposals); "
         f"{len(unmapped_scores)} unmapped"
     )
 

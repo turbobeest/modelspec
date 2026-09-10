@@ -43,23 +43,41 @@ def test_ledger_to_card_is_explicit_dict():
     assert LEDGER_TO_CARD["Nemotron 3 Ultra"] == "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
     assert LEDGER_TO_CARD["Cogito v2.1"] == "deepcogito/cogito-671b-v2-1"
     assert LEDGER_TO_CARD["muse-glimmer"] == "meta/muse-glimmer-30b"
+    assert LEDGER_TO_CARD["Claude 3 Haiku"] == "anthropic/claude-3-haiku-20240307"
+    assert LEDGER_TO_CARD["Llama 4 Maverick"] == "meta/llama-4-maverick-17b-128e-instruct"
+    assert LEDGER_TO_CARD["qwen3.8-max"] == "qwen/qwen3-8-max"
+    assert LEDGER_TO_CARD["Gemini 2.5 Flash (Apr)"] == (
+        "google/gemini-2-5-flash-preview-04-17"
+    )
 
 
 def test_model13_traps_are_not_mapped():
     """Effort, quant, sibling-size, and dataset names stay off the product cards."""
     forbidden = (
         "Muse Glimmer (high)",
-        "Inkling Small",
         "nvidia-nemotron-3-ultra-550b-a55b-nvfp4",
         "nvidia-nemotron-3.5-lightning-30b-a3b-nvfp4",
-        "Llama Nemotron Ultra",
         "rnj-1",
         "rnj-1-base-evals",
         "rnj-1-instruct",
         "Rnj-1 Instruct",
+        "Llama 4 Scout",
+        "Gemini 3 Flash",
+        "gemini-3-flash",
+        "Gemma 4 12B",
+        "Qwen2 72B",
     )
     for name in forbidden:
         assert name not in LEDGER_TO_CARD, name
+    # Own cards, never the similarly-named sibling.
+    assert LEDGER_TO_CARD["Llama Nemotron Ultra"] == (
+        "nvidia/llama-3-1-nemotron-ultra-253b-v1"
+    )
+    assert LEDGER_TO_CARD["Llama Nemotron Ultra"] != (
+        "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+    )
+    assert LEDGER_TO_CARD["Inkling Small"] == "thinkingmachines/inkling-small"
+    assert LEDGER_TO_CARD["Inkling Small"] != "thinkingmachines/inkling"
 
 
 def test_every_mapped_id_has_a_card_file():

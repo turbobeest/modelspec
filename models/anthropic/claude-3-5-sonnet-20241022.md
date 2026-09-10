@@ -723,6 +723,19 @@ benchmarks:
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Claude 3.5 Sonnet (Oct)
+    score: 59.9
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: false
