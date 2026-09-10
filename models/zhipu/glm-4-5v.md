@@ -16,7 +16,7 @@ pipeline_tag: image-text-to-text
 architecture:
   type: null
   total_parameters: 9000000000
-  active_parameters: null
+  active_parameters: 12000000000
   num_experts: 128
   experts_per_token: 8
   num_layers: 46

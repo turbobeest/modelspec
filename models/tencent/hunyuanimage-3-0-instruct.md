@@ -16,9 +16,9 @@ pipeline_tag: image-to-image
 architecture:
   type: null
   total_parameters: null
-  active_parameters: null
+  active_parameters: 13000000000
   num_experts: 64
-  experts_per_token: null
+  experts_per_token: 8
   num_layers: 32
   hidden_size: 4096
   intermediate_size: 3072

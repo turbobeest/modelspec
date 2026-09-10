@@ -16,7 +16,7 @@ pipeline_tag: text-generation
 architecture:
   type: null
   total_parameters: 52000000000
-  active_parameters: null
+  active_parameters: 12000000000
   num_experts: 16
   experts_per_token: 2
   num_layers: 32

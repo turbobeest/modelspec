@@ -24,7 +24,7 @@ architecture:
   intermediate_size: 13696
   attention_type: null
   num_attention_heads: 40
-  num_kv_heads: null
+  num_kv_heads: 40
   positional_encoding: null
   rope_theta: null
   vocab_size: 125696

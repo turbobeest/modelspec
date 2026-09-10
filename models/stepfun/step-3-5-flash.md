@@ -17,13 +17,13 @@ architecture:
   total_parameters: null
   active_parameters: null
   num_experts: null
-  experts_per_token: null
+  experts_per_token: 8
   num_layers: 45
   hidden_size: 4096
   intermediate_size: 11264
   attention_type: null
   num_attention_heads: 64
-  num_kv_heads: null
+  num_kv_heads: 64
   positional_encoding: null
   rope_theta: null
   vocab_size: 128896

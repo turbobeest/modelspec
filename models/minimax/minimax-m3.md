@@ -15,7 +15,7 @@ pipeline_tag: ''
 architecture:
   type: null
   total_parameters: null
-  active_parameters: null
+  active_parameters: 23000000000
   num_experts: 128
   experts_per_token: 4
   num_layers: 60
