@@ -16,16 +16,16 @@ tags:
 pipeline_tag: sentence-similarity
 architecture:
   type: null
-  total_parameters: 475000000
-  active_parameters: null
+  total_parameters: 475292928
+  active_parameters: 305000000
   num_experts: 8
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  experts_per_token: 2
+  num_layers: 12
+  hidden_size: 768
+  intermediate_size: 3072
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 12
+  num_kv_heads: 12
   positional_encoding: null
   rope_theta: null
   vocab_size: 250048
@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: nomic-ai/nomic-embed-text-v2-moe-unsupervised
   base_model_relation: null

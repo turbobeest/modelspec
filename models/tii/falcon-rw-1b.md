@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 1000000000
+  total_parameters: null
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -24,7 +24,7 @@ architecture:
   intermediate_size: null
   attention_type: null
   num_attention_heads: 32
-  num_kv_heads: null
+  num_kv_heads: 32
   positional_encoding: null
   rope_theta: null
   vocab_size: 50304
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: ''
 lineage:
   base_model: ''
   base_model_relation: null

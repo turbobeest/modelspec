@@ -279,22 +279,19 @@ def map_license(hf_model: dict) -> tuple[LicenseType | None, bool]:
 # ── Parameter Count Extraction ─────────────────────────────────────
 
 def extract_params(hf_model: dict) -> int | None:
-    """Try to extract parameter count from HF metadata or model name."""
-    # Check safetensors metadata
-    safetensors = hf_model.get("safetensors", {})
-    if isinstance(safetensors, dict):
-        total = safetensors.get("total", 0)
-        if total and total > 0:
-            return total
+    """Exact parameter count from Hub safetensors metadata.
 
-    # Parse from model name
-    name = hf_model.get("id", "").lower()
-    # Match patterns like "70b", "7B", "1.5B", "30b-a3b"
-    match = re.search(r"(\d+(?:\.\d+)?)\s*[bB](?:\b|[-_])", name)
-    if match:
-        billions = float(match.group(1))
-        return int(billions * 1_000_000_000)
-
+    The model name is not a source. `Mixtral-8x7B` is 46.7B, not 7B;
+    `OLMoE-1B-7B` is 6.9B, not 1B. A missing safetensors total stays null.
+    """
+    safetensors = hf_model.get("safetensors")
+    if not isinstance(safetensors, dict):
+        return None
+    total = safetensors.get("total")
+    if isinstance(total, int) and total > 0:
+        return total
+    if isinstance(total, float) and total > 0 and total.is_integer():
+        return int(total)
     return None
 
 
@@ -370,6 +367,7 @@ def build_model_card(hf_model: dict, config: HFProviderConfig) -> ModelCard:
         ),
         architecture=Architecture(
             total_parameters=params,
+            total_parameters_source="safetensors" if params else "",
         ),
         lineage=Lineage(
             base_model=_extract_base_model(hf_model),

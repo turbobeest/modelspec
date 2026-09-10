@@ -15,7 +15,7 @@ tags:
 pipeline_tag: sentence-similarity
 architecture:
   type: null
-  total_parameters: 110000000
+  total_parameters: 108891648
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -24,7 +24,7 @@ architecture:
   intermediate_size: 3072
   attention_type: null
   num_attention_heads: 12
-  num_kv_heads: null
+  num_kv_heads: 12
   positional_encoding: null
   rope_theta: null
   vocab_size: 30522
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

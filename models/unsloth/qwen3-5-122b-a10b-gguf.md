@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:size_token_total
 lineage:
   base_model: Qwen/Qwen3.5-122B-A10B
   base_model_relation: null

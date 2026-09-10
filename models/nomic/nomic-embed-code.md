@@ -16,7 +16,7 @@ tags:
 pipeline_tag: sentence-similarity
 architecture:
   type: null
-  total_parameters: 137000000
+  total_parameters: 7070619136
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: Qwen/Qwen2.5-Coder-7B-Instruct
   base_model_relation: null

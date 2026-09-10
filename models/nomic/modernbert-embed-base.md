@@ -15,7 +15,7 @@ tags:
 pipeline_tag: sentence-similarity
 architecture:
   type: null
-  total_parameters: 149000000
+  total_parameters: 149014272
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -24,7 +24,7 @@ architecture:
   intermediate_size: 1152
   attention_type: null
   num_attention_heads: 12
-  num_kv_heads: null
+  num_kv_heads: 12
   positional_encoding: null
   rope_theta: null
   vocab_size: 50368
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: answerdotai/ModernBERT-base
   base_model_relation: null

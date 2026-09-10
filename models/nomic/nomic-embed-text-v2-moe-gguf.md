@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:prose
 lineage:
   base_model: nomic-ai/nomic-embed-text-v2-moe
   base_model_relation: null

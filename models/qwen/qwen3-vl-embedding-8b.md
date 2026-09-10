@@ -15,7 +15,7 @@ tags:
 pipeline_tag: feature-extraction
 architecture:
   type: null
-  total_parameters: 8000000000
+  total_parameters: 8144793840
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: Qwen/Qwen3-VL-8B-Instruct
   base_model_relation: null

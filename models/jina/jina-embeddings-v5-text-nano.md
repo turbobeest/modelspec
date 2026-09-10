@@ -15,7 +15,7 @@ tags:
 pipeline_tag: feature-extraction
 architecture:
   type: null
-  total_parameters: 239000000
+  total_parameters: 211766016
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: EuroBERT/EuroBERT-210m
   base_model_relation: null

@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 3402836480
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:ibm-granite/granite-4.0-micro
 lineage:
   base_model: ibm-granite/granite-4.0-micro
   base_model_relation: null

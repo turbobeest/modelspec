@@ -15,8 +15,8 @@ tags:
 pipeline_tag: image-text-to-text
 architecture:
   type: null
-  total_parameters: 9000000000
-  active_parameters: null
+  total_parameters: 107710933120
+  active_parameters: 12000000000
   num_experts: 128
   experts_per_token: 8
   num_layers: 46
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: zai-org/GLM-4.5-Air-Base
   base_model_relation: null

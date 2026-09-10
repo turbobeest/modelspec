@@ -18,7 +18,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 671000000000
+  total_parameters: 685396921376
   active_parameters: null
   num_experts: 256
   experts_per_token: 8
@@ -44,6 +44,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: deepseek-ai/DeepSeek-V3.2-Exp-Base
   base_model_relation: null

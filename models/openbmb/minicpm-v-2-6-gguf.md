@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 8000000000
+  total_parameters: 8099175152
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:openbmb/MiniCPM-V-2_6
 lineage:
   base_model: openbmb/MiniCPM-V-2_6
   base_model_relation: null

@@ -15,8 +15,8 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 1000000000000
-  active_parameters: null
+  total_parameters: 1026879376368
+  active_parameters: 32000000000
   num_experts: 384
   experts_per_token: 8
   num_layers: 61
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:moonshotai/Kimi-K2.5
 lineage:
   base_model: moonshotai/Kimi-K2.5
   base_model_relation: null

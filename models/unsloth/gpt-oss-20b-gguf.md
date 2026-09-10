@@ -16,7 +16,7 @@ tags:
 pipeline_tag: text-generation
 architecture:
   type: null
-  total_parameters: 20000000000
+  total_parameters: 20914757184
   active_parameters: 4186275840
   num_experts: 32
   experts_per_token: 4
@@ -42,6 +42,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors:base_model:openai/gpt-oss-20b
 lineage:
   base_model: openai/gpt-oss-20b
   base_model_relation: null

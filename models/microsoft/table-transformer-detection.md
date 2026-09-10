@@ -15,16 +15,16 @@ tags:
 pipeline_tag: object-detection
 architecture:
   type: null
-  total_parameters: 23000000
+  total_parameters: 28818631
   active_parameters: null
   num_experts: null
   experts_per_token: null
   num_layers: 6
-  hidden_size: null
+  hidden_size: 256
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 8
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
   vocab_size: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

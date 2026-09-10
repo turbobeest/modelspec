@@ -14,8 +14,8 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
-  active_parameters: null
+  total_parameters: 290944616402
+  active_parameters: 13000000000
   num_experts: 256
   experts_per_token: 6
   num_layers: 43
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

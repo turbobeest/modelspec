@@ -15,7 +15,7 @@ tags:
 pipeline_tag: zero-shot-image-classification
 architecture:
   type: null
-  total_parameters: 652000000
+  total_parameters: 882313218
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -24,7 +24,7 @@ architecture:
   intermediate_size: 4096
   attention_type: null
   num_attention_heads: 16
-  num_kv_heads: null
+  num_kv_heads: 16
   positional_encoding: null
   rope_theta: null
   vocab_size: 256000
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

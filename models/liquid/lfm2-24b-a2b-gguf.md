@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:prose
 lineage:
   base_model: LiquidAI/LFM2-24B-A2B
   base_model_relation: null

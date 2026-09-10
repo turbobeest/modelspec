@@ -14,16 +14,16 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 199384301376
   active_parameters: null
   num_experts: null
-  experts_per_token: null
+  experts_per_token: 8
   num_layers: 45
   hidden_size: 4096
   intermediate_size: 11264
   attention_type: null
   num_attention_heads: 64
-  num_kv_heads: null
+  num_kv_heads: 64
   positional_encoding: null
   rope_theta: null
   vocab_size: 128896
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null

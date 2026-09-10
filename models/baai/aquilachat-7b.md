@@ -23,7 +23,7 @@ architecture:
   intermediate_size: 11008
   attention_type: null
   num_attention_heads: 32
-  num_kv_heads: null
+  num_kv_heads: 32
   positional_encoding: null
   rope_theta: null
   vocab_size: 100008
@@ -40,6 +40,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: model_card_published:named_markdown_row
 lineage:
   base_model: ''
   base_model_relation: null

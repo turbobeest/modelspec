@@ -15,7 +15,7 @@ tags:
 pipeline_tag: text-to-image
 architecture:
   type: null
-  total_parameters: 12000000000
+  total_parameters: 11901408320
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,6 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: black-forest-labs/FLUX.1-dev
   base_model_relation: null
