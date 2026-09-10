@@ -1,0 +1,51 @@
+name: Test suite
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            .github/workflows/test.yml
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.5" \
+            "PyYAML==6.0.3" \
+            "FalkorDB==1.7.1" \
+            "httpx==0.28.1" \
+            "rich==15.0.0" \
+            "typer==0.27.2" \
+            "fastapi==0.141.1" \
+            "uvicorn==0.52.4" \
+            "pytest==9.1.1" \
+            "pytest-asyncio==1.4.0" \
+            "ruff==0.16.6" \
+            "mypy==2.3.1" \
+            -e ".[dev]"
+
+      - name: Run test suite
+        run: python -m pytest -q
