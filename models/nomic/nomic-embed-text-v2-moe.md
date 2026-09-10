@@ -18,7 +18,7 @@ architecture:
   type: null
   total_parameters: 475000000
   active_parameters: null
-  num_experts: null
+  num_experts: 8
   experts_per_token: null
   num_layers: null
   hidden_size: null
@@ -28,7 +28,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 250048
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

@@ -26,7 +26,7 @@ architecture:
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 32100
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

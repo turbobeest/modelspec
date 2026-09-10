@@ -19,15 +19,15 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_layers: 40
+  hidden_size: 2304
+  intermediate_size: 5760
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 36
+  num_kv_heads: 36
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 122753
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

@@ -16,18 +16,18 @@ pipeline_tag: ''
 architecture:
   type: null
   total_parameters: 22000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 39160774656
+  num_experts: 8
+  experts_per_token: 2
+  num_layers: 56
+  hidden_size: 6144
+  intermediate_size: 16384
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 48
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 32768
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

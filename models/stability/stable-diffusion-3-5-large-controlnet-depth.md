@@ -23,7 +23,7 @@ architecture:
   hidden_size: null
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 38
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null

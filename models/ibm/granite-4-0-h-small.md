@@ -17,17 +17,17 @@ architecture:
   type: null
   total_parameters: 32000000000
   active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  num_experts: 72
+  experts_per_token: 10
+  num_layers: 40
+  hidden_size: 4096
+  intermediate_size: 768
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 32
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 100352
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

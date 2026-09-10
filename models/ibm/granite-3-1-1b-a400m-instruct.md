@@ -16,18 +16,18 @@ pipeline_tag: text-generation
 architecture:
   type: null
   total_parameters: 1000000000
-  active_parameters: null
-  num_experts: null
-  experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
+  active_parameters: 428608512
+  num_experts: 32
+  experts_per_token: 8
+  num_layers: 24
+  hidden_size: 1024
+  intermediate_size: 512
   attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
+  num_attention_heads: 16
+  num_kv_heads: 8
   positional_encoding: null
   rope_theta: null
-  vocab_size: null
+  vocab_size: 49155
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''

@@ -19,11 +19,11 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
+  num_layers: 3
   hidden_size: null
   intermediate_size: null
   attention_type: null
-  num_attention_heads: null
+  num_attention_heads: 16
   num_kv_heads: null
   positional_encoding: null
   rope_theta: null

@@ -19,7 +19,7 @@ architecture:
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
+  num_layers: 6
   hidden_size: null
   intermediate_size: null
   attention_type: null
