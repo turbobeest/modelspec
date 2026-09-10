@@ -1,0 +1,12 @@
+{
+ "bandwidth_efficiency": 0.7,
+ "devices": 40,
+ "edges": 32001,
+ "edges_with_max_context": 21009,
+ "models_considered": 908,
+ "models_fitting_somewhere": 896,
+ "skipped_closed_weights": 239,
+ "skipped_no_parameter_count": 89,
+ "used_active_parameters": 102,
+ "working_allowance": 0.25
+}
