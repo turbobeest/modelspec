@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Llama-2-13b-hf
+    url: https://huggingface.co/NousResearch/Llama-2-13b-hf
     fine_tuning: false
     gated: false
     regions: []

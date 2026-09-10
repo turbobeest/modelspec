@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/RedPajama-INCITE-7B-Base
+    url: https://huggingface.co/togethercomputer/RedPajama-INCITE-7B-Base
     fine_tuning: false
     gated: false
     regions: []

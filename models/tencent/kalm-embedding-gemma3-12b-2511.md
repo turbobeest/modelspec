@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/KaLM-Embedding-Gemma3-12B-2511
+    url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511
     fine_tuning: false
     gated: false
     regions: []

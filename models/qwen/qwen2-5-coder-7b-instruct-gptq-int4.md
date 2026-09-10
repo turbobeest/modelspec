@@ -643,9 +643,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4
+    url: https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4
     fine_tuning: false
     gated: false
     regions: []

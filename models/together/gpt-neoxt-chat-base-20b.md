@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    url: https://huggingface.co/togethercomputer/GPT-NeoXT-Chat-Base-20B
     fine_tuning: false
     gated: false
     regions: []

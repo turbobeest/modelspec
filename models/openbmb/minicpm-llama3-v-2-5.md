@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: openbmb/MiniCPM-Llama3-V-2_5
+    url: https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5
     fine_tuning: false
     gated: false
     regions: []

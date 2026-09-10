@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/NVIDIA-Nemotron-Parse-v1.1
+    url: https://huggingface.co/nvidia/NVIDIA-Nemotron-Parse-v1.1
     fine_tuning: false
     gated: false
     regions: []

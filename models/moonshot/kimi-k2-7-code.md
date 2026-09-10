@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: moonshotai/Kimi-K2.7-Code
+    url: https://huggingface.co/moonshotai/Kimi-K2.7-Code
     fine_tuning: false
     gated: false
     regions: []

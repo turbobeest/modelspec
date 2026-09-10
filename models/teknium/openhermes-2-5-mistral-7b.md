@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: teknium/OpenHermes-2.5-Mistral-7B
+    url: https://huggingface.co/teknium/OpenHermes-2.5-Mistral-7B
     fine_tuning: false
     gated: false
     regions: []

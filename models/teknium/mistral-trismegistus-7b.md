@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: teknium/Mistral-Trismegistus-7B
+    url: https://huggingface.co/teknium/Mistral-Trismegistus-7B
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/codegen-350M-mono
+    url: https://huggingface.co/Salesforce/codegen-350M-mono
     fine_tuning: false
     gated: false
     regions: []

@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Skywork/Skywork-Reward-Llama-3.1-8B-v0.2
+    url: https://huggingface.co/Skywork/Skywork-Reward-Llama-3.1-8B-v0.2
     fine_tuning: false
     gated: false
     regions: []

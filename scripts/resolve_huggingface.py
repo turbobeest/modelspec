@@ -50,8 +50,9 @@ DERIVATIVE_MARKERS = (
     "abliterated", "uncensored", "heretic", "lora", "-merge", "distill-",
 )
 
-#: Card provider slug -> the organisation that publishes on Hugging Face. Only
-#: needed where the two differ; an exact match is tried first.
+#: Card provider slug -> Hub org slug. Hub `author=` is case-sensitive, so
+#: values must match huggingface.co exactly. Scoring still compares
+#: case-insensitively.
 ORG_ALIASES = {
     "qwen": "Qwen", "alibaba": "Qwen", "mistral": "mistralai",
     "meta": "meta-llama", "google": "google", "microsoft": "microsoft",
@@ -68,6 +69,9 @@ ORG_ALIASES = {
     "openbmb": "openbmb", "internlm": "internlm", "xai": "xai-org",
     "cerebras": "cerebras", "databricks": "databricks", "snowflake": "Snowflake",
     "apple": "apple", "amazon": "amazon", "inception": "inclusionAI",
+    "kakao": "kakaobrain", "moondream": "vikhyatk",
+    "together": "togethercomputer", "samsung": "SamsungSDS-Research",
+    "skywork": "Skywork", "stepfun": "stepfun-ai",
 }
 
 #: Below this a match is refused. Set so that an organisation match plus a
@@ -138,16 +142,78 @@ def score_candidate(repo_id: str, downloads: int, card_org: str,
     return candidate
 
 
+def _rate_limit_wait(response: httpx.Response) -> float:
+    """Seconds to sleep after a 429. Hub quota is 500 req / 300s."""
+    retry_after = response.headers.get("Retry-After") or response.headers.get("retry-after")
+    if retry_after:
+        try:
+            return min(max(float(retry_after), 1.0), 180.0)
+        except ValueError:
+            pass
+    ratelimit = response.headers.get("RateLimit") or response.headers.get("ratelimit") or ""
+    match = re.search(r"[;,]t=(\d+)", ratelimit)
+    if match:
+        return min(int(match.group(1)) + 1, 180.0)
+    return 20.0
+
+
+def _hf_search(client: httpx.Client, query: str, author: str | None = None) -> list[dict]:
+    """Search the Hub. 429s are retried; they are not a no-match.
+
+    Unauthenticated quota is 500 req / 300s. Swallowing 429s as empty
+    results refused every provider after the first ~500 cards.
+    """
+    params: dict[str, str | int] = {"search": query, "limit": 10}
+    if author:
+        params["author"] = author
+    for attempt in range(8):
+        try:
+            response = client.get(API, params=params)
+            if response.status_code == 429:
+                wait = _rate_limit_wait(response)
+                print(f"  Hugging Face rate-limited, waiting {wait:.0f}s")
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            payload = response.json()
+            return payload if isinstance(payload, list) else []
+        except httpx.HTTPStatusError as exc:
+            if exc.response is not None and exc.response.status_code == 429:
+                wait = _rate_limit_wait(exc.response)
+                print(f"  Hugging Face rate-limited, waiting {wait:.0f}s")
+                time.sleep(wait)
+                continue
+            if attempt == 7:
+                return []
+            time.sleep(min(2 ** attempt, 30))
+        except Exception:
+            if attempt == 7:
+                return []
+            time.sleep(min(2 ** attempt, 30))
+    return []
+
+
+def _search_candidates(client: httpx.Client, query: str, name: str,
+                       author: str) -> list[dict]:
+    """Org-scoped search first; unscoped search drowns in community copies.
+
+    Fallback to a global search only when the org returns nothing. Scoring
+    still cannot clear the floor without an org match.
+    """
+    results = _hf_search(client, query, author=author)
+    if not results and name and name.lower() != query.lower():
+        results = _hf_search(client, name, author=author)
+    if not results:
+        results = _hf_search(client, query)
+    return results
+
+
 def resolve(client: httpx.Client, card: ModelCard) -> Candidate | None:
     org = (card.identity.provider or "").strip()
     name = card.identity.model_id.split("/", 1)[-1]
     query = (card.identity.display_name or name).strip()
-    try:
-        response = client.get(API, params={"search": query, "limit": 10})
-        response.raise_for_status()
-        results = response.json()
-    except Exception:
-        return None
+    author = ORG_ALIASES.get(org, org)
+    results = _search_candidates(client, query, name, author)
     scored = [
         score_candidate(m.get("id", ""), int(m.get("downloads") or 0), org, name)
         for m in results if m.get("id")

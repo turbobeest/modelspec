@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: teknium/OpenHermes-13B
+    url: https://huggingface.co/teknium/OpenHermes-13B
     fine_tuning: false
     gated: false
     regions: []

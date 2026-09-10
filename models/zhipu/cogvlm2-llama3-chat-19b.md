@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/cogvlm2-llama3-chat-19B
+    url: https://huggingface.co/zai-org/cogvlm2-llama3-chat-19B
     fine_tuning: false
     gated: false
     regions: []

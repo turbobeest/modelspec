@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/v6-Finch-7B-HF
+    url: https://huggingface.co/RWKV/v6-Finch-7B-HF
     fine_tuning: false
     gated: false
     regions: []

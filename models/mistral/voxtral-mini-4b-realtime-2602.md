@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Voxtral-Mini-4B-Realtime-2602
+    url: https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602
     fine_tuning: false
     gated: false
     regions: []

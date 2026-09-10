@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: sentence-transformers/multi-qa-MiniLM-L6-cos-v1
+    url: https://huggingface.co/sentence-transformers/multi-qa-MiniLM-L6-cos-v1
     fine_tuning: false
     gated: false
     regions: []

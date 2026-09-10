@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Skywork/Skywork-Reward-V2-Qwen3-8B
+    url: https://huggingface.co/Skywork/Skywork-Reward-V2-Qwen3-8B
     fine_tuning: false
     gated: false
     regions: []

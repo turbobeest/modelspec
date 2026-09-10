@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/gemma-4-E4B-it-GGUF
+    url: https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF
     fine_tuning: false
     gated: false
     regions: []

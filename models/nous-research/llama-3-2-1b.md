@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: NousResearch/Llama-3.2-1B
+    url: https://huggingface.co/NousResearch/Llama-3.2-1B
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Nous-Hermes-llama-2-7b
+    url: https://huggingface.co/NousResearch/Nous-Hermes-llama-2-7b
     fine_tuning: false
     gated: false
     regions: []

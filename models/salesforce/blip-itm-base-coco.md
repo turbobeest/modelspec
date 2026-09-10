@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/blip-itm-base-coco
+    url: https://huggingface.co/Salesforce/blip-itm-base-coco
     fine_tuning: false
     gated: false
     regions: []

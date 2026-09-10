@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/moirai-moe-1.0-R-base
+    url: https://huggingface.co/Salesforce/moirai-moe-1.0-R-base
     fine_tuning: false
     gated: false
     regions: []

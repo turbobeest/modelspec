@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/blip-vqa-capfilt-large
+    url: https://huggingface.co/Salesforce/blip-vqa-capfilt-large
     fine_tuning: false
     gated: false
     regions: []

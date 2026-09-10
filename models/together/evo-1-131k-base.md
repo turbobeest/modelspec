@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/evo-1-131k-base
+    url: https://huggingface.co/togethercomputer/evo-1-131k-base
     fine_tuning: false
     gated: false
     regions: []

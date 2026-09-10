@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/rwkv-4-1b5-pile
+    url: https://huggingface.co/RWKV/rwkv-4-1b5-pile
     fine_tuning: false
     gated: false
     regions: []

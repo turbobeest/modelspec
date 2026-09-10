@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/falcon-11B
+    url: https://huggingface.co/tiiuae/falcon-11B
     fine_tuning: false
     gated: false
     regions: []

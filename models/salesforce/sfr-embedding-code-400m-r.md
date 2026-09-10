@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/SFR-Embedding-Code-400M_R
+    url: https://huggingface.co/Salesforce/SFR-Embedding-Code-400M_R
     fine_tuning: false
     gated: false
     regions: []

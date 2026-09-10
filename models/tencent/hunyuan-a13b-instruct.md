@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Hunyuan-A13B-Instruct
+    url: https://huggingface.co/tencent/Hunyuan-A13B-Instruct
     fine_tuning: false
     gated: false
     regions: []

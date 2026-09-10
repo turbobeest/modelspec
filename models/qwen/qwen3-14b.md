@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Qwen/Qwen3-14B
+    url: https://huggingface.co/Qwen/Qwen3-14B
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Penguin-Encoder
+    url: https://huggingface.co/tencent/Penguin-Encoder
     fine_tuning: false
     gated: false
     regions: []

@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nomic-ai/nomic-embed-vision-v1
+    url: https://huggingface.co/nomic-ai/nomic-embed-vision-v1
     fine_tuning: false
     gated: false
     regions: []

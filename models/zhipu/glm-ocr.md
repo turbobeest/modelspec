@@ -634,9 +634,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/GLM-OCR
+    url: https://huggingface.co/zai-org/GLM-OCR
     fine_tuning: false
     gated: false
     regions: []

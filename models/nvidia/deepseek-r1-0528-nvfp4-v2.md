@@ -646,8 +646,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nvidia/DeepSeek-R1-0528-NVFP4-v2
+    url: https://huggingface.co/nvidia/DeepSeek-R1-0528-NVFP4-v2
     fine_tuning: false
     gated: false
     regions: []

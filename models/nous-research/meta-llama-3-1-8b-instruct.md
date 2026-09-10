@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: NousResearch/Meta-Llama-3.1-8B-Instruct
+    url: https://huggingface.co/NousResearch/Meta-Llama-3.1-8B-Instruct
     fine_tuning: false
     gated: false
     regions: []

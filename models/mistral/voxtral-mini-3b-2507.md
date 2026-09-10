@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Voxtral-Mini-3B-2507
+    url: https://huggingface.co/mistralai/Voxtral-Mini-3B-2507
     fine_tuning: false
     gated: false
     regions: []

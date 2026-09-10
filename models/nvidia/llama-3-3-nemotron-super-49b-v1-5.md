@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Llama-3_3-Nemotron-Super-49B-v1_5
+    url: https://huggingface.co/nvidia/Llama-3_3-Nemotron-Super-49B-v1_5
     fine_tuning: false
     gated: false
     regions: []

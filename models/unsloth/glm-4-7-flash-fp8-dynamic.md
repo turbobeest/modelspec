@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/GLM-4.7-Flash-FP8-Dynamic
+    url: https://huggingface.co/unsloth/GLM-4.7-Flash-FP8-Dynamic
     fine_tuning: false
     gated: false
     regions: []

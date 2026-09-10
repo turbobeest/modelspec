@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO
+    url: https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO
     fine_tuning: false
     gated: false
     regions: []

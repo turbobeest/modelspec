@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/codet5-small
+    url: https://huggingface.co/Salesforce/codet5-small
     fine_tuning: false
     gated: false
     regions: []

@@ -7,13 +7,14 @@ released: 2025-03
 memory:
   capacity_gb: 512
   bandwidth_gb_s: 819
-  type: unified LPDDR5X
+  type: unified
   bus_bits: null
   unified_with_host: true
   capacity_options_gb:
   - 96
   - 256
   - 512
+  bandwidth_derivation: Apple-published unified memory bandwidth (not bus-derived)
 precisions_native:
 - fp16
 - bf16
@@ -27,9 +28,12 @@ power:
   tdp_w: null
   sustained_differs_from_boost: true
 sources:
-- https://www.apple.com/mac/compare/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: 'up to 32-core CPU, up to 80-core GPU. Unified memory: the whole capacity is
-  addressable by the GPU, minus what the OS holds. Sustained clocks differ from boost
-  in thin chassis. Transcribed from vendor specifications; not yet confirmed.'
+- https://support.apple.com/en-us/122211
+- https://www.apple.com/newsroom/2025/03/apple-reveals-m3-ultra-taking-apple-silicon-to-a-new-extreme/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: '28- or 32-core CPU, 60- or 80-core GPU. Bandwidth is 819 GB/s on both M3 Ultra
+  configurations on Apple''s Mac Studio (2025) tech specs. Memory starts at 96 GB
+  (support page lists 256 GB as a configure option; Apple newsroom states configuration
+  up to 512 GB). Apple does not publish a TDP or a DRAM generation. Sustained clocks
+  differ from boost in thin chassis.'

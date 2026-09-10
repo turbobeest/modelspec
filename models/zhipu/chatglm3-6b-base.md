@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/chatglm3-6b-base
+    url: https://huggingface.co/zai-org/chatglm3-6b-base
     fine_tuning: false
     gated: false
     regions: []

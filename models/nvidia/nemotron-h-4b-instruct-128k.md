@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Nemotron-H-4B-Instruct-128K
+    url: https://huggingface.co/nvidia/Nemotron-H-4B-Instruct-128K
     fine_tuning: false
     gated: false
     regions: []

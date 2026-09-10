@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Mistral-Small-3.2-24B-Instruct-2506
+    url: https://huggingface.co/mistralai/Mistral-Small-3.2-24B-Instruct-2506
     fine_tuning: false
     gated: false
     regions: []

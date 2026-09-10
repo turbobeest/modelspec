@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/segformer-b5-finetuned-cityscapes-1024-1024
+    url: https://huggingface.co/nvidia/segformer-b5-finetuned-cityscapes-1024-1024
     fine_tuning: false
     gated: false
     regions: []

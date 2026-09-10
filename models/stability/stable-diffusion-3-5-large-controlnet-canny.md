@@ -637,8 +637,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: stabilityai/stable-diffusion-3.5-large-controlnet-canny
+    url: https://huggingface.co/stabilityai/stable-diffusion-3.5-large-controlnet-canny
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Meta-Llama-3-70B-Instruct
+    url: https://huggingface.co/NousResearch/Meta-Llama-3-70B-Instruct
     fine_tuning: false
     gated: false
     regions: []

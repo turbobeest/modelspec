@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: meta-llama/CodeLlama-7b-Instruct-hf
+    url: https://huggingface.co/meta-llama/CodeLlama-7b-Instruct-hf
     fine_tuning: false
     gated: false
     regions: []

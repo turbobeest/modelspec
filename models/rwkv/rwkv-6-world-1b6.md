@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/rwkv-6-world-1b6
+    url: https://huggingface.co/RWKV/rwkv-6-world-1b6
     fine_tuning: false
     gated: false
     regions: []

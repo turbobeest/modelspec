@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stablelm-zephyr-3b
+    url: https://huggingface.co/stabilityai/stablelm-zephyr-3b
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Nous-Hermes-2-SOLAR-10.7B
+    url: https://huggingface.co/NousResearch/Nous-Hermes-2-SOLAR-10.7B
     fine_tuning: false
     gated: false
     regions: []

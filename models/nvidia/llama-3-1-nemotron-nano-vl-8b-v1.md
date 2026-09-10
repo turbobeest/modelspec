@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Llama-3.1-Nemotron-Nano-VL-8B-V1
+    url: https://huggingface.co/nvidia/Llama-3.1-Nemotron-Nano-VL-8B-V1
     fine_tuning: false
     gated: false
     regions: []

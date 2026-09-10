@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/mt5-base
+    url: https://huggingface.co/google/mt5-base
     fine_tuning: false
     gated: false
     regions: []

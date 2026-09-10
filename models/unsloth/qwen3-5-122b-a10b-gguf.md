@@ -638,9 +638,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: unsloth/Qwen3.5-122B-A10B-GGUF
+    url: https://huggingface.co/unsloth/Qwen3.5-122B-A10B-GGUF
     fine_tuning: false
     gated: false
     regions: []

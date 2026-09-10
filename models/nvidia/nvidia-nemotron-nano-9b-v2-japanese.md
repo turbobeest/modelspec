@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/NVIDIA-Nemotron-Nano-9B-v2-Japanese
+    url: https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-9B-v2-Japanese
     fine_tuning: false
     gated: false
     regions: []

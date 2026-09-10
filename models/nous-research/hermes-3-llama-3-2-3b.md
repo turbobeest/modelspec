@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: NousResearch/Hermes-3-Llama-3.2-3B
+    url: https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B
     fine_tuning: false
     gated: false
     regions: []

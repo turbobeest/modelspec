@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/Aurora-Spec-Qwen3-Coder-Next-FP8
+    url: https://huggingface.co/togethercomputer/Aurora-Spec-Qwen3-Coder-Next-FP8
     fine_tuning: false
     gated: false
     regions: []

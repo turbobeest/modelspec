@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/codegeex4-all-9b
+    url: https://huggingface.co/zai-org/codegeex4-all-9b
     fine_tuning: false
     gated: false
     regions: []

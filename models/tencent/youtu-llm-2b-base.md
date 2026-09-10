@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Youtu-LLM-2B-Base
+    url: https://huggingface.co/tencent/Youtu-LLM-2B-Base
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: togethercomputer/LLaMA-2-7B-32K
+    url: https://huggingface.co/togethercomputer/LLaMA-2-7B-32K
     fine_tuning: false
     gated: false
     regions: []

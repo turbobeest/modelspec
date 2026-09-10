@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nvidia/Llama-3.1-8B-Instruct-FP8
+    url: https://huggingface.co/nvidia/Llama-3.1-8B-Instruct-FP8
     fine_tuning: false
     gated: false
     regions: []

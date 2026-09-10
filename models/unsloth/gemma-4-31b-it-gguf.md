@@ -648,8 +648,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: unsloth/gemma-4-31B-it-GGUF
+    url: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
     fine_tuning: false
     gated: false
     regions: []

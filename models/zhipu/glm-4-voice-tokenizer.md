@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/glm-4-voice-tokenizer
+    url: https://huggingface.co/zai-org/glm-4-voice-tokenizer
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/CogVideoX-2b
+    url: https://huggingface.co/zai-org/CogVideoX-2b
     fine_tuning: false
     gated: false
     regions: []

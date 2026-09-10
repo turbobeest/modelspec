@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: openbmb/MiniCPM4.1-8B
+    url: https://huggingface.co/openbmb/MiniCPM4.1-8B
     fine_tuning: false
     gated: false
     regions: []

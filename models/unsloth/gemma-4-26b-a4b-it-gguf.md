@@ -641,8 +641,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: unsloth/gemma-4-26B-A4B-it-GGUF
+    url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/OpenReasoning-Nemotron-32B
+    url: https://huggingface.co/nvidia/OpenReasoning-Nemotron-32B
     fine_tuning: false
     gated: false
     regions: []

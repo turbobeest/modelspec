@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Kimi-K2.5-NVFP4
+    url: https://huggingface.co/nvidia/Kimi-K2.5-NVFP4
     fine_tuning: false
     gated: false
     regions: []

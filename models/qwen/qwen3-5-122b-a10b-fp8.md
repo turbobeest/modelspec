@@ -638,9 +638,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3.5-122B-A10B-FP8
+    url: https://huggingface.co/Qwen/Qwen3.5-122B-A10B-FP8
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nomic-ai/CodeRankLLM
+    url: https://huggingface.co/nomic-ai/CodeRankLLM
     fine_tuning: false
     gated: false
     regions: []

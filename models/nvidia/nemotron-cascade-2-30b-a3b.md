@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/Nemotron-Cascade-2-30B-A3B
+    url: https://huggingface.co/nvidia/Nemotron-Cascade-2-30B-A3B
     fine_tuning: false
     gated: false
     regions: []

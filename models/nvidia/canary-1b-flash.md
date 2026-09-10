@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/canary-1b-flash
+    url: https://huggingface.co/nvidia/canary-1b-flash
     fine_tuning: false
     gated: false
     regions: []

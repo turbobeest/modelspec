@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/parakeet-ctc-1.1b
+    url: https://huggingface.co/nvidia/parakeet-ctc-1.1b
     fine_tuning: false
     gated: false
     regions: []

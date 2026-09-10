@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/bert_uncased_L-2_H-128_A-2
+    url: https://huggingface.co/google/bert_uncased_L-2_H-128_A-2
     fine_tuning: false
     gated: false
     regions: []

@@ -640,8 +640,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nvidia/Qwen3-14B-NVFP4
+    url: https://huggingface.co/nvidia/Qwen3-14B-NVFP4
     fine_tuning: false
     gated: false
     regions: []

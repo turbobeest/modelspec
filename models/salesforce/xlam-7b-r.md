@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/xLAM-7b-r
+    url: https://huggingface.co/Salesforce/xLAM-7b-r
     fine_tuning: false
     gated: false
     regions: []

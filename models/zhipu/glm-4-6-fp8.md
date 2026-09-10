@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/GLM-4.6-FP8
+    url: https://huggingface.co/zai-org/GLM-4.6-FP8
     fine_tuning: false
     gated: false
     regions: []

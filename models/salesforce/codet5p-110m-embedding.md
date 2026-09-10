@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/codet5p-110m-embedding
+    url: https://huggingface.co/Salesforce/codet5p-110m-embedding
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Snowflake/Arctic-Text2SQL-R1-7B
+    url: https://huggingface.co/Snowflake/Arctic-Text2SQL-R1-7B
     fine_tuning: false
     gated: false
     regions: []

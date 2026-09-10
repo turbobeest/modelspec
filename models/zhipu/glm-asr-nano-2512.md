@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: zai-org/GLM-ASR-Nano-2512
+    url: https://huggingface.co/zai-org/GLM-ASR-Nano-2512
     fine_tuning: false
     gated: false
     regions: []

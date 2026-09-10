@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Snowflake/snowflake-arctic-embed-l
+    url: https://huggingface.co/Snowflake/snowflake-arctic-embed-l
     fine_tuning: false
     gated: false
     regions: []

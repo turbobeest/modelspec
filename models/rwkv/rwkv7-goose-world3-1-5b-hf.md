@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/RWKV7-Goose-World3-1.5B-HF
+    url: https://huggingface.co/RWKV/RWKV7-Goose-World3-1.5B-HF
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/blip2-opt-2.7b-coco
+    url: https://huggingface.co/Salesforce/blip2-opt-2.7b-coco
     fine_tuning: false
     gated: false
     regions: []

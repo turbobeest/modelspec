@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: teknium/Llama-3.1-AlternateTokenizer
+    url: https://huggingface.co/teknium/Llama-3.1-AlternateTokenizer
     fine_tuning: false
     gated: false
     regions: []

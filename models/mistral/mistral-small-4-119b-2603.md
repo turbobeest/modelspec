@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Mistral-Small-4-119B-2603
+    url: https://huggingface.co/mistralai/Mistral-Small-4-119B-2603
     fine_tuning: false
     gated: false
     regions: []

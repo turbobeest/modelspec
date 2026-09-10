@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: kakaobrain/align-base
+    url: https://huggingface.co/kakaobrain/align-base
     fine_tuning: false
     gated: false
     regions: []

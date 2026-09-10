@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stabilityai/stablelm-2-1_6b
+    url: https://huggingface.co/stabilityai/stablelm-2-1_6b
     fine_tuning: false
     gated: false
     regions: []

@@ -10,6 +10,7 @@ memory:
   type: GDDR6X
   bus_bits: 256
   unified_with_host: false
+  bandwidth_derivation: 256 bits / 8 x 23 Gbps GDDR6X = 736 GB/s
 precisions_native:
 - fp16
 - bf16
@@ -25,7 +26,11 @@ power:
   sustained_differs_from_boost: false
 sources:
 - https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4080-family/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: Transcribed from vendor specifications; not yet confirmed against the linked
-  source. See MODEL-22.
+- https://www.nvidia.com/en-us/geforce/news/geforce-rtx-4080-4070-ti-4070-super-gpu/
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: Capacity (16 GB GDDR6X), bus width (256-bit) and Total Graphics Power (320 W)
+  from the RTX 4080 Family spec table (RTX 4080 SUPER column). NVIDIA GeForce News
+  states the 4080 SUPER runs GDDR6X at 23 Gbps. Bandwidth is derived as 256/8 x 23.
+  The non-SUPER RTX 4080 is a different data rate (22.4 Gbps in the Blackwell whitepaper
+  comparison) and must not be used for this SKU.

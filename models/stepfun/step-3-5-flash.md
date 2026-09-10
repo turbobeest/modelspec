@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: stepfun-ai/Step-3.5-Flash
+    url: https://huggingface.co/stepfun-ai/Step-3.5-Flash
     fine_tuning: false
     gated: false
     regions: []

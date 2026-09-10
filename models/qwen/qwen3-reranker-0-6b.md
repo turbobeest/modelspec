@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3-Reranker-0.6B
+    url: https://huggingface.co/Qwen/Qwen3-Reranker-0.6B
     fine_tuning: false
     gated: false
     regions: []

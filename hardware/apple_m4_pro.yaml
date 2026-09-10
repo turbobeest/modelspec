@@ -7,13 +7,14 @@ released: 2024-10
 memory:
   capacity_gb: 64
   bandwidth_gb_s: 273
-  type: unified LPDDR5X
+  type: unified
   bus_bits: null
   unified_with_host: true
   capacity_options_gb:
   - 24
   - 48
   - 64
+  bandwidth_derivation: Apple-published unified memory bandwidth (not bus-derived)
 precisions_native:
 - fp16
 - bf16
@@ -27,9 +28,12 @@ power:
   tdp_w: null
   sustained_differs_from_boost: true
 sources:
-- https://www.apple.com/mac/compare/
-figures_are: vendor-specification-unconfirmed
-verified_at: null
-notes: 'up to 14-core CPU, up to 20-core GPU. Unified memory: the whole capacity is
-  addressable by the GPU, minus what the OS holds. Sustained clocks differ from boost
-  in thin chassis. Transcribed from vendor specifications; not yet confirmed.'
+- https://support.apple.com/en-us/121553
+- https://support.apple.com/en-us/121555
+figures_are: vendor-specification
+verified_at: 2026-09-09
+notes: '12- or 14-core CPU, 16- or 20-core GPU. Bandwidth is 273 GB/s. Unified memory
+  is 24 GB standard; MacBook Pro 14-inch (2024) configures M4 Pro to 48 GB, while
+  Mac mini (2024) configures M4 Pro to 48 GB or 64 GB. 36 GB is an M4 Max (14-core)
+  option, not M4 Pro. Apple does not publish a TDP or a DRAM generation. Sustained
+  clocks differ from boost in thin chassis.'

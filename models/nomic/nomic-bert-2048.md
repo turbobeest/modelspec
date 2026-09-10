@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nomic-ai/nomic-bert-2048
+    url: https://huggingface.co/nomic-ai/nomic-bert-2048
     fine_tuning: false
     gated: false
     regions: []

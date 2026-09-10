@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Penguin-VL-2B
+    url: https://huggingface.co/tencent/Penguin-VL-2B
     fine_tuning: false
     gated: false
     regions: []

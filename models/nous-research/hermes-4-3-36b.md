@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Hermes-4.3-36B
+    url: https://huggingface.co/NousResearch/Hermes-4.3-36B
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: RWKV/rwkv-raven-3b
+    url: https://huggingface.co/RWKV/rwkv-raven-3b
     fine_tuning: false
     gated: false
     regions: []

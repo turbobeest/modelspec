@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/blip-image-captioning-base
+    url: https://huggingface.co/Salesforce/blip-image-captioning-base
     fine_tuning: false
     gated: false
     regions: []

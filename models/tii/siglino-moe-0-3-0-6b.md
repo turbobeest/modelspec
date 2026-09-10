@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/siglino-moe-0.3-0.6B
+    url: https://huggingface.co/tiiuae/siglino-moe-0.3-0.6B
     fine_tuning: false
     gated: false
     regions: []

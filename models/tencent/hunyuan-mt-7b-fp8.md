@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Hunyuan-MT-7B-fp8
+    url: https://huggingface.co/tencent/Hunyuan-MT-7B-fp8
     fine_tuning: false
     gated: false
     regions: []

@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen3.5-35B-A3B-GPTQ-Int4
+    url: https://huggingface.co/Qwen/Qwen3.5-35B-A3B-GPTQ-Int4
     fine_tuning: false
     gated: false
     regions: []

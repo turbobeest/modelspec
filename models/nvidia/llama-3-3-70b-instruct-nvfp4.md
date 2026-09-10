@@ -646,8 +646,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: nvidia/Llama-3.3-70B-Instruct-NVFP4
+    url: https://huggingface.co/nvidia/Llama-3.3-70B-Instruct-NVFP4
     fine_tuning: false
     gated: false
     regions: []

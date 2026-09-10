@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tencent/Hunyuan3D-2mini
+    url: https://huggingface.co/tencent/Hunyuan3D-2mini
     fine_tuning: false
     gated: false
     regions: []

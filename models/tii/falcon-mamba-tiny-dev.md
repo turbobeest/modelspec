@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/falcon-mamba-tiny-dev
+    url: https://huggingface.co/tiiuae/falcon-mamba-tiny-dev
     fine_tuning: false
     gated: false
     regions: []

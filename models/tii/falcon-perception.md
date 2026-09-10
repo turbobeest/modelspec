@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/Falcon-Perception
+    url: https://huggingface.co/tiiuae/Falcon-Perception
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: tiiuae/Falcon-H1-34B-Base
+    url: https://huggingface.co/tiiuae/Falcon-H1-34B-Base
     fine_tuning: false
     gated: false
     regions: []

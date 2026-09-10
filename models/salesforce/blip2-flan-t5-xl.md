@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Salesforce/blip2-flan-t5-xl
+    url: https://huggingface.co/Salesforce/blip2-flan-t5-xl
     fine_tuning: false
     gated: false
     regions: []

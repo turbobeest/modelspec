@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: Qwen/Qwen2.5-32B-Instruct
+    url: https://huggingface.co/Qwen/Qwen2.5-32B-Instruct
     fine_tuning: false
     gated: false
     regions: []

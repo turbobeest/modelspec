@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: NousResearch/Hermes-2-Pro-Llama-3-8B
+    url: https://huggingface.co/NousResearch/Hermes-2-Pro-Llama-3-8B
     fine_tuning: false
     gated: false
     regions: []

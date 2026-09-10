@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: nvidia/NVLM-D-72B
+    url: https://huggingface.co/nvidia/NVLM-D-72B
     fine_tuning: false
     gated: false
     regions: []

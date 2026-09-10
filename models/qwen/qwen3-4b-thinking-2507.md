@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: Qwen/Qwen3-4B-Thinking-2507
+    url: https://huggingface.co/Qwen/Qwen3-4B-Thinking-2507
     fine_tuning: false
     gated: false
     regions: []

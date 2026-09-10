@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: sentence-transformers/all-roberta-large-v1
+    url: https://huggingface.co/sentence-transformers/all-roberta-large-v1
     fine_tuning: false
     gated: false
     regions: []
