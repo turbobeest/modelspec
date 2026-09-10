@@ -6,7 +6,7 @@ provider_display: Google DeepMind
 family: gemma
 version: gemma-4-31b
 release_date: '2026-04-02'
-last_updated: '2026-04-02'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes:
@@ -232,8 +232,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.2
-  output: 0.2
+  input: null
+  output: null
   reasoning: null
   cache_read: null
   cache_write: null
@@ -248,9 +248,11 @@ cost:
   reranking_per_million: null
   finetune_per_million_tokens: null
   finetune_hosting_per_hour: null
-  free_tier: false
+  free_tier: true
   free_tier_limits: ''
-  note: Estimated inference cost on popular platforms ($/M tokens)
+  note: Google AI Studio Gemma 4 is free of charge; paid tier is not available (ai.google.dev/gemini-api/docs/pricing,
+    2026-09-10). Together serverless lists $0.39/$0.97 for the open weights (together.ai/pricing,
+    2026-09-10). Stored $0.20/$0.20 was an unsourced estimate.
 availability:
   primary_provider:
     name: ''
@@ -880,7 +882,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/google
-  provider_docs_url: ''
+  provider_docs_url: https://ai.google.dev/gemini-api/docs/pricing
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -891,7 +893,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-to-image
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 4000000000
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,7 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: ''
+  total_parameters_source: model_card_published:prose_parameters
 lineage:
   base_model: ''
   base_model_relation: null

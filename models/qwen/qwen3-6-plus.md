@@ -6,7 +6,7 @@ provider_display: Alibaba / Qwen Team
 family: qwen
 version: qwen3.6-plus
 release_date: '2026-04-02'
-last_updated: '2026-04-02'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -223,8 +223,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.276
-  output: 1.651
+  input: 0.5
+  output: 3.0
   reasoning: null
   cache_read: 0.028
   cache_write: 0.344
@@ -241,7 +241,11 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: Alibaba Cloud Model Studio international (Singapore) list $0.50/$3.00 per
+    1M at ≤256K input, $2.00/$6.00 above (alibabacloud.com/help/en/model-studio/model-pricing,
+    2026-09-10). Together serverless matches the international ≤256K row. China (Beijing)
+    list is $0.276/$1.651 at ≤256K — the stored figure. Canonical here is the international
+    USD list.
 availability:
   primary_provider:
     name: ''
@@ -872,7 +876,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/alibaba
-  provider_docs_url: ''
+  provider_docs_url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -883,7 +887,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

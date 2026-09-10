@@ -6,7 +6,7 @@ provider_display: MiniMax
 family: minimax
 version: MiniMax-M3
 release_date: '2026-06-01'
-last_updated: '2026-06-25'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -85,7 +85,7 @@ modalities:
   text:
     max_input_tokens: null
     max_output_tokens: 512000
-    context_window: 1048576
+    context_window: 1000000
     streaming: null
     fill_in_middle: null
     json_mode: null
@@ -242,7 +242,12 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: Context 1,000,000 from MiniMax API docs (platform.minimax.io/docs/guides/text-generation,
+    2026-09-10). Together and Fireworks serverless advertise this checkpoint at 524288
+    — a truncated serving path, not the native window. Stored 1048576 was 2^20 rounding
+    of the provider 1M figure. MiniMax pay-as-you-go is $0.30/$1.20 per 1M at ≤512k
+    input (permanent 50% off list $0.60/$2.40); $0.60/$2.40 above 512k (platform.minimax.io/docs/guides/pricing-paygo,
+    2026-09-10).
 availability:
   primary_provider:
     name: ''
@@ -889,7 +894,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/minimax
-  provider_docs_url: ''
+  provider_docs_url: https://platform.minimax.io/docs/guides/text-generation
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -900,7 +905,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

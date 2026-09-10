@@ -1,0 +1,2162 @@
+{
+  "unique_names": 284,
+  "cells": 768,
+  "counts": {
+    "ambiguous": 22,
+    "could_not_confirm": 44,
+    "effort_or_serving_variant": 30,
+    "missing_carded": 104,
+    "naming_drift": 84
+  },
+  "cells_by_class": {
+    "ambiguous": 61,
+    "could_not_confirm": 101,
+    "effort_or_serving_variant": 69,
+    "missing_carded": 329,
+    "naming_drift": 208
+  },
+  "classes": {
+    "naming_drift": [
+      {
+        "name": "Claude 3 Haiku",
+        "cells": 3,
+        "card": "anthropic/claude-3-haiku-20240307",
+        "evidence": "display is Claude Haiku 3; only Claude 3 Haiku card"
+      },
+      {
+        "name": "Claude 3 Opus",
+        "cells": 1,
+        "card": "anthropic/claude-3-opus-20240229",
+        "evidence": "display is Claude Opus 3"
+      },
+      {
+        "name": "Claude 3 Sonnet",
+        "cells": 1,
+        "card": "anthropic/claude-3-sonnet-20240229",
+        "evidence": "display is Claude Sonnet 3"
+      },
+      {
+        "name": "Claude 3.5 Haiku",
+        "cells": 4,
+        "card": "anthropic/claude-3-5-haiku-20241022",
+        "evidence": "dated card display Claude Haiku 3.5; latest sibling has (latest)"
+      },
+      {
+        "name": "Claude 3.5 Sonnet (June)",
+        "cells": 1,
+        "card": "anthropic/claude-3-5-sonnet-20240620",
+        "evidence": "June 2024 snapshot is 20240620"
+      },
+      {
+        "name": "Claude 3.5 Sonnet (Oct)",
+        "cells": 1,
+        "card": "anthropic/claude-3-5-sonnet-20241022",
+        "evidence": "Oct 2024 snapshot is 20241022 / Sonnet 3.5 v2"
+      },
+      {
+        "name": "Claude 3.7 Sonnet",
+        "cells": 2,
+        "card": "anthropic/claude-3-7-sonnet-20250219",
+        "evidence": "display is Claude Sonnet 3.7; unique"
+      },
+      {
+        "name": "Claude 4 Opus",
+        "cells": 2,
+        "card": "anthropic/claude-opus-4-20250514",
+        "evidence": "word order of Claude Opus 4; latest sibling has (latest)"
+      },
+      {
+        "name": "Claude 4 Sonnet",
+        "cells": 4,
+        "card": "anthropic/claude-sonnet-4-20250514",
+        "evidence": "word order of Claude Sonnet 4"
+      },
+      {
+        "name": "Claude 4.1 Opus",
+        "cells": 3,
+        "card": "anthropic/claude-opus-4-1-20250805",
+        "evidence": "word order of Claude Opus 4.1 dated card"
+      },
+      {
+        "name": "Claude 4.5 Haiku",
+        "cells": 5,
+        "card": "anthropic/claude-haiku-4-5-20251001",
+        "evidence": "word order of Claude Haiku 4.5 dated card"
+      },
+      {
+        "name": "Claude 4.5 Sonnet",
+        "cells": 5,
+        "card": "anthropic/claude-sonnet-4-5-20250929",
+        "evidence": "word order of Claude Sonnet 4.5 dated card"
+      },
+      {
+        "name": "Cogito v2.1",
+        "cells": 3,
+        "card": "deepcogito/cogito-671b-v2-1",
+        "evidence": "card display is Cogito v2.1 671B"
+      },
+      {
+        "name": "DeepSeek Coder V2 Lite",
+        "cells": 1,
+        "card": "deepseek/deepseek-coder-v2-lite-instruct",
+        "evidence": "only Lite card is Instruct"
+      },
+      {
+        "name": "DeepSeek R1 (Jan)",
+        "cells": 5,
+        "card": "deepseek/deepseek-r1",
+        "evidence": "original R1 is the Jan 2025 row; 0528 is a later card"
+      },
+      {
+        "name": "DeepSeek V3 (Dec)",
+        "cells": 5,
+        "card": "deepseek/deepseek-v3",
+        "evidence": "original V3 Dec 2024; 0324 is a later card"
+      },
+      {
+        "name": "Devstral Small (May)",
+        "cells": 3,
+        "card": "mistral/devstral-small-2505",
+        "evidence": "May is 2505; display Devstral Small is the July 2507 card"
+      },
+      {
+        "name": "Gemini 2.5 Flash (Apr)",
+        "cells": 1,
+        "card": "google/gemini-2-5-flash-preview-04-17",
+        "evidence": "April preview card exists"
+      },
+      {
+        "name": "Gemini 2.5 Flash (Sep)",
+        "cells": 3,
+        "card": "google/gemini-2-5-flash-preview-09-2025",
+        "evidence": "September preview card exists"
+      },
+      {
+        "name": "Gemini 2.5 Flash-Lite (Sep)",
+        "cells": 3,
+        "card": "google/gemini-2-5-flash-lite-preview-09-2025",
+        "evidence": "September preview card exists"
+      },
+      {
+        "name": "Gemini 2.5 Pro (May)",
+        "cells": 1,
+        "card": "google/gemini-2-5-pro-preview-05-06",
+        "evidence": "May preview card"
+      },
+      {
+        "name": "gemini-2.0-flash-001",
+        "cells": 1,
+        "card": "google/gemini-2-0-flash",
+        "evidence": "GA API id of Gemini 2.0 Flash"
+      },
+      {
+        "name": "Gemma 3n E2B",
+        "cells": 3,
+        "card": "google/gemma-3n-e2b-it",
+        "evidence": "display Gemma 3n 2B; only IT card"
+      },
+      {
+        "name": "Gemma 3n E4B",
+        "cells": 3,
+        "card": "google/gemma-3n-e4b-it",
+        "evidence": "display Gemma 3n 4B; only IT card"
+      },
+      {
+        "name": "Gemma 3n E4B (May)",
+        "cells": 1,
+        "card": "google/gemma-3n-e4b-it",
+        "evidence": "May launch of the only E4B card"
+      },
+      {
+        "name": "Gemma 4 26B A4B",
+        "cells": 4,
+        "card": "google/gemma-4-26b-a4b-it",
+        "evidence": "only A4B card is IT"
+      },
+      {
+        "name": "Gemma 4 E2B",
+        "cells": 4,
+        "card": "google/gemma-4-e2b-it",
+        "evidence": "only E2B card is IT"
+      },
+      {
+        "name": "Gemma 4 E4B",
+        "cells": 4,
+        "card": "google/gemma-4-e4b-it",
+        "evidence": "only E4B card is IT"
+      },
+      {
+        "name": "gemma-4-26b-a4b",
+        "cells": 1,
+        "card": "google/gemma-4-26b-a4b-it",
+        "evidence": "Arena slug of 26B A4B IT"
+      },
+      {
+        "name": "gpt-4.1-2025-04-14",
+        "cells": 1,
+        "card": "openai/gpt-4-1",
+        "evidence": "API snapshot id of GPT-4.1"
+      },
+      {
+        "name": "gpt-4.1-mini-2025-04-14",
+        "cells": 1,
+        "card": "openai/gpt-4-1-mini",
+        "evidence": "API snapshot id of GPT-4.1 mini"
+      },
+      {
+        "name": "GPT-4o (Aug)",
+        "cells": 3,
+        "card": "openai/gpt-4o-2024-08-06",
+        "evidence": "dated card GPT-4o (2024-08-06)"
+      },
+      {
+        "name": "GPT-4o (May)",
+        "cells": 1,
+        "card": "openai/gpt-4o-2024-05-13",
+        "evidence": "dated card GPT-4o (2024-05-13)"
+      },
+      {
+        "name": "GPT-4o (Nov)",
+        "cells": 3,
+        "card": "openai/gpt-4o-2024-11-20",
+        "evidence": "dated card GPT-4o (2024-11-20)"
+      },
+      {
+        "name": "Granite 3.3 8B",
+        "cells": 2,
+        "card": "ibm/granite-3-3-8b-instruct",
+        "evidence": "display granite 3.3 8B instruct"
+      },
+      {
+        "name": "grok-4-0709",
+        "cells": 1,
+        "card": "xai/grok-4",
+        "evidence": "Grok 4 launch id 0709"
+      },
+      {
+        "name": "grok-4.20-multi-agent-beta-0309",
+        "cells": 1,
+        "card": "xai/grok-4-20-multi-agent-0309",
+        "evidence": "beta tag on the 0309 multi-agent card"
+      },
+      {
+        "name": "Inkling",
+        "cells": 5,
+        "card": "thinkingmachines/inkling",
+        "evidence": "exact display after 2563e7a; harvest predates the card"
+      },
+      {
+        "name": "inkling",
+        "cells": 1,
+        "card": "thinkingmachines/inkling",
+        "evidence": "Arena slug of Inkling"
+      },
+      {
+        "name": "Jamba 1.5 Large",
+        "cells": 1,
+        "card": "ai21/ai21-jamba-large-1-5",
+        "evidence": "display AI21 Jamba Large 1.5"
+      },
+      {
+        "name": "Jamba 1.5 Mini",
+        "cells": 1,
+        "card": "ai21/ai21-jamba-mini-1-5",
+        "evidence": "display AI21 Jamba Mini 1.5"
+      },
+      {
+        "name": "Jamba 1.6 Large",
+        "cells": 1,
+        "card": "ai21/ai21-jamba-large-1-6",
+        "evidence": "display AI21 Jamba Large 1.6"
+      },
+      {
+        "name": "Jamba 1.6 Mini",
+        "cells": 1,
+        "card": "ai21/ai21-jamba-mini-1-6",
+        "evidence": "display AI21 Jamba Mini 1.6"
+      },
+      {
+        "name": "Jamba 1.7 Mini",
+        "cells": 3,
+        "card": "ai21/ai21-jamba-mini-1-7",
+        "evidence": "display AI21 Jamba Mini 1.7"
+      },
+      {
+        "name": "Llama 2 Chat 13B",
+        "cells": 1,
+        "card": "meta/llama-2-13b-chat-hf",
+        "evidence": "chat-hf card"
+      },
+      {
+        "name": "Llama 2 Chat 70B",
+        "cells": 1,
+        "card": "meta/llama-2-70b-chat-hf",
+        "evidence": "chat-hf card"
+      },
+      {
+        "name": "Llama 2 Chat 7B",
+        "cells": 1,
+        "card": "meta/llama-2-7b-chat-hf",
+        "evidence": "chat-hf card"
+      },
+      {
+        "name": "Llama 3.3 70B",
+        "cells": 4,
+        "card": "meta/llama-3-3-70b-instruct",
+        "evidence": "only 70B 3.3 card is Instruct"
+      },
+      {
+        "name": "Llama 3.3 Nemotron Super 49B",
+        "cells": 3,
+        "card": "nvidia/llama-3-3-nemotron-super-49b-v1-5",
+        "evidence": "v1.5 is the Super 49B card"
+      },
+      {
+        "name": "Llama 4 Maverick",
+        "cells": 5,
+        "card": "meta/llama-4-maverick-17b-128e-instruct",
+        "evidence": "no base Maverick card; FP8 is a quant"
+      },
+      {
+        "name": "Llama Nemotron Super 49B v1.5",
+        "cells": 2,
+        "card": "nvidia/llama-3-3-nemotron-super-49b-v1-5",
+        "evidence": "same card"
+      },
+      {
+        "name": "Ministral 3 14B",
+        "cells": 5,
+        "card": "mistral/ministral-3-14b-instruct-2512",
+        "evidence": "only 14B card is Instruct"
+      },
+      {
+        "name": "Ministral 3 8B",
+        "cells": 5,
+        "card": "mistral/ministral-3-8b-instruct-2512",
+        "evidence": "bf16 sibling is a serving dump"
+      },
+      {
+        "name": "Mistral Large 2 (Nov)",
+        "cells": 2,
+        "card": "mistral/mistral-large-2411",
+        "evidence": "display Mistral Large 2.1"
+      },
+      {
+        "name": "Mistral Small 3",
+        "cells": 2,
+        "card": "mistral/mistral-small-24b-instruct-2501",
+        "evidence": "Small 3 is the Jan 2025 24B instruct"
+      },
+      {
+        "name": "Mistral Small 3.1",
+        "cells": 5,
+        "card": "mistral/mistral-small-3-1-24b-instruct-2503",
+        "evidence": "display Mistral Small 3.1 24B Instruct 2503"
+      },
+      {
+        "name": "Molmo 7B-D",
+        "cells": 2,
+        "card": "allen-ai/molmo-7b-d-0924",
+        "evidence": "display Molmo 7B D 0924"
+      },
+      {
+        "name": "muse-glimmer",
+        "cells": 1,
+        "card": "meta/muse-glimmer-30b",
+        "evidence": "display Muse Glimmer 30B"
+      },
+      {
+        "name": "Nemotron 3 Ultra",
+        "cells": 5,
+        "card": "nvidia/nvidia-nemotron-3-ultra-550b-a55b",
+        "evidence": "display NVIDIA Nemotron 3 Ultra"
+      },
+      {
+        "name": "Nemotron 3.5 Lightning",
+        "cells": 5,
+        "card": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b",
+        "evidence": "display NVIDIA Nemotron 3.5 Lightning 30B A3B"
+      },
+      {
+        "name": "o1-2024-12-17",
+        "cells": 1,
+        "card": "openai/o1",
+        "evidence": "API snapshot id of o1"
+      },
+      {
+        "name": "o3-2025-04-16",
+        "cells": 1,
+        "card": "openai/o3",
+        "evidence": "API snapshot id of o3"
+      },
+      {
+        "name": "o4-mini-2025-04-16",
+        "cells": 1,
+        "card": "openai/o4-mini",
+        "evidence": "API snapshot id of o4-mini"
+      },
+      {
+        "name": "Phi-4 Mini",
+        "cells": 4,
+        "card": "microsoft/phi-4-mini-instruct",
+        "evidence": "only Mini card is Instruct"
+      },
+      {
+        "name": "Phi-4 Multimodal",
+        "cells": 1,
+        "card": "microsoft/phi-4-multimodal-instruct",
+        "evidence": "only multimodal card is Instruct"
+      },
+      {
+        "name": "Pixtral Large",
+        "cells": 1,
+        "card": "mistral/pixtral-large-latest",
+        "evidence": "only Pixtral Large card"
+      },
+      {
+        "name": "Qwen2.5 72B",
+        "cells": 2,
+        "card": "qwen/qwen2-5-72b-instruct",
+        "evidence": "only 72B card is Instruct"
+      },
+      {
+        "name": "Qwen2.5 Coder 32B",
+        "cells": 1,
+        "card": "qwen/qwen2-5-coder-32b-instruct",
+        "evidence": "only 32B coder card is Instruct"
+      },
+      {
+        "name": "Qwen2.5 Coder 7B",
+        "cells": 1,
+        "card": "qwen/qwen2-5-coder-7b-instruct",
+        "evidence": "only 7B coder card is Instruct"
+      },
+      {
+        "name": "Qwen2.5 Instruct 32B",
+        "cells": 1,
+        "card": "qwen/qwen2-5-32b-instruct",
+        "evidence": "display Qwen2.5 32B Instruct"
+      },
+      {
+        "name": "Qwen3 235B",
+        "cells": 3,
+        "card": "qwen/qwen3-235b-a22b",
+        "evidence": "unqualified 235B is the original A22B card"
+      },
+      {
+        "name": "Qwen3 235B A22B 2507",
+        "cells": 5,
+        "card": "cerebras/qwen-3-235b-a22b-instruct-2507",
+        "evidence": "only 2507 instruct card is the Cerebras serving"
+      },
+      {
+        "name": "Qwen3 30B A3B 2507",
+        "cells": 5,
+        "card": "qwen/qwen3-30b-a3b-instruct-2507",
+        "evidence": "unique 2507 instruct card"
+      },
+      {
+        "name": "Qwen3 Coder 30B A3B",
+        "cells": 3,
+        "card": "qwen/qwen3-coder-30b-a3b-instruct",
+        "evidence": "only 30B coder card is Instruct"
+      },
+      {
+        "name": "Qwen3 Coder 480B",
+        "cells": 3,
+        "card": "qwen/qwen3-coder-480b-a35b-instruct",
+        "evidence": "only 480B coder card is Instruct"
+      },
+      {
+        "name": "Qwen3 VL 32B",
+        "cells": 2,
+        "card": "qwen/qwen3-vl-32b-instruct",
+        "evidence": "only 32B VL card is Instruct"
+      },
+      {
+        "name": "Qwen3 VL 4B",
+        "cells": 3,
+        "card": "qwen/qwen3-vl-4b-instruct",
+        "evidence": "only 4B VL card is Instruct"
+      },
+      {
+        "name": "Qwen3 VL 8B",
+        "cells": 3,
+        "card": "qwen/qwen3-vl-8b-instruct",
+        "evidence": "only 8B VL card is Instruct"
+      },
+      {
+        "name": "qwen3-235b-a22b-instruct-2507",
+        "cells": 1,
+        "card": "cerebras/qwen-3-235b-a22b-instruct-2507",
+        "evidence": "exact Cerebras card slug"
+      },
+      {
+        "name": "qwen3-vl-235b-a22b-instruct",
+        "cells": 1,
+        "card": "qwen/qwen3-vl-235b-a22b",
+        "evidence": "card display Qwen3-VL 235B-A22B"
+      },
+      {
+        "name": "Qwen3.5 Omni Flash",
+        "cells": 3,
+        "card": "qwen/qwen3-omni-flash",
+        "evidence": "display Qwen3-Omni Flash"
+      },
+      {
+        "name": "qwen3.8-max",
+        "cells": 1,
+        "card": "qwen/qwen3-8-max",
+        "evidence": "slug qwen3-8-max vs display Qwen3.8 Max"
+      },
+      {
+        "name": "Solar Pro 2",
+        "cells": 3,
+        "card": "upstage/solar-pro2",
+        "evidence": "display solar-pro2"
+      },
+      {
+        "name": "Solar Pro 3",
+        "cells": 5,
+        "card": "upstage/solar-pro3",
+        "evidence": "display solar-pro3"
+      }
+    ],
+    "missing_carded": [
+      {
+        "name": "A.X-K2",
+        "cells": 5,
+        "card": "skt/a-x-k2",
+        "evidence": "Hub skt/A.X-K2"
+      },
+      {
+        "name": "Agnes 2.5 Pro Alpha",
+        "cells": 5,
+        "card": "agnes-ai/agnes-2-5-pro-alpha",
+        "evidence": "Hub Agnes-AI/Agnes-2.5-Pro-Alpha"
+      },
+      {
+        "name": "Apertus 70B Instruct",
+        "cells": 3,
+        "card": "swiss-ai/apertus-70b-instruct-2509",
+        "evidence": "Hub swiss-ai/Apertus-70B-Instruct-2509"
+      },
+      {
+        "name": "Apertus 8B Instruct",
+        "cells": 3,
+        "card": "swiss-ai/apertus-8b-instruct-2509",
+        "evidence": "Hub swiss-ai/Apertus-8B-Instruct-2509"
+      },
+      {
+        "name": "Apriel-v1.5-15B-Thinker",
+        "cells": 3,
+        "card": "servicenow/apriel-1-5-15b-thinker",
+        "evidence": "Hub ServiceNow-AI/Apriel-1.5-15b-Thinker"
+      },
+      {
+        "name": "Apriel-v1.6-15B-Thinker",
+        "cells": 2,
+        "card": "servicenow/apriel-1-6-15b-thinker",
+        "evidence": "Hub ServiceNow-AI/Apriel-1.6-15b-Thinker"
+      },
+      {
+        "name": "Claude 2.0",
+        "cells": 1,
+        "card": "anthropic/claude-2-0",
+        "evidence": "closed; Anthropic 2023-07-11 announcement"
+      },
+      {
+        "name": "Claude 2.1",
+        "cells": 1,
+        "card": "anthropic/claude-2-1",
+        "evidence": "closed; Anthropic 2023-11-21 announcement"
+      },
+      {
+        "name": "Claude Instant",
+        "cells": 1,
+        "card": "anthropic/claude-instant-1",
+        "evidence": "closed; Anthropic Instant SKU"
+      },
+      {
+        "name": "DeepHermes 3 - Mistral 24B",
+        "cells": 1,
+        "card": "nous-research/deephermes-3-mistral-24b-preview",
+        "evidence": "Hub NousResearch/DeepHermes-3-Mistral-24B-Preview"
+      },
+      {
+        "name": "DeepSeek V3.1 Terminus",
+        "cells": 5,
+        "card": "deepseek/deepseek-v3-1-terminus",
+        "evidence": "Hub deepseek-ai/DeepSeek-V3.1-Terminus"
+      },
+      {
+        "name": "DeepSeek V3.2 Speciale",
+        "cells": 3,
+        "card": "deepseek/deepseek-v3-2-speciale",
+        "evidence": "Hub deepseek-ai/DeepSeek-V3.2-Speciale"
+      },
+      {
+        "name": "DeepSeek-V2.5 (Dec)",
+        "cells": 1,
+        "card": "deepseek/deepseek-v2-5",
+        "evidence": "Hub deepseek-ai/DeepSeek-V2.5"
+      },
+      {
+        "name": "deepseek-v3.1-terminus",
+        "cells": 1,
+        "card": "deepseek/deepseek-v3-1-terminus",
+        "evidence": "Arena slug of Terminus"
+      },
+      {
+        "name": "DiffusionGemma 26B A4B",
+        "cells": 4,
+        "card": "google/diffusiongemma-26b-a4b-it",
+        "evidence": "Hub google/diffusiongemma-26B-A4B-it"
+      },
+      {
+        "name": "ERNIE 4.5 300B A47B",
+        "cells": 2,
+        "card": "baidu/ernie-4-5-300b-a47b-pt",
+        "evidence": "Hub baidu/ERNIE-4.5-300B-A47B-PT"
+      },
+      {
+        "name": "Exaone 4.0 1.2B",
+        "cells": 3,
+        "card": "lgai-exaone/exaone-4-0-1-2b",
+        "evidence": "Hub LGAI-EXAONE/EXAONE-4.0-1.2B"
+      },
+      {
+        "name": "EXAONE 4.0 32B",
+        "cells": 2,
+        "card": "lgai-exaone/exaone-4-0-32b",
+        "evidence": "Hub LGAI-EXAONE/EXAONE-4.0-32B"
+      },
+      {
+        "name": "EXAONE 4.5 33B",
+        "cells": 4,
+        "card": "lgai-exaone/exaone-4-5-33b",
+        "evidence": "Hub LGAI-EXAONE/EXAONE-4.5-33B"
+      },
+      {
+        "name": "G9v3-39A5B",
+        "cells": 5,
+        "card": "ai9stars/g9v3-39a5b",
+        "evidence": "Hub ai9stars/G9v3-39A5B"
+      },
+      {
+        "name": "G9v3-3B",
+        "cells": 4,
+        "card": "ai9stars/g9v3-3b",
+        "evidence": "Hub ai9stars/G9v3-3B"
+      },
+      {
+        "name": "Gemini 1.0 Pro",
+        "cells": 1,
+        "card": "google/gemini-1-0-pro",
+        "evidence": "closed; Gemini 1.0 announcement 2023-12-06"
+      },
+      {
+        "name": "Gemma 4 12B",
+        "cells": 4,
+        "card": "google/gemma-4-12b-it",
+        "evidence": "Hub has base and IT; both carded; unqualified name stays ambiguous \u2014 no alias"
+      },
+      {
+        "name": "Granite 4.1 30B",
+        "cells": 4,
+        "card": "ibm/granite-4-1-30b",
+        "evidence": "Hub ibm-granite/granite-4.1-30b"
+      },
+      {
+        "name": "Granite 4.1 3B",
+        "cells": 4,
+        "card": "ibm/granite-4-1-3b",
+        "evidence": "Hub ibm-granite/granite-4.1-3b"
+      },
+      {
+        "name": "Granite 4.1 8B",
+        "cells": 3,
+        "card": "ibm/granite-4-1-8b",
+        "evidence": "Hub ibm-granite/granite-4.1-8b"
+      },
+      {
+        "name": "Granite 4.2 30B",
+        "cells": 5,
+        "card": "ibm/granite-4-2-30b",
+        "evidence": "Hub ibm-granite/granite-4.2-30b"
+      },
+      {
+        "name": "Granite 4.2 3B",
+        "cells": 5,
+        "card": "ibm/granite-4-2-3b",
+        "evidence": "Hub ibm-granite/granite-4.2-3b"
+      },
+      {
+        "name": "Granite 4.2 8B",
+        "cells": 5,
+        "card": "ibm/granite-4-2-8b",
+        "evidence": "Hub ibm-granite/granite-4.2-8b"
+      },
+      {
+        "name": "Hermes 3 - Llama-3.1 70B",
+        "cells": 1,
+        "card": "nous-research/hermes-3-llama-3-1-70b",
+        "evidence": "Hub NousResearch/Hermes-3-Llama-3.1-70B"
+      },
+      {
+        "name": "Hermes 4 405B",
+        "cells": 3,
+        "card": "nous-research/hermes-4-405b",
+        "evidence": "Hub NousResearch/Hermes-4-405B"
+      },
+      {
+        "name": "Hermes 4 70B",
+        "cells": 3,
+        "card": "nous-research/hermes-4-70b",
+        "evidence": "official BF16; existing card is FP8 only"
+      },
+      {
+        "name": "Hy3",
+        "cells": 5,
+        "card": "tencent/hy3",
+        "evidence": "Hub tencent/Hy3"
+      },
+      {
+        "name": "hy3",
+        "cells": 1,
+        "card": "tencent/hy3",
+        "evidence": "Arena slug"
+      },
+      {
+        "name": "HyperCLOVA X SEED Think (32B)",
+        "cells": 3,
+        "card": "naver/hyperclovax-seed-think-32b",
+        "evidence": "Hub naver-hyperclovax/HyperCLOVAX-SEED-Think-32B"
+      },
+      {
+        "name": "Inkling Small",
+        "cells": 6,
+        "card": "thinkingmachines/inkling-small",
+        "evidence": "Hub thinkingmachines/Inkling-Small safetensors 265956439090"
+      },
+      {
+        "name": "INTELLECT-3",
+        "cells": 3,
+        "card": "primeintellect/intellect-3",
+        "evidence": "Hub PrimeIntellect/INTELLECT-3"
+      },
+      {
+        "name": "intellect-3",
+        "cells": 1,
+        "card": "primeintellect/intellect-3",
+        "evidence": "Arena slug"
+      },
+      {
+        "name": "Jamba 1.7 Large",
+        "cells": 3,
+        "card": "ai21/ai21-jamba-large-1-7",
+        "evidence": "Hub ai21labs/AI21-Jamba-Large-1.7"
+      },
+      {
+        "name": "K-EXAONE",
+        "cells": 4,
+        "card": "lgai-exaone/k-exaone-236b-a23b",
+        "evidence": "Hub LGAI-EXAONE/K-EXAONE-236B-A23B"
+      },
+      {
+        "name": "K-EXAONE 2.0",
+        "cells": 5,
+        "card": "lgai-exaone/k-exaone-2-0-750b-a37b",
+        "evidence": "Hub LGAI-EXAONE/K-EXAONE-2.0-750B-A37B"
+      },
+      {
+        "name": "K2 Think V2",
+        "cells": 4,
+        "card": "ifm/k2-think-v2",
+        "evidence": "Hub IFM/K2-Think-V2"
+      },
+      {
+        "name": "Kimi Linear 48B A3B Instruct",
+        "cells": 2,
+        "card": "moonshot/kimi-linear-48b-a3b-instruct",
+        "evidence": "Hub moonshotai/Kimi-Linear-48B-A3B-Instruct"
+      },
+      {
+        "name": "LFM2 1.2B",
+        "cells": 3,
+        "card": "liquid/lfm2-1-2b",
+        "evidence": "Hub LiquidAI/LFM2-1.2B"
+      },
+      {
+        "name": "LFM2 2.6B",
+        "cells": 3,
+        "card": "liquid/lfm2-2-6b",
+        "evidence": "Hub LiquidAI/LFM2-2.6B"
+      },
+      {
+        "name": "LFM2 24B A2B",
+        "cells": 3,
+        "card": "liquid/lfm2-24b-a2b",
+        "evidence": "non-GGUF Hub repo; GGUF card already existed"
+      },
+      {
+        "name": "LFM2.5-2.6B",
+        "cells": 5,
+        "card": "liquid/lfm2-5-2-6b",
+        "evidence": "Hub LiquidAI/LFM2.5-2.6B"
+      },
+      {
+        "name": "LFM2.5-8B-A1B",
+        "cells": 3,
+        "card": "liquid/lfm2-5-8b-a1b",
+        "evidence": "Hub LiquidAI/LFM2.5-8B-A1B"
+      },
+      {
+        "name": "Ling 2.6 Flash",
+        "cells": 4,
+        "card": "inclusionai/ling-2-6-flash",
+        "evidence": "Hub inclusionAI/Ling-2.6-flash"
+      },
+      {
+        "name": "Ling 3.0 Flash",
+        "cells": 5,
+        "card": "inclusionai/ling-3-0-flash",
+        "evidence": "Hub inclusionAI/Ling-3.0-flash"
+      },
+      {
+        "name": "Ling 3.0 Tiny",
+        "cells": 5,
+        "card": "inclusionai/ling-3-0-tiny",
+        "evidence": "Hub inclusionAI/Ling-3.0-tiny"
+      },
+      {
+        "name": "Ling-1T",
+        "cells": 3,
+        "card": "inclusionai/ling-1t",
+        "evidence": "Hub inclusionAI/Ling-1T"
+      },
+      {
+        "name": "Ling-2.6-1T",
+        "cells": 3,
+        "card": "inclusionai/ling-2-6-1t",
+        "evidence": "Hub inclusionAI/Ling-2.6-1T"
+      },
+      {
+        "name": "Ling-3.0-flash-VL",
+        "cells": 5,
+        "card": "inclusionai/ling-3-0-flash-vl",
+        "evidence": "Hub inclusionAI/Ling-3.0-flash-VL"
+      },
+      {
+        "name": "Ling-flash-2.0",
+        "cells": 3,
+        "card": "inclusionai/ling-flash-2-0",
+        "evidence": "Hub inclusionAI/Ling-flash-2.0"
+      },
+      {
+        "name": "Ling-mini-2.0",
+        "cells": 2,
+        "card": "inclusionai/ling-mini-2-0",
+        "evidence": "Hub inclusionAI/Ling-mini-2.0"
+      },
+      {
+        "name": "Llama 3.1 Nemotron 70B",
+        "cells": 3,
+        "card": "nvidia/llama-3-1-nemotron-70b-instruct-hf",
+        "evidence": "Hub nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
+      },
+      {
+        "name": "Llama 3.1 Nemotron Nano 4B v1.1",
+        "cells": 2,
+        "card": "nvidia/llama-3-1-nemotron-nano-4b-v1-1",
+        "evidence": "Hub nvidia/Llama-3.1-Nemotron-Nano-4B-v1.1"
+      },
+      {
+        "name": "Llama Nemotron Ultra",
+        "cells": 2,
+        "card": "nvidia/llama-3-1-nemotron-ultra-253b-v1",
+        "evidence": "older Llama-3.1-Nemotron-Ultra-253B line, not Nemotron 3 Ultra"
+      },
+      {
+        "name": "LongCat 2.0",
+        "cells": 5,
+        "card": "meituan/longcat-2-0",
+        "evidence": "Hub meituan-longcat/LongCat-2.0"
+      },
+      {
+        "name": "LongCat Flash Lite",
+        "cells": 3,
+        "card": "meituan/longcat-flash-lite",
+        "evidence": "Hub meituan-longcat/LongCat-Flash-Lite"
+      },
+      {
+        "name": "longcat-flash-chat",
+        "cells": 1,
+        "card": "meituan/longcat-flash-chat",
+        "evidence": "Hub meituan-longcat/LongCat-Flash-Chat"
+      },
+      {
+        "name": "MiMo-V2-Flash",
+        "cells": 3,
+        "card": "xiaomi/mimo-v2-flash",
+        "evidence": "Hub XiaomiMiMo/MiMo-V2-Flash"
+      },
+      {
+        "name": "MiMo-V2.5",
+        "cells": 5,
+        "card": "xiaomi/mimo-v2-5",
+        "evidence": "Hub XiaomiMiMo/MiMo-V2.5"
+      },
+      {
+        "name": "mimo-v2.5",
+        "cells": 1,
+        "card": "xiaomi/mimo-v2-5",
+        "evidence": "Arena slug"
+      },
+      {
+        "name": "MiMo-V2.5-Pro",
+        "cells": 5,
+        "card": "xiaomi/mimo-v2-5-pro",
+        "evidence": "Hub XiaomiMiMo/MiMo-V2.5-Pro"
+      },
+      {
+        "name": "mimo-v2.5-pro",
+        "cells": 1,
+        "card": "xiaomi/mimo-v2-5-pro",
+        "evidence": "Arena slug"
+      },
+      {
+        "name": "MiniCPM-V 4.6 1.3B",
+        "cells": 4,
+        "card": "openbmb/minicpm-v-4-6",
+        "evidence": "Hub openbmb/MiniCPM-V-4.6 (1.3B-class safetensors 1300428016)"
+      },
+      {
+        "name": "MiniCPM5-1B",
+        "cells": 3,
+        "card": "openbmb/minicpm5-1b",
+        "evidence": "Hub openbmb/MiniCPM5-1B"
+      },
+      {
+        "name": "MiniCPM5-2B",
+        "cells": 5,
+        "card": "openbmb/minicpm5-2b",
+        "evidence": "Hub openbmb/MiniCPM5-2B"
+      },
+      {
+        "name": "MiniMax M1 40k",
+        "cells": 1,
+        "card": "minimax/minimax-m1-40k",
+        "evidence": "Hub MiniMaxAI/MiniMax-M1-40k"
+      },
+      {
+        "name": "MiniMax M1 80k",
+        "cells": 3,
+        "card": "minimax/minimax-m1-80k",
+        "evidence": "Hub MiniMaxAI/MiniMax-M1-80k"
+      },
+      {
+        "name": "Motif 3",
+        "cells": 5,
+        "card": "motif/motif-3",
+        "evidence": "Hub Motif-Technologies/Motif-3"
+      },
+      {
+        "name": "Motif-2-12.7B",
+        "cells": 3,
+        "card": "motif/motif-2-12-7b-reasoning",
+        "evidence": "Hub Motif-Technologies/Motif-2-12.7B-Reasoning"
+      },
+      {
+        "name": "Nanbeige4.1-3B",
+        "cells": 4,
+        "card": "nanbeige/nanbeige4-1-3b",
+        "evidence": "Hub Nanbeige/Nanbeige4.1-3B"
+      },
+      {
+        "name": "Nemotron 3 Nano 4B",
+        "cells": 4,
+        "card": "nvidia/nvidia-nemotron-3-nano-4b-bf16",
+        "evidence": "Hub NVIDIA-Nemotron-3-Nano-4B-BF16"
+      },
+      {
+        "name": "Nemotron 3 Nano Omni 30B A3B",
+        "cells": 4,
+        "card": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16",
+        "evidence": "BF16 reasoning; NVFP4 not carded (serving quant)"
+      },
+      {
+        "name": "Nex-N2-Pro",
+        "cells": 5,
+        "card": "nex-agi/nex-n2-pro",
+        "evidence": "Hub nex-agi/Nex-N2-Pro"
+      },
+      {
+        "name": "Nova Lite",
+        "cells": 3,
+        "card": "amazon/nova-lite",
+        "evidence": "AWS Nova docs"
+      },
+      {
+        "name": "Nova Micro",
+        "cells": 3,
+        "card": "amazon/nova-micro",
+        "evidence": "AWS Nova docs"
+      },
+      {
+        "name": "Nova Premier",
+        "cells": 3,
+        "card": "amazon/nova-premier",
+        "evidence": "AWS Nova docs"
+      },
+      {
+        "name": "Nova Pro",
+        "cells": 3,
+        "card": "amazon/nova-pro",
+        "evidence": "AWS Nova docs"
+      },
+      {
+        "name": "OLMo 2 32B",
+        "cells": 2,
+        "card": "allen-ai/olmo-2-0325-32b-instruct",
+        "evidence": "Hub allenai/OLMo-2-0325-32B-Instruct"
+      },
+      {
+        "name": "Olmo 3 32B Think",
+        "cells": 3,
+        "card": "allen-ai/olmo-3-32b-think",
+        "evidence": "Hub allenai/Olmo-3-32B-Think"
+      },
+      {
+        "name": "Olmo 3.1 32B Think",
+        "cells": 3,
+        "card": "allen-ai/olmo-3-1-32b-think",
+        "evidence": "distinct from olmo-3-1-32b-instruct"
+      },
+      {
+        "name": "OpenChat 3.5",
+        "cells": 1,
+        "card": "openchat/openchat-3-5-0106",
+        "evidence": "Hub openchat/openchat-3.5-0106"
+      },
+      {
+        "name": "Qwen1.5 Chat 110B",
+        "cells": 1,
+        "card": "qwen/qwen1-5-110b-chat",
+        "evidence": "Hub Qwen/Qwen1.5-110B-Chat"
+      },
+      {
+        "name": "Qwen2 72B",
+        "cells": 1,
+        "card": "qwen/qwen2-72b-instruct",
+        "evidence": "carded Instruct; unqualified 72B not aliased (base may exist)"
+      },
+      {
+        "name": "Qwen3 Omni 30B A3B",
+        "cells": 3,
+        "card": "qwen/qwen3-omni-30b-a3b-instruct",
+        "evidence": "Hub Qwen/Qwen3-Omni-30B-A3B-Instruct"
+      },
+      {
+        "name": "Qwen3.8 2.4T A95B",
+        "cells": 5,
+        "card": "qwen/qwen3-8-2-4t-a95b",
+        "evidence": "Hub Qwen/Qwen3.8-2.4T-A95B"
+      },
+      {
+        "name": "Qwen3.8-Flash-Next",
+        "cells": 5,
+        "card": "qwen/qwen3-8-flash-next",
+        "evidence": "Hub Qwen/Qwen3.8-Flash-Next"
+      },
+      {
+        "name": "QwQ-32B",
+        "cells": 2,
+        "card": "qwen/qwq-32b",
+        "evidence": "Hub Qwen/QwQ-32B"
+      },
+      {
+        "name": "Reka Flash 3",
+        "cells": 3,
+        "card": "reka/reka-flash-3",
+        "evidence": "Hub RekaAI/reka-flash-3"
+      },
+      {
+        "name": "Ring-1T",
+        "cells": 3,
+        "card": "inclusionai/ring-1t",
+        "evidence": "Hub inclusionAI/Ring-1T"
+      },
+      {
+        "name": "Ring-2.6-1T",
+        "cells": 5,
+        "card": "inclusionai/ring-2-6-1t",
+        "evidence": "Hub inclusionAI/Ring-2.6-1T"
+      },
+      {
+        "name": "Ring-flash-2.0",
+        "cells": 3,
+        "card": "inclusionai/ring-flash-2-0",
+        "evidence": "Hub inclusionAI/Ring-flash-2.0"
+      },
+      {
+        "name": "Sarvam M",
+        "cells": 3,
+        "card": "sarvam/sarvam-m",
+        "evidence": "Hub sarvamai/sarvam-m"
+      },
+      {
+        "name": "Seed-OSS-36B-Instruct",
+        "cells": 3,
+        "card": "bytedance/seed-oss-36b-instruct",
+        "evidence": "Hub ByteDance-Seed/Seed-OSS-36B-Instruct"
+      },
+      {
+        "name": "Solar Open 100B",
+        "cells": 3,
+        "card": "upstage/solar-open-100b",
+        "evidence": "Hub upstage/Solar-Open-100B"
+      },
+      {
+        "name": "Solar Open2 250B",
+        "cells": 5,
+        "card": "upstage/solar-open2-250b",
+        "evidence": "Hub upstage/Solar-Open2-250B"
+      },
+      {
+        "name": "Step3 VL 10B",
+        "cells": 3,
+        "card": "stepfun/step3-vl-10b",
+        "evidence": "Hub stepfun-ai/Step3-VL-10B"
+      },
+      {
+        "name": "Tiny Aya Global",
+        "cells": 3,
+        "card": "cohere/tiny-aya-global",
+        "evidence": "Hub CohereLabs/tiny-aya-global"
+      },
+      {
+        "name": "Tri-21B-Think",
+        "cells": 3,
+        "card": "trillionlabs/tri-21b-think",
+        "evidence": "Hub trillionlabs/Tri-21B-Think"
+      },
+      {
+        "name": "Tulu3 405B",
+        "cells": 1,
+        "card": "allen-ai/llama-3-1-tulu-3-405b",
+        "evidence": "Hub allenai/Llama-3.1-Tulu-3-405B"
+      }
+    ],
+    "effort_or_serving_variant": [
+      {
+        "name": "Claude Fable 5 (with fallback)",
+        "cells": 5,
+        "card": "anthropic/claude-fable-5",
+        "evidence": "fallback serving of Fable 5; not the product row"
+      },
+      {
+        "name": "Claude Fable 5.1 (max with fallback)",
+        "cells": 5,
+        "card": "anthropic/claude-fable-5-1",
+        "evidence": "fallback serving even with max"
+      },
+      {
+        "name": "DeepSeek V4 Flash Vision (max)",
+        "cells": 5,
+        "card": "deepseek/deepseek-v4-flash-vision-exp",
+        "evidence": "max row of the vision-exp card; not folded onto exp"
+      },
+      {
+        "name": "DeepSeek V4 Pro 0813 (max)",
+        "cells": 5,
+        "card": "deepseek/deepseek-v4-pro",
+        "evidence": "0813 is a dated checkpoint of V4 Pro"
+      },
+      {
+        "name": "Gemini 1.5 Flash (May)",
+        "cells": 1,
+        "card": "google/gemini-1-5-flash",
+        "evidence": "dated snapshot of the single 1.5 Flash card"
+      },
+      {
+        "name": "Gemini 1.5 Flash (Sep)",
+        "cells": 1,
+        "card": "google/gemini-1-5-flash",
+        "evidence": "dated snapshot of the single 1.5 Flash card"
+      },
+      {
+        "name": "Gemini 1.5 Pro (May)",
+        "cells": 1,
+        "card": "google/gemini-1-5-pro",
+        "evidence": "dated snapshot"
+      },
+      {
+        "name": "Gemini 1.5 Pro (Sep)",
+        "cells": 1,
+        "card": "google/gemini-1-5-pro",
+        "evidence": "dated snapshot"
+      },
+      {
+        "name": "Gemini 2.0 Flash (exp)",
+        "cells": 1,
+        "card": "google/gemini-2-0-flash",
+        "evidence": "experimental serving"
+      },
+      {
+        "name": "Gemini 2.0 Flash-Lite (Feb)",
+        "cells": 1,
+        "card": "google/gemini-2-0-flash-lite",
+        "evidence": "dated snapshot"
+      },
+      {
+        "name": "Gemini 3 Deep Think",
+        "cells": 1,
+        "card": "google/gemini-3-pro-preview",
+        "evidence": "Deep Think is a thinking mode, not a separate product card"
+      },
+      {
+        "name": "Gemini 3.5 Flash (minimal)",
+        "cells": 3,
+        "card": "google/gemini-3-5-flash",
+        "evidence": "minimal effort"
+      },
+      {
+        "name": "GPT-4o (ChatGPT)",
+        "cells": 2,
+        "card": "openai/gpt-4o",
+        "evidence": "ChatGPT wrapper, not the API product row"
+      },
+      {
+        "name": "GPT-5 (ChatGPT)",
+        "cells": 2,
+        "card": "openai/gpt-5",
+        "evidence": "ChatGPT wrapper"
+      },
+      {
+        "name": "GPT-5 (minimal)",
+        "cells": 2,
+        "card": "openai/gpt-5",
+        "evidence": "minimal effort; token not in EFFORT_TOKENS"
+      },
+      {
+        "name": "GPT-5 mini (minimal)",
+        "cells": 3,
+        "card": "openai/gpt-5-mini",
+        "evidence": "minimal effort"
+      },
+      {
+        "name": "GPT-5 nano (minimal)",
+        "cells": 3,
+        "card": "openai/gpt-5-nano",
+        "evidence": "minimal effort"
+      },
+      {
+        "name": "GPT-5.5 Instant (June 2026)",
+        "cells": 5,
+        "card": "openai/gpt-5-5",
+        "evidence": "Instant is a serving SKU of GPT-5.5"
+      },
+      {
+        "name": "GPT-5.5 Instant (May 2026)",
+        "cells": 3,
+        "card": "openai/gpt-5-5",
+        "evidence": "dated Instant serving"
+      },
+      {
+        "name": "gpt-5.5-instant",
+        "cells": 1,
+        "card": "openai/gpt-5-5",
+        "evidence": "Arena Instant SKU"
+      },
+      {
+        "name": "Grok Build 0.1 0616",
+        "cells": 4,
+        "card": "xai/grok-build-0-1",
+        "evidence": "dated 0616 snapshot of Grok Build 0.1"
+      },
+      {
+        "name": "grok-3-mini-beta",
+        "cells": 1,
+        "card": "xai/grok-3-mini",
+        "evidence": "beta serving"
+      },
+      {
+        "name": "kimi-k2.5-instant",
+        "cells": 1,
+        "card": "moonshot/kimi-k2-5",
+        "evidence": "Instant serving of K2.5"
+      },
+      {
+        "name": "longcat-flash-chat-2602-exp",
+        "cells": 1,
+        "card": "meituan/longcat-flash-chat",
+        "evidence": "experimental dated serving; Hub 401"
+      },
+      {
+        "name": "MiMo-V2-Flash (Feb 2026)",
+        "cells": 3,
+        "card": "xiaomi/mimo-v2-flash",
+        "evidence": "dated snapshot of Flash"
+      },
+      {
+        "name": "Mistral Large (Feb)",
+        "cells": 1,
+        "card": "mistral/mistral-large-latest",
+        "evidence": "dated snapshot; Large 2.1/3 are other cards"
+      },
+      {
+        "name": "Motif 3 (Beta)",
+        "cells": 4,
+        "card": "motif/motif-3",
+        "evidence": "beta serving of Motif 3"
+      },
+      {
+        "name": "nvidia-nemotron-3-ultra-550b-a55b-nvfp4",
+        "cells": 1,
+        "card": "nvidia/nvidia-nemotron-3-ultra-550b-a55b",
+        "evidence": "NVFP4 serving dump; 2563e7a refused to card it"
+      },
+      {
+        "name": "nvidia-nemotron-3.5-lightning-30b-a3b-nvfp4",
+        "cells": 1,
+        "card": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b",
+        "evidence": "NVFP4 serving dump"
+      },
+      {
+        "name": "qwen3-max-2025-09-23",
+        "cells": 1,
+        "card": "qwen/qwen3-max",
+        "evidence": "dated snapshot of Qwen3 Max"
+      }
+    ],
+    "could_not_confirm": [
+      {
+        "name": "Agnes 2.5 Pro Beta",
+        "cells": 5,
+        "card": null,
+        "evidence": "Hub Agnes-AI/Agnes-2.5-Pro-Beta 401"
+      },
+      {
+        "name": "Apodex 1.1",
+        "cells": 5,
+        "card": null,
+        "evidence": "only apodex/Apodex-1.1-mini is public; full 1.1 401"
+      },
+      {
+        "name": "Celeris-1",
+        "cells": 5,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "Command-R (Mar)",
+        "cells": 1,
+        "card": null,
+        "evidence": "card is command-r-08-2024; March 2024 original is a different snapshot"
+      },
+      {
+        "name": "Command-R+ (Apr)",
+        "cells": 1,
+        "card": null,
+        "evidence": "card is command-r-plus-08-2024; April original not uniquely mapped"
+      },
+      {
+        "name": "DBRX",
+        "cells": 1,
+        "card": null,
+        "evidence": "databricks/dbrx-instruct 401; gated, no safetensors in anonymous API"
+      },
+      {
+        "name": "DeepHermes 3 - Llama-3.1 8B",
+        "cells": 1,
+        "card": null,
+        "evidence": "official Hub 401; GGUF dumps exist and were not carded"
+      },
+      {
+        "name": "dola-seed-2.0-pro",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "Doubao Seed Code",
+        "cells": 3,
+        "card": null,
+        "evidence": "ByteDance-Seed/Seed-Coder-8B-Instruct is a different 8B coder, not aliased"
+      },
+      {
+        "name": "ernie-5.0-0110",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Hub repo; Baidu API id not independently documented here"
+      },
+      {
+        "name": "ernie-5.1",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "Gemini 2.5 Pro (Mar)",
+        "cells": 1,
+        "card": null,
+        "evidence": "2.5 Pro preview cards are 05-06 and 06-05; no March card"
+      },
+      {
+        "name": "Gemini 3 Flash",
+        "cells": 3,
+        "card": null,
+        "evidence": "only gemini-3-flash-preview is carded; GA vs preview not confirmed as the same weights"
+      },
+      {
+        "name": "gemini-3-flash",
+        "cells": 1,
+        "card": null,
+        "evidence": "same as Gemini 3 Flash"
+      },
+      {
+        "name": "GPT-4o (Mar)",
+        "cells": 1,
+        "card": null,
+        "evidence": "GPT-4o launched May 2024; no March snapshot card or Hub repo"
+      },
+      {
+        "name": "Grok 4.20 0309 v2",
+        "cells": 3,
+        "card": null,
+        "evidence": "no v2 card; not the same as 0309 reasoning/non-reasoning"
+      },
+      {
+        "name": "grok-4.20-beta1",
+        "cells": 1,
+        "card": null,
+        "evidence": "not identified with the 0309 reasoning/non-reasoning pair"
+      },
+      {
+        "name": "hunyuan-t1-20250711",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Hub repo; Tencent API snapshot"
+      },
+      {
+        "name": "hunyuan-turbos-20250416",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Hub repo; Tencent API snapshot"
+      },
+      {
+        "name": "JT-35B-Flash",
+        "cells": 3,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "JT-4.1 Flash 236B A21B",
+        "cells": 4,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "JT-MINI",
+        "cells": 3,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "K2 Horizon 375B A23B",
+        "cells": 5,
+        "card": null,
+        "evidence": "IFM/K2-Horizon-MoVA-36B-A4B is a different size; not aliased"
+      },
+      {
+        "name": "KAT-Coder-Pro V1",
+        "cells": 4,
+        "card": null,
+        "evidence": "Kwaipilot/KAT-Coder-Pro-V1 401"
+      },
+      {
+        "name": "KAT-Coder-Pro V2",
+        "cells": 4,
+        "card": null,
+        "evidence": "no public Hub repo"
+      },
+      {
+        "name": "LFM 40B",
+        "cells": 1,
+        "card": null,
+        "evidence": "Hub LiquidAI/LFM-40B 401"
+      },
+      {
+        "name": "Magistral Small 1.2",
+        "cells": 4,
+        "card": null,
+        "evidence": "no 1.2 Hub repo found"
+      },
+      {
+        "name": "Mi:dm K 2.5 Pro",
+        "cells": 3,
+        "card": null,
+        "evidence": "Midm-2.0 is a different version; 2.5 Pro not found"
+      },
+      {
+        "name": "MiMo-V2-Omni",
+        "cells": 3,
+        "card": null,
+        "evidence": "Hub XiaomiMiMo/MiMo-V2-Omni 401"
+      },
+      {
+        "name": "mimo-v2-omni",
+        "cells": 1,
+        "card": null,
+        "evidence": "same"
+      },
+      {
+        "name": "MiMo-V2-Omni-0327",
+        "cells": 3,
+        "card": null,
+        "evidence": "dated Omni; official repo gated"
+      },
+      {
+        "name": "MiMo-V2-Pro",
+        "cells": 3,
+        "card": null,
+        "evidence": "Hub XiaomiMiMo/MiMo-V2-Pro 401; not V2.5-Pro"
+      },
+      {
+        "name": "mimo-v2-pro",
+        "cells": 1,
+        "card": null,
+        "evidence": "same"
+      },
+      {
+        "name": "Mistral Large 2 (Jul)",
+        "cells": 2,
+        "card": null,
+        "evidence": "mistral-large-2411 is Large 2.1 Nov; July 2 not uniquely identified"
+      },
+      {
+        "name": "Mistral Saba",
+        "cells": 1,
+        "card": null,
+        "evidence": "Hub mistralai/Mistral-Saba-24B 401"
+      },
+      {
+        "name": "Mistral Small (Feb)",
+        "cells": 1,
+        "card": null,
+        "evidence": "several Small cards; February snapshot not unique"
+      },
+      {
+        "name": "Mistral Small (Sep)",
+        "cells": 1,
+        "card": null,
+        "evidence": "September snapshot not unique"
+      },
+      {
+        "name": "Muse Spark 1.3 (max)",
+        "cells": 5,
+        "card": null,
+        "evidence": "1.3 not on Hub as a distinct repo"
+      },
+      {
+        "name": "muse-spark-1.1",
+        "cells": 1,
+        "card": null,
+        "evidence": "card is unversioned Muse Spark; 1.1 not confirmed as the same weights"
+      },
+      {
+        "name": "Quasar 438B (max)",
+        "cells": 5,
+        "card": null,
+        "evidence": "no Hub repo"
+      },
+      {
+        "name": "Qwen2.5 Max",
+        "cells": 1,
+        "card": null,
+        "evidence": "Hub Qwen/Qwen2.5-Max is 401/gated; API-only product not independently confirmed here"
+      },
+      {
+        "name": "qwen2.5-max",
+        "cells": 1,
+        "card": null,
+        "evidence": "same as Qwen2.5 Max"
+      },
+      {
+        "name": "Qwen3.5 Omni Plus",
+        "cells": 3,
+        "card": null,
+        "evidence": "Hub Qwen/Qwen3.5-Omni-Plus 401; not the same as qwen3-5-plus"
+      },
+      {
+        "name": "qwen3.5-flash",
+        "cells": 1,
+        "card": null,
+        "evidence": "no Qwen3.5 Flash card; not qwen3-8-flash"
+      }
+    ],
+    "ambiguous": [
+      {
+        "name": "gemini-3-pro",
+        "cells": 1,
+        "card": null,
+        "evidence": "gemini-3-pro-preview vs gemini-3-pro-image"
+      },
+      {
+        "name": "Gemma 3 1B",
+        "cells": 3,
+        "card": null,
+        "evidence": "gemma-3-1b-it and gemma-3-1b-pt both exist"
+      },
+      {
+        "name": "gpt-5-chat",
+        "cells": 1,
+        "card": null,
+        "evidence": "gpt-5-chat-latest vs gpt-5-1/5-2 chat-latest"
+      },
+      {
+        "name": "Grok 4.20 0309",
+        "cells": 3,
+        "card": null,
+        "evidence": "reasoning and non-reasoning 0309 cards both exist"
+      },
+      {
+        "name": "grok-4.1",
+        "cells": 1,
+        "card": null,
+        "evidence": "grok-4-1-fast and grok-4-1-fast-non-reasoning; no plain 4.1 card"
+      },
+      {
+        "name": "Kimi K2",
+        "cells": 3,
+        "card": null,
+        "evidence": "kimi-k2-0711-preview and kimi-k2-0905-preview"
+      },
+      {
+        "name": "Llama 3 70B",
+        "cells": 3,
+        "card": null,
+        "evidence": "base and instruct both exist (same defect as Llama 3.1 70B refusal)"
+      },
+      {
+        "name": "Llama 3 8B",
+        "cells": 3,
+        "card": null,
+        "evidence": "base and instruct both exist"
+      },
+      {
+        "name": "Llama 4 Scout",
+        "cells": 5,
+        "card": null,
+        "evidence": "base scout-17b-16e and instruct both exist"
+      },
+      {
+        "name": "Magistral Small 1",
+        "cells": 3,
+        "card": null,
+        "evidence": "magistral-small and magistral-small-2506"
+      },
+      {
+        "name": "minimax-m1",
+        "cells": 1,
+        "card": null,
+        "evidence": "40k and 80k both now carded"
+      },
+      {
+        "name": "Ministral 3 3B",
+        "cells": 5,
+        "card": null,
+        "evidence": "base-2512 and instruct-2512 both exist"
+      },
+      {
+        "name": "Nemotron 3 Nano",
+        "cells": 5,
+        "card": null,
+        "evidence": "bf16 / fp8 / nvfp4 / base-bf16 all carded"
+      },
+      {
+        "name": "Nemotron 3 Super",
+        "cells": 5,
+        "card": null,
+        "evidence": "bf16 / fp8 / nvfp4 all carded"
+      },
+      {
+        "name": "NVIDIA Nemotron Nano 12B v2 VL",
+        "cells": 3,
+        "card": null,
+        "evidence": "bf16 and fp8 VL cards"
+      },
+      {
+        "name": "nvidia-nemotron-3-super-120b-a12b",
+        "cells": 1,
+        "card": null,
+        "evidence": "bf16 / fp8 / nvfp4"
+      },
+      {
+        "name": "OLMo 2 7B",
+        "cells": 2,
+        "card": null,
+        "evidence": "olmo-2-1124-7b base already existed; instruct now carded too"
+      },
+      {
+        "name": "Olmo 3 7B",
+        "cells": 3,
+        "card": null,
+        "evidence": "instruct, instruct-sft, think, 1025-7b"
+      },
+      {
+        "name": "Phi-3 Mini",
+        "cells": 1,
+        "card": null,
+        "evidence": "4k and 128k instruct cards"
+      },
+      {
+        "name": "Qwen3 30B",
+        "cells": 3,
+        "card": null,
+        "evidence": "qwen3-30b-a3b vs instruct-2507 vs nvfp4"
+      },
+      {
+        "name": "Qwen3 4B 2507",
+        "cells": 3,
+        "card": null,
+        "evidence": "instruct-2507 and thinking-2507 both exist"
+      },
+      {
+        "name": "Qwen3 Next 80B A3B",
+        "cells": 3,
+        "card": null,
+        "evidence": "instruct vs thinking cards"
+      }
+    ]
+  },
+  "aliases_for_LEDGER_TO_CARD": [
+    {
+      "leaderboard_name": "Claude 3 Haiku",
+      "model_id": "anthropic/claude-3-haiku-20240307",
+      "evidence": "display is Claude Haiku 3; only Claude 3 Haiku card"
+    },
+    {
+      "leaderboard_name": "Claude 3 Opus",
+      "model_id": "anthropic/claude-3-opus-20240229",
+      "evidence": "display is Claude Opus 3"
+    },
+    {
+      "leaderboard_name": "Claude 3 Sonnet",
+      "model_id": "anthropic/claude-3-sonnet-20240229",
+      "evidence": "display is Claude Sonnet 3"
+    },
+    {
+      "leaderboard_name": "Claude 3.5 Haiku",
+      "model_id": "anthropic/claude-3-5-haiku-20241022",
+      "evidence": "dated card display Claude Haiku 3.5; latest sibling has (latest)"
+    },
+    {
+      "leaderboard_name": "Claude 3.5 Sonnet (June)",
+      "model_id": "anthropic/claude-3-5-sonnet-20240620",
+      "evidence": "June 2024 snapshot is 20240620"
+    },
+    {
+      "leaderboard_name": "Claude 3.5 Sonnet (Oct)",
+      "model_id": "anthropic/claude-3-5-sonnet-20241022",
+      "evidence": "Oct 2024 snapshot is 20241022 / Sonnet 3.5 v2"
+    },
+    {
+      "leaderboard_name": "Claude 3.7 Sonnet",
+      "model_id": "anthropic/claude-3-7-sonnet-20250219",
+      "evidence": "display is Claude Sonnet 3.7; unique"
+    },
+    {
+      "leaderboard_name": "Claude 4 Opus",
+      "model_id": "anthropic/claude-opus-4-20250514",
+      "evidence": "word order of Claude Opus 4; latest sibling has (latest)"
+    },
+    {
+      "leaderboard_name": "Claude 4 Sonnet",
+      "model_id": "anthropic/claude-sonnet-4-20250514",
+      "evidence": "word order of Claude Sonnet 4"
+    },
+    {
+      "leaderboard_name": "Claude 4.1 Opus",
+      "model_id": "anthropic/claude-opus-4-1-20250805",
+      "evidence": "word order of Claude Opus 4.1 dated card"
+    },
+    {
+      "leaderboard_name": "Claude 4.5 Haiku",
+      "model_id": "anthropic/claude-haiku-4-5-20251001",
+      "evidence": "word order of Claude Haiku 4.5 dated card"
+    },
+    {
+      "leaderboard_name": "Claude 4.5 Sonnet",
+      "model_id": "anthropic/claude-sonnet-4-5-20250929",
+      "evidence": "word order of Claude Sonnet 4.5 dated card"
+    },
+    {
+      "leaderboard_name": "Cogito v2.1",
+      "model_id": "deepcogito/cogito-671b-v2-1",
+      "evidence": "card display is Cogito v2.1 671B"
+    },
+    {
+      "leaderboard_name": "DeepSeek Coder V2 Lite",
+      "model_id": "deepseek/deepseek-coder-v2-lite-instruct",
+      "evidence": "only Lite card is Instruct"
+    },
+    {
+      "leaderboard_name": "DeepSeek R1 (Jan)",
+      "model_id": "deepseek/deepseek-r1",
+      "evidence": "original R1 is the Jan 2025 row; 0528 is a later card"
+    },
+    {
+      "leaderboard_name": "DeepSeek V3 (Dec)",
+      "model_id": "deepseek/deepseek-v3",
+      "evidence": "original V3 Dec 2024; 0324 is a later card"
+    },
+    {
+      "leaderboard_name": "Devstral Small (May)",
+      "model_id": "mistral/devstral-small-2505",
+      "evidence": "May is 2505; display Devstral Small is the July 2507 card"
+    },
+    {
+      "leaderboard_name": "Gemini 2.5 Flash (Apr)",
+      "model_id": "google/gemini-2-5-flash-preview-04-17",
+      "evidence": "April preview card exists"
+    },
+    {
+      "leaderboard_name": "Gemini 2.5 Flash (Sep)",
+      "model_id": "google/gemini-2-5-flash-preview-09-2025",
+      "evidence": "September preview card exists"
+    },
+    {
+      "leaderboard_name": "Gemini 2.5 Flash-Lite (Sep)",
+      "model_id": "google/gemini-2-5-flash-lite-preview-09-2025",
+      "evidence": "September preview card exists"
+    },
+    {
+      "leaderboard_name": "Gemini 2.5 Pro (May)",
+      "model_id": "google/gemini-2-5-pro-preview-05-06",
+      "evidence": "May preview card"
+    },
+    {
+      "leaderboard_name": "gemini-2.0-flash-001",
+      "model_id": "google/gemini-2-0-flash",
+      "evidence": "GA API id of Gemini 2.0 Flash"
+    },
+    {
+      "leaderboard_name": "Gemma 3n E2B",
+      "model_id": "google/gemma-3n-e2b-it",
+      "evidence": "display Gemma 3n 2B; only IT card"
+    },
+    {
+      "leaderboard_name": "Gemma 3n E4B",
+      "model_id": "google/gemma-3n-e4b-it",
+      "evidence": "display Gemma 3n 4B; only IT card"
+    },
+    {
+      "leaderboard_name": "Gemma 3n E4B (May)",
+      "model_id": "google/gemma-3n-e4b-it",
+      "evidence": "May launch of the only E4B card"
+    },
+    {
+      "leaderboard_name": "Gemma 4 26B A4B",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "evidence": "only A4B card is IT"
+    },
+    {
+      "leaderboard_name": "Gemma 4 E2B",
+      "model_id": "google/gemma-4-e2b-it",
+      "evidence": "only E2B card is IT"
+    },
+    {
+      "leaderboard_name": "Gemma 4 E4B",
+      "model_id": "google/gemma-4-e4b-it",
+      "evidence": "only E4B card is IT"
+    },
+    {
+      "leaderboard_name": "gemma-4-26b-a4b",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "evidence": "Arena slug of 26B A4B IT"
+    },
+    {
+      "leaderboard_name": "gpt-4.1-2025-04-14",
+      "model_id": "openai/gpt-4-1",
+      "evidence": "API snapshot id of GPT-4.1"
+    },
+    {
+      "leaderboard_name": "gpt-4.1-mini-2025-04-14",
+      "model_id": "openai/gpt-4-1-mini",
+      "evidence": "API snapshot id of GPT-4.1 mini"
+    },
+    {
+      "leaderboard_name": "GPT-4o (Aug)",
+      "model_id": "openai/gpt-4o-2024-08-06",
+      "evidence": "dated card GPT-4o (2024-08-06)"
+    },
+    {
+      "leaderboard_name": "GPT-4o (May)",
+      "model_id": "openai/gpt-4o-2024-05-13",
+      "evidence": "dated card GPT-4o (2024-05-13)"
+    },
+    {
+      "leaderboard_name": "GPT-4o (Nov)",
+      "model_id": "openai/gpt-4o-2024-11-20",
+      "evidence": "dated card GPT-4o (2024-11-20)"
+    },
+    {
+      "leaderboard_name": "Granite 3.3 8B",
+      "model_id": "ibm/granite-3-3-8b-instruct",
+      "evidence": "display granite 3.3 8B instruct"
+    },
+    {
+      "leaderboard_name": "grok-4-0709",
+      "model_id": "xai/grok-4",
+      "evidence": "Grok 4 launch id 0709"
+    },
+    {
+      "leaderboard_name": "grok-4.20-multi-agent-beta-0309",
+      "model_id": "xai/grok-4-20-multi-agent-0309",
+      "evidence": "beta tag on the 0309 multi-agent card"
+    },
+    {
+      "leaderboard_name": "Inkling",
+      "model_id": "thinkingmachines/inkling",
+      "evidence": "exact display after 2563e7a; harvest predates the card"
+    },
+    {
+      "leaderboard_name": "inkling",
+      "model_id": "thinkingmachines/inkling",
+      "evidence": "Arena slug of Inkling"
+    },
+    {
+      "leaderboard_name": "Jamba 1.5 Large",
+      "model_id": "ai21/ai21-jamba-large-1-5",
+      "evidence": "display AI21 Jamba Large 1.5"
+    },
+    {
+      "leaderboard_name": "Jamba 1.5 Mini",
+      "model_id": "ai21/ai21-jamba-mini-1-5",
+      "evidence": "display AI21 Jamba Mini 1.5"
+    },
+    {
+      "leaderboard_name": "Jamba 1.6 Large",
+      "model_id": "ai21/ai21-jamba-large-1-6",
+      "evidence": "display AI21 Jamba Large 1.6"
+    },
+    {
+      "leaderboard_name": "Jamba 1.6 Mini",
+      "model_id": "ai21/ai21-jamba-mini-1-6",
+      "evidence": "display AI21 Jamba Mini 1.6"
+    },
+    {
+      "leaderboard_name": "Jamba 1.7 Mini",
+      "model_id": "ai21/ai21-jamba-mini-1-7",
+      "evidence": "display AI21 Jamba Mini 1.7"
+    },
+    {
+      "leaderboard_name": "Llama 2 Chat 13B",
+      "model_id": "meta/llama-2-13b-chat-hf",
+      "evidence": "chat-hf card"
+    },
+    {
+      "leaderboard_name": "Llama 2 Chat 70B",
+      "model_id": "meta/llama-2-70b-chat-hf",
+      "evidence": "chat-hf card"
+    },
+    {
+      "leaderboard_name": "Llama 2 Chat 7B",
+      "model_id": "meta/llama-2-7b-chat-hf",
+      "evidence": "chat-hf card"
+    },
+    {
+      "leaderboard_name": "Llama 3.3 70B",
+      "model_id": "meta/llama-3-3-70b-instruct",
+      "evidence": "only 70B 3.3 card is Instruct"
+    },
+    {
+      "leaderboard_name": "Llama 3.3 Nemotron Super 49B",
+      "model_id": "nvidia/llama-3-3-nemotron-super-49b-v1-5",
+      "evidence": "v1.5 is the Super 49B card"
+    },
+    {
+      "leaderboard_name": "Llama 4 Maverick",
+      "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+      "evidence": "no base Maverick card; FP8 is a quant"
+    },
+    {
+      "leaderboard_name": "Llama Nemotron Super 49B v1.5",
+      "model_id": "nvidia/llama-3-3-nemotron-super-49b-v1-5",
+      "evidence": "same card"
+    },
+    {
+      "leaderboard_name": "Ministral 3 14B",
+      "model_id": "mistral/ministral-3-14b-instruct-2512",
+      "evidence": "only 14B card is Instruct"
+    },
+    {
+      "leaderboard_name": "Ministral 3 8B",
+      "model_id": "mistral/ministral-3-8b-instruct-2512",
+      "evidence": "bf16 sibling is a serving dump"
+    },
+    {
+      "leaderboard_name": "Mistral Large 2 (Nov)",
+      "model_id": "mistral/mistral-large-2411",
+      "evidence": "display Mistral Large 2.1"
+    },
+    {
+      "leaderboard_name": "Mistral Small 3",
+      "model_id": "mistral/mistral-small-24b-instruct-2501",
+      "evidence": "Small 3 is the Jan 2025 24B instruct"
+    },
+    {
+      "leaderboard_name": "Mistral Small 3.1",
+      "model_id": "mistral/mistral-small-3-1-24b-instruct-2503",
+      "evidence": "display Mistral Small 3.1 24B Instruct 2503"
+    },
+    {
+      "leaderboard_name": "Molmo 7B-D",
+      "model_id": "allen-ai/molmo-7b-d-0924",
+      "evidence": "display Molmo 7B D 0924"
+    },
+    {
+      "leaderboard_name": "muse-glimmer",
+      "model_id": "meta/muse-glimmer-30b",
+      "evidence": "display Muse Glimmer 30B"
+    },
+    {
+      "leaderboard_name": "Nemotron 3 Ultra",
+      "model_id": "nvidia/nvidia-nemotron-3-ultra-550b-a55b",
+      "evidence": "display NVIDIA Nemotron 3 Ultra"
+    },
+    {
+      "leaderboard_name": "Nemotron 3.5 Lightning",
+      "model_id": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b",
+      "evidence": "display NVIDIA Nemotron 3.5 Lightning 30B A3B"
+    },
+    {
+      "leaderboard_name": "o1-2024-12-17",
+      "model_id": "openai/o1",
+      "evidence": "API snapshot id of o1"
+    },
+    {
+      "leaderboard_name": "o3-2025-04-16",
+      "model_id": "openai/o3",
+      "evidence": "API snapshot id of o3"
+    },
+    {
+      "leaderboard_name": "o4-mini-2025-04-16",
+      "model_id": "openai/o4-mini",
+      "evidence": "API snapshot id of o4-mini"
+    },
+    {
+      "leaderboard_name": "Phi-4 Mini",
+      "model_id": "microsoft/phi-4-mini-instruct",
+      "evidence": "only Mini card is Instruct"
+    },
+    {
+      "leaderboard_name": "Phi-4 Multimodal",
+      "model_id": "microsoft/phi-4-multimodal-instruct",
+      "evidence": "only multimodal card is Instruct"
+    },
+    {
+      "leaderboard_name": "Pixtral Large",
+      "model_id": "mistral/pixtral-large-latest",
+      "evidence": "only Pixtral Large card"
+    },
+    {
+      "leaderboard_name": "Qwen2.5 72B",
+      "model_id": "qwen/qwen2-5-72b-instruct",
+      "evidence": "only 72B card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen2.5 Coder 32B",
+      "model_id": "qwen/qwen2-5-coder-32b-instruct",
+      "evidence": "only 32B coder card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen2.5 Coder 7B",
+      "model_id": "qwen/qwen2-5-coder-7b-instruct",
+      "evidence": "only 7B coder card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen2.5 Instruct 32B",
+      "model_id": "qwen/qwen2-5-32b-instruct",
+      "evidence": "display Qwen2.5 32B Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen3 235B",
+      "model_id": "qwen/qwen3-235b-a22b",
+      "evidence": "unqualified 235B is the original A22B card"
+    },
+    {
+      "leaderboard_name": "Qwen3 235B A22B 2507",
+      "model_id": "cerebras/qwen-3-235b-a22b-instruct-2507",
+      "evidence": "only 2507 instruct card is the Cerebras serving"
+    },
+    {
+      "leaderboard_name": "Qwen3 30B A3B 2507",
+      "model_id": "qwen/qwen3-30b-a3b-instruct-2507",
+      "evidence": "unique 2507 instruct card"
+    },
+    {
+      "leaderboard_name": "Qwen3 Coder 30B A3B",
+      "model_id": "qwen/qwen3-coder-30b-a3b-instruct",
+      "evidence": "only 30B coder card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen3 Coder 480B",
+      "model_id": "qwen/qwen3-coder-480b-a35b-instruct",
+      "evidence": "only 480B coder card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen3 VL 32B",
+      "model_id": "qwen/qwen3-vl-32b-instruct",
+      "evidence": "only 32B VL card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen3 VL 4B",
+      "model_id": "qwen/qwen3-vl-4b-instruct",
+      "evidence": "only 4B VL card is Instruct"
+    },
+    {
+      "leaderboard_name": "Qwen3 VL 8B",
+      "model_id": "qwen/qwen3-vl-8b-instruct",
+      "evidence": "only 8B VL card is Instruct"
+    },
+    {
+      "leaderboard_name": "qwen3-235b-a22b-instruct-2507",
+      "model_id": "cerebras/qwen-3-235b-a22b-instruct-2507",
+      "evidence": "exact Cerebras card slug"
+    },
+    {
+      "leaderboard_name": "qwen3-vl-235b-a22b-instruct",
+      "model_id": "qwen/qwen3-vl-235b-a22b",
+      "evidence": "card display Qwen3-VL 235B-A22B"
+    },
+    {
+      "leaderboard_name": "Qwen3.5 Omni Flash",
+      "model_id": "qwen/qwen3-omni-flash",
+      "evidence": "display Qwen3-Omni Flash"
+    },
+    {
+      "leaderboard_name": "qwen3.8-max",
+      "model_id": "qwen/qwen3-8-max",
+      "evidence": "slug qwen3-8-max vs display Qwen3.8 Max"
+    },
+    {
+      "leaderboard_name": "Solar Pro 2",
+      "model_id": "upstage/solar-pro2",
+      "evidence": "display solar-pro2"
+    },
+    {
+      "leaderboard_name": "Solar Pro 3",
+      "model_id": "upstage/solar-pro3",
+      "evidence": "display solar-pro3"
+    }
+  ],
+  "notes": {
+    "LEDGER_TO_CARD_location": "scripts/attach_evidence.py \u2014 not edited this task",
+    "wrong_alias_is_worse_than_refusal": true,
+    "not_a_model": 0,
+    "gemma_4_12b": "both base and IT carded; unqualified leaderboard name must stay unmapped"
+  }
+}

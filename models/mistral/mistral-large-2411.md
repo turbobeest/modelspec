@@ -17,7 +17,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: 123000000000
+  total_parameters: null
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -43,6 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
+  total_parameters_source: ''
 lineage:
   base_model: ''
   base_model_relation: null
@@ -723,8 +724,8 @@ benchmarks:
     toxigen: 86.2
     wildbench: 65.8
     medqa: 81.5
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,, domain-evals
-    open-llm-leaderboard-v2
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,,
+    domain-evals open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

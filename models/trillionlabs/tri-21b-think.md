@@ -1,32 +1,34 @@
 ---
-model_id: mistral/zai-glm-5-2
-display_name: GLM-5.2
-provider: mistral
-provider_display: Mistral AI
-family: glm
-version: zai-glm-5-2
-release_date: '2026-06-13'
-last_updated: '2026-06-13'
+model_id: trillionlabs/tri-21b-think
+display_name: Tri-21B-Think
+provider: trillionlabs
+provider_display: Trillion Labs
+family: tri
+version: tri-21b-think
+release_date: '2026-02-18'
+last_updated: '2026-02-19'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
-tags: []
-pipeline_tag: ''
+tags:
+- text-generation
+pipeline_tag: text-generation
 architecture:
-  type: null
-  total_parameters: null
+  type: dense-transformer
+  total_parameters: 20725519360
+  total_parameters_source: safetensors
   active_parameters: null
   num_experts: null
   experts_per_token: null
-  num_layers: null
-  hidden_size: null
-  intermediate_size: null
-  attention_type: null
-  num_attention_heads: null
-  num_kv_heads: null
-  positional_encoding: null
-  rope_theta: null
-  vocab_size: null
+  num_layers: 40
+  hidden_size: 5120
+  intermediate_size: 27392
+  attention_type: GQA
+  num_attention_heads: 32
+  num_kv_heads: 8
+  positional_encoding: RoPE
+  rope_theta: 1000000.0
+  vocab_size: 124416
   tokenizer_type: null
   embedding_dimensions: null
   activation_function: ''
@@ -41,8 +43,8 @@ architecture:
   diffusion_steps_default: null
   vae_type: ''
 lineage:
-  base_model: ''
-  base_model_relation: null
+  base_model: trillionlabs/Tri-21B
+  base_model_relation: finetune
   merge_models: []
   adapter_type: ''
   adapter_rank: null
@@ -57,10 +59,10 @@ lineage:
   co2_emissions_kg: null
   co2_source: ''
   energy_kwh: null
-  library_name: ''
+  library_name: transformers
 licensing:
   open_weights: true
-  license_type: null
+  license_type: apache-2.0
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -72,8 +74,8 @@ licensing:
   academic_use: unspecified
   geographic_restrictions: []
   export_control_notes: ''
-  origin_country: FR
-  origin_org_type: null
+  origin_country: KR
+  origin_org_type: private
 modalities:
   input:
   - text
@@ -81,11 +83,11 @@ modalities:
   - text
   text:
     max_input_tokens: null
-    max_output_tokens: 131072
-    context_window: 1000000
+    max_output_tokens: null
+    context_window: 32768
     streaming: null
     fill_in_middle: null
-    json_mode: true
+    json_mode: null
     system_prompt: null
   vision:
     supported: false
@@ -174,7 +176,7 @@ capabilities:
     scientific: false
     planning: false
     multi_step: false
-    chain_of_thought: true
+    chain_of_thought: false
     self_correction: false
     spatial: false
     temporal: false
@@ -182,7 +184,7 @@ capabilities:
     think_budget_control: false
   tool_use:
     overall: null
-    function_calling: true
+    function_calling: false
     mcp_compatible: false
     parallel_tool_calls: false
     tool_selection_accuracy: null
@@ -221,10 +223,10 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 1.4
-  output: 4.4
+  input: null
+  output: null
   reasoning: null
-  cache_read: 0.14
+  cache_read: null
   cache_write: null
   input_audio: null
   output_audio: null
@@ -242,12 +244,12 @@ cost:
   note: ''
 availability:
   primary_provider:
-    name: ''
-    platform_url: ''
+    name: Trillion Labs
+    platform_url: https://huggingface.co/trillionlabs/Tri-21B-Think
     api_endpoint: ''
     npm_package: ''
     env_vars: []
-    model_id_on_platform: ''
+    model_id_on_platform: trillionlabs/Tri-21B-Think
     rate_limit_rpm: null
     rate_limit_tpm: null
     sla_uptime: ''
@@ -635,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: trillionlabs/Tri-21B-Think
+    url: https://huggingface.co/trillionlabs/Tri-21B-Think
     fine_tuning: false
     gated: false
     regions: []
@@ -667,8 +669,8 @@ benchmarks:
   benchmark_notes: ''
 deployment:
   api_only: false
-  local_inference: false
-  self_hostable: false
+  local_inference: true
+  self_hostable: true
   fine_tuning_supported: false
   fine_tuning_methods: []
   quantizations_available: []
@@ -728,7 +730,7 @@ deployment:
     mlx: false
     llama_cpp: false
     sglang: false
-    transformers: false
+    transformers: true
     exllamav2: false
     core_ml: false
     onnx: false
@@ -781,8 +783,8 @@ inference_performance:
   quality_per_dollar: null
   quality_per_watt: null
 adoption:
-  huggingface_downloads: null
-  huggingface_likes: null
+  huggingface_downloads: 292
+  huggingface_likes: 29
   ollama_pulls: null
   community_forks: null
   is_common_distillation_teacher: false
@@ -806,9 +808,9 @@ downselect:
   approval_authority: ''
   next_review_date: ''
 sources:
-  models_dev_url: https://models.dev/mistral
+  models_dev_url: ''
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/trillionlabs/Tri-21B-Think
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -816,21 +818,15 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-10'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
-card_author: models.dev-seeder
-card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_author: modelspec
+card_created: '2026-09-10'
+card_updated: '2026-09-10'
 ---
 
-# GLM-5.2
+# Tri-21B-Think
 
-GLM-5.2 is a Llm Reasoning model from Mistral AI. Part of the glm family.
-
-## Key Features
-- Extended reasoning / chain-of-thought
-- Function calling / tool use
-- Structured output (JSON mode)
-- Open weights
+Carded from Hugging Face Hub [trillionlabs/Tri-21B-Think](https://huggingface.co/trillionlabs/Tri-21B-Think) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 20,725,519,360. No benchmark evidence attached.

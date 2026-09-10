@@ -6,7 +6,7 @@ provider_display: Cerebras
 family: gpt-oss
 version: gpt-oss-120b
 release_date: '2025-08-05'
-last_updated: '2025-08-05'
+last_updated: '2026-09-10'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -15,7 +15,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 116829156672
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,7 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null
@@ -223,8 +223,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.25
-  output: 0.69
+  input: 0.35
+  output: 0.75
   reasoning: null
   cache_read: null
   cache_write: null
@@ -241,7 +241,10 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: Cerebras inference $0.35/$0.75 per 1M (inference-docs.cerebras.ai/models/openai-oss,
+    2026-09-10). Together and Fireworks serve the same OpenAI weights at $0.15/$0.60
+    (docs.together.ai / docs.fireworks.ai, 2026-09-10). Stored $0.25/$0.69 matched
+    neither. OpenAI does not sell gpt-oss-120b as a paid API.
 availability:
   primary_provider:
     name: ''
@@ -637,9 +640,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: openai/gpt-oss-120b
+    url: https://huggingface.co/openai/gpt-oss-120b
     fine_tuning: false
     gated: false
     regions: []
@@ -820,8 +823,8 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/cerebras
-  provider_docs_url: ''
-  huggingface_url: ''
+  provider_docs_url: https://inference-docs.cerebras.ai/models/openai-oss
+  huggingface_url: https://huggingface.co/openai/gpt-oss-120b
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -831,7 +834,7 @@ sources:
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_pricing: '2026-09-10'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
