@@ -23,11 +23,14 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
+from . import offline as _offline  # noqa: E402
+
 # ───────────────────────────────────────────────────────────────
 # App setup
 # ───────────────────────────────────────────────────────────────
 
 app = typer.Typer(
+    cls=_offline.ContractGroup,
     name="modelspec",
     help="ModelSpec — explore, search, compare, and rank AI models.",
     no_args_is_help=True,
@@ -36,8 +39,6 @@ app = typer.Typer(
 
 # The offline path: answers from a local snapshot of the published export, with
 # no database and no network. This is what dpf calls.
-from . import offline as _offline  # noqa: E402
-
 app.add_typer(_offline.app, name="offline")
 app.add_typer(_offline.snapshot_app, name="snapshot")
 

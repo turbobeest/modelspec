@@ -761,6 +761,20 @@ benchmarks:
       reasoning is not compute-matched. Values read from fixed release chart, not
       live tables. Undisclosed code/prompt pins are not inferred.
     limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: GPT-6 Astra (max)
+    score: 96.0
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond
+    configuration: 'Launch page: evaluation scores are the maximum at any effort.
+      Competitor columns were not taken. Publication date is OpenAI''s own dating
+      of this article (Research, Sep 3, 2026) on openai.com/index/gpt-5-6/.'
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

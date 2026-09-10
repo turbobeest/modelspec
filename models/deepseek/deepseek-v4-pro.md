@@ -661,7 +661,52 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: DeepSeek-V4-Pro (max)
+    score: 90.1
+    unit: percent
+    source_url: https://arxiv.org/abs/2606.19348
+    source_kind: provider_self_report
+    evidence_date: '2026-04-26'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond (Pass@1)
+    configuration: Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was
+      run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context),
+      not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
+      and was not attached to live_code_bench.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: DeepSeek-V4-Pro (max)
+    score: 87.5
+    unit: percent
+    source_url: https://arxiv.org/abs/2606.19348
+    source_kind: provider_self_report
+    evidence_date: '2026-04-26'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MMLU-Pro (EM)
+    configuration: Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was
+      run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context),
+      not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
+      and was not attached to live_code_bench.
+    limitations: ''
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: DeepSeek-V4-Pro (max)
+    score: 80.6
+    unit: percent
+    source_url: https://arxiv.org/abs/2606.19348
+    source_kind: provider_self_report
+    evidence_date: '2026-04-26'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: SWE-bench Verified (Resolved)
+    configuration: Maximum reasoning-effort mode; temperature 1.0. SWE-Verified was
+      run in DeepSeek's internal bash + file-edit harness (500-step cap, 512K context),
+      not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
+      and was not attached to live_code_bench.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

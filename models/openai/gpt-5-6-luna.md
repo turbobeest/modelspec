@@ -663,7 +663,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: GPT-5.6 Luna
+    score: 92.3
+    unit: percent
+    source_url: https://openai.com/index/gpt-5-6/
+    source_kind: provider_self_report
+    evidence_date: '2026-07-09'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond
+    configuration: GPT-5.6 launch table; the row is labelled by model tier (Sol/Terra/Luna)
+      and does not pin a reasoning-effort setting in the cell. Scores are as published
+      for that tier, not the Ultra multi-agent configuration.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

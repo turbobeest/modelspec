@@ -1021,6 +1021,89 @@ def _apply_verified_additions() -> None:
 
 _apply_verified_additions()
 
+# Product defaults, not statistical confidence thresholds. The benchmark set
+# stays fixed, including when a candidate or an evaluator has sparse coverage.
+MIN_BENCHMARK_COVERAGE = 0.50
+MIN_BENCHMARK_COUNT = 2
+RANKING_POLICY = {
+    "version": "incomplete-evidence-v1",
+    "ordering": "conservative_lower_bound",
+    "min_benchmark_coverage": MIN_BENCHMARK_COVERAGE,
+    "min_benchmark_count": MIN_BENCHMARK_COUNT,
+    "limit_applies_to": "ranked_only",
+    "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+}
+
+
+class IncompleteEvidenceError(ValueError):
+    """Optional complete-ordering signal wrapping a rank_report().
+
+    `rank()` returns the ranked shortlist and does not raise when other models
+    lack evidence. Callers that require every candidate to be ordered may raise
+    this themselves after inspecting rank_report(). `report` preserves both the
+    ranked shortlist and every unranked candidate.
+    """
+
+    def __init__(self, report: dict[str, Any]):
+        self.report = report
+        names = []
+        for row in report["unranked"]:
+            if isinstance(row, dict):
+                names.append(f"{row['display_name']} ({row['benchmark_coverage']:.0%} coverage)")
+            else:
+                names.append(f"{row.display_name} ({row.benchmark_coverage:.0%} coverage)")
+        super().__init__(
+            "Cannot return a total ordering. Unranked for insufficient evidence: "
+            + "; ".join(names)
+            + ". These models are not ranked low. Use rank_report() or "
+            "`.venv/bin/python -m pipeline.ranking PROFILE` to see ranked and unranked results."
+        )
+
+
+def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any]) -> dict[str, Any]:
+    """Bound the fixed profile without guessing unmeasured benchmark values.
+
+    All normalized benchmarks lie in [0, 100]. Missing weight therefore spans
+    [0, weight * 100], rather than being a measurement of zero. Other composite
+    components are held fixed; these are not bounds on real-world ability.
+    """
+    weights = profile.get("benchmark_weights", {})
+    if any(not math.isfinite(w) or w < 0 for w in weights.values()):
+        raise ValueError("Benchmark weights must be finite and nonnegative")
+    weights = {b: w for b, w in weights.items() if w > 0}
+    present = {
+        b: _normalize_benchmark(b, scores[b]) for b in weights
+        if scores.get(b) is not None and math.isfinite(scores[b])
+    }
+    total_weight = sum(weights.values())
+    present_weight = sum(weights[b] for b in present)
+    missing = sorted(weights.keys() - present.keys())
+    missing_weight = sum(weights[b] for b in missing)
+    coverage = present_weight / total_weight if total_weight else 0.0
+    required = min(MIN_BENCHMARK_COUNT, len(weights))
+    rankable = (total_weight > 0 and coverage + 1e-12 >= MIN_BENCHMARK_COVERAGE
+                and len(present) >= required)
+    lower = sum(present[b] * weights[b] for b in present) * 0.40
+    return {
+        "rank_status": "ranked" if rankable else "unranked",
+        "unranked_reason": None if rankable else "insufficient_benchmark_evidence",
+        "benchmark_coverage": coverage,
+        "benchmark_count": len(present),
+        "required_benchmark_count": required,
+        "missing_benchmarks": missing,
+        "benchmark_estimate": lower / (0.40 * present_weight) if present_weight else None,
+        "benchmark_lower_bound": lower,
+        "benchmark_upper_bound": lower + missing_weight * 40.0,
+        "benchmark_contributions": {b: round(present[b] * weights[b], 2) for b in present},
+    }
+
+
+def _ranking_status(ranked: list, unranked: list) -> str:
+    if unranked:
+        return "partial" if ranked else "unavailable"
+    return "complete" if ranked else "empty"
+
+
 CLOUD_PLATFORMS = {
     "aws_bedrock", "azure_ai_foundry", "google_vertex_ai", "nvidia_nim",
     "ibm_watsonx", "snowflake_cortex", "groq", "together_ai", "fireworks_ai",
@@ -1088,7 +1171,7 @@ class ScoredModel:
     model_id: str
     display_name: str
     model_type: str | None
-    score: float
+    score: float | None
     benchmark_score: float
     capability_score: float
     cost_score: float
@@ -1108,6 +1191,18 @@ class ScoredModel:
     open_weights: bool | None = None
     provider: str | None = None
     status: str | None = None
+    rank: int | None = None
+    rank_status: str = "unranked"
+    unranked_reason: str | None = None
+    benchmark_coverage: float = 0.0
+    benchmark_count: int = 0
+    required_benchmark_count: int = 0
+    missing_benchmarks: list[str] = field(default_factory=list)
+    benchmark_estimate: float | None = None
+    benchmark_lower_bound: float = 0.0
+    benchmark_upper_bound: float = 0.0
+    score_lower_bound: float = 0.0
+    score_upper_bound: float = 0.0
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1129,7 +1224,25 @@ class RankingEngine:
         constraints: dict[str, Any] | None = None,
         limit: int = 10,
     ) -> list[ScoredModel]:
-        """Run the full 4-stage pipeline and return ranked models."""
+        """Return the models that can honestly be ordered for this profile.
+
+        Unrankable models are the normal catalogue state, not an error. This
+        returns the ranked shortlist, which may be empty when nothing has
+        enough evidence. Use rank_report() to see withheld models and
+        ranking_status.
+        """
+        return self.rank_report(use_case, hardware, constraints, limit)["ranked"]
+
+    def rank_report(
+        self,
+        use_case: str | None = None,
+        hardware: str | None = None,
+        constraints: dict[str, Any] | None = None,
+        limit: int = 10,
+    ) -> dict[str, Any]:
+        """Return a bounded shortlist and all unranked candidates separately."""
+        if limit < 0:
+            raise ValueError("limit must be nonnegative")
         constraints = constraints or {}
         profile = USE_CASE_PROFILES.get(use_case or "general", USE_CASE_PROFILES["general"])
 
@@ -1145,16 +1258,26 @@ class RankingEngine:
         scored = [self._score(m, profile) for m in filtered]
 
         # Stage 3: Rank (sort by score, tie-break by ELO then params)
-        scored.sort(key=lambda s: (
+        ranked = [s for s in scored if s.rank_status == "ranked"]
+        unranked = [s for s in scored if s.rank_status == "unranked"]
+        ranked.sort(key=lambda s: (
             s.score,
             s.arena_elo_overall or 0,
             s.total_parameters or 0,
         ), reverse=True)
+        unranked.sort(key=lambda s: (s.display_name.lower(), s.model_id))
+        for position, result in enumerate(ranked, 1):
+            result.rank = position
 
         # Stage 4: Explain (already built into scoring, but add rank-relative info)
         self._explain(scored, profile, use_case)
 
-        return scored[:limit]
+        return {
+            "ranking_status": _ranking_status(ranked, unranked),
+            "policy": dict(RANKING_POLICY),
+            "ranked_count": len(ranked), "unranked_count": len(unranked),
+            "ranked": ranked[:limit], "unranked": unranked,
+        }
 
     # ─── Stage 0: Fetch candidates ───────────────────────────
 
@@ -1443,28 +1566,8 @@ class RankingEngine:
         """Compute weighted composite score for a model against a profile."""
 
         # --- Benchmark scoring (up to 40 points) ---
-        bench_weights = profile.get("benchmark_weights", {})
-        bench_score = 0.0
-        bench_contributions: dict[str, float] = {}
-        total_bench_weight = 0.0
-        available_bench_weight = 0.0
-
-        for bench_id, weight in bench_weights.items():
-            total_bench_weight += weight
-            raw = model.benchmark_scores.get(bench_id)
-            if raw is not None:
-                normalized = _normalize_benchmark(bench_id, raw)
-                contribution = normalized * weight
-                bench_score += contribution
-                bench_contributions[bench_id] = round(contribution, 2)
-                available_bench_weight += weight
-
-        # Scale benchmark score: if we only have some benchmarks,
-        # scale proportionally but cap at what's available.
-        # Models with more benchmark data naturally score higher because
-        # missing benchmarks contribute 0.
-        # Max possible = 40 points (sum of all weights * 100 * (40/100))
-        bench_score_scaled = bench_score * 0.40  # 40 points max
+        evidence = _benchmark_evidence(model.benchmark_scores, profile)
+        bench_score_scaled = evidence["benchmark_lower_bound"]
 
         # --- Capability scoring (up to 20 points) ---
         cap_weights = profile.get("capability_weights", {})
@@ -1546,12 +1649,16 @@ class RankingEngine:
         )
         # Clamp to 0-100
         final_score = max(0.0, min(100.0, raw_total))
+        upper_score = max(0.0, min(100.0, raw_total
+                          + evidence["benchmark_upper_bound"] - bench_score_scaled))
 
         return ScoredModel(
             model_id=model.model_id,
             display_name=model.display_name,
             model_type=model.model_type,
-            score=round(final_score, 2),
+            score=round(final_score, 2) if evidence["rank_status"] == "ranked" else None,
+            score_lower_bound=round(final_score, 2),
+            score_upper_bound=round(upper_score, 2),
             benchmark_score=round(bench_score_scaled, 2),
             capability_score=round(cap_score_scaled, 2),
             cost_score=round(cost_score_scaled, 2),
@@ -1560,7 +1667,7 @@ class RankingEngine:
             speed_score=round(speed_score, 2),
             estimated_tps=model.estimated_tps,
             concurrent_instances=model.concurrent_instances,
-            benchmark_contributions=bench_contributions,
+            **evidence,
             arena_elo_overall=model.arena_elo_overall,
             total_parameters=model.total_parameters,
             context_window=model.context_window,
@@ -1583,10 +1690,16 @@ class RankingEngine:
         if not scored:
             return
 
-        top_score = scored[0].score if scored else 1.0
-
         for sm in scored:
-            reasons: list[str] = []
+            reasons = [
+                f"Benchmark coverage: {sm.benchmark_coverage:.0%}; "
+                f"composite bounds {sm.score_lower_bound:.2f}–{sm.score_upper_bound:.2f} "
+                "(missing benchmarks, not statistical confidence)."
+            ]
+            if sm.rank_status == "unranked":
+                sm.reasons = ["Unranked for insufficient benchmark evidence; not ranked low.", *reasons]
+                continue
+            reasons.append("Ordered by conservative lower bound, not an estimate of ability.")
 
             # Benchmark highlights
             if sm.benchmark_contributions:

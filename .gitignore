@@ -22,3 +22,8 @@ web/node_modules/
 
 # Firecrawl scrape cache (pricing pages, etc.)
 .firecrawl/
+
+# Scraped provider pages behind the evidence ledger. The ledger keeps the
+# source URL and date for every score, so these are re-fetchable and are not
+# vendored third-party content.
+benchmarks/_census/ranking_evidence/raw/

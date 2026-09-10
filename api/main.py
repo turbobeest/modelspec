@@ -193,6 +193,8 @@ class RankResponse(BaseModel):
     use_case: str | None = None
     hardware: str | None = None
     total: int
+    unranked_count: int = 0
+    ranking_status: str | None = None
     available_use_cases: list[str] = []
 
 
@@ -770,7 +772,7 @@ async def rank_models(req: RankRequest):
             raise HTTPException(status_code=404, detail=f"Hardware '{req.hardware}' not found")
 
     engine = RankingEngine(graph)
-    scored = engine.rank(
+    report = engine.rank_report(
         use_case=req.use_case,
         hardware=req.hardware,
         constraints=req.constraints,
@@ -778,9 +780,9 @@ async def rank_models(req: RankRequest):
     )
 
     ranked: list[RankedModel] = []
-    for i, sm in enumerate(scored):
+    for i, sm in enumerate(report["ranked"]):
         ranked.append(RankedModel(
-            rank=i + 1,
+            rank=sm.rank if sm.rank is not None else i + 1,
             model_id=sm.model_id,
             display_name=sm.display_name,
             model_type=sm.model_type,
@@ -810,6 +812,8 @@ async def rank_models(req: RankRequest):
         use_case=req.use_case,
         hardware=req.hardware,
         total=len(ranked),
+        unranked_count=report["unranked_count"],
+        ranking_status=report["ranking_status"],
         available_use_cases=sorted(USE_CASE_PROFILES.keys()),
     )
 

@@ -722,6 +722,46 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
+  evidence:
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: Gemma 4 31B IT
+    score: 89.2
+    unit: percent
+    source_url: https://huggingface.co/google/gemma-4-31B-it
+    source_kind: provider_self_report
+    evidence_date: '2026-07-02'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: AIME 2026 (no tools)
+    configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
+      Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Gemma 4 31B IT
+    score: 84.3
+    unit: percent
+    source_url: https://huggingface.co/google/gemma-4-31B-it
+    source_kind: provider_self_report
+    evidence_date: '2026-07-02'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: GPQA Diamond
+    configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
+      Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Gemma 4 31B IT
+    score: 85.2
+    unit: percent
+    source_url: https://huggingface.co/google/gemma-4-31B-it
+    source_kind: provider_self_report
+    evidence_date: '2026-07-02'
+    date_type: published
+    verified_at: '2026-09-09'
+    benchmark_version: MMLU-Pro
+    configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
+      Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
+    limitations: ''
 deployment:
   api_only: false
   local_inference: true

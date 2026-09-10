@@ -19,7 +19,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -59,7 +59,7 @@ class Snapshot:
 
     @property
     def age_days(self) -> float:
-        return (datetime.now(timezone.utc) - self.fetched_at).total_seconds() / 86400
+        return (datetime.now(UTC) - self.fetched_at).total_seconds() / 86400
 
     @property
     def is_stale(self) -> bool:
@@ -78,8 +78,12 @@ class Snapshot:
         }
 
 
-class SnapshotMissing(RuntimeError):
+class SnapshotMissing(RuntimeError):  # noqa: N818 - public compatibility name
     """No snapshot has been fetched yet."""
+
+
+class SnapshotInvalid(RuntimeError):  # noqa: N818 - follows SnapshotMissing naming
+    """A snapshot exists but cannot be read or does not have the export shape."""
 
 
 def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
@@ -97,7 +101,7 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
 
     build = (payload.get("index") or {}).get("build") or {}
     meta = {
-        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
         "origin": origin,
         "build_commit": build.get("commit", "unknown"),
         "built_at": build.get("built_at", "unknown"),
@@ -113,21 +117,48 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
 def load(directory: Path | None = None) -> Snapshot:
     """Read the cached snapshot. Never touches the network."""
     path = (directory or cache_dir()) / "snapshot.json"
-    if not path.is_file():
+    if not path.exists():
         raise SnapshotMissing(
             f"no snapshot at {path}. Run `modelspec snapshot fetch` once; "
             "everything after that works offline."
         )
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    meta = raw["meta"]
-    return Snapshot(
-        path=path,
-        fetched_at=datetime.fromisoformat(meta["fetched_at"]),
-        origin=meta["origin"],
-        build_commit=meta["build_commit"],
-        build_at=meta["built_at"],
-        data=raw["data"],
-    )
+    try:
+        if not path.is_file():
+            raise ValueError("snapshot.json is not a regular file")
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("top-level JSON value must be an object")
+        meta = raw["meta"]
+        data = raw["data"]
+        if not isinstance(meta, dict) or not isinstance(data, dict):
+            raise ValueError("meta and data must be objects")
+        for key in ("fetched_at", "origin", "build_commit", "built_at"):
+            if key not in meta:
+                raise ValueError(f"meta is missing {key!r}")
+        for key in ("index", "candidates", "profiles", "hardware"):
+            if key not in data or not isinstance(data[key], dict):
+                raise ValueError(f"data is missing object {key!r}")
+        if not isinstance(data["candidates"].get("candidates"), list):
+            raise ValueError("data.candidates.candidates must be a list")
+        if not isinstance(data["profiles"].get("profiles"), dict):
+            raise ValueError("data.profiles.profiles must be an object")
+        if not isinstance(data["hardware"].get("nodes"), list):
+            raise ValueError("data.hardware.nodes must be a list")
+        fetched_at = datetime.fromisoformat(str(meta["fetched_at"]))
+        if fetched_at.tzinfo is None:
+            raise ValueError("meta.fetched_at must include a timezone")
+        return Snapshot(
+            path=path,
+            fetched_at=fetched_at,
+            origin=str(meta["origin"]),
+            build_commit=str(meta["build_commit"]),
+            build_at=str(meta["built_at"]),
+            data=data,
+        )
+    except SnapshotInvalid:
+        raise
+    except (OSError, UnicodeError, TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        raise SnapshotInvalid(f"snapshot at {path} is unreadable or invalid: {exc}") from exc
 
 
 def status(directory: Path | None = None) -> dict[str, Any]:

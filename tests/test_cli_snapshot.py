@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -19,6 +19,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
 
 
@@ -30,7 +31,7 @@ def cache(tmp_path: Path) -> Path:
 
 
 def _write(directory: Path, fetched_at: datetime | None = None) -> None:
-    when = fetched_at or datetime.now(timezone.utc)
+    when = fetched_at or datetime.now(UTC)
     (directory / "snapshot.json").write_text(json.dumps({
         "meta": {"fetched_at": when.isoformat(), "origin": "https://example.test",
                  "build_commit": "abc123def456", "built_at": "2026-09-09T00:00:00+00:00"},
@@ -38,7 +39,8 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
             "index": {"build": {"commit": "abc123def456"}},
             "candidates": {"candidates": [
                 {"model_id": "a/one", "display_name": "One", "provider": "A",
-                 "model_type": "llm-chat", "benchmark_scores": {"humaneval": 90.0},
+                 "model_type": "llm-chat", "benchmark_scores": {
+                     b: 90.0 for b in USE_CASE_PROFILES["coding"]["benchmark_weights"]},
                  "capability_tiers": {}, "cost_input": 1.0, "context_window": 128000,
                  "open_weights": True, "fits": {"gpu": 40.0}},
             ]},
@@ -80,7 +82,7 @@ def test_freshness_is_always_reported(cache: Path) -> None:
 
 def test_an_old_snapshot_is_stale_but_still_loads(cache: Path) -> None:
     """Continuity beats freshness: a dated answer beats no answer."""
-    _write(cache, datetime.now(timezone.utc) - timedelta(days=snapshot.STALE_AFTER_DAYS + 5))
+    _write(cache, datetime.now(UTC) - timedelta(days=snapshot.STALE_AFTER_DAYS + 5))
     loaded = snapshot.load(cache)
     assert loaded.is_stale
     assert loaded.age_days > snapshot.STALE_AFTER_DAYS
@@ -124,7 +126,7 @@ def test_missing_snapshot_exits_three(cache: Path) -> None:
 @pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
                     reason="CLI not installed in this environment")
 def test_a_stale_snapshot_fails_only_when_asked(cache: Path) -> None:
-    _write(cache, datetime.now(timezone.utc) - timedelta(days=snapshot.STALE_AFTER_DAYS + 5))
+    _write(cache, datetime.now(UTC) - timedelta(days=snapshot.STALE_AFTER_DAYS + 5))
     lenient = _run(["offline", "rank", "coding", "--json"], cache)
     assert lenient.returncode == offline.EXIT_OK
     assert "stale" in lenient.stderr.lower()
@@ -142,6 +144,9 @@ def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     assert payload["schema_version"] == offline.SCHEMA_VERSION
     assert payload["command"] == "rank"
     assert payload["freshness"]["build_commit"] == "abc123def456"
+    assert payload["ranking_status"] == "complete"
+    assert payload["ranked_count"] == 1
+    assert payload["unranked_count"] == 0
     assert payload["result"][0]["model_id"] == "a/one"
 
 
@@ -158,8 +163,124 @@ def test_no_match_is_its_own_exit_code(cache: Path) -> None:
 
 @pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
                     reason="CLI not installed in this environment")
+def test_json_status_has_the_common_envelope(cache: Path) -> None:
+    _write(cache)
+
+    result = _run(["snapshot", "status", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK
+    payload = json.loads(result.stdout)
+    assert payload["schema_version"] == offline.SCHEMA_VERSION
+    assert payload["command"] == "status"
+    assert payload["freshness"]["build_commit"] == "abc123def456"
+    assert payload["result"]["present"] is True
+    assert result.stderr == ""
+
+
+@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
+                    reason="CLI not installed in this environment")
+def test_json_missing_snapshot_is_structured_on_stderr(cache: Path) -> None:
+    result = _run(["offline", "rank", "coding", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_NO_SNAPSHOT
+    assert not result.stdout
+    error = json.loads(result.stderr)
+    assert error["schema_version"] == offline.SCHEMA_VERSION
+    assert error["command"] == "rank"
+    assert "snapshot fetch" in error["error"]["message"]
+
+
+@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
+                    reason="CLI not installed in this environment")
+def test_parser_usage_errors_use_runtime_error_code(cache: Path) -> None:
+    missing_argument = _run(["offline", "rank"], cache)
+    unknown_option = _run(["offline", "rank", "coding", "--not-an-option"], cache)
+
+    assert missing_argument.returncode == offline.EXIT_ERROR
+    assert unknown_option.returncode == offline.EXIT_ERROR
+    assert "Traceback" not in missing_argument.stderr
+    assert "Traceback" not in unknown_option.stderr
+
+
+@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
+                    reason="CLI not installed in this environment")
 def test_unknown_use_case_is_a_usage_error(cache: Path) -> None:
     _write(cache)
     result = _run(["offline", "rank", "not-a-use-case"], cache)
     assert result.returncode == offline.EXIT_ERROR
     assert "unknown use case" in result.stderr
+
+
+@pytest.mark.skipif(not (REPO_ROOT / ".venv/bin/modelspec").exists(),
+                    reason="CLI not installed in this environment")
+@pytest.mark.parametrize("json_output", [False, True])
+def test_cli_reports_sparse_evidence_without_runtime_error(cache: Path, json_output) -> None:
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    payload["data"]["candidates"]["candidates"][0]["benchmark_scores"] = {"scicode": 100.0}
+    path.write_text(json.dumps(payload))
+    result = _run(["offline", "rank", "coding", *(["--json"] if json_output else [])], cache)
+    assert result.returncode == offline.EXIT_NO_MATCH
+    assert "Traceback" not in result.stderr
+    if json_output:
+        report = json.loads(result.stdout)
+        assert report["ranking_status"] == "unavailable"
+        assert report["ranked_count"] == 0
+        assert report["unranked_count"] == 1
+        assert report["result"] == []
+    else:
+        assert "unavailable ordering" in result.stdout
+        assert "0 ranked, 1 unranked" in result.stdout
+        assert "No model has enough evidence to be ranked." in result.stdout
+
+
+def test_cli_partial_ranking_is_success_and_discloses_withheld_models(cache: Path) -> None:
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    sparse = dict(payload["data"]["candidates"]["candidates"][0])
+    sparse["model_id"] = "b/two"
+    sparse["display_name"] = "Two"
+    sparse["benchmark_scores"] = {"scicode": 100.0}
+    payload["data"]["candidates"]["candidates"].append(sparse)
+    path.write_text(json.dumps(payload))
+
+    result = _run(["offline", "rank", "coding", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK
+    report = json.loads(result.stdout)
+    assert report["ranking_status"] == "partial"
+    assert report["ranked_count"] == 1
+    assert report["unranked_count"] == 1
+    assert [row["model_id"] for row in report["result"]] == ["a/one"]
+
+
+@pytest.mark.parametrize("snapshot_kind", ["truncated", "unreadable"])
+def test_invalid_snapshot_is_a_runtime_error_without_traceback(
+    cache: Path, snapshot_kind: str
+) -> None:
+    path = cache / "snapshot.json"
+    if snapshot_kind == "truncated":
+        path.write_text('{"meta":')
+    else:
+        path.mkdir()
+
+    result = _run(["offline", "rank", "coding", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)
+    assert error["schema_version"] == offline.SCHEMA_VERSION
+    assert error["command"] == "rank"
+    assert "unreadable or invalid" in error["error"]["message"]
+    assert "Traceback" not in result.stderr
+    assert not result.stdout
+
+
+def test_snapshot_fetch_unreachable_origin_is_a_runtime_error(cache: Path) -> None:
+    result = _run(["snapshot", "fetch", "--origin", "http://127.0.0.1:1"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    assert result.stdout == ""
+    assert result.stderr.startswith("error: could not fetch the snapshot:")
+    assert "Traceback" not in result.stderr
