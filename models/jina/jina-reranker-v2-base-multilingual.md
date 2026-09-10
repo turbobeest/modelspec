@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: jinaai/jina-reranker-v2-base-multilingual
+    url: https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual
     fine_tuning: false
     gated: false
     regions: []

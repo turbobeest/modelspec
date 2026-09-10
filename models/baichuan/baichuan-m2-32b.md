@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: baichuan-inc/Baichuan-M2-32B
+    url: https://huggingface.co/baichuan-inc/Baichuan-M2-32B
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: 01-ai/Yi-Coder-9B
+    url: https://huggingface.co/01-ai/Yi-Coder-9B
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: baichuan-inc/Baichuan-Omni-1d5
+    url: https://huggingface.co/baichuan-inc/Baichuan-Omni-1d5
     fine_tuning: false
     gated: false
     regions: []

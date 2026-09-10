@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: intfloat/e5-mistral-7b-instruct
+    url: https://huggingface.co/intfloat/e5-mistral-7b-instruct
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224
+    url: https://huggingface.co/microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224
     fine_tuning: false
     gated: false
     regions: []

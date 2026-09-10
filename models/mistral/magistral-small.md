@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Magistral-Small-2506
+    url: https://huggingface.co/mistralai/Magistral-Small-2506
     fine_tuning: false
     gated: false
     regions: []

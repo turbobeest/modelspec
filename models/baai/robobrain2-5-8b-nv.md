@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/RoboBrain2.5-8B-NV
+    url: https://huggingface.co/BAAI/RoboBrain2.5-8B-NV
     fine_tuning: false
     gated: false
     regions: []

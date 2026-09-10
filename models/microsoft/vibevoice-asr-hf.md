@@ -634,9 +634,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/VibeVoice-ASR-HF
+    url: https://huggingface.co/microsoft/VibeVoice-ASR-HF
     fine_tuning: false
     gated: false
     regions: []

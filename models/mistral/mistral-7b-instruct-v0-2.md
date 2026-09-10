@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: mistralai/Mistral-7B-Instruct-v0.2
+    url: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
     fine_tuning: false
     gated: false
     regions: []

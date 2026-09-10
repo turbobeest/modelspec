@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Mamba-Codestral-7B-v0.1
+    url: https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1
     fine_tuning: false
     gated: false
     regions: []

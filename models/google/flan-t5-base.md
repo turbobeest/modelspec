@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/flan-t5-base
+    url: https://huggingface.co/google/flan-t5-base
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/wavlm-base-plus-sv
+    url: https://huggingface.co/microsoft/wavlm-base-plus-sv
     fine_tuning: false
     gated: false
     regions: []

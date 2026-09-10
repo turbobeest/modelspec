@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-embedding-125m-english
+    url: https://huggingface.co/ibm-granite/granite-embedding-125m-english
     fine_tuning: false
     gated: false
     regions: []

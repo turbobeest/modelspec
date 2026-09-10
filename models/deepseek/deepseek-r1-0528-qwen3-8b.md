@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+    url: https://huggingface.co/deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
     fine_tuning: false
     gated: false
     regions: []

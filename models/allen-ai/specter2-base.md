@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/specter2_base
+    url: https://huggingface.co/allenai/specter2_base
     fine_tuning: false
     gated: false
     regions: []

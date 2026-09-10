@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/Molmo2-O-7B
+    url: https://huggingface.co/allenai/Molmo2-O-7B
     fine_tuning: false
     gated: false
     regions: []

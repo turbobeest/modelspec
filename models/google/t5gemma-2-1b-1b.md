@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/t5gemma-2-1b-1b
+    url: https://huggingface.co/google/t5gemma-2-1b-1b
     fine_tuning: false
     gated: false
     regions: []

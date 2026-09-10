@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/olmOCR-2-7B-1025
+    url: https://huggingface.co/allenai/olmOCR-2-7B-1025
     fine_tuning: false
     gated: false
     regions: []

@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/Phi-3.5-vision-instruct
+    url: https://huggingface.co/microsoft/Phi-3.5-vision-instruct
     fine_tuning: false
     gated: false
     regions: []

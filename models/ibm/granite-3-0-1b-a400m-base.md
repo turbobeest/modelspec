@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-3.0-1b-a400m-base
+    url: https://huggingface.co/ibm-granite/granite-3.0-1b-a400m-base
     fine_tuning: false
     gated: false
     regions: []

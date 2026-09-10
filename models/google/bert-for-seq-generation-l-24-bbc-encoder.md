@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/bert_for_seq_generation_L-24_bbc_encoder
+    url: https://huggingface.co/google/bert_for_seq_generation_L-24_bbc_encoder
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: baichuan-inc/Baichuan-Audio-Instruct
+    url: https://huggingface.co/baichuan-inc/Baichuan-Audio-Instruct
     fine_tuning: false
     gated: false
     regions: []

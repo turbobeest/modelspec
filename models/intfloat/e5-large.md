@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: intfloat/e5-large
+    url: https://huggingface.co/intfloat/e5-large
     fine_tuning: false
     gated: false
     regions: []

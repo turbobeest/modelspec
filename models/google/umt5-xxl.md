@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/umt5-xxl
+    url: https://huggingface.co/google/umt5-xxl
     fine_tuning: false
     gated: false
     regions: []

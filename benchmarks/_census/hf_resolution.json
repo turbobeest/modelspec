@@ -1,0 +1,4796 @@
+{
+ "confidence_floor": 0.72,
+ "considered": 988,
+ "refused": 541,
+ "refused_ids": [
+  "allen-ai/olmo-3-7b-instruct",
+  "cerebras/gpt-oss-120b",
+  "cerebras/llama3-1-8b",
+  "cerebras/qwen-3-235b-a22b-instruct-2507",
+  "cerebras/qwen-3-8-27b",
+  "cerebras/zai-glm-4-7",
+  "cohere/c4ai-aya-expanse-32b",
+  "cohere/c4ai-aya-vision-32b",
+  "cohere/c4ai-aya-vision-8b",
+  "cohere/command-a-03-2025",
+  "cohere/command-a-plus-05-2026",
+  "cohere/command-r-08-2024",
+  "cohere/command-r-plus-08-2024",
+  "cohere/command-r7b-arabic-02-2025",
+  "deepseek/deepseek-chat",
+  "deepseek/deepseek-reasoner",
+  "google/bert-uncased-l-2-h-128-a-2",
+  "google/electra-small-discriminator",
+  "google/fnet-base",
+  "google/gemma-2-2b-it",
+  "google/gemma-2b-it",
+  "google/mt5-base",
+  "kakao/align-base",
+  "meta/cerebras-llama-4-maverick-17b-128e-instruct",
+  "meta/cerebras-llama-4-scout-17b-16e-instruct",
+  "meta/codellama-34b-instruct-hf",
+  "meta/codellama-7b-hf",
+  "meta/codellama-7b-instruct-hf",
+  "meta/groq-llama-4-maverick-17b-128e-instruct",
+  "meta/llama-3-3-8b-instruct",
+  "meta/llama-4-scout-17b-16e-instruct-fp8",
+  "microsoft/dialogpt-medium",
+  "microsoft/phi-2",
+  "minimax/minimax-m2-5-highspeed",
+  "minimax/minimax-m2-7-highspeed",
+  "mistral/codestral-latest",
+  "mistral/devstral-2512",
+  "mistral/devstral-latest",
+  "mistral/devstral-medium-2507",
+  "mistral/devstral-medium-latest",
+  "mistral/devstral-small-2507",
+  "mistral/labs-devstral-small-2512",
+  "mistral/magistral-medium-latest",
+  "mistral/ministral-3b-latest",
+  "mistral/ministral-8b-latest",
+  "mistral/mistral-large-2411",
+  "mistral/mistral-large-2512",
+  "mistral/mistral-large-latest",
+  "mistral/mistral-medium-2604",
+  "mistral/mistral-medium-latest",
+  "mistral/mistral-small-2506",
+  "mistral/mistral-small-2603",
+  "mistral/mistral-small-3-2-24b-instruct-2506",
+  "mistral/mistral-small-4-119b-2603",
+  "mistral/mistral-small-latest",
+  "mistral/mixtral-8x22b-instruct-v0-1",
+  "mistral/mixtral-8x7b-instruct-v0-1",
+  "mistral/mixtral-8x7b-v0-1",
+  "mistral/open-mistral-7b",
+  "mistral/open-mistral-nemo",
+  "mistral/open-mixtral-8x22b",
+  "mistral/open-mixtral-8x7b",
+  "mistral/pixtral-12b",
+  "mistral/pixtral-large-latest",
+  "mistral/voxtral-mini-3b-2507",
+  "mistral/voxtral-mini-4b-realtime-2602",
+  "mistral/voxtral-small-24b-2507",
+  "mistral/voxtral-small-latest",
+  "mistral/zai-glm-5-2",
+  "moondream/moondream1",
+  "moondream/moondream2",
+  "moonshot/kimi-k2-0711-preview",
+  "moonshot/kimi-k2-0905-preview",
+  "moonshot/kimi-k2-5",
+  "moonshot/kimi-k2-6",
+  "moonshot/kimi-k2-7-code-highspeed",
+  "moonshot/kimi-k2-7-code",
+  "moonshot/kimi-k2-thinking-turbo",
+  "moonshot/kimi-k2-thinking",
+  "moonshot/kimi-k2-turbo-preview",
+  "moonshot/kimi-k3",
+  "nomic/coderankembed",
+  "nomic/coderankllm",
+  "nomic/colnomic-embed-multimodal-7b",
+  "nomic/gpt4all-j",
+  "nomic/modernbert-embed-base",
+  "nomic/nomic-bert-2048",
+  "nomic/nomic-embed-code",
+  "nomic/nomic-embed-multimodal-7b",
+  "nomic/nomic-embed-text-v1-5-gguf",
+  "nomic/nomic-embed-text-v1-5",
+  "nomic/nomic-embed-text-v1",
+  "nomic/nomic-embed-text-v2-moe-gguf",
+  "nomic/nomic-embed-text-v2-moe",
+  "nomic/nomic-embed-vision-v1-5",
+  "nomic/nomic-embed-vision-v1",
+  "nous-research/hermes-2-pro-llama-3-8b",
+  "nous-research/hermes-2-theta-llama-3-8b",
+  "nous-research/hermes-3-llama-3-1-8b-gguf",
+  "nous-research/hermes-3-llama-3-1-8b",
+  "nous-research/hermes-3-llama-3-2-3b",
+  "nous-research/hermes-4-3-36b",
+  "nous-research/hermes-4-70b-fp8",
+  "nous-research/llama-2-13b-hf",
+  "nous-research/llama-2-7b-chat-hf",
+  "nous-research/llama-2-7b-hf",
+  "nous-research/llama-3-2-1b",
+  "nous-research/meta-llama-3-1-8b-instruct",
+  "nous-research/meta-llama-3-1-8b",
+  "nous-research/meta-llama-3-70b-instruct",
+  "nous-research/meta-llama-3-8b-instruct",
+  "nous-research/meta-llama-3-8b",
+  "nous-research/nous-hermes-2-mixtral-8x7b-dpo",
+  "nous-research/nous-hermes-2-solar-10-7b",
+  "nous-research/nous-hermes-2-yi-34b",
+  "nous-research/nous-hermes-llama-2-7b",
+  "nvidia/audio-flamingo-3-hf",
+  "nvidia/bigvgan-v2-22khz-80band-256x",
+  "nvidia/bigvgan-v2-44khz-128band-512x",
+  "nvidia/canary-1b-flash",
+  "nvidia/canary-1b-v2",
+  "nvidia/canary-qwen-2-5b",
+  "nvidia/deepseek-r1-0528-nvfp4-v2",
+  "nvidia/gemma-4-31b-it-nvfp4",
+  "nvidia/glm-5-nvfp4",
+  "nvidia/kimi-k2-5-nvfp4",
+  "nvidia/llama-3-1-8b-instruct-fp8",
+  "nvidia/llama-3-1-8b-instruct-nvfp4",
+  "nvidia/llama-3-1-nemotron-nano-8b-v1",
+  "nvidia/llama-3-1-nemotron-nano-vl-8b-v1",
+  "nvidia/llama-3-3-70b-instruct-nvfp4",
+  "nvidia/llama-3-3-nemotron-super-49b-v1-5",
+  "nvidia/llama-nemotron-rerank-1b-v2",
+  "nvidia/mit-b0",
+  "nvidia/nemotron-cascade-2-30b-a3b",
+  "nvidia/nemotron-h-4b-instruct-128k",
+  "nvidia/nv-embed-v2",
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-base-bf16",
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16",
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8",
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4",
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16",
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-fp8",
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-nvfp4",
+  "nvidia/nvidia-nemotron-nano-12b-v2-vl-bf16",
+  "nvidia/nvidia-nemotron-nano-12b-v2-vl-fp8",
+  "nvidia/nvidia-nemotron-nano-9b-v2-base",
+  "nvidia/nvidia-nemotron-nano-9b-v2-fp8",
+  "nvidia/nvidia-nemotron-nano-9b-v2-japanese",
+  "nvidia/nvidia-nemotron-nano-9b-v2",
+  "nvidia/nvidia-nemotron-parse-v1-1",
+  "nvidia/nvlm-d-72b",
+  "nvidia/openreasoning-nemotron-32b",
+  "nvidia/parakeet-ctc-1-1b",
+  "nvidia/parakeet-tdt-0-6b-v2",
+  "nvidia/parakeet-tdt-0-6b-v3",
+  "nvidia/personaplex-7b-v1",
+  "nvidia/qwen3-14b-nvfp4",
+  "nvidia/qwen3-30b-a3b-nvfp4",
+  "nvidia/qwen3-32b-nvfp4",
+  "nvidia/qwen3-5-397b-a17b-nvfp4",
+  "nvidia/segformer-b0-finetuned-ade-512-512",
+  "nvidia/segformer-b1-finetuned-ade-512-512",
+  "nvidia/segformer-b5-finetuned-ade-640-640",
+  "nvidia/segformer-b5-finetuned-cityscapes-1024-1024",
+  "nvidia/speakerverification-en-titanet-large",
+  "openbmb/minicpm-1b-sft-bf16",
+  "openbmb/minicpm-2b-sft-bf16",
+  "openbmb/minicpm-llama3-v-2-5",
+  "openbmb/minicpm-o-2-6",
+  "openbmb/minicpm-o-4-5-gguf",
+  "openbmb/minicpm-o-4-5",
+  "openbmb/minicpm-v-2-6-gguf",
+  "openbmb/minicpm-v-2-6-int4",
+  "openbmb/minicpm-v-2-6",
+  "openbmb/minicpm-v-2",
+  "openbmb/minicpm-v-4-5-gguf",
+  "openbmb/minicpm-v-4-5",
+  "openbmb/minicpm-v-4",
+  "openbmb/minicpm3-4b",
+  "openbmb/minicpm4-1-8b",
+  "qwen/deepseek-v4-flash-0731",
+  "qwen/glm-5-2",
+  "qwen/qwen2-0-5b-instruct",
+  "qwen/qwen2-1-5b-instruct",
+  "qwen/qwen2-5-0-5b-instruct",
+  "qwen/qwen2-5-0-5b",
+  "qwen/qwen2-5-1-5b-instruct-awq",
+  "qwen/qwen2-5-1-5b-instruct",
+  "qwen/qwen2-5-1-5b",
+  "qwen/qwen2-5-14b-instruct-awq",
+  "qwen/qwen2-5-14b-instruct",
+  "qwen/qwen2-5-32b-instruct-awq",
+  "qwen/qwen2-5-32b-instruct",
+  "qwen/qwen2-5-3b-instruct",
+  "qwen/qwen2-5-72b-instruct",
+  "qwen/qwen2-5-7b-instruct-awq",
+  "qwen/qwen2-5-7b-instruct",
+  "qwen/qwen2-5-7b",
+  "qwen/qwen2-5-coder-1-5b-instruct",
+  "qwen/qwen2-5-coder-14b-instruct",
+  "qwen/qwen2-5-coder-32b-instruct-awq",
+  "qwen/qwen2-5-coder-32b-instruct",
+  "qwen/qwen2-5-coder-7b-instruct-gptq-int4",
+  "qwen/qwen2-5-coder-7b-instruct",
+  "qwen/qwen2-5-math-1-5b",
+  "qwen/qwen2-5-omni-7b",
+  "qwen/qwen2-5-vl-3b-instruct",
+  "qwen/qwen2-5-vl-72b-instruct",
+  "qwen/qwen2-5-vl-7b-instruct",
+  "qwen/qwen2-vl-2b-instruct",
+  "qwen/qwen2-vl-7b-instruct-awq",
+  "qwen/qwen2-vl-7b-instruct",
+  "qwen/qwen3-0-6b-fp8",
+  "qwen/qwen3-0-6b",
+  "qwen/qwen3-1-7b",
+  "qwen/qwen3-14b-awq",
+  "qwen/qwen3-14b",
+  "qwen/qwen3-235b-a22b",
+  "qwen/qwen3-30b-a3b-instruct-2507",
+  "qwen/qwen3-32b-awq",
+  "qwen/qwen3-32b",
+  "qwen/qwen3-4b-base",
+  "qwen/qwen3-4b-instruct-2507-fp8",
+  "qwen/qwen3-4b-instruct-2507",
+  "qwen/qwen3-4b-thinking-2507",
+  "qwen/qwen3-4b",
+  "qwen/qwen3-5-0-8b",
+  "qwen/qwen3-5-122b-a10b-fp8",
+  "qwen/qwen3-5-122b-a10b",
+  "qwen/qwen3-5-27b-fp8",
+  "qwen/qwen3-5-27b",
+  "qwen/qwen3-5-2b",
+  "qwen/qwen3-5-35b-a3b-fp8",
+  "qwen/qwen3-5-35b-a3b-gptq-int4",
+  "qwen/qwen3-5-35b-a3b",
+  "qwen/qwen3-5-397b-a17b-fp8",
+  "qwen/qwen3-5-397b-a17b",
+  "qwen/qwen3-5-4b",
+  "qwen/qwen3-5-9b",
+  "qwen/qwen3-6-27b",
+  "qwen/qwen3-6-35b-a3b",
+  "qwen/qwen3-8b-awq",
+  "qwen/qwen3-8b-base",
+  "qwen/qwen3-8b",
+  "qwen/qwen3-asr-1-7b",
+  "qwen/qwen3-coder-30b-a3b-instruct",
+  "qwen/qwen3-coder-480b-a35b-instruct",
+  "qwen/qwen3-coder-next-fp8",
+  "qwen/qwen3-coder-next",
+  "qwen/qwen3-coder-plus",
+  "qwen/qwen3-embedding-0-6b",
+  "qwen/qwen3-embedding-4b",
+  "qwen/qwen3-embedding-8b",
+  "qwen/qwen3-next-80b-a3b-instruct",
+  "qwen/qwen3-next-80b-a3b-thinking",
+  "qwen/qwen3-reranker-0-6b",
+  "qwen/qwen3-reranker-4b",
+  "qwen/qwen3-tts-12hz-0-6b-base",
+  "qwen/qwen3-tts-12hz-1-7b-base",
+  "qwen/qwen3-tts-12hz-1-7b-customvoice",
+  "qwen/qwen3-tts-12hz-1-7b-voicedesign",
+  "qwen/qwen3-vl-235b-a22b",
+  "qwen/qwen3-vl-2b-instruct",
+  "qwen/qwen3-vl-30b-a3b-instruct",
+  "qwen/qwen3-vl-30b-a3b",
+  "qwen/qwen3-vl-32b-instruct",
+  "qwen/qwen3-vl-4b-instruct",
+  "qwen/qwen3-vl-8b-instruct",
+  "qwen/qwen3-vl-embedding-2b",
+  "qwen/qwen3-vl-embedding-8b",
+  "rwkv/rwkv-4-14b-pile",
+  "rwkv/rwkv-4-169m-pile",
+  "rwkv/rwkv-4-1b5-pile",
+  "rwkv/rwkv-4-3b-pile",
+  "rwkv/rwkv-4-430m-pile",
+  "rwkv/rwkv-4-7b-pile",
+  "rwkv/rwkv-5-world-3b",
+  "rwkv/rwkv-6-world-1b6",
+  "rwkv/rwkv-6-world-7b",
+  "rwkv/rwkv-raven-14b",
+  "rwkv/rwkv-raven-1b5",
+  "rwkv/rwkv-raven-3b",
+  "rwkv/rwkv-raven-7b",
+  "rwkv/rwkv7-goose-world3-1-5b-hf",
+  "rwkv/rwkv7-goose-world3-2-9b-hf",
+  "rwkv/v5-eagle-7b-hf",
+  "rwkv/v6-finch-14b-hf",
+  "rwkv/v6-finch-1b6-hf",
+  "rwkv/v6-finch-3b-hf",
+  "rwkv/v6-finch-7b-hf",
+  "salesforce/blip-image-captioning-base",
+  "salesforce/blip-image-captioning-large",
+  "salesforce/blip-itm-base-coco",
+  "salesforce/blip-vqa-base",
+  "salesforce/blip-vqa-capfilt-large",
+  "salesforce/blip2-flan-t5-xl",
+  "salesforce/blip2-itm-vit-g",
+  "salesforce/blip2-opt-2-7b-coco",
+  "salesforce/blip2-opt-2-7b",
+  "salesforce/blip2-opt-6-7b",
+  "salesforce/codegen-350m-mono",
+  "salesforce/codet5-small",
+  "salesforce/codet5p-110m-embedding",
+  "salesforce/codet5p-220m",
+  "salesforce/ctrl",
+  "salesforce/llama-xlam-2-8b-fc-r",
+  "salesforce/moirai-1-0-r-large",
+  "salesforce/moirai-1-1-r-base",
+  "salesforce/moirai-1-1-r-large",
+  "salesforce/moirai-1-1-r-small",
+  "salesforce/moirai-2-0-r-small",
+  "salesforce/moirai-moe-1-0-r-base",
+  "salesforce/moirai-moe-1-0-r-small",
+  "salesforce/sfr-embedding-2-r",
+  "salesforce/sfr-embedding-code-400m-r",
+  "salesforce/xlam-2-1b-fc-r",
+  "salesforce/xlam-2-32b-fc-r",
+  "salesforce/xlam-2-3b-fc-r",
+  "salesforce/xlam-7b-r",
+  "salesforce/xlam-8x7b-r",
+  "samsung/sguard-contentfilter-2b-v1",
+  "samsung/sguard-jailbreakfilter-2b-v1",
+  "sentence-transformers/all-distilroberta-v1",
+  "sentence-transformers/all-minilm-l12-v2",
+  "sentence-transformers/all-minilm-l6-v2",
+  "sentence-transformers/all-mpnet-base-v2",
+  "sentence-transformers/all-roberta-large-v1",
+  "sentence-transformers/distiluse-base-multilingual-cased-v1",
+  "sentence-transformers/distiluse-base-multilingual-cased-v2",
+  "sentence-transformers/labse",
+  "sentence-transformers/msmarco-bert-base-dot-v5",
+  "sentence-transformers/msmarco-minilm-l12-cos-v5",
+  "sentence-transformers/msmarco-minilm-l6-v3",
+  "sentence-transformers/multi-qa-minilm-l6-cos-v1",
+  "sentence-transformers/multi-qa-mpnet-base-cos-v1",
+  "sentence-transformers/multi-qa-mpnet-base-dot-v1",
+  "sentence-transformers/paraphrase-minilm-l12-v2",
+  "sentence-transformers/paraphrase-minilm-l3-v2",
+  "sentence-transformers/paraphrase-minilm-l6-v2",
+  "sentence-transformers/paraphrase-mpnet-base-v2",
+  "sentence-transformers/paraphrase-multilingual-minilm-l12-v2",
+  "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+  "skywork/skywork-o1-open-prm-qwen-2-5-1-5b",
+  "skywork/skywork-o1-open-prm-qwen-2-5-7b",
+  "skywork/skywork-r1v-38b",
+  "skywork/skywork-reward-llama-3-1-8b-v0-2",
+  "skywork/skywork-reward-v2-llama-3-1-8b",
+  "skywork/skywork-reward-v2-llama-3-2-1b",
+  "skywork/skywork-reward-v2-qwen3-0-6b",
+  "skywork/skywork-reward-v2-qwen3-1-7b",
+  "skywork/skywork-reward-v2-qwen3-8b",
+  "skywork/skywork-vl-reward-7b",
+  "snowflake/arctic-lstm-speculator-llama-3-1-8b-instruct",
+  "snowflake/arctic-text2sql-r1-7b",
+  "snowflake/llama-3-1-swiftkv-8b-instruct",
+  "snowflake/llama-3-3-swiftkv-70b-instruct",
+  "snowflake/snowflake-arctic-base",
+  "snowflake/snowflake-arctic-embed-l-v2-0",
+  "snowflake/snowflake-arctic-embed-l",
+  "snowflake/snowflake-arctic-embed-m-long",
+  "snowflake/snowflake-arctic-embed-m-v1-5",
+  "snowflake/snowflake-arctic-embed-m-v2-0",
+  "snowflake/snowflake-arctic-embed-m",
+  "snowflake/snowflake-arctic-embed-s",
+  "snowflake/snowflake-arctic-embed-xs",
+  "snowflake/snowflake-arctic-instruct",
+  "stability/sd-turbo",
+  "stability/sd-vae-ft-ema",
+  "stability/sd-vae-ft-mse",
+  "stability/sd-x2-latent-upscaler",
+  "stability/sdxl-turbo-ryzen-ai",
+  "stability/sdxl-turbo",
+  "stability/sdxl-vae",
+  "stability/stable-audio-open-1-0",
+  "stability/stable-cascade",
+  "stability/stable-code-3b",
+  "stability/stable-diffusion-3-5-large-controlnet-canny",
+  "stability/stable-diffusion-3-5-large-controlnet-depth",
+  "stability/stable-diffusion-3-5-large-turbo",
+  "stability/stable-diffusion-3-5-large",
+  "stability/stable-diffusion-3-5-medium",
+  "stability/stable-diffusion-3-medium-diffusers",
+  "stability/stable-diffusion-x4-upscaler",
+  "stability/stable-diffusion-xl-base-1-0",
+  "stability/stable-diffusion-xl-refiner-1-0",
+  "stability/stable-fast-3d",
+  "stability/stable-video-diffusion-img2vid-xt-1-1",
+  "stability/stable-video-diffusion-img2vid-xt",
+  "stability/stable-video-diffusion-img2vid",
+  "stability/stable-virtual-camera",
+  "stability/stablelm-2-1-6b",
+  "stability/stablelm-3b-4e1t",
+  "stability/stablelm-base-alpha-3b",
+  "stability/stablelm-base-alpha-7b-v2",
+  "stability/stablelm-zephyr-3b",
+  "stability/triposr",
+  "stepfun/step-3-5-flash-2603",
+  "stepfun/step-3-5-flash",
+  "stepfun/step-3-7-flash",
+  "teknium/llama-3-1-alternatetokenizer",
+  "teknium/mistral-trismegistus-7b",
+  "teknium/openhermes-13b",
+  "teknium/openhermes-2-5-mistral-7b",
+  "teknium/openhermes-2-mistral-7b",
+  "tencent/depthcrafter",
+  "tencent/hunyuan-0-5b-pretrain",
+  "tencent/hunyuan-1-8b-pretrain",
+  "tencent/hunyuan-4b-pretrain",
+  "tencent/hunyuan-7b-instruct",
+  "tencent/hunyuan-7b-pretrain",
+  "tencent/hunyuan-a13b-instruct",
+  "tencent/hunyuan-mt-7b-fp8",
+  "tencent/hunyuan-mt-7b",
+  "tencent/hunyuan3d-2-1",
+  "tencent/hunyuan3d-2",
+  "tencent/hunyuan3d-2mini",
+  "tencent/hunyuan3d-2mv",
+  "tencent/hunyuanimage-3-0-instruct",
+  "tencent/hunyuanimage-3-0",
+  "tencent/hunyuanocr",
+  "tencent/hunyuanworld-1",
+  "tencent/hunyuanworld-mirror",
+  "tencent/hy-mt1-5-1-8b-gguf",
+  "tencent/hy-mt1-5-1-8b",
+  "tencent/hy-mt1-5-7b-gguf",
+  "tencent/hy-mt1-5-7b",
+  "tencent/kalm-embedding-gemma3-12b-2511",
+  "tencent/penguin-encoder",
+  "tencent/penguin-vl-2b",
+  "tencent/penguin-vl-8b",
+  "tencent/songgeneration",
+  "tencent/wedlm-8b-base",
+  "tencent/wedlm-8b-instruct",
+  "tencent/youtu-llm-2b-base",
+  "tii/falcon-11b",
+  "tii/falcon-40b-instruct",
+  "tii/falcon-40b",
+  "tii/falcon-7b-instruct",
+  "tii/falcon-7b",
+  "tii/falcon-h1-0-5b-base",
+  "tii/falcon-h1-1-5b-base",
+  "tii/falcon-h1-1-5b-deep-base",
+  "tii/falcon-h1-1-5b-deep-instruct",
+  "tii/falcon-h1-34b-base",
+  "tii/falcon-h1-3b-base",
+  "tii/falcon-h1-7b-base",
+  "tii/falcon-h1-tiny-90m-instruct",
+  "tii/falcon-h1r-7b",
+  "tii/falcon-mamba-7b-instruct-q4-k-m-gguf",
+  "tii/falcon-mamba-7b-instruct",
+  "tii/falcon-mamba-7b",
+  "tii/falcon-mamba-tiny-dev",
+  "tii/falcon-perception",
+  "tii/falcon-rw-1b",
+  "tii/falcon3-10b-base",
+  "tii/falcon3-10b-instruct",
+  "tii/falcon3-1b-base",
+  "tii/falcon3-1b-instruct",
+  "tii/falcon3-3b-base",
+  "tii/falcon3-3b-instruct",
+  "tii/falcon3-7b-base",
+  "tii/falcon3-7b-instruct",
+  "tii/falcon3-mamba-7b-instruct",
+  "tii/siglino-moe-0-3-0-6b",
+  "together/aurora-spec-qwen3-coder-next-fp8",
+  "together/evo-1-131k-base",
+  "together/evo-1-8k-base",
+  "together/gpt-jt-6b-v0",
+  "together/gpt-jt-6b-v1",
+  "together/gpt-jt-moderation-6b",
+  "together/gpt-neoxt-chat-base-20b",
+  "together/llama-2-7b-32k-instruct",
+  "together/llama-2-7b-32k",
+  "together/pythia-chat-base-7b",
+  "together/redpajama-incite-7b-base",
+  "together/redpajama-incite-7b-chat",
+  "together/redpajama-incite-7b-instruct",
+  "together/redpajama-incite-base-3b-v1",
+  "together/redpajama-incite-chat-3b-v1",
+  "unsloth/deepseek-ocr-2",
+  "unsloth/gemma-4-26b-a4b-it-gguf",
+  "unsloth/gemma-4-31b-it-gguf",
+  "unsloth/gemma-4-e4b-it-gguf",
+  "unsloth/glm-4-7-flash-fp8-dynamic",
+  "unsloth/gpt-oss-20b-gguf",
+  "unsloth/llama-3-1-8b-instruct",
+  "unsloth/ltx-2-3-gguf",
+  "unsloth/meta-llama-3-1-8b-instruct-bnb-4bit",
+  "unsloth/meta-llama-3-1-8b-instruct",
+  "unsloth/mistral-7b-v0-3-bnb-4bit",
+  "unsloth/qwen3-0-6b",
+  "unsloth/qwen3-5-0-8b-gguf",
+  "unsloth/qwen3-5-122b-a10b-gguf",
+  "unsloth/qwen3-5-27b-gguf",
+  "unsloth/qwen3-5-2b-gguf",
+  "unsloth/qwen3-5-35b-a3b-gguf",
+  "unsloth/qwen3-5-4b-gguf",
+  "unsloth/qwen3-5-9b-gguf",
+  "unsloth/qwen3-coder-next-gguf",
+  "zhipu/autoglm-phone-9b-multilingual",
+  "zhipu/autoglm-phone-9b",
+  "zhipu/chatglm2-6b",
+  "zhipu/chatglm3-6b-base",
+  "zhipu/chatglm3-6b",
+  "zhipu/codegeex4-all-9b",
+  "zhipu/cogvideox-2b",
+  "zhipu/cogvideox-5b-i2v",
+  "zhipu/cogvideox-5b",
+  "zhipu/cogvideox1-5-5b-i2v",
+  "zhipu/cogvlm2-llama3-chat-19b",
+  "zhipu/glm-4-1v-9b-thinking",
+  "zhipu/glm-4-5-air-fp8",
+  "zhipu/glm-4-5-air",
+  "zhipu/glm-4-5",
+  "zhipu/glm-4-5v-fp8",
+  "zhipu/glm-4-5v",
+  "zhipu/glm-4-6-fp8",
+  "zhipu/glm-4-6",
+  "zhipu/glm-4-6v-flash",
+  "zhipu/glm-4-6v-fp8",
+  "zhipu/glm-4-6v",
+  "zhipu/glm-4-7-flash",
+  "zhipu/glm-4-7-fp8",
+  "zhipu/glm-4-7",
+  "zhipu/glm-4-9b-0414",
+  "zhipu/glm-4-9b-chat-1m",
+  "zhipu/glm-4-9b-chat-hf",
+  "zhipu/glm-4-9b-chat",
+  "zhipu/glm-4-9b",
+  "zhipu/glm-4-voice-9b",
+  "zhipu/glm-4-voice-tokenizer",
+  "zhipu/glm-4v-9b",
+  "zhipu/glm-5-1",
+  "zhipu/glm-5-fp8",
+  "zhipu/glm-5",
+  "zhipu/glm-asr-nano-2512",
+  "zhipu/glm-edge-v-2b",
+  "zhipu/glm-image",
+  "zhipu/glm-ocr",
+  "zhipu/glm-z1-32b-0414"
+ ],
+ "resolutions": {
+  "01-ai/yi-1-5-34b": {
+   "confidence": 0.9,
+   "downloads": 9072,
+   "repo_id": "01-ai/Yi-1.5-34B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-34b-32k": {
+   "confidence": 0.9,
+   "downloads": 8570,
+   "repo_id": "01-ai/Yi-1.5-34B-32K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-34b-chat": {
+   "confidence": 0.95,
+   "downloads": 15503,
+   "repo_id": "01-ai/Yi-1.5-34B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-34b-chat-16k": {
+   "confidence": 0.9,
+   "downloads": 8722,
+   "repo_id": "01-ai/Yi-1.5-34B-Chat-16K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-6b": {
+   "confidence": 0.95,
+   "downloads": 12947,
+   "repo_id": "01-ai/Yi-1.5-6B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-6b-chat": {
+   "confidence": 0.9,
+   "downloads": 5186,
+   "repo_id": "01-ai/Yi-1.5-6B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-9b": {
+   "confidence": 0.95,
+   "downloads": 13978,
+   "repo_id": "01-ai/Yi-1.5-9B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-9b-32k": {
+   "confidence": 0.9,
+   "downloads": 8679,
+   "repo_id": "01-ai/Yi-1.5-9B-32K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-9b-chat": {
+   "confidence": 0.95,
+   "downloads": 16113,
+   "repo_id": "01-ai/Yi-1.5-9B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-1-5-9b-chat-16k": {
+   "confidence": 0.9,
+   "downloads": 9728,
+   "repo_id": "01-ai/Yi-1.5-9B-Chat-16K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-34b": {
+   "confidence": 0.95,
+   "downloads": 10267,
+   "repo_id": "01-ai/Yi-34B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-34b-200k": {
+   "confidence": 0.9,
+   "downloads": 8969,
+   "repo_id": "01-ai/Yi-34B-200K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-34b-chat": {
+   "confidence": 0.95,
+   "downloads": 26109,
+   "repo_id": "01-ai/Yi-34B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-6b": {
+   "confidence": 0.95,
+   "downloads": 32650,
+   "repo_id": "01-ai/Yi-6B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-6b-200k": {
+   "confidence": 0.95,
+   "downloads": 14863,
+   "repo_id": "01-ai/Yi-6B-200K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-6b-chat": {
+   "confidence": 0.95,
+   "downloads": 29864,
+   "repo_id": "01-ai/Yi-6B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-6b-chat-4bits": {
+   "confidence": 0.9,
+   "downloads": 379,
+   "repo_id": "01-ai/Yi-6B-Chat-4bits",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-9b": {
+   "confidence": 0.9,
+   "downloads": 8984,
+   "repo_id": "01-ai/Yi-9B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-9b-200k": {
+   "confidence": 0.9,
+   "downloads": 8830,
+   "repo_id": "01-ai/Yi-9B-200K",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-coder-9b": {
+   "confidence": 0.9,
+   "downloads": 8697,
+   "repo_id": "01-ai/Yi-Coder-9B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "01-ai/yi-coder-9b-chat": {
+   "confidence": 0.95,
+   "downloads": 10287,
+   "repo_id": "01-ai/Yi-Coder-9B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-large-1-5": {
+   "confidence": 0.9,
+   "downloads": 154,
+   "repo_id": "ai21labs/AI21-Jamba-Large-1.5",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-large-1-6": {
+   "confidence": 0.9,
+   "downloads": 37,
+   "repo_id": "ai21labs/AI21-Jamba-Large-1.6",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-mini-1-5": {
+   "confidence": 0.9,
+   "downloads": 3736,
+   "repo_id": "ai21labs/AI21-Jamba-Mini-1.5",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-mini-1-6": {
+   "confidence": 0.9,
+   "downloads": 32,
+   "repo_id": "ai21labs/AI21-Jamba-Mini-1.6",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-mini-1-7": {
+   "confidence": 0.9,
+   "downloads": 548,
+   "repo_id": "ai21labs/AI21-Jamba-Mini-1.7",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-reasoning-3b": {
+   "confidence": 0.95,
+   "downloads": 15253,
+   "repo_id": "ai21labs/AI21-Jamba-Reasoning-3B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba-reasoning-3b-gguf": {
+   "confidence": 0.9,
+   "downloads": 1028,
+   "repo_id": "ai21labs/AI21-Jamba-Reasoning-3B-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba2-3b": {
+   "confidence": 0.9,
+   "downloads": 9060,
+   "repo_id": "ai21labs/AI21-Jamba2-3B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba2-mini": {
+   "confidence": 0.9,
+   "downloads": 689,
+   "repo_id": "ai21labs/AI21-Jamba2-Mini",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/ai21-jamba2-mini-fp8": {
+   "confidence": 0.9,
+   "downloads": 189,
+   "repo_id": "ai21labs/AI21-Jamba2-Mini-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/jamba-tiny-dev": {
+   "confidence": 1.0,
+   "downloads": 308981,
+   "repo_id": "ai21labs/Jamba-tiny-dev",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ai21/jamba-tiny-random": {
+   "confidence": 0.9,
+   "downloads": 3409,
+   "repo_id": "ai21labs/Jamba-tiny-random",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/jamba-tiny-reward-dev": {
+   "confidence": 0.9,
+   "downloads": 2455,
+   "repo_id": "ai21labs/Jamba-tiny-reward-dev",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ai21/jamba-v0-1": {
+   "confidence": 0.95,
+   "downloads": 11075,
+   "repo_id": "ai21labs/Jamba-v0.1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/biomed-roberta-base": {
+   "confidence": 0.95,
+   "downloads": 24752,
+   "repo_id": "allenai/biomed_roberta_base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/led-base-16384": {
+   "confidence": 0.95,
+   "downloads": 25047,
+   "repo_id": "allenai/led-base-16384",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/longformer-base-4096": {
+   "confidence": 1.0,
+   "downloads": 1004931,
+   "repo_id": "allenai/longformer-base-4096",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/molmo-7b-d-0924": {
+   "confidence": 0.95,
+   "downloads": 32503,
+   "repo_id": "allenai/Molmo-7B-D-0924",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/molmo2-4b": {
+   "confidence": 1.0,
+   "downloads": 106972,
+   "repo_id": "allenai/Molmo2-4B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/molmo2-8b": {
+   "confidence": 0.95,
+   "downloads": 91708,
+   "repo_id": "allenai/Molmo2-8B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/molmo2-o-7b": {
+   "confidence": 0.95,
+   "downloads": 17211,
+   "repo_id": "allenai/Molmo2-O-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/molmo2-videopoint-4b": {
+   "confidence": 0.9,
+   "downloads": 213,
+   "repo_id": "allenai/Molmo2-VideoPoint-4B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/molmopoint-vid-4b": {
+   "confidence": 0.9,
+   "downloads": 531,
+   "repo_id": "allenai/MolmoPoint-Vid-4B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-1b-hf": {
+   "confidence": 0.95,
+   "downloads": 57905,
+   "repo_id": "allenai/OLMo-1B-hf",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-2-0425-1b": {
+   "confidence": 1.0,
+   "downloads": 1085688,
+   "repo_id": "allenai/OLMo-2-0425-1B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/olmo-2-0425-1b-instruct": {
+   "confidence": 0.95,
+   "downloads": 66296,
+   "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-2-1124-7b": {
+   "confidence": 0.95,
+   "downloads": 85723,
+   "repo_id": "allenai/OLMo-2-1124-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-3-1-32b-instruct": {
+   "confidence": 0.95,
+   "downloads": 12603,
+   "repo_id": "allenai/Olmo-3.1-32B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-3-1025-7b": {
+   "confidence": 1.0,
+   "downloads": 112577,
+   "repo_id": "allenai/Olmo-3-1025-7B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/olmo-3-1125-32b": {
+   "confidence": 0.95,
+   "downloads": 41024,
+   "repo_id": "allenai/Olmo-3-1125-32B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-3-7b-instruct-sft": {
+   "confidence": 0.95,
+   "downloads": 42411,
+   "repo_id": "allenai/Olmo-3-7B-Instruct-SFT",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-3-7b-think": {
+   "confidence": 0.95,
+   "downloads": 68575,
+   "repo_id": "allenai/Olmo-3-7B-Think",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmo-hybrid-7b": {
+   "confidence": 0.95,
+   "downloads": 19029,
+   "repo_id": "allenai/Olmo-Hybrid-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmocr-2-7b-1025": {
+   "confidence": 1.0,
+   "downloads": 199792,
+   "repo_id": "allenai/olmOCR-2-7B-1025",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/olmocr-2-7b-1025-fp8": {
+   "confidence": 1.0,
+   "downloads": 226958,
+   "repo_id": "allenai/olmOCR-2-7B-1025-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/olmocr-7b-0225-preview": {
+   "confidence": 0.95,
+   "downloads": 11313,
+   "repo_id": "allenai/olmOCR-7B-0225-preview",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmoe-1b-7b-0125": {
+   "confidence": 0.95,
+   "downloads": 17153,
+   "repo_id": "allenai/OLMoE-1B-7B-0125",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "allen-ai/olmoe-1b-7b-0125-instruct": {
+   "confidence": 1.0,
+   "downloads": 167411,
+   "repo_id": "allenai/OLMoE-1B-7B-0125-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/olmoe-1b-7b-0924": {
+   "confidence": 1.0,
+   "downloads": 123250,
+   "repo_id": "allenai/OLMoE-1B-7B-0924",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/scibert-scivocab-uncased": {
+   "confidence": 1.0,
+   "downloads": 222065,
+   "repo_id": "allenai/scibert_scivocab_uncased",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/specter2-base": {
+   "confidence": 1.0,
+   "downloads": 986946,
+   "repo_id": "allenai/specter2_base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/unifiedqa-t5-small": {
+   "confidence": 1.0,
+   "downloads": 610510,
+   "repo_id": "allenai/unifiedqa-t5-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "allen-ai/wildguard": {
+   "confidence": 1.0,
+   "downloads": 146427,
+   "repo_id": "allenai/wildguard",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/altclip": {
+   "confidence": 0.95,
+   "downloads": 16077,
+   "repo_id": "BAAI/AltCLIP",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/aquilachat-7b": {
+   "confidence": 0.9,
+   "downloads": 450,
+   "repo_id": "BAAI/AquilaChat-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/aquilachat2-7b": {
+   "confidence": 0.9,
+   "downloads": 647,
+   "repo_id": "BAAI/AquilaChat2-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-base-en": {
+   "confidence": 1.0,
+   "downloads": 1998807,
+   "repo_id": "BAAI/bge-base-en",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-base-en-v1-5": {
+   "confidence": 1.0,
+   "downloads": 10859564,
+   "repo_id": "BAAI/bge-base-en-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-base-zh": {
+   "confidence": 0.95,
+   "downloads": 19639,
+   "repo_id": "BAAI/bge-base-zh",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-base-zh-v1-5": {
+   "confidence": 1.0,
+   "downloads": 859542,
+   "repo_id": "BAAI/bge-base-zh-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-code-v1": {
+   "confidence": 0.9,
+   "downloads": 4537,
+   "repo_id": "BAAI/bge-code-v1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-large-en": {
+   "confidence": 0.95,
+   "downloads": 42862,
+   "repo_id": "BAAI/bge-large-en",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-large-en-v1-5": {
+   "confidence": 1.0,
+   "downloads": 13169864,
+   "repo_id": "BAAI/bge-large-en-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-large-zh": {
+   "confidence": 0.95,
+   "downloads": 11704,
+   "repo_id": "BAAI/bge-large-zh",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-large-zh-v1-5": {
+   "confidence": 1.0,
+   "downloads": 1128186,
+   "repo_id": "BAAI/bge-large-zh-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-m3": {
+   "confidence": 1.0,
+   "downloads": 37985566,
+   "repo_id": "BAAI/bge-m3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-multilingual-gemma2": {
+   "confidence": 1.0,
+   "downloads": 156054,
+   "repo_id": "BAAI/bge-multilingual-gemma2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-reranker-base": {
+   "confidence": 1.0,
+   "downloads": 3580098,
+   "repo_id": "BAAI/bge-reranker-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-reranker-large": {
+   "confidence": 1.0,
+   "downloads": 2639543,
+   "repo_id": "BAAI/bge-reranker-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-reranker-v2-gemma": {
+   "confidence": 1.0,
+   "downloads": 306813,
+   "repo_id": "BAAI/bge-reranker-v2-gemma",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-reranker-v2-m3": {
+   "confidence": 1.0,
+   "downloads": 18159906,
+   "repo_id": "BAAI/bge-reranker-v2-m3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-small-en": {
+   "confidence": 1.0,
+   "downloads": 380974,
+   "repo_id": "BAAI/bge-small-en",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-small-en-v1-5": {
+   "confidence": 1.0,
+   "downloads": 64933788,
+   "repo_id": "BAAI/bge-small-en-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/bge-small-zh": {
+   "confidence": 0.95,
+   "downloads": 70685,
+   "repo_id": "BAAI/bge-small-zh",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/bge-small-zh-v1-5": {
+   "confidence": 1.0,
+   "downloads": 4862103,
+   "repo_id": "BAAI/bge-small-zh-v1.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "baai/emu3-chat-hf": {
+   "confidence": 0.95,
+   "downloads": 36494,
+   "repo_id": "BAAI/Emu3-Chat-hf",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/emu3-visiontokenizer": {
+   "confidence": 0.9,
+   "downloads": 2293,
+   "repo_id": "BAAI/Emu3-VisionTokenizer",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/infinity-instruct-3m-0625-llama3-8b": {
+   "confidence": 0.9,
+   "downloads": 8500,
+   "repo_id": "BAAI/Infinity-Instruct-3M-0625-Llama3-8B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/infinity-instruct-3m-0625-yi-1-5-9b": {
+   "confidence": 0.9,
+   "downloads": 8543,
+   "repo_id": "BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/infinity-instruct-7m-gen-llama3-1-8b": {
+   "confidence": 0.95,
+   "downloads": 16514,
+   "repo_id": "BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/llm-embedder": {
+   "confidence": 0.95,
+   "downloads": 40070,
+   "repo_id": "BAAI/llm-embedder",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/robobrain2-5-8b-nv": {
+   "confidence": 0.9,
+   "downloads": 594,
+   "repo_id": "BAAI/RoboBrain2.5-8B-NV",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baai/seggpt-vit-large": {
+   "confidence": 0.95,
+   "downloads": 68622,
+   "repo_id": "BAAI/seggpt-vit-large",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-13b-base": {
+   "confidence": 0.9,
+   "downloads": 545,
+   "repo_id": "baichuan-inc/Baichuan-13B-Base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-13b-chat": {
+   "confidence": 0.9,
+   "downloads": 5347,
+   "repo_id": "baichuan-inc/Baichuan-13B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-7b": {
+   "confidence": 0.95,
+   "downloads": 19175,
+   "repo_id": "baichuan-inc/Baichuan-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-audio-base": {
+   "confidence": 0.9,
+   "downloads": 45,
+   "repo_id": "baichuan-inc/Baichuan-Audio-Base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-audio-instruct": {
+   "confidence": 0.9,
+   "downloads": 63,
+   "repo_id": "baichuan-inc/Baichuan-Audio-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-m1-14b-instruct": {
+   "confidence": 0.9,
+   "downloads": 807,
+   "repo_id": "baichuan-inc/Baichuan-M1-14B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-m2-32b": {
+   "confidence": 0.9,
+   "downloads": 1719,
+   "repo_id": "baichuan-inc/Baichuan-M2-32B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-m2-32b-gptq-int4": {
+   "confidence": 0.9,
+   "downloads": 894,
+   "repo_id": "baichuan-inc/Baichuan-M2-32B-GPTQ-Int4",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-m3-235b": {
+   "confidence": 0.9,
+   "downloads": 512,
+   "repo_id": "baichuan-inc/Baichuan-M3-235B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-m3-235b-fp8": {
+   "confidence": 0.9,
+   "downloads": 461,
+   "repo_id": "baichuan-inc/Baichuan-M3-235B-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan-omni-1d5": {
+   "confidence": 0.9,
+   "downloads": 507,
+   "repo_id": "baichuan-inc/Baichuan-Omni-1d5",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan2-13b-base": {
+   "confidence": 0.9,
+   "downloads": 681,
+   "repo_id": "baichuan-inc/Baichuan2-13B-Base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan2-13b-chat": {
+   "confidence": 0.9,
+   "downloads": 6279,
+   "repo_id": "baichuan-inc/Baichuan2-13B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan2-7b-base": {
+   "confidence": 0.9,
+   "downloads": 2026,
+   "repo_id": "baichuan-inc/Baichuan2-7B-Base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "baichuan/baichuan2-7b-chat": {
+   "confidence": 0.95,
+   "downloads": 22812,
+   "repo_id": "baichuan-inc/Baichuan2-7B-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-canny-dev-lora": {
+   "confidence": 0.95,
+   "downloads": 10945,
+   "repo_id": "black-forest-labs/FLUX.1-Canny-dev-lora",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-depth-dev-lora": {
+   "confidence": 0.95,
+   "downloads": 13422,
+   "repo_id": "black-forest-labs/FLUX.1-Depth-dev-lora",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-dev": {
+   "confidence": 1.0,
+   "downloads": 790579,
+   "repo_id": "black-forest-labs/FLUX.1-dev",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-1-fill-dev": {
+   "confidence": 0.95,
+   "downloads": 65411,
+   "repo_id": "black-forest-labs/FLUX.1-Fill-dev",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-kontext-dev": {
+   "confidence": 1.0,
+   "downloads": 245523,
+   "repo_id": "black-forest-labs/FLUX.1-Kontext-dev",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-1-krea-dev": {
+   "confidence": 0.95,
+   "downloads": 70507,
+   "repo_id": "black-forest-labs/FLUX.1-Krea-dev",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-redux-dev": {
+   "confidence": 0.9,
+   "downloads": 8403,
+   "repo_id": "black-forest-labs/FLUX.1-Redux-dev",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-1-schnell": {
+   "confidence": 1.0,
+   "downloads": 729023,
+   "repo_id": "black-forest-labs/FLUX.1-schnell",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-dev": {
+   "confidence": 1.0,
+   "downloads": 416016,
+   "repo_id": "black-forest-labs/FLUX.2-dev",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-dev-nvfp4": {
+   "confidence": 0.95,
+   "downloads": 15280,
+   "repo_id": "black-forest-labs/FLUX.2-dev-NVFP4",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-4b": {
+   "confidence": 1.0,
+   "downloads": 551415,
+   "repo_id": "black-forest-labs/FLUX.2-klein-4B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-4b-fp8": {
+   "confidence": 1.0,
+   "downloads": 134194,
+   "repo_id": "black-forest-labs/FLUX.2-klein-4b-fp8",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-9b": {
+   "confidence": 1.0,
+   "downloads": 219505,
+   "repo_id": "black-forest-labs/FLUX.2-klein-9B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-9b-fp8": {
+   "confidence": 0.95,
+   "downloads": 59310,
+   "repo_id": "black-forest-labs/FLUX.2-klein-9b-fp8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-9b-kv": {
+   "confidence": 0.95,
+   "downloads": 37700,
+   "repo_id": "black-forest-labs/FLUX.2-klein-9b-kv",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-9b-kv-fp8": {
+   "confidence": 0.95,
+   "downloads": 45331,
+   "repo_id": "black-forest-labs/FLUX.2-klein-9b-kv-fp8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-base-4b": {
+   "confidence": 1.0,
+   "downloads": 315882,
+   "repo_id": "black-forest-labs/FLUX.2-klein-base-4B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-base-4b-fp8": {
+   "confidence": 1.0,
+   "downloads": 100131,
+   "repo_id": "black-forest-labs/FLUX.2-klein-base-4b-fp8",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-base-9b": {
+   "confidence": 0.95,
+   "downloads": 82021,
+   "repo_id": "black-forest-labs/FLUX.2-klein-base-9B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "black-forest-labs/flux-2-klein-base-9b-fp8": {
+   "confidence": 0.95,
+   "downloads": 29031,
+   "repo_id": "black-forest-labs/FLUX.2-klein-base-9b-fp8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "cohere/c4ai-aya-expanse-8b": {
+   "confidence": 0.725,
+   "downloads": 15797,
+   "repo_id": "CohereLabs/aya-expanse-8b",
+   "why": [
+    "org matches",
+    "name contains (0.75)"
+   ]
+  },
+  "cohere/command-a-reasoning-08-2025": {
+   "confidence": 0.9,
+   "downloads": 1106,
+   "repo_id": "CohereLabs/command-a-reasoning-08-2025",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "cohere/command-a-translate-08-2025": {
+   "confidence": 0.9,
+   "downloads": 29,
+   "repo_id": "CohereLabs/command-a-translate-08-2025",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "cohere/command-a-vision-07-2025": {
+   "confidence": 0.95,
+   "downloads": 18193,
+   "repo_id": "CohereLabs/command-a-vision-07-2025",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "cohere/command-r7b-12-2024": {
+   "confidence": 0.74,
+   "downloads": 10347,
+   "repo_id": "CohereLabs/c4ai-command-r7b-12-2024",
+   "why": [
+    "org matches",
+    "name contains (0.80)"
+   ]
+  },
+  "cohere/north-mini-code-1-0": {
+   "confidence": 0.95,
+   "downloads": 10469,
+   "repo_id": "CohereLabs/North-Mini-Code-1.0",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-coder-1-3b-base": {
+   "confidence": 0.95,
+   "downloads": 27106,
+   "repo_id": "deepseek-ai/deepseek-coder-1.3b-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-coder-1-3b-instruct": {
+   "confidence": 0.95,
+   "downloads": 34438,
+   "repo_id": "deepseek-ai/deepseek-coder-1.3b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-coder-6-7b-base": {
+   "confidence": 0.95,
+   "downloads": 65566,
+   "repo_id": "deepseek-ai/deepseek-coder-6.7b-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-coder-6-7b-instruct": {
+   "confidence": 1.0,
+   "downloads": 389091,
+   "repo_id": "deepseek-ai/deepseek-coder-6.7b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-coder-v2-lite-instruct": {
+   "confidence": 1.0,
+   "downloads": 743890,
+   "repo_id": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-llm-7b-base": {
+   "confidence": 0.95,
+   "downloads": 30974,
+   "repo_id": "deepseek-ai/deepseek-llm-7b-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-llm-7b-chat": {
+   "confidence": 0.95,
+   "downloads": 20681,
+   "repo_id": "deepseek-ai/deepseek-llm-7b-chat",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-moe-16b-base": {
+   "confidence": 0.95,
+   "downloads": 10892,
+   "repo_id": "deepseek-ai/deepseek-moe-16b-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-ocr": {
+   "confidence": 1.0,
+   "downloads": 2389639,
+   "repo_id": "deepseek-ai/DeepSeek-OCR",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-ocr-2": {
+   "confidence": 1.0,
+   "downloads": 962861,
+   "repo_id": "deepseek-ai/DeepSeek-OCR-2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-prover-v2-7b": {
+   "confidence": 0.95,
+   "downloads": 97229,
+   "repo_id": "deepseek-ai/DeepSeek-Prover-V2-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-r1": {
+   "confidence": 1.0,
+   "downloads": 776744,
+   "repo_id": "deepseek-ai/DeepSeek-R1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-0528": {
+   "confidence": 1.0,
+   "downloads": 218142,
+   "repo_id": "deepseek-ai/DeepSeek-R1-0528",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-0528-qwen3-8b": {
+   "confidence": 1.0,
+   "downloads": 972188,
+   "repo_id": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-llama-70b": {
+   "confidence": 0.95,
+   "downloads": 79657,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-llama-8b": {
+   "confidence": 1.0,
+   "downloads": 361108,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-qwen-1-5b": {
+   "confidence": 1.0,
+   "downloads": 446699,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-qwen-14b": {
+   "confidence": 1.0,
+   "downloads": 356704,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-qwen-32b": {
+   "confidence": 1.0,
+   "downloads": 537215,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-r1-distill-qwen-7b": {
+   "confidence": 1.0,
+   "downloads": 359661,
+   "repo_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v2": {
+   "confidence": 0.95,
+   "downloads": 39072,
+   "repo_id": "deepseek-ai/DeepSeek-V2",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-v2-lite": {
+   "confidence": 1.0,
+   "downloads": 331656,
+   "repo_id": "deepseek-ai/DeepSeek-V2-Lite",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v2-lite-chat": {
+   "confidence": 1.0,
+   "downloads": 166056,
+   "repo_id": "deepseek-ai/DeepSeek-V2-Lite-Chat",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v3": {
+   "confidence": 1.0,
+   "downloads": 1046365,
+   "repo_id": "deepseek-ai/DeepSeek-V3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v3-0324": {
+   "confidence": 1.0,
+   "downloads": 986034,
+   "repo_id": "deepseek-ai/DeepSeek-V3-0324",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v3-1": {
+   "confidence": 1.0,
+   "downloads": 229363,
+   "repo_id": "deepseek-ai/DeepSeek-V3.1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v3-2": {
+   "confidence": 1.0,
+   "downloads": 1579570,
+   "repo_id": "deepseek-ai/DeepSeek-V3.2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v3-2-exp": {
+   "confidence": 0.95,
+   "downloads": 60099,
+   "repo_id": "deepseek-ai/DeepSeek-V3.2-Exp",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "deepseek/deepseek-v4-flash": {
+   "confidence": 1.0,
+   "downloads": 1779052,
+   "repo_id": "deepseek-ai/DeepSeek-V4-Flash",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-v4-pro": {
+   "confidence": 1.0,
+   "downloads": 623492,
+   "repo_id": "deepseek-ai/DeepSeek-V4-Pro",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/deepseek-vl2-tiny": {
+   "confidence": 1.0,
+   "downloads": 102049,
+   "repo_id": "deepseek-ai/deepseek-vl2-tiny",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "deepseek/janus-pro-7b": {
+   "confidence": 0.95,
+   "downloads": 11268,
+   "repo_id": "deepseek-ai/Janus-Pro-7B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/bert-for-seq-generation-l-24-bbc-encoder": {
+   "confidence": 0.95,
+   "downloads": 87905,
+   "repo_id": "google/bert_for_seq_generation_L-24_bbc_encoder",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/bert-uncased-l-4-h-256-a-4": {
+   "confidence": 0.95,
+   "downloads": 26687,
+   "repo_id": "google/bert_uncased_L-4_H-256_A-4",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/bigbird-roberta-base": {
+   "confidence": 1.0,
+   "downloads": 299852,
+   "repo_id": "google/bigbird-roberta-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/byt5-base": {
+   "confidence": 0.95,
+   "downloads": 29889,
+   "repo_id": "google/byt5-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/byt5-small": {
+   "confidence": 1.0,
+   "downloads": 347214,
+   "repo_id": "google/byt5-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/electra-base-discriminator": {
+   "confidence": 1.0,
+   "downloads": 58093106,
+   "repo_id": "google/electra-base-discriminator",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/embeddinggemma-300m": {
+   "confidence": 1.0,
+   "downloads": 2225717,
+   "repo_id": "google/embeddinggemma-300m",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/flan-t5-base": {
+   "confidence": 1.0,
+   "downloads": 1535321,
+   "repo_id": "google/flan-t5-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/flan-t5-large": {
+   "confidence": 1.0,
+   "downloads": 443135,
+   "repo_id": "google/flan-t5-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/flan-t5-small": {
+   "confidence": 1.0,
+   "downloads": 488370,
+   "repo_id": "google/flan-t5-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/flan-t5-xl": {
+   "confidence": 1.0,
+   "downloads": 162166,
+   "repo_id": "google/flan-t5-xl",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-1-1-2b-it": {
+   "confidence": 0.95,
+   "downloads": 94401,
+   "repo_id": "google/gemma-1.1-2b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-2-27b-it": {
+   "confidence": 0.95,
+   "downloads": 31249,
+   "repo_id": "google/gemma-2-27b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-2-2b": {
+   "confidence": 1.0,
+   "downloads": 193408,
+   "repo_id": "google/gemma-2-2b",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-2-9b": {
+   "confidence": 0.95,
+   "downloads": 67316,
+   "repo_id": "google/gemma-2-9b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-2-9b-it": {
+   "confidence": 1.0,
+   "downloads": 711111,
+   "repo_id": "google/gemma-2-9b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-2b": {
+   "confidence": 1.0,
+   "downloads": 135655,
+   "repo_id": "google/gemma-2b",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-12b-it": {
+   "confidence": 1.0,
+   "downloads": 732847,
+   "repo_id": "google/gemma-3-12b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-1b-it": {
+   "confidence": 1.0,
+   "downloads": 2492202,
+   "repo_id": "google/gemma-3-1b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-1b-pt": {
+   "confidence": 0.95,
+   "downloads": 56913,
+   "repo_id": "google/gemma-3-1b-pt",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-3-270m": {
+   "confidence": 1.0,
+   "downloads": 1141332,
+   "repo_id": "google/gemma-3-270m",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-270m-it": {
+   "confidence": 0.95,
+   "downloads": 93818,
+   "repo_id": "google/gemma-3-270m-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-3-27b-it": {
+   "confidence": 1.0,
+   "downloads": 371391,
+   "repo_id": "google/gemma-3-27b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-4b-it": {
+   "confidence": 1.0,
+   "downloads": 1645991,
+   "repo_id": "google/gemma-3-4b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3-4b-pt": {
+   "confidence": 0.95,
+   "downloads": 78243,
+   "repo_id": "google/gemma-3-4b-pt",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-3n-e2b-it": {
+   "confidence": 1.0,
+   "downloads": 159354,
+   "repo_id": "google/gemma-3n-E2B-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-3n-e4b-it": {
+   "confidence": 0.95,
+   "downloads": 21722,
+   "repo_id": "google/gemma-3n-E4B-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/gemma-4-26b": {
+   "confidence": 0.743,
+   "downloads": 8588468,
+   "repo_id": "google/gemma-4-26B-A4B-it",
+   "why": [
+    "org matches",
+    "name contains (0.64)",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-4-26b-a4b-it": {
+   "confidence": 1.0,
+   "downloads": 8588468,
+   "repo_id": "google/gemma-4-26B-A4B-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-4-31b": {
+   "confidence": 1.0,
+   "downloads": 681874,
+   "repo_id": "google/gemma-4-31B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-4-31b-it": {
+   "confidence": 1.0,
+   "downloads": 8672440,
+   "repo_id": "google/gemma-4-31B-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-4-e2b-it": {
+   "confidence": 1.0,
+   "downloads": 3222423,
+   "repo_id": "google/gemma-4-E2B-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-4-e4b-it": {
+   "confidence": 1.0,
+   "downloads": 4805395,
+   "repo_id": "google/gemma-4-E4B-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/gemma-7b-it": {
+   "confidence": 0.95,
+   "downloads": 27127,
+   "repo_id": "google/gemma-7b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/madlad400-3b-mt": {
+   "confidence": 0.95,
+   "downloads": 96832,
+   "repo_id": "google/madlad400-3b-mt",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/medgemma-1-5-4b-it": {
+   "confidence": 1.0,
+   "downloads": 260539,
+   "repo_id": "google/medgemma-1.5-4b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/medgemma-27b-it": {
+   "confidence": 1.0,
+   "downloads": 211549,
+   "repo_id": "google/medgemma-27b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/medgemma-4b-it": {
+   "confidence": 1.0,
+   "downloads": 1105085,
+   "repo_id": "google/medgemma-4b-it",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/mobilebert-uncased": {
+   "confidence": 1.0,
+   "downloads": 1689035,
+   "repo_id": "google/mobilebert-uncased",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/mobilenet-v2-1-0-224": {
+   "confidence": 0.95,
+   "downloads": 71637,
+   "repo_id": "google/mobilenet_v2_1.0_224",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/mt5-large": {
+   "confidence": 1.0,
+   "downloads": 232175,
+   "repo_id": "google/mt5-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/mt5-small": {
+   "confidence": 1.0,
+   "downloads": 243160,
+   "repo_id": "google/mt5-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/owlv2-base-patch16": {
+   "confidence": 1.0,
+   "downloads": 116460,
+   "repo_id": "google/owlv2-base-patch16",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/owlv2-base-patch16-ensemble": {
+   "confidence": 1.0,
+   "downloads": 1306900,
+   "repo_id": "google/owlv2-base-patch16-ensemble",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/owlv2-large-patch14-ensemble": {
+   "confidence": 1.0,
+   "downloads": 164878,
+   "repo_id": "google/owlv2-large-patch14-ensemble",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/owlvit-base-patch32": {
+   "confidence": 1.0,
+   "downloads": 210573,
+   "repo_id": "google/owlvit-base-patch32",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/paligemma-3b-mix-224": {
+   "confidence": 1.0,
+   "downloads": 102633,
+   "repo_id": "google/paligemma-3b-mix-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/paligemma-3b-pt-224": {
+   "confidence": 1.0,
+   "downloads": 218691,
+   "repo_id": "google/paligemma-3b-pt-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/pegasus-xsum": {
+   "confidence": 1.0,
+   "downloads": 195197,
+   "repo_id": "google/pegasus-xsum",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/reformer-crime-and-punishment": {
+   "confidence": 0.95,
+   "downloads": 94174,
+   "repo_id": "google/reformer-crime-and-punishment",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/rembert": {
+   "confidence": 1.0,
+   "downloads": 102968,
+   "repo_id": "google/rembert",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/shieldgemma-2-4b-it": {
+   "confidence": 0.9,
+   "downloads": 9225,
+   "repo_id": "google/shieldgemma-2-4b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/shieldgemma-27b": {
+   "confidence": 0.9,
+   "downloads": 452,
+   "repo_id": "google/shieldgemma-27b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/shieldgemma-2b": {
+   "confidence": 0.9,
+   "downloads": 3261,
+   "repo_id": "google/shieldgemma-2b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/shieldgemma-9b": {
+   "confidence": 0.9,
+   "downloads": 2318,
+   "repo_id": "google/shieldgemma-9b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/siglip-base-patch16-224": {
+   "confidence": 1.0,
+   "downloads": 1854284,
+   "repo_id": "google/siglip-base-patch16-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip-so400m-patch14-384": {
+   "confidence": 1.0,
+   "downloads": 1373964,
+   "repo_id": "google/siglip-so400m-patch14-384",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-base-patch16-224": {
+   "confidence": 1.0,
+   "downloads": 1516333,
+   "repo_id": "google/siglip2-base-patch16-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-base-patch16-256": {
+   "confidence": 1.0,
+   "downloads": 638888,
+   "repo_id": "google/siglip2-base-patch16-256",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-base-patch16-384": {
+   "confidence": 1.0,
+   "downloads": 128016,
+   "repo_id": "google/siglip2-base-patch16-384",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-base-patch16-512": {
+   "confidence": 1.0,
+   "downloads": 137476,
+   "repo_id": "google/siglip2-base-patch16-512",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-base-patch16-naflex": {
+   "confidence": 1.0,
+   "downloads": 816818,
+   "repo_id": "google/siglip2-base-patch16-naflex",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-giant-opt-patch16-384": {
+   "confidence": 1.0,
+   "downloads": 2561481,
+   "repo_id": "google/siglip2-giant-opt-patch16-384",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-large-patch16-512": {
+   "confidence": 0.9,
+   "downloads": 9247,
+   "repo_id": "google/siglip2-large-patch16-512",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/siglip2-so400m-patch14-224": {
+   "confidence": 0.95,
+   "downloads": 24997,
+   "repo_id": "google/siglip2-so400m-patch14-224",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/siglip2-so400m-patch14-384": {
+   "confidence": 1.0,
+   "downloads": 889355,
+   "repo_id": "google/siglip2-so400m-patch14-384",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-so400m-patch16-256": {
+   "confidence": 1.0,
+   "downloads": 446554,
+   "repo_id": "google/siglip2-so400m-patch16-256",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-so400m-patch16-384": {
+   "confidence": 1.0,
+   "downloads": 164761,
+   "repo_id": "google/siglip2-so400m-patch16-384",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/siglip2-so400m-patch16-512": {
+   "confidence": 0.95,
+   "downloads": 69192,
+   "repo_id": "google/siglip2-so400m-patch16-512",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/siglip2-so400m-patch16-naflex": {
+   "confidence": 1.0,
+   "downloads": 330032,
+   "repo_id": "google/siglip2-so400m-patch16-naflex",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/t5-v1-1-large": {
+   "confidence": 0.95,
+   "downloads": 14064,
+   "repo_id": "google/t5-v1_1-large",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/t5-v1-1-xxl": {
+   "confidence": 1.0,
+   "downloads": 204198,
+   "repo_id": "google/t5-v1_1-xxl",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/t5gemma-2-1b-1b": {
+   "confidence": 0.95,
+   "downloads": 49209,
+   "repo_id": "google/t5gemma-2-1b-1b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/t5gemma-s-s-prefixlm": {
+   "confidence": 0.9,
+   "downloads": 5762,
+   "repo_id": "google/t5gemma-s-s-prefixlm",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/tapas-large-finetuned-sqa": {
+   "confidence": 0.95,
+   "downloads": 56708,
+   "repo_id": "google/tapas-large-finetuned-sqa",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/translategemma-12b-it": {
+   "confidence": 0.9,
+   "downloads": 9225,
+   "repo_id": "google/translategemma-12b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/translategemma-4b-it": {
+   "confidence": 0.95,
+   "downloads": 35826,
+   "repo_id": "google/translategemma-4b-it",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "google/umt5-xxl": {
+   "confidence": 1.0,
+   "downloads": 183120,
+   "repo_id": "google/umt5-xxl",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/vit-base-patch16-224": {
+   "confidence": 1.0,
+   "downloads": 5510787,
+   "repo_id": "google/vit-base-patch16-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/vit-base-patch16-224-in21k": {
+   "confidence": 1.0,
+   "downloads": 1384812,
+   "repo_id": "google/vit-base-patch16-224-in21k",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "google/vit-large-patch16-384": {
+   "confidence": 0.9,
+   "downloads": 2472,
+   "repo_id": "google/vit-large-patch16-384",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-0-1b-a400m-base": {
+   "confidence": 0.95,
+   "downloads": 24568,
+   "repo_id": "ibm-granite/granite-3.0-1b-a400m-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-0-8b-instruct": {
+   "confidence": 1.0,
+   "downloads": 114949,
+   "repo_id": "ibm-granite/granite-3.0-8b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-3-1-1b-a400m-instruct": {
+   "confidence": 0.9,
+   "downloads": 5751,
+   "repo_id": "ibm-granite/granite-3.1-1b-a400m-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-1-2b-instruct": {
+   "confidence": 0.95,
+   "downloads": 30934,
+   "repo_id": "ibm-granite/granite-3.1-2b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-1-8b-instruct": {
+   "confidence": 0.95,
+   "downloads": 33698,
+   "repo_id": "ibm-granite/granite-3.1-8b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-3-2b-instruct": {
+   "confidence": 0.95,
+   "downloads": 44304,
+   "repo_id": "ibm-granite/granite-3.3-2b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3-3-8b-instruct": {
+   "confidence": 0.95,
+   "downloads": 55157,
+   "repo_id": "ibm-granite/granite-3.3-8b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-3b-code-base-2k": {
+   "confidence": 0.95,
+   "downloads": 40550,
+   "repo_id": "ibm-granite/granite-3b-code-base-2k",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-1b": {
+   "confidence": 0.95,
+   "downloads": 19332,
+   "repo_id": "ibm-granite/granite-4.0-1b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-1b-speech": {
+   "confidence": 0.95,
+   "downloads": 24880,
+   "repo_id": "ibm-granite/granite-4.0-1b-speech",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-350m": {
+   "confidence": 0.95,
+   "downloads": 18490,
+   "repo_id": "ibm-granite/granite-4.0-350m",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-350m-base": {
+   "confidence": 0.9,
+   "downloads": 2812,
+   "repo_id": "ibm-granite/granite-4.0-350m-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-h-1b": {
+   "confidence": 0.9,
+   "downloads": 3860,
+   "repo_id": "ibm-granite/granite-4.0-h-1b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-h-350m": {
+   "confidence": 0.9,
+   "downloads": 4688,
+   "repo_id": "ibm-granite/granite-4.0-h-350m",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-h-micro": {
+   "confidence": 0.95,
+   "downloads": 11069,
+   "repo_id": "ibm-granite/granite-4.0-h-micro",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-h-small": {
+   "confidence": 0.95,
+   "downloads": 24388,
+   "repo_id": "ibm-granite/granite-4.0-h-small",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-h-tiny": {
+   "confidence": 0.95,
+   "downloads": 53115,
+   "repo_id": "ibm-granite/granite-4.0-h-tiny",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-micro": {
+   "confidence": 0.95,
+   "downloads": 51423,
+   "repo_id": "ibm-granite/granite-4.0-micro",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-micro-base": {
+   "confidence": 0.9,
+   "downloads": 595,
+   "repo_id": "ibm-granite/granite-4.0-micro-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-4-0-tiny-preview": {
+   "confidence": 0.95,
+   "downloads": 59058,
+   "repo_id": "ibm-granite/granite-4.0-tiny-preview",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-8b-code-instruct-4k-gguf": {
+   "confidence": 0.9,
+   "downloads": 3032,
+   "repo_id": "ibm-granite/granite-8b-code-instruct-4k-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-docling-258m": {
+   "confidence": 1.0,
+   "downloads": 210021,
+   "repo_id": "ibm-granite/granite-docling-258M",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-embedding-107m-multilingual": {
+   "confidence": 0.95,
+   "downloads": 78028,
+   "repo_id": "ibm-granite/granite-embedding-107m-multilingual",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-embedding-125m-english": {
+   "confidence": 1.0,
+   "downloads": 118571,
+   "repo_id": "ibm-granite/granite-embedding-125m-english",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-embedding-278m-multilingual": {
+   "confidence": 0.95,
+   "downloads": 57618,
+   "repo_id": "ibm-granite/granite-embedding-278m-multilingual",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-embedding-30m-english": {
+   "confidence": 0.95,
+   "downloads": 51172,
+   "repo_id": "ibm-granite/granite-embedding-30m-english",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-embedding-30m-sparse": {
+   "confidence": 0.95,
+   "downloads": 10445,
+   "repo_id": "ibm-granite/granite-embedding-30m-sparse",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-embedding-english-r2": {
+   "confidence": 0.95,
+   "downloads": 50454,
+   "repo_id": "ibm-granite/granite-embedding-english-r2",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-embedding-small-english-r2": {
+   "confidence": 1.0,
+   "downloads": 6296680,
+   "repo_id": "ibm-granite/granite-embedding-small-english-r2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-guardian-3-2-5b": {
+   "confidence": 0.9,
+   "downloads": 1955,
+   "repo_id": "ibm-granite/granite-guardian-3.2-5b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-guardian-3-3-8b": {
+   "confidence": 1.0,
+   "downloads": 210674,
+   "repo_id": "ibm-granite/granite-guardian-3.3-8b",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-speech-3-3-2b": {
+   "confidence": 0.95,
+   "downloads": 76758,
+   "repo_id": "ibm-granite/granite-speech-3.3-2b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-speech-3-3-8b": {
+   "confidence": 0.95,
+   "downloads": 40204,
+   "repo_id": "ibm-granite/granite-speech-3.3-8b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-timeseries-flowstate-r1": {
+   "confidence": 0.95,
+   "downloads": 31321,
+   "repo_id": "ibm-granite/granite-timeseries-flowstate-r1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-timeseries-patchtst": {
+   "confidence": 0.95,
+   "downloads": 33011,
+   "repo_id": "ibm-granite/granite-timeseries-patchtst",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-timeseries-tspulse-r1": {
+   "confidence": 1.0,
+   "downloads": 119816,
+   "repo_id": "ibm-granite/granite-timeseries-tspulse-r1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-timeseries-ttm-r1": {
+   "confidence": 0.95,
+   "downloads": 24273,
+   "repo_id": "ibm-granite/granite-timeseries-ttm-r1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "ibm/granite-timeseries-ttm-r2": {
+   "confidence": 1.0,
+   "downloads": 329244,
+   "repo_id": "ibm-granite/granite-timeseries-ttm-r2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granite-vision-3-3-2b": {
+   "confidence": 1.0,
+   "downloads": 194611,
+   "repo_id": "ibm-granite/granite-vision-3.3-2b",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "ibm/granitelib-rag-r1-0": {
+   "confidence": 0.95,
+   "downloads": 10687,
+   "repo_id": "ibm-granite/granitelib-rag-r1.0",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "intfloat/e5-base": {
+   "confidence": 1.0,
+   "downloads": 697114,
+   "repo_id": "intfloat/e5-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/e5-base-v2": {
+   "confidence": 1.0,
+   "downloads": 1072365,
+   "repo_id": "intfloat/e5-base-v2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/e5-large": {
+   "confidence": 0.95,
+   "downloads": 23475,
+   "repo_id": "intfloat/e5-large",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "intfloat/e5-large-unsupervised": {
+   "confidence": 0.9,
+   "downloads": 1128,
+   "repo_id": "intfloat/e5-large-unsupervised",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "intfloat/e5-large-v2": {
+   "confidence": 1.0,
+   "downloads": 1813895,
+   "repo_id": "intfloat/e5-large-v2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/e5-mistral-7b-instruct": {
+   "confidence": 1.0,
+   "downloads": 224067,
+   "repo_id": "intfloat/e5-mistral-7b-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/e5-small": {
+   "confidence": 0.95,
+   "downloads": 28359,
+   "repo_id": "intfloat/e5-small",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "intfloat/e5-small-v2": {
+   "confidence": 1.0,
+   "downloads": 558434,
+   "repo_id": "intfloat/e5-small-v2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/multilingual-e5-base": {
+   "confidence": 1.0,
+   "downloads": 6897165,
+   "repo_id": "intfloat/multilingual-e5-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/multilingual-e5-large": {
+   "confidence": 1.0,
+   "downloads": 6999925,
+   "repo_id": "intfloat/multilingual-e5-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/multilingual-e5-large-instruct": {
+   "confidence": 1.0,
+   "downloads": 1980898,
+   "repo_id": "intfloat/multilingual-e5-large-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "intfloat/multilingual-e5-small": {
+   "confidence": 1.0,
+   "downloads": 12313873,
+   "repo_id": "intfloat/multilingual-e5-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-bert-flash-implementation": {
+   "confidence": 1.0,
+   "downloads": 765777,
+   "repo_id": "jinaai/jina-bert-flash-implementation",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-clip-v1": {
+   "confidence": 1.0,
+   "downloads": 109885,
+   "repo_id": "jinaai/jina-clip-v1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-clip-v2": {
+   "confidence": 1.0,
+   "downloads": 120668,
+   "repo_id": "jinaai/jina-clip-v2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-code-embeddings-0-5b": {
+   "confidence": 0.95,
+   "downloads": 95427,
+   "repo_id": "jinaai/jina-code-embeddings-0.5b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-code-embeddings-1-5b": {
+   "confidence": 0.95,
+   "downloads": 21650,
+   "repo_id": "jinaai/jina-code-embeddings-1.5b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-colbert-v2": {
+   "confidence": 0.95,
+   "downloads": 55201,
+   "repo_id": "jinaai/jina-colbert-v2",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-embeddings-v2-base-code": {
+   "confidence": 1.0,
+   "downloads": 374863,
+   "repo_id": "jinaai/jina-embeddings-v2-base-code",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v2-base-de": {
+   "confidence": 0.95,
+   "downloads": 37839,
+   "repo_id": "jinaai/jina-embeddings-v2-base-de",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-embeddings-v2-base-en": {
+   "confidence": 1.0,
+   "downloads": 324894,
+   "repo_id": "jinaai/jina-embeddings-v2-base-en",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v2-small-en": {
+   "confidence": 1.0,
+   "downloads": 927637,
+   "repo_id": "jinaai/jina-embeddings-v2-small-en",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v3": {
+   "confidence": 1.0,
+   "downloads": 2290850,
+   "repo_id": "jinaai/jina-embeddings-v3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v4": {
+   "confidence": 1.0,
+   "downloads": 356972,
+   "repo_id": "jinaai/jina-embeddings-v4",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v4-vllm-retrieval": {
+   "confidence": 0.95,
+   "downloads": 11292,
+   "repo_id": "jinaai/jina-embeddings-v4-vllm-retrieval",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-embeddings-v5-text-nano": {
+   "confidence": 1.0,
+   "downloads": 120649,
+   "repo_id": "jinaai/jina-embeddings-v5-text-nano",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v5-text-small": {
+   "confidence": 1.0,
+   "downloads": 276351,
+   "repo_id": "jinaai/jina-embeddings-v5-text-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-embeddings-v5-text-small-retrieval": {
+   "confidence": 0.95,
+   "downloads": 69326,
+   "repo_id": "jinaai/jina-embeddings-v5-text-small-retrieval",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-reranker-m0": {
+   "confidence": 1.0,
+   "downloads": 383310,
+   "repo_id": "jinaai/jina-reranker-m0",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-reranker-v1-turbo-en": {
+   "confidence": 0.95,
+   "downloads": 16299,
+   "repo_id": "jinaai/jina-reranker-v1-turbo-en",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "jina/jina-reranker-v2-base-multilingual": {
+   "confidence": 1.0,
+   "downloads": 1158454,
+   "repo_id": "jinaai/jina-reranker-v2-base-multilingual",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "jina/jina-reranker-v3": {
+   "confidence": 1.0,
+   "downloads": 778996,
+   "repo_id": "jinaai/jina-reranker-v3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "liquid/lfm2-24b-a2b-gguf": {
+   "confidence": 0.95,
+   "downloads": 11824,
+   "repo_id": "LiquidAI/LFM2-24B-A2B-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-5-1-2b-instruct": {
+   "confidence": 1.0,
+   "downloads": 367266,
+   "repo_id": "LiquidAI/LFM2.5-1.2B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "liquid/lfm2-5-1-2b-instruct-gguf": {
+   "confidence": 1.0,
+   "downloads": 350462,
+   "repo_id": "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "liquid/lfm2-5-1-2b-thinking-gguf": {
+   "confidence": 0.95,
+   "downloads": 12598,
+   "repo_id": "LiquidAI/LFM2.5-1.2B-Thinking-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-5-audio-1-5b-gguf-leap": {
+   "confidence": 0.9,
+   "downloads": 7339,
+   "repo_id": "LiquidAI/LFM2.5-Audio-1.5B-GGUF-LEAP",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-5-vl-1-6b": {
+   "confidence": 1.0,
+   "downloads": 231023,
+   "repo_id": "LiquidAI/LFM2.5-VL-1.6B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "liquid/lfm2-5-vl-1-6b-gguf": {
+   "confidence": 0.95,
+   "downloads": 54628,
+   "repo_id": "LiquidAI/LFM2.5-VL-1.6B-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-8b-a1b": {
+   "confidence": 0.95,
+   "downloads": 27811,
+   "repo_id": "LiquidAI/LFM2-8B-A1B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-vl-3b-gguf": {
+   "confidence": 0.9,
+   "downloads": 3046,
+   "repo_id": "LiquidAI/LFM2-VL-3B-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "liquid/lfm2-vl-450m-gguf": {
+   "confidence": 0.95,
+   "downloads": 13722,
+   "repo_id": "LiquidAI/LFM2-VL-450M-GGUF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-2-13b-chat-hf": {
+   "confidence": 1.0,
+   "downloads": 116239,
+   "repo_id": "meta-llama/Llama-2-13b-chat-hf",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-2-13b-hf": {
+   "confidence": 0.95,
+   "downloads": 20690,
+   "repo_id": "meta-llama/Llama-2-13b-hf",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-2-70b-chat-hf": {
+   "confidence": 0.9,
+   "downloads": 6383,
+   "repo_id": "meta-llama/Llama-2-70b-chat-hf",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-2-70b-hf": {
+   "confidence": 0.9,
+   "downloads": 3500,
+   "repo_id": "meta-llama/Llama-2-70b-hf",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-2-7b-chat-hf": {
+   "confidence": 1.0,
+   "downloads": 346459,
+   "repo_id": "meta-llama/Llama-2-7b-chat-hf",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-2-7b-hf": {
+   "confidence": 1.0,
+   "downloads": 802849,
+   "repo_id": "meta-llama/Llama-2-7b-hf",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-1-405b": {
+   "confidence": 1.0,
+   "downloads": 127701,
+   "repo_id": "meta-llama/Llama-3.1-405B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-1-405b-fp8": {
+   "confidence": 1.0,
+   "downloads": 478432,
+   "repo_id": "meta-llama/Llama-3.1-405B-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-1-405b-instruct": {
+   "confidence": 0.95,
+   "downloads": 10025,
+   "repo_id": "meta-llama/Llama-3.1-405B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-1-405b-instruct-fp8": {
+   "confidence": 0.9,
+   "downloads": 627,
+   "repo_id": "meta-llama/Llama-3.1-405B-Instruct-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-1-70b": {
+   "confidence": 0.95,
+   "downloads": 44914,
+   "repo_id": "meta-llama/Llama-3.1-70B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-1-70b-instruct": {
+   "confidence": 1.0,
+   "downloads": 291707,
+   "repo_id": "meta-llama/Llama-3.1-70B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-1-8b": {
+   "confidence": 1.0,
+   "downloads": 506450,
+   "repo_id": "meta-llama/Llama-3.1-8B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-1-8b-instruct": {
+   "confidence": 1.0,
+   "downloads": 5644039,
+   "repo_id": "meta-llama/Llama-3.1-8B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-2-11b-vision": {
+   "confidence": 0.9,
+   "downloads": 9766,
+   "repo_id": "meta-llama/Llama-3.2-11B-Vision",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-2-11b-vision-instruct": {
+   "confidence": 0.95,
+   "downloads": 96033,
+   "repo_id": "meta-llama/Llama-3.2-11B-Vision-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-2-1b": {
+   "confidence": 1.0,
+   "downloads": 1277184,
+   "repo_id": "meta-llama/Llama-3.2-1B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-2-1b-instruct": {
+   "confidence": 1.0,
+   "downloads": 6107196,
+   "repo_id": "meta-llama/Llama-3.2-1B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-2-3b": {
+   "confidence": 1.0,
+   "downloads": 359484,
+   "repo_id": "meta-llama/Llama-3.2-3B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-2-3b-instruct": {
+   "confidence": 1.0,
+   "downloads": 1529751,
+   "repo_id": "meta-llama/Llama-3.2-3B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-2-90b-vision": {
+   "confidence": 0.9,
+   "downloads": 55,
+   "repo_id": "meta-llama/Llama-3.2-90B-Vision",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-3-2-90b-vision-instruct": {
+   "confidence": 1.0,
+   "downloads": 151600,
+   "repo_id": "meta-llama/Llama-3.2-90B-Vision-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-3-3-70b-instruct": {
+   "confidence": 1.0,
+   "downloads": 859430,
+   "repo_id": "meta-llama/Llama-3.3-70B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-4-maverick-17b-128e-instruct": {
+   "confidence": 0.95,
+   "downloads": 10449,
+   "repo_id": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-4-maverick-17b-128e-instruct-fp8": {
+   "confidence": 0.95,
+   "downloads": 55978,
+   "repo_id": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-4-scout-17b-16e": {
+   "confidence": 0.9,
+   "downloads": 6777,
+   "repo_id": "meta-llama/Llama-4-Scout-17B-16E",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-4-scout-17b-16e-instruct": {
+   "confidence": 1.0,
+   "downloads": 164468,
+   "repo_id": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-guard-3-11b-vision": {
+   "confidence": 0.9,
+   "downloads": 1936,
+   "repo_id": "meta-llama/Llama-Guard-3-11B-Vision",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-guard-3-1b": {
+   "confidence": 0.95,
+   "downloads": 26375,
+   "repo_id": "meta-llama/Llama-Guard-3-1B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-guard-3-8b": {
+   "confidence": 1.0,
+   "downloads": 103205,
+   "repo_id": "meta-llama/Llama-Guard-3-8B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/llama-guard-3-8b-int8": {
+   "confidence": 0.9,
+   "downloads": 1677,
+   "repo_id": "meta-llama/Llama-Guard-3-8B-INT8",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-guard-4-12b": {
+   "confidence": 0.95,
+   "downloads": 54760,
+   "repo_id": "meta-llama/Llama-Guard-4-12B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-prompt-guard-2-22m": {
+   "confidence": 0.95,
+   "downloads": 11628,
+   "repo_id": "meta-llama/Llama-Prompt-Guard-2-22M",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llama-prompt-guard-2-86m": {
+   "confidence": 0.95,
+   "downloads": 96375,
+   "repo_id": "meta-llama/Llama-Prompt-Guard-2-86M",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/llamaguard-7b": {
+   "confidence": 0.9,
+   "downloads": 2848,
+   "repo_id": "meta-llama/LlamaGuard-7b",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/meta-llama-3-70b": {
+   "confidence": 1.0,
+   "downloads": 112956,
+   "repo_id": "meta-llama/Meta-Llama-3-70B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/meta-llama-3-70b-instruct": {
+   "confidence": 0.95,
+   "downloads": 48986,
+   "repo_id": "meta-llama/Meta-Llama-3-70B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/meta-llama-3-8b": {
+   "confidence": 1.0,
+   "downloads": 346965,
+   "repo_id": "meta-llama/Meta-Llama-3-8B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/meta-llama-3-8b-instruct": {
+   "confidence": 1.0,
+   "downloads": 1313574,
+   "repo_id": "meta-llama/Meta-Llama-3-8B-Instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "meta/meta-llama-guard-2-8b": {
+   "confidence": 0.9,
+   "downloads": 2788,
+   "repo_id": "meta-llama/Meta-Llama-Guard-2-8B",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "meta/prompt-guard-86m": {
+   "confidence": 1.0,
+   "downloads": 4494080,
+   "repo_id": "meta-llama/Prompt-Guard-86M",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/beit-base-patch16-224-pt22k-ft22k": {
+   "confidence": 0.95,
+   "downloads": 12628,
+   "repo_id": "microsoft/beit-base-patch16-224-pt22k-ft22k",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/biogpt": {
+   "confidence": 1.0,
+   "downloads": 114159,
+   "repo_id": "microsoft/biogpt",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/biomedclip-pubmedbert-256-vit-base-patch16-224": {
+   "confidence": 1.0,
+   "downloads": 249031,
+   "repo_id": "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/biomednlp-biomedbert-base-uncased-abstract": {
+   "confidence": 1.0,
+   "downloads": 1271789,
+   "repo_id": "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/biomednlp-biomedbert-base-uncased-abstract-fulltext": {
+   "confidence": 1.0,
+   "downloads": 220044,
+   "repo_id": "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/codebert-base": {
+   "confidence": 1.0,
+   "downloads": 223568,
+   "repo_id": "microsoft/codebert-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-large-mnli": {
+   "confidence": 1.0,
+   "downloads": 214081,
+   "repo_id": "microsoft/deberta-large-mnli",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-v2-xlarge": {
+   "confidence": 1.0,
+   "downloads": 117318,
+   "repo_id": "microsoft/deberta-v2-xlarge",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-v3-base": {
+   "confidence": 1.0,
+   "downloads": 2939540,
+   "repo_id": "microsoft/deberta-v3-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-v3-large": {
+   "confidence": 1.0,
+   "downloads": 1370834,
+   "repo_id": "microsoft/deberta-v3-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-v3-small": {
+   "confidence": 1.0,
+   "downloads": 633347,
+   "repo_id": "microsoft/deberta-v3-small",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/deberta-xlarge-mnli": {
+   "confidence": 1.0,
+   "downloads": 166927,
+   "repo_id": "microsoft/deberta-xlarge-mnli",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/florence-2-base": {
+   "confidence": 1.0,
+   "downloads": 2800149,
+   "repo_id": "microsoft/Florence-2-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/florence-2-large": {
+   "confidence": 1.0,
+   "downloads": 617661,
+   "repo_id": "microsoft/Florence-2-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/graphcodebert-base": {
+   "confidence": 0.95,
+   "downloads": 85856,
+   "repo_id": "microsoft/graphcodebert-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/kosmos-2-patch14-224": {
+   "confidence": 1.0,
+   "downloads": 166047,
+   "repo_id": "microsoft/kosmos-2-patch14-224",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/layoutlmv2-base-uncased": {
+   "confidence": 1.0,
+   "downloads": 402983,
+   "repo_id": "microsoft/layoutlmv2-base-uncased",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/layoutlmv3-base": {
+   "confidence": 1.0,
+   "downloads": 1157234,
+   "repo_id": "microsoft/layoutlmv3-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/llmlingua-2-xlm-roberta-large-meetingbank": {
+   "confidence": 1.0,
+   "downloads": 175271,
+   "repo_id": "microsoft/llmlingua-2-xlm-roberta-large-meetingbank",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/markuplm-base": {
+   "confidence": 0.95,
+   "downloads": 70716,
+   "repo_id": "microsoft/markuplm-base",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/mdeberta-v3-base": {
+   "confidence": 1.0,
+   "downloads": 4318079,
+   "repo_id": "microsoft/mdeberta-v3-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-3-5-mini-instruct": {
+   "confidence": 1.0,
+   "downloads": 350922,
+   "repo_id": "microsoft/Phi-3.5-mini-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-3-5-vision-instruct": {
+   "confidence": 1.0,
+   "downloads": 624111,
+   "repo_id": "microsoft/Phi-3.5-vision-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-3-mini-128k-instruct": {
+   "confidence": 1.0,
+   "downloads": 293225,
+   "repo_id": "microsoft/Phi-3-mini-128k-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-3-mini-4k-instruct": {
+   "confidence": 1.0,
+   "downloads": 464337,
+   "repo_id": "microsoft/Phi-3-mini-4k-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-4": {
+   "confidence": 1.0,
+   "downloads": 714200,
+   "repo_id": "microsoft/phi-4",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-4-mini-instruct": {
+   "confidence": 1.0,
+   "downloads": 461049,
+   "repo_id": "microsoft/Phi-4-mini-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-4-multimodal-instruct": {
+   "confidence": 1.0,
+   "downloads": 240531,
+   "repo_id": "microsoft/Phi-4-multimodal-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/phi-tiny-moe-instruct": {
+   "confidence": 1.0,
+   "downloads": 144923,
+   "repo_id": "microsoft/Phi-tiny-MoE-instruct",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/resnet-50": {
+   "confidence": 1.0,
+   "downloads": 1105417,
+   "repo_id": "microsoft/resnet-50",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/speecht5-tts": {
+   "confidence": 0.95,
+   "downloads": 54857,
+   "repo_id": "microsoft/speecht5_tts",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/swinv2-tiny-patch4-window16-256": {
+   "confidence": 1.0,
+   "downloads": 414654,
+   "repo_id": "microsoft/swinv2-tiny-patch4-window16-256",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/table-transformer-detection": {
+   "confidence": 1.0,
+   "downloads": 626325,
+   "repo_id": "microsoft/table-transformer-detection",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/table-transformer-structure-recognition": {
+   "confidence": 1.0,
+   "downloads": 1164999,
+   "repo_id": "microsoft/table-transformer-structure-recognition",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/table-transformer-structure-recognition-v1-1-all": {
+   "confidence": 1.0,
+   "downloads": 264287,
+   "repo_id": "microsoft/table-transformer-structure-recognition-v1.1-all",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/tapex-base-finetuned-wikisql": {
+   "confidence": 1.0,
+   "downloads": 803452,
+   "repo_id": "microsoft/tapex-base-finetuned-wikisql",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/trellis-image-large": {
+   "confidence": 1.0,
+   "downloads": 2759362,
+   "repo_id": "microsoft/TRELLIS-image-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/trocr-base-printed": {
+   "confidence": 1.0,
+   "downloads": 213912,
+   "repo_id": "microsoft/trocr-base-printed",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/trocr-large-handwritten": {
+   "confidence": 0.95,
+   "downloads": 70168,
+   "repo_id": "microsoft/trocr-large-handwritten",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/trocr-large-printed": {
+   "confidence": 0.95,
+   "downloads": 52761,
+   "repo_id": "microsoft/trocr-large-printed",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/unixcoder-base": {
+   "confidence": 1.0,
+   "downloads": 314344,
+   "repo_id": "microsoft/unixcoder-base",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/vibevoice-asr": {
+   "confidence": 1.0,
+   "downloads": 706931,
+   "repo_id": "microsoft/VibeVoice-ASR",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/vibevoice-asr-hf": {
+   "confidence": 0.95,
+   "downloads": 51738,
+   "repo_id": "microsoft/VibeVoice-ASR-HF",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "microsoft/vibevoice-realtime-0-5b": {
+   "confidence": 1.0,
+   "downloads": 567266,
+   "repo_id": "microsoft/VibeVoice-Realtime-0.5B",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/wavlm-base-plus": {
+   "confidence": 1.0,
+   "downloads": 954745,
+   "repo_id": "microsoft/wavlm-base-plus",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/wavlm-base-plus-sv": {
+   "confidence": 1.0,
+   "downloads": 236003,
+   "repo_id": "microsoft/wavlm-base-plus-sv",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/wavlm-large": {
+   "confidence": 1.0,
+   "downloads": 1136826,
+   "repo_id": "microsoft/wavlm-large",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "microsoft/xclip-base-patch32": {
+   "confidence": 1.0,
+   "downloads": 105915,
+   "repo_id": "microsoft/xclip-base-patch32",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "minimax/minimax-m2": {
+   "confidence": 1.0,
+   "downloads": 220559,
+   "repo_id": "MiniMaxAI/MiniMax-M2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "minimax/minimax-m2-1": {
+   "confidence": 0.95,
+   "downloads": 30381,
+   "repo_id": "MiniMaxAI/MiniMax-M2.1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "minimax/minimax-m2-5": {
+   "confidence": 1.0,
+   "downloads": 416549,
+   "repo_id": "MiniMaxAI/MiniMax-M2.5",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "minimax/minimax-m2-7": {
+   "confidence": 1.0,
+   "downloads": 1267597,
+   "repo_id": "MiniMaxAI/MiniMax-M2.7",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "minimax/minimax-m3": {
+   "confidence": 1.0,
+   "downloads": 180357,
+   "repo_id": "MiniMaxAI/MiniMax-M3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/devstral-2-123b-instruct-2512": {
+   "confidence": 0.95,
+   "downloads": 18642,
+   "repo_id": "mistralai/Devstral-2-123B-Instruct-2512",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/devstral-small-2-24b-instruct-2512": {
+   "confidence": 1.0,
+   "downloads": 232184,
+   "repo_id": "mistralai/Devstral-Small-2-24B-Instruct-2512",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/devstral-small-2505": {
+   "confidence": 0.9,
+   "downloads": 2913,
+   "repo_id": "mistralai/Devstral-Small-2505",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/magistral-small": {
+   "confidence": 0.733,
+   "downloads": 76961,
+   "repo_id": "mistralai/Magistral-Small-2506",
+   "why": [
+    "org matches",
+    "name contains (0.78)"
+   ]
+  },
+  "mistral/magistral-small-2506": {
+   "confidence": 0.95,
+   "downloads": 76961,
+   "repo_id": "mistralai/Magistral-Small-2506",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/mamba-codestral-7b-v0-1": {
+   "confidence": 0.95,
+   "downloads": 16050,
+   "repo_id": "mistralai/Mamba-Codestral-7B-v0.1",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/ministral-3-14b-instruct-2512": {
+   "confidence": 1.0,
+   "downloads": 352127,
+   "repo_id": "mistralai/Ministral-3-14B-Instruct-2512",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/ministral-3-3b-base-2512": {
+   "confidence": 0.9,
+   "downloads": 9297,
+   "repo_id": "mistralai/Ministral-3-3B-Base-2512",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/ministral-3-3b-instruct-2512": {
+   "confidence": 1.0,
+   "downloads": 302951,
+   "repo_id": "mistralai/Ministral-3-3B-Instruct-2512",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/ministral-3-3b-instruct-2512-bf16": {
+   "confidence": 0.95,
+   "downloads": 37583,
+   "repo_id": "mistralai/Ministral-3-3B-Instruct-2512-BF16",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/ministral-3-8b-instruct-2512": {
+   "confidence": 1.0,
+   "downloads": 124110,
+   "repo_id": "mistralai/Ministral-3-8B-Instruct-2512",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/ministral-3-8b-instruct-2512-bf16": {
+   "confidence": 0.95,
+   "downloads": 26865,
+   "repo_id": "mistralai/Ministral-3-8B-Instruct-2512-BF16",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/ministral-8b-instruct-2410": {
+   "confidence": 1.0,
+   "downloads": 211412,
+   "repo_id": "mistralai/Ministral-8B-Instruct-2410",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-7b-instruct-v0-1": {
+   "confidence": 1.0,
+   "downloads": 160977,
+   "repo_id": "mistralai/Mistral-7B-Instruct-v0.1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-7b-instruct-v0-2": {
+   "confidence": 1.0,
+   "downloads": 1411249,
+   "repo_id": "mistralai/Mistral-7B-Instruct-v0.2",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-7b-instruct-v0-3": {
+   "confidence": 1.0,
+   "downloads": 2461000,
+   "repo_id": "mistralai/Mistral-7B-Instruct-v0.3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-7b-v0-1": {
+   "confidence": 1.0,
+   "downloads": 244625,
+   "repo_id": "mistralai/Mistral-7B-v0.1",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-7b-v0-3": {
+   "confidence": 1.0,
+   "downloads": 125438,
+   "repo_id": "mistralai/Mistral-7B-v0.3",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-nemo": {
+   "confidence": 0.724,
+   "downloads": 124297,
+   "repo_id": "mistralai/Mistral-Nemo-Base-2407",
+   "why": [
+    "org matches",
+    "name contains (0.58)",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-nemo-base-2407": {
+   "confidence": 1.0,
+   "downloads": 124297,
+   "repo_id": "mistralai/Mistral-Nemo-Base-2407",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-nemo-instruct-2407": {
+   "confidence": 1.0,
+   "downloads": 353995,
+   "repo_id": "mistralai/Mistral-Nemo-Instruct-2407",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  },
+  "mistral/mistral-small-24b-instruct-2501": {
+   "confidence": 0.95,
+   "downloads": 44051,
+   "repo_id": "mistralai/Mistral-Small-24B-Instruct-2501",
+   "why": [
+    "org matches",
+    "name matches exactly"
+   ]
+  },
+  "mistral/mistral-small-3-1-24b-instruct-2503": {
+   "confidence": 1.0,
+   "downloads": 240578,
+   "repo_id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+   "why": [
+    "org matches",
+    "name matches exactly",
+    "widely downloaded"
+   ]
+  }
+ },
+ "resolved": 447
+}

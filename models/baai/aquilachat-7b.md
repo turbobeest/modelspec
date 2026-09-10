@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/AquilaChat-7B
+    url: https://huggingface.co/BAAI/AquilaChat-7B
     fine_tuning: false
     gated: false
     regions: []

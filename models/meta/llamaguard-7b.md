@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: meta-llama/LlamaGuard-7b
+    url: https://huggingface.co/meta-llama/LlamaGuard-7b
     fine_tuning: false
     gated: false
     regions: []

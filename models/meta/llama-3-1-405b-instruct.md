@@ -641,8 +641,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: meta-llama/Llama-3.1-405B-Instruct
+    url: https://huggingface.co/meta-llama/Llama-3.1-405B-Instruct
     fine_tuning: false
     gated: false
     regions: []

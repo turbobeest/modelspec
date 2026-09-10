@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/bge-reranker-v2-m3
+    url: https://huggingface.co/BAAI/bge-reranker-v2-m3
     fine_tuning: false
     gated: false
     regions: []

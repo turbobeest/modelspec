@@ -640,8 +640,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-V3.2-Exp
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp
     fine_tuning: false
     gated: false
     regions: []

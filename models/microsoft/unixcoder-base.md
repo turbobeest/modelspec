@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/unixcoder-base
+    url: https://huggingface.co/microsoft/unixcoder-base
     fine_tuning: false
     gated: false
     regions: []

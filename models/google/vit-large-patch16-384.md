@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/vit-large-patch16-384
+    url: https://huggingface.co/google/vit-large-patch16-384
     fine_tuning: false
     gated: false
     regions: []

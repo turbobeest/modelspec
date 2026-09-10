@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-docling-258M
+    url: https://huggingface.co/ibm-granite/granite-docling-258M
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/led-base-16384
+    url: https://huggingface.co/allenai/led-base-16384
     fine_tuning: false
     gated: false
     regions: []

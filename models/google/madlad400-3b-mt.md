@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/madlad400-3b-mt
+    url: https://huggingface.co/google/madlad400-3b-mt
     fine_tuning: false
     gated: false
     regions: []

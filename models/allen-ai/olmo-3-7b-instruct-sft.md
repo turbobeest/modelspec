@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/Olmo-3-7B-Instruct-SFT
+    url: https://huggingface.co/allenai/Olmo-3-7B-Instruct-SFT
     fine_tuning: false
     gated: false
     regions: []

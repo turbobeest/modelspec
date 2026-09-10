@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/layoutlmv3-base
+    url: https://huggingface.co/microsoft/layoutlmv3-base
     fine_tuning: false
     gated: false
     regions: []

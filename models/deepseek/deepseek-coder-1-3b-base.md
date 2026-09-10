@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: deepseek-ai/deepseek-coder-1.3b-base
+    url: https://huggingface.co/deepseek-ai/deepseek-coder-1.3b-base
     fine_tuning: false
     gated: false
     regions: []

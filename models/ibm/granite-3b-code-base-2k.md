@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-3b-code-base-2k
+    url: https://huggingface.co/ibm-granite/granite-3b-code-base-2k
     fine_tuning: false
     gated: false
     regions: []

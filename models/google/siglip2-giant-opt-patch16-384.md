@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/siglip2-giant-opt-patch16-384
+    url: https://huggingface.co/google/siglip2-giant-opt-patch16-384
     fine_tuning: false
     gated: false
     regions: []

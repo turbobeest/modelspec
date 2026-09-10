@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B
+    url: https://huggingface.co/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B
     fine_tuning: false
     gated: false
     regions: []

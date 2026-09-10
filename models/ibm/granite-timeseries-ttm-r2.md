@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-timeseries-ttm-r2
+    url: https://huggingface.co/ibm-granite/granite-timeseries-ttm-r2
     fine_tuning: false
     gated: false
     regions: []

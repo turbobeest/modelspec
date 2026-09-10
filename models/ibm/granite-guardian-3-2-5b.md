@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ibm-granite/granite-guardian-3.2-5b
+    url: https://huggingface.co/ibm-granite/granite-guardian-3.2-5b
     fine_tuning: false
     gated: false
     regions: []

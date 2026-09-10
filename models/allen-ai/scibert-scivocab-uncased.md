@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/scibert_scivocab_uncased
+    url: https://huggingface.co/allenai/scibert_scivocab_uncased
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/deberta-large-mnli
+    url: https://huggingface.co/microsoft/deberta-large-mnli
     fine_tuning: false
     gated: false
     regions: []

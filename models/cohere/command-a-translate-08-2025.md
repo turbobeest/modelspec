@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: CohereLabs/command-a-translate-08-2025
+    url: https://huggingface.co/CohereLabs/command-a-translate-08-2025
     fine_tuning: false
     gated: false
     regions: []

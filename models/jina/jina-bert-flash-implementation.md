@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: jinaai/jina-bert-flash-implementation
+    url: https://huggingface.co/jinaai/jina-bert-flash-implementation
     fine_tuning: false
     gated: false
     regions: []

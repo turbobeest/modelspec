@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/beit-base-patch16-224-pt22k-ft22k
+    url: https://huggingface.co/microsoft/beit-base-patch16-224-pt22k-ft22k
     fine_tuning: false
     gated: false
     regions: []

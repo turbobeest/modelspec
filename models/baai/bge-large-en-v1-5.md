@@ -638,8 +638,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: BAAI/bge-large-en-v1.5
+    url: https://huggingface.co/BAAI/bge-large-en-v1.5
     fine_tuning: false
     gated: false
     regions: []

@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract
+    url: https://huggingface.co/microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract
     fine_tuning: false
     gated: false
     regions: []

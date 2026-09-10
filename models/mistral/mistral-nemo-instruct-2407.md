@@ -637,8 +637,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: mistralai/Mistral-Nemo-Instruct-2407
+    url: https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407
     fine_tuning: false
     gated: false
     regions: []

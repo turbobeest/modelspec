@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/speecht5_tts
+    url: https://huggingface.co/microsoft/speecht5_tts
     fine_tuning: false
     gated: false
     regions: []

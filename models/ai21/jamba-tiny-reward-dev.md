@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: ai21labs/Jamba-tiny-reward-dev
+    url: https://huggingface.co/ai21labs/Jamba-tiny-reward-dev
     fine_tuning: false
     gated: false
     regions: []

@@ -634,9 +634,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/trocr-large-handwritten
+    url: https://huggingface.co/microsoft/trocr-large-handwritten
     fine_tuning: false
     gated: false
     regions: []

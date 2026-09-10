@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/deberta-v2-xlarge
+    url: https://huggingface.co/microsoft/deberta-v2-xlarge
     fine_tuning: false
     gated: false
     regions: []

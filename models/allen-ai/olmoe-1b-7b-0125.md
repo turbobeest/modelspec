@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/OLMoE-1B-7B-0125
+    url: https://huggingface.co/allenai/OLMoE-1B-7B-0125
     fine_tuning: false
     gated: false
     regions: []

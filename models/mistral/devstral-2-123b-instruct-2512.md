@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: mistralai/Devstral-2-123B-Instruct-2512
+    url: https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512
     fine_tuning: false
     gated: false
     regions: []

@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/Emu3-Chat-hf
+    url: https://huggingface.co/BAAI/Emu3-Chat-hf
     fine_tuning: false
     gated: false
     regions: []

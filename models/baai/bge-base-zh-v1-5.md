@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: BAAI/bge-base-zh-v1.5
+    url: https://huggingface.co/BAAI/bge-base-zh-v1.5
     fine_tuning: false
     gated: false
     regions: []

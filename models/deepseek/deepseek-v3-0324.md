@@ -639,8 +639,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-V3-0324
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V3-0324
     fine_tuning: false
     gated: false
     regions: []

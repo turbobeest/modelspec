@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/tapas-large-finetuned-sqa
+    url: https://huggingface.co/google/tapas-large-finetuned-sqa
     fine_tuning: false
     gated: false
     regions: []

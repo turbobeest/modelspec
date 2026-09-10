@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: jinaai/jina-embeddings-v2-small-en
+    url: https://huggingface.co/jinaai/jina-embeddings-v2-small-en
     fine_tuning: false
     gated: false
     regions: []

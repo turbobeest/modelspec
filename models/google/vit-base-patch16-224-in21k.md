@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/vit-base-patch16-224-in21k
+    url: https://huggingface.co/google/vit-base-patch16-224-in21k
     fine_tuning: false
     gated: false
     regions: []

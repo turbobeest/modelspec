@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: microsoft/Phi-tiny-MoE-instruct
+    url: https://huggingface.co/microsoft/Phi-tiny-MoE-instruct
     fine_tuning: false
     gated: false
     regions: []

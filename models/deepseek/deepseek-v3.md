@@ -639,8 +639,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-V3
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V3
     fine_tuning: false
     gated: false
     regions: []
@@ -703,8 +703,8 @@ benchmarks:
     terminal_bench_2: 46.4
     toxigen: 82.5
     wildbench: 70.2
-  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals, domain-evals
-    open-llm-leaderboard-v2, llm-stats
+  benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
+    domain-evals open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''
 deployment:

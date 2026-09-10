@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: LiquidAI/LFM2.5-1.2B-Instruct
+    url: https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct
     fine_tuning: false
     gated: false
     regions: []

@@ -635,9 +635,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: allenai/biomed_roberta_base
+    url: https://huggingface.co/allenai/biomed_roberta_base
     fine_tuning: false
     gated: false
     regions: []

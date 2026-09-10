@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: baichuan-inc/Baichuan-M3-235B-FP8
+    url: https://huggingface.co/baichuan-inc/Baichuan-M3-235B-FP8
     fine_tuning: false
     gated: false
     regions: []

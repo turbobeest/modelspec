@@ -639,8 +639,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+    url: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B
     fine_tuning: false
     gated: false
     regions: []

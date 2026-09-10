@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: LiquidAI/LFM2.5-VL-1.6B
+    url: https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B
     fine_tuning: false
     gated: false
     regions: []

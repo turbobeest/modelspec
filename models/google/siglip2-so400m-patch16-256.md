@@ -636,9 +636,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: google/siglip2-so400m-patch16-256
+    url: https://huggingface.co/google/siglip2-so400m-patch16-256
     fine_tuning: false
     gated: false
     regions: []

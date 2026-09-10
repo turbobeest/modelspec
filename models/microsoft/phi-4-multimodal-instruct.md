@@ -640,8 +640,8 @@ availability:
     notes: ''
   huggingface:
     available: true
-    model_id: ''
-    url: https://huggingface.co/
+    model_id: microsoft/Phi-4-multimodal-instruct
+    url: https://huggingface.co/microsoft/Phi-4-multimodal-instruct
     fine_tuning: false
     gated: false
     regions: []
