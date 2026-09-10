@@ -13,7 +13,7 @@ Design rules this module enforces, rather than leaves to the author:
 from __future__ import annotations
 
 import html
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -199,19 +199,44 @@ def _table(headers: list[str], rows: list[str]) -> str:
             "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>")
 
 
-def lineage_section(relations: Any) -> str:
+def looks_like_hf_repo(model_id: str) -> bool:
+    """A Hub repo id is `org/name`. Card ids look the same, so this is not identity."""
+    if model_id.count("/") != 1 or "://" in model_id or model_id.startswith("/"):
+        return False
+    org, name = model_id.split("/")
+    return bool(org) and bool(name)
+
+
+def model_anchor(model_id: str, name: str, pages: Collection[str] | None = None) -> str:
+    """Link to a card page the build produces, never to a 404.
+
+    Lineage fields store Hugging Face repo ids. Those are not card ids.
+    `/m/{hf-id}/` is a page this pipeline does not emit.
+    """
+    label = esc(name)
+    if pages is None or model_id in pages:
+        return f'<a href="/m/{esc(model_id)}/">{label}</a>'
+    if looks_like_hf_repo(model_id):
+        return (
+            f'<a href="https://huggingface.co/{esc(model_id)}" '
+            f'rel="nofollow noopener">{label}</a>'
+        )
+    return label
+
+
+def lineage_section(relations: Any, pages: Collection[str] | None = None) -> str:
     rows = []
     for entry in relations.ancestors:
         relation = str(entry.get("relation") or "").strip()
         phrase = f"Is a <strong>{esc(relation)}</strong> of" if relation else "Derived from"
         rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td></tr>')
+                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
     for entry in relations.descendants:
         relation = str(entry.get("relation") or "").strip()
         phrase = (f"Is the base of this <strong>{esc(relation)}</strong>"
                   if relation else "Is the base of")
         rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td></tr>')
+                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
     return _section("Lineage", _table(["Relationship", "Model"], rows))
 
 
@@ -293,11 +318,11 @@ def capabilities_section(relations: Any) -> str:
     return _section("Capabilities", f"<p>{pills}</p>")
 
 
-def competitors_section(relations: Any) -> str:
+def competitors_section(relations: Any, pages: Collection[str] | None = None) -> str:
     rows = []
     for entry in relations.competitors[:12]:
         rows.append(
-            f'<tr><td><a href="/m/{esc(entry["id"])}/">{esc(entry["name"])}</a></td>'
+            f'<tr><td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td>'
             f'<td class="num">{esc(entry.get("overlap_score"))}</td>'
             f'<td>{esc(entry.get("computed_date"))}</td></tr>')
     if not rows:
@@ -336,7 +361,8 @@ def evidence_section(model: Model) -> str:
 
 
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
-               catalogue: Catalogue, relations: Any = None) -> str:
+               catalogue: Catalogue, relations: Any = None,
+               pages: Collection[str] | None = None) -> str:
     front = model.front
     scores = model.scores
     as_of = model.scores_as_of
@@ -376,9 +402,9 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
     rel = relations
     sections = ""
     if rel is not None:
-        sections = (lineage_section(rel) + capabilities_section(rel)
+        sections = (lineage_section(rel, pages) + capabilities_section(rel)
                     + hardware_section(rel) + platforms_section(rel)
-                    + competitors_section(rel))
+                    + competitors_section(rel, pages))
 
     unresearched = ""
     if rel is not None and rel.is_empty:
@@ -412,38 +438,64 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
     )
 
 
-def catalogue_freshness(models: list[Model]) -> dict[str, Any]:
+def catalogue_freshness(models: list[Model], build: Build | None = None) -> dict[str, Any]:
     """How current the catalogue itself is.
 
     Individual scores disclose their age. The catalogue as a whole did not, and
-    it stops in April 2026 — a visitor had no way to tell. A complete-looking
-    catalogue that is months behind is more misleading than a small current one,
-    because its completeness is what makes it look trustworthy.
+    a visitor had no way to tell whether the data stopped months ago. A
+    complete-looking catalogue that is behind is more misleading than a small
+    current one, because its completeness is what makes it look trustworthy.
+
+    Eligibility `as_of` and the build commit are the dates the build actually
+    knows. Newest release is a secondary signal that the corpus has a hole.
     """
     dates = sorted(
         str(m.front.get("release_date"))
         for m in models
         if m.front.get("release_date")
     )
-    return {"newest_release": dates[-1] if dates else None, "models": len(models)}
+    info: dict[str, Any] = {
+        "newest_release": dates[-1] if dates else None,
+        "models": len(models),
+    }
+    if build is not None:
+        info["eligibility_as_of"] = build.as_of.isoformat()
+        info["commit"] = build.commit
+        info["built_at"] = build.built_at
+    return info
 
 
-def freshness_notice(models: list[Model]) -> str:
-    info = catalogue_freshness(models)
-    if not info["newest_release"]:
-        return ""
-    from datetime import date as _date
-    try:
-        newest = _date.fromisoformat(info["newest_release"])
-    except ValueError:
-        return ""
-    days = (_date.today() - newest).days
-    if days < 45:
-        return ""
-    return ('<div class="notice">The newest model in this catalogue was released on '
-            f'<strong>{esc(info["newest_release"])}</strong>, about {days // 30} months ago. '
-            'Anything released since is missing, so a "best model" answer here excludes it. '
-            'This is a known gap, not a claim that nothing newer exists.</div>')
+def freshness_notice(models: list[Model], build: Build | None = None) -> str:
+    """Disclose how current the catalogue is, and the hole when there is one.
+
+    Without a build, a current corpus is silent — nothing to warn about. With
+    a build, eligibility date and commit are always shown, because a reader
+    otherwise cannot tell whether the data is from this week or last spring.
+    """
+    info = catalogue_freshness(models, build)
+    parts: list[str] = []
+    if build is not None:
+        parts.append(
+            '<p class="meta">Catalogue eligibility as of '
+            f'<strong>{esc(info["eligibility_as_of"])}</strong>'
+            f' · built from <span class="mono">{esc(build.commit[:12])}</span></p>'
+        )
+    newest = info.get("newest_release")
+    if newest:
+        try:
+            newest_d = date.fromisoformat(str(newest))
+        except ValueError:
+            newest_d = None
+        if newest_d is not None:
+            days = (date.today() - newest_d).days
+            if days >= 45:
+                parts.append(
+                    '<div class="notice">The newest model in this catalogue was released on '
+                    f'<strong>{esc(newest)}</strong>, about {days // 30} months ago. '
+                    'Anything released since is missing, so a "best model" answer here excludes it. '
+                    'This is a known gap, not a claim that nothing newer exists.</div>'
+                )
+    return "".join(parts)
 
 
 def models_index(models: list[Model], build: Build) -> str:
@@ -458,7 +510,8 @@ def models_index(models: list[Model], build: Build) -> str:
         )
         blocks.append(f'<h3>{esc(provider)}</h3><ul class="cols">{items}</ul>')
     body = (f'<h1>Every model</h1><p class="lede">{len(models)} cards across '
-            f'{len(by_provider)} providers.</p>' + freshness_notice(models) + "".join(blocks))
+            f'{len(by_provider)} providers.</p>' + freshness_notice(models, build)
+            + "".join(blocks))
     return shell(title="Every model — ModelSpec",
                  description=f"All {len(models)} model cards in ModelSpec, by provider.",
                  canonical="https://modelspec.dev/models/", body=body, build=build,
@@ -476,7 +529,8 @@ def providers_index(models: list[Model], build: Build) -> str:
         for slug, (name, count) in sorted(counts.items(), key=lambda kv: kv[1][0].lower())
     )
     body = (f'<h1>Providers</h1><p class="lede">{len(counts)} organisations publishing '
-            f'{len(models)} models.</p><div class="grid">{cards}</div>')
+            f'{len(models)} models.</p>' + freshness_notice(models, build)
+            + f'<div class="grid">{cards}</div>')
     return shell(title="Providers — ModelSpec", description=f"{len(counts)} model providers in ModelSpec.",
                  canonical="https://modelspec.dev/providers/", body=body, build=build,
                  site="ModelSpec", nav_links=MS_NAV)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from datetime import date
@@ -41,7 +42,50 @@ def _schema_field_count(model_cls) -> int:
     return total
 
 
-def wire_landing(html: str, stats: dict[str, int]) -> str:
+_HREF = re.compile(r"""\bhref\s*=\s*['"]([^'"]+)['"]""", re.I)
+_SCRIPT_OR_STYLE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.I | re.S)
+
+
+def _output_exists(tree: Path, url_path: str) -> bool:
+    path = url_path.split("#", 1)[0].split("?", 1)[0]
+    if not path.startswith("/") or path.startswith("//"):
+        return True
+    rel = path.lstrip("/")
+    if not rel:
+        return (tree / "index.html").is_file()
+    target = tree / rel
+    if target.is_file():
+        return True
+    if path.endswith("/"):
+        return (target / "index.html").is_file()
+    return (target / "index.html").is_file() or (tree / f"{rel}.html").is_file()
+
+
+def missing_internal_hrefs(tree: Path) -> list[tuple[str, str]]:
+    """Same-origin hrefs in HTML (not script) that have no file in this tree."""
+    missing: list[tuple[str, str]] = []
+    for html_path in sorted(tree.rglob("*.html")):
+        text = _SCRIPT_OR_STYLE.sub(
+            "", html_path.read_text(encoding="utf-8", errors="replace")
+        )
+        for href in _HREF.findall(text):
+            if not href.startswith("/") or href.startswith("//"):
+                continue
+            if _output_exists(tree, href):
+                continue
+            missing.append((html_path.relative_to(tree).as_posix(), href))
+    return missing
+
+
+def _inject(src: Path, dest: Path, needle: str, html: str) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    text = src.read_text(encoding="utf-8")
+    if needle in text and html:
+        text = text.replace(needle, html, 1)
+    dest.write_text(text, encoding="utf-8")
+
+
+def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
     The landing page was written before there was anything behind it. It was
@@ -96,6 +140,10 @@ def wire_landing(html: str, stats: dict[str, int]) -> str:
                 f"</div>"
             )
             html = html[:start] + live + html[end + 6:]
+    if freshness:
+        footer = html.find("<footer")
+        if footer != -1:
+            html = html[:footer] + freshness + html[footer:]
     return html
 
 
@@ -167,7 +215,13 @@ def main(argv: list[str] | None = None) -> int:
     derived = derive_graph(cards)
     competition_counts = competition.compute(derived, today)
     hardware_counts = hardware.compute(derived, cards, hardware.load_devices(root))
-    graph_counts = graph_export.write(ms / "api" / "graph", derived, build.to_json())
+    card_ids = {c.identity.model_id for c in cards}
+    graph_export.resolve_card_ids(
+        derived, card_ids=card_ids,
+        huggingface_ids=graph_export.huggingface_ids(cards),
+    )
+    graph_counts = graph_export.write(
+        ms / "api" / "graph", derived, build.to_json(), card_ids=card_ids)
     graph_counts["competition"] = competition_counts
     graph_counts["hardware"] = hardware_counts
 
@@ -184,26 +238,29 @@ def main(argv: list[str] | None = None) -> int:
     coverage = exporter.models_by_benchmark(models)
 
     # modelspec.dev
+    pages = {m.model_id for m in models}
+    freshness = r.freshness_notice(models, build)
     ms_paths = ["/", "/models/", "/providers/"]
     for model in models:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
         (ms / "m" / model.model_id / "index.html").write_text(
             r.model_page(model, build, bench_by_id, catalogue,
-                         relations.for_model(model.model_id)), encoding="utf-8")
+                         relations.for_model(model.model_id), pages=pages),
+            encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
     # The graph explorer: a full-viewport canvas app, so it is copied rather
     # than rendered through the document shell. Its libraries are vendored so
     # the page does not depend on a CDN at runtime.
     wizard = root / "web3d/downselect.v2.html"
     if wizard.is_file():
-        (ms / "downselect").mkdir(parents=True, exist_ok=True)
-        shutil.copy2(wizard, ms / "downselect/index.html")
+        _inject(wizard, ms / "downselect/index.html",
+                "<!-- catalogue-freshness -->", freshness)
         ms_paths.append("/downselect/")
 
     explorer = root / "web3d/explorer.html"
     if explorer.is_file():
-        (ms / "graph").mkdir(parents=True, exist_ok=True)
-        shutil.copy2(explorer, ms / "graph/index.html")
+        _inject(explorer, ms / "graph/index.html",
+                "<!-- catalogue-freshness -->", freshness)
         vendor = root / "web3d/vendor"
         if vendor.is_dir():
             shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
@@ -243,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
             "edges": graph_counts["edges"],
             "benchmarks": len(benchmarks),
             "fields": _schema_field_count(ModelCard),
-        }), encoding="utf-8")
+        }, freshness=freshness), encoding="utf-8")
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
@@ -274,6 +331,17 @@ def main(argv: list[str] | None = None) -> int:
             f"- Machine-readable index: {base}/api/index.json\n"
             f"- Benchmark catalogue: {base}/api/catalogue.json\n"
             f"- Source: https://github.com/turbobeest/modelspec\n", encoding="utf-8")
+
+    for tree, name in ((ms, "modelspec"), (bg, "benchgraph")):
+        missing = missing_internal_hrefs(tree)
+        if missing:
+            print(f"error: {name} has {len(missing)} internal href(s) with no output page:",
+                  file=sys.stderr)
+            for src, href in missing[:20]:
+                print(f"  {src}: {href}", file=sys.stderr)
+            if len(missing) > 20:
+                print(f"  … and {len(missing) - 20} more", file=sys.stderr)
+            return 2
 
     summary = {
         **counts,
