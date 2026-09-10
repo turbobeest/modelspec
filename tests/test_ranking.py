@@ -288,15 +288,8 @@ def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
     assert score(checked, profile)["verified_contributions"] == 1
 
 
-def test_the_verified_benchmarks_and_the_ranked_ones_do_not_yet_overlap() -> None:
-    """Documents the structural gap found in MODEL-13, so it is visible.
-
-    The census verified the benchmarks that had current dated evidence. The
-    ranking profiles weight the classic benchmarks. The two sets are disjoint,
-    so reviewed evidence cannot yet influence any ranking. MODEL-32.
-
-    When someone closes that gap this test fails, which is the point.
-    """
+def test_verified_benchmarks_now_carry_ranking_weight() -> None:
+    """MODEL-32 option B: reviewed evidence is load-bearing."""
     import json as _json
 
     report = _json.loads(
@@ -305,7 +298,32 @@ def test_the_verified_benchmarks_and_the_ranked_ones_do_not_yet_overlap() -> Non
     weighted = set()
     for profile in USE_CASE_PROFILES.values():
         weighted |= set(profile.get("benchmark_weights") or {})
-    assert not (active & weighted), (
-        "verified and ranked benchmarks now overlap — delete this test and "
-        "check the rankings actually changed"
-    )
+    assert active & weighted, "no verified benchmark carries any ranking weight"
+
+
+def test_one_evaluators_index_cannot_dominate_a_profile() -> None:
+    """The cap is the point: evidence matters without one source deciding "best"."""
+    from api.ranking.engine import VERIFIED_ADDITIONS, VERIFIED_INDEX_WEIGHT
+
+    for key, added in VERIFIED_ADDITIONS.items():
+        weights = USE_CASE_PROFILES[key]["benchmark_weights"]
+        share = sum(v for b, v in weights.items() if b in added)
+        assert share <= VERIFIED_INDEX_WEIGHT + 0.001, f"{key}: {share} exceeds the cap"
+
+
+def test_adding_verified_benchmarks_did_not_inflate_a_profile() -> None:
+    """Existing weights are scaled down, so a profile sums to what it did before."""
+    from api.ranking.engine import VERIFIED_ADDITIONS
+
+    for key in VERIFIED_ADDITIONS:
+        total = sum(USE_CASE_PROFILES[key]["benchmark_weights"].values())
+        assert 0.99 <= total <= 1.01, f"{key} sums to {total}"
+
+
+def test_every_verified_benchmark_has_a_normalisation_range() -> None:
+    import json as _json
+
+    report = _json.loads(
+        (REPO_ROOT / "benchmarks/_census/eligibility/current-report.json").read_text())
+    for benchmark in report["active_ids"]:
+        assert benchmark in BENCHMARK_RANGES, f"{benchmark} would fall back to a guess"

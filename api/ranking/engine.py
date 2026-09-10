@@ -952,6 +952,75 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
 # Platform classifications for hosting filter
 # ═══════════════════════════════════════════════════════════════
 
+
+# ═══════════════════════════════════════════════════════════════
+# Verified evidence in the profiles (MODEL-32, option B)
+# ═══════════════════════════════════════════════════════════════
+#
+# The census verifies benchmarks that publish current, dated results for
+# current models. In practice that means Artificial Analysis index components,
+# because those are the ones that do. The profiles below weight the classic
+# benchmarks a reader expects — HumanEval, SWE-bench Verified, GPQA Diamond —
+# and the two sets did not overlap at all, so no reviewed evidence could move
+# any ranking.
+#
+# Operator decision 2026-09-09: take the verified benchmarks into the profiles
+# now, and keep verifying the classic ones as the standing goal (MODEL-33).
+#
+# The cap is the point. One evaluator's index carries at most this share of any
+# profile, so reviewed evidence is load-bearing without a single source
+# deciding what "best" means. Existing weights are scaled down proportionally,
+# so a profile still sums to what it did before.
+
+#: Maximum share of any profile that one evaluator's index may carry.
+VERIFIED_INDEX_WEIGHT = 0.20
+
+#: Verified benchmarks, mapped onto profiles by the category their benchgraph
+#: page declares. All seven declare higher_is_better, unit %, max_score 100,
+#: which is where their ranges below come from — read, not assumed.
+VERIFIED_ADDITIONS: dict[str, list[str]] = {
+    "coding": ["scicode"],
+    "agentic": ["aa_briefcase", "automationbench_aa", "gdpval_aa"],
+    "reasoning": ["critpt"],
+    "rag": ["aa_lcr", "gdp_pdf_aa"],
+    "science": ["scicode", "critpt"],
+    "general": ["gdpval_aa"],
+}
+
+BENCHMARK_RANGES.update({
+    # Confirmed from each benchmark's page: higher_is_better, %, max 100.
+    "aa_briefcase": (0.0, 100.0),
+    "aa_lcr": (0.0, 100.0),
+    "automationbench_aa": (0.0, 100.0),
+    "critpt": (0.0, 100.0),
+    "gdp_pdf_aa": (0.0, 100.0),
+    "gdpval_aa": (0.0, 100.0),
+    "scicode": (0.0, 100.0),
+})
+
+
+def _apply_verified_additions() -> None:
+    """Fold the verified benchmarks into the profiles, under the cap."""
+    for profile_key, benchmarks in VERIFIED_ADDITIONS.items():
+        profile = USE_CASE_PROFILES.get(profile_key)
+        if not profile:
+            continue
+        weights = profile.get("benchmark_weights") or {}
+        # Anything already weighted is left alone; only genuinely new entries
+        # take from the existing budget.
+        new = [b for b in benchmarks if b not in weights]
+        if not new:
+            continue
+        scale = 1.0 - VERIFIED_INDEX_WEIGHT
+        rescaled = {k: round(v * scale, 4) for k, v in weights.items()}
+        share = round(VERIFIED_INDEX_WEIGHT / len(new), 4)
+        for benchmark in new:
+            rescaled[benchmark] = share
+        profile["benchmark_weights"] = rescaled
+
+
+_apply_verified_additions()
+
 CLOUD_PLATFORMS = {
     "aws_bedrock", "azure_ai_foundry", "google_vertex_ai", "nvidia_nim",
     "ibm_watsonx", "snowflake_cortex", "groq", "together_ai", "fireworks_ai",
