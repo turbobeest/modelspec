@@ -19,6 +19,8 @@ Those URLs are referenced here so a Firecrawl run does not duplicate them.
 
 Any scraped benchmark value that cannot be written as `schema.card.BenchmarkEvidence`
 (source URL, ISO evidence date, source kind, date type) must not be written.
+Static sources still require a stated date. Live leaderboards may use the
+observation (fetch) date — see BENCHMARK_WRITE_RULE.
 """
 
 from __future__ import annotations
@@ -40,16 +42,32 @@ from schema.card import ModelCard  # noqa: E402
 DEFAULT_OUTPUT = PROJECT_ROOT / "benchmarks" / "_census" / "fetch_manifest.json"
 
 #: A scraped score without these cannot be written. See schema/card.py
-#: BenchmarkEvidence: source_url must be http(s), evidence_date and verified_at
-#: must be YYYY-MM-DD, date_type is evaluated|published (never a crawl timestamp).
+#: BenchmarkEvidence. Date policy distinguishes a static published result from
+#: a live leaderboard reading — see BENCHMARK_WRITE_RULE.
 BENCHMARK_WRITE_RULE = (
     "Any scraped benchmark value MUST be written as schema.card.BenchmarkEvidence "
     "with source_url (http/https), source_kind (benchmark_author | "
     "independent_evaluator | provider_self_report), evidence_date (YYYY-MM-DD), "
     "date_type (evaluated | published), and verified_at (YYYY-MM-DD). "
-    "Do not infer evidence_date from the retrieval timestamp. "
     "Do not write a bare number into benchmarks.scores without a matching "
-    "evidence record — that reintroduces unverified-legacy scores."
+    "evidence record — that reintroduces unverified-legacy scores. "
+    "Date policy — published result vs live leaderboard: "
+    "A static source (paper, model card, blog post, technical report) takes "
+    "evidence_date from the date the result was published or evaluated, as "
+    "stated on the source. date_type is published when only a publication date "
+    "is disclosed, evaluated when the run date is. Do not infer that date from "
+    "the retrieval timestamp. A static result with no stated day is a refusal "
+    "— stamping it with today would hide unknown age. "
+    "A live leaderboard (a continuously updated board whose rows have no "
+    "publication date) is a different kind of source: a reading is honest "
+    "evidence of that model's standing on that board on that date. Prefer a "
+    "stated snapshot / as-of / last-updated / dated release when the page or "
+    "its API exposes one. If none exists, write date_type: evaluated with "
+    "evidence_date set to the date the page was actually fetched (the "
+    "observation date) and source_kind: independent_evaluator. The observation "
+    "date is the correct date for that fact, not a proxy for an unknown "
+    "publication date. When parsing a cached copy later, carry the original "
+    "fetch date through; do not substitute the parse-pass date."
 )
 
 # ─── What a gap unblocks ────────────────────────────────────────

@@ -669,7 +669,183 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: aa_briefcase
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 51.0
+    unit: normalized Elo percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AA-Briefcase / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 80.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AA-LCR v1.1 / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: automationbench_aa
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 62.2
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-07'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: AutomationBench 1.0.6 / AA held-out split
+    configuration: 'AA v4.3: private 657-task split; single run; 50-turn cap; objective-credit
+      score with guardrail-zeroing; both models at max reasoning (not equal compute).'
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 19.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: CritPt / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: gdp_pdf_aa
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 12.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: GDP.pdf / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 59.0
+    unit: normalized Elo percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: GDPval-AA v2 / AA v4.2
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 59.0
+    unit: percent
+    source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-04'
+    date_type: published
+    verified_at: '2026-09-08'
+    benchmark_version: SciCode / AA v4.2 implementation
+    configuration: AA v4.2 published comparison; both models labelled max; model-dependent
+      reasoning is not compute-matched. Values read from fixed release chart, not
+      live tables. Undisclosed code/prompt pins are not inferred.
+    limitations: ''
+  - benchmark_id: aa_lcr
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 79.67
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: AA-LCR v1.1
+    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: glm-5.3-max
+    score: 1482.04
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
+      style-controlled. Style-control overall is not raw overall and is not a category
+      Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: critpt
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 19.14
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: CritPt
+    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gdpval_aa
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 58.75
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GDPval-AA v2 normalized Elo percent
+    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
+      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 91.72
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: GPQA Diamond
+    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: scicode
+    model_id_as_evaluated: GLM-5.3 (max)
+    score: 59.03
+    unit: percent
+    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-10'
+    benchmark_version: SciCode
+    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
+      evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from api.ranking.engine import USE_CASE_PROFILES
 from schema.card import BenchmarkEvidence
 from scripts.attach_evidence import LEDGER_TO_CARD, RANKING_LEDGER, load_accepted, to_evidence
+from scripts.build_manifest import BENCHMARK_WRITE_RULE
 
 
 def ranked_benchmarks() -> set[str]:
@@ -29,8 +30,11 @@ def ranking_accepted() -> list[tuple[str, dict]]:
 def test_ledger_to_card_is_explicit_dict():
     assert isinstance(LEDGER_TO_CARD, dict)
     assert "GPT-6 Astra (max)" in LEDGER_TO_CARD
-    assert "GLM-5.3 (max)" not in LEDGER_TO_CARD
     assert "Qwen3.8-Max" not in LEDGER_TO_CARD
+    assert "Claude Opus 5 (high)" not in LEDGER_TO_CARD
+    assert "GPT-6 Astra (high)" not in LEDGER_TO_CARD
+    assert LEDGER_TO_CARD["Command A+"] == "cohere/command-a-plus-05-2026"
+    assert LEDGER_TO_CARD["GLM-5.3 (max)"] == "zhipu/glm-5-3"
 
 
 def test_every_mapped_id_has_a_card_file():
@@ -68,6 +72,14 @@ def test_ranking_rows_validate_as_card_evidence():
         date.fromisoformat(record.verified_at)
 
 
+def test_write_rule_states_live_vs_static_date_policy():
+    text = BENCHMARK_WRITE_RULE.lower()
+    assert "live leaderboard" in text
+    assert "observation" in text
+    assert "static" in text
+    assert "refusal" in text
+
+
 def test_schema_rejects_a_month_only_evidence_date():
     with pytest.raises(ValidationError):
         BenchmarkEvidence(
@@ -81,6 +93,31 @@ def test_schema_rejects_a_month_only_evidence_date():
             date_type="published",
             verified_at="2026-09-09",
         )
+
+
+def test_leaderboard_ledger_rows_are_mapped_ranked_and_dated():
+    ranked = ranked_benchmarks()
+    rows = [
+        (bid, raw)
+        for bid, raw in load_accepted()
+        if raw.get("source_kind") == "independent_evaluator"
+    ]
+    assert rows, "ranking ledger must include live-leaderboard independent_evaluator rows"
+    unmapped = sorted({raw["model_id"] for _, raw in rows} - set(LEDGER_TO_CARD))
+    assert unmapped == []
+    unknown = sorted({bid for bid, _ in rows} - ranked)
+    assert unknown == []
+    live_urls = {
+        "https://artificialanalysis.ai/leaderboards/models",
+        "https://lmarena.ai/leaderboard",
+    }
+    live = [(bid, raw) for bid, raw in rows if raw.get("source_url") in live_urls]
+    assert live, "ledger must include AA/LM Arena live-board rows"
+    for bid, raw in live:
+        record = to_evidence(bid, raw, "2026-09-10")
+        assert record.date_type == "evaluated"
+        assert record.source_kind == "independent_evaluator"
+        assert record.evidence_date  # observation or stated day, never blank
 
 
 def test_forbidden_variants_are_not_forced_into_ranked_keys():
