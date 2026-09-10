@@ -139,3 +139,53 @@ def test_legacy_card_scores_are_marked_unverified() -> None:
 )
 def test_score_formatting(value: object, unit: object, expected: str) -> None:
     assert format_score(value, unit) == expected
+
+
+# ── internal links must resolve to output ────────────────────────────────────
+
+def test_a_dead_internal_href_is_reported(tmp_path: Path) -> None:
+    tree = tmp_path / "site"
+    tree.mkdir()
+    (tree / "index.html").write_text('<a href="/m/Qwen/Qwen3-0.6B/">x</a>', encoding="utf-8")
+    missing = builder.missing_internal_hrefs(tree)
+    assert missing == [("index.html", "/m/Qwen/Qwen3-0.6B/")]
+
+
+def test_script_string_templates_are_not_treated_as_hrefs(tmp_path: Path) -> None:
+    tree = tmp_path / "site"
+    tree.mkdir()
+    (tree / "index.html").write_text(
+        '<a href="/">home</a><script>h = \'<a href="/m/\' + id + \'/">\';</script>',
+        encoding="utf-8",
+    )
+    assert builder.missing_internal_hrefs(tree) == []
+
+
+def test_an_existing_page_is_not_a_dead_href(tmp_path: Path) -> None:
+    tree = tmp_path / "site"
+    (tree / "m" / "qwen" / "qwen3-0-6b").mkdir(parents=True)
+    (tree / "m" / "qwen" / "qwen3-0-6b" / "index.html").write_text("ok", encoding="utf-8")
+    (tree / "index.html").write_text(
+        '<a href="/m/qwen/qwen3-0-6b/">Qwen3 0.6B</a>', encoding="utf-8"
+    )
+    assert builder.missing_internal_hrefs(tree) == []
+
+
+def test_wizard_discloses_per_result_evidence_basis() -> None:
+    src = (REPO_ROOT / "web3d/downselect.v2.html").read_text(encoding="utf-8")
+    assert "evidence_basis" in src
+    for term in ("verified", "partial-verified", "mixed", "unverified-legacy", "none"):
+        assert term in src
+    assert "coverage" in src
+    assert "<!-- catalogue-freshness -->" in src
+
+
+def test_landing_injects_catalogue_freshness() -> None:
+    html = builder.wire_landing(
+        '<nav><a href="https://github.com/turbobeest/modelspec">GitHub</a></nav>'
+        "<footer>end</footer>",
+        {"models": 1, "providers": 1, "edges": 1, "benchmarks": 1, "fields": 1},
+        freshness='<p class="meta">Catalogue eligibility as of <strong>2026-09-01</strong></p>',
+    )
+    assert "2026-09-01" in html
+    assert html.index("2026-09-01") < html.index("<footer>")

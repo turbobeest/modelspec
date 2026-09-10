@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from pipeline.relations import Relations  # noqa: E402
 from pipeline.render import (  # noqa: E402
     competitors_section, hardware_section, human_count, lineage_section,
-    platforms_section, proper_name,
+    model_anchor, platforms_section, proper_name,
 )
 from schema.graph import CollectingSink  # noqa: E402
 
@@ -120,6 +120,27 @@ def test_lineage_reads_as_english() -> None:
     assert "finetune" in html
 
 
+def test_lineage_does_not_mint_a_dead_internal_href() -> None:
+    """Hub repo ids in lineage are not card ids; /m/{hf-id}/ is a 404."""
+    s = CollectingSink()
+    s.node("Model", "id", "child", {"id": "child", "display_name": "Child"})
+    s.node("Model", "id", "Qwen/Qwen3-0.6B", {"id": "Qwen/Qwen3-0.6B"})
+    s.edge("Model", "child", "DERIVED_FROM", "Model", "Qwen/Qwen3-0.6B",
+           {"relation": "finetune"})
+    html = lineage_section(Relations(s).for_model("child"), pages={"child"})
+    assert "/m/Qwen/Qwen3-0.6B/" not in html
+    assert "huggingface.co/Qwen/Qwen3-0.6B" in html
+
+
+def test_lineage_links_the_card_when_that_page_exists() -> None:
+    html = lineage_section(Relations(_sink()).for_model("child"), pages={"base", "child"})
+    assert 'href="/m/base/"' in html
+
+
+def test_model_anchor_is_plain_text_when_there_is_no_page_and_no_hub_id() -> None:
+    assert model_anchor("not-a-page", "Mystery", pages=set()) == "Mystery"
+
+
 def test_acronyms_are_not_title_cased_into_nonsense() -> None:
     assert proper_name("aws_bedrock") == "AWS Bedrock"
     assert proper_name("gpt4all") == "GPT4All"
@@ -159,6 +180,27 @@ def test_a_current_catalogue_says_nothing() -> None:
             self.front = {"release_date": released}
 
     assert freshness_notice([FakeModel(date.today().isoformat())]) == ""
+
+
+def test_freshness_notice_always_shows_eligibility_and_commit_when_built() -> None:
+    from datetime import date
+
+    from pipeline.export import Build
+    from pipeline.render import catalogue_freshness, freshness_notice
+
+    class FakeModel:
+        def __init__(self, released):
+            self.front = {"release_date": released}
+
+    build = Build(commit="abcdef1234567890", built_at="2026-09-10T00:00:00+00:00",
+                  as_of=date(2026, 9, 1))
+    info = catalogue_freshness([FakeModel(date.today().isoformat())], build)
+    assert info["eligibility_as_of"] == "2026-09-01"
+    assert info["commit"] == "abcdef1234567890"
+    html = freshness_notice([FakeModel(date.today().isoformat())], build)
+    assert "2026-09-01" in html
+    assert "abcdef123456" in html
+    assert "months ago" not in html
 
 
 def test_verified_evidence_renders_apart_from_legacy_scores() -> None:

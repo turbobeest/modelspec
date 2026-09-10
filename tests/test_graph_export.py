@@ -17,7 +17,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from pipeline.graph import LEGIBLE_EDGE_LIMIT, VIEWS, node_key, write  # noqa: E402
+from pipeline.graph import (  # noqa: E402
+    LEGIBLE_EDGE_LIMIT, VIEWS, node_key, prefer_card, resolve_card_ids, write,
+)
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import CollectingSink, CypherSink, derive_graph, ingest_model_card  # noqa: E402
 
@@ -110,6 +112,47 @@ def test_models_referenced_only_as_a_base_model_still_become_nodes() -> None:
     assert len(model_ids) > len(carded) - 50  # sanity: most cards produced a node
     for edge in (e for e in sink.edges if e["type"] == "DERIVED_FROM"):
         assert edge["to"] in model_ids
+
+
+# ── Hub repo ids are not card ids ────────────────────────────────────────────
+
+def test_prefer_card_picks_the_slug_that_matches_the_repo() -> None:
+    assert prefer_card(
+        "google/gemma-4-26B-A4B-it",
+        "google/gemma-4-26b",
+        "google/gemma-4-26b-a4b-it",
+    ) == "google/gemma-4-26b-a4b-it"
+
+
+def test_huggingface_lineage_ids_resolve_to_cards() -> None:
+    sink = CollectingSink()
+    sink.node("Model", "id", "unsloth/qwen3-0-6b",
+              {"id": "unsloth/qwen3-0-6b", "display_name": "Unsloth Qwen3 0.6B"})
+    sink.node("Model", "id", "qwen/qwen3-0-6b",
+              {"id": "qwen/qwen3-0-6b", "display_name": "Qwen3 0.6B"})
+    sink.node("Model", "id", "Qwen/Qwen3-0.6B", {"id": "Qwen/Qwen3-0.6B"})
+    sink.edge("Model", "unsloth/qwen3-0-6b", "DERIVED_FROM", "Model", "Qwen/Qwen3-0.6B")
+    resolve_card_ids(
+        sink,
+        card_ids={"unsloth/qwen3-0-6b", "qwen/qwen3-0-6b"},
+        huggingface_ids={"Qwen/Qwen3-0.6B": "qwen/qwen3-0-6b"},
+    )
+    assert ("Model", "Qwen/Qwen3-0.6B") not in sink.nodes
+    assert sink.nodes[("Model", "qwen/qwen3-0-6b")]["display_name"] == "Qwen3 0.6B"
+    assert sink.edges[0]["to"] == "qwen/qwen3-0-6b"
+
+
+def test_unresolved_hub_ids_stay_but_are_marked_as_having_no_page(tmp_path: Path) -> None:
+    sink = CollectingSink()
+    sink.node("Model", "id", "child", {"id": "child", "display_name": "Child"})
+    sink.node("Model", "id", "Qwen/Qwen2.5-32B", {"id": "Qwen/Qwen2.5-32B"})
+    sink.edge("Model", "child", "DERIVED_FROM", "Model", "Qwen/Qwen2.5-32B")
+    resolve_card_ids(sink, card_ids={"child"}, huggingface_ids={})
+    write(tmp_path, sink, {"commit": "test"}, card_ids={"child"})
+    nodes = {n["id"]: n for n in json.loads((tmp_path / "nodes.json").read_text())["nodes"]}
+    assert nodes["child"]["has_page"] is True
+    assert nodes["Qwen/Qwen2.5-32B"]["has_page"] is False
+    assert nodes["Qwen/Qwen2.5-32B"]["huggingface_url"] == "https://huggingface.co/Qwen/Qwen2.5-32B"
 
 
 # ── the published views ──────────────────────────────────────────────────────

@@ -76,6 +76,7 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
   <div class="spacer"></div>
   <div class="hint mono" id="counts"></div>
 </header>
+<div class="hint mono" id="freshness" style="position:fixed;right:20px;bottom:20px;z-index:10;max-width:min(360px,70vw);text-align:right"><!-- catalogue-freshness --></div>
 
 <div id="question"></div>
 
@@ -216,13 +217,17 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
   }
 
   function pageFor(node) {
-    if (node.label === "Model") { return "/m/" + node.id + "/"; }
+    if (node.label === "Model") {
+      if (node.has_page === false) { return node.huggingface_url || null; }
+      return "/m/" + node.id + "/";
+    }
     if (node.label === "Provider") { return "/p/" + node.id + "/"; }
     if (node.label === "Benchmark") { return "https://benchgraph.dev/b/" + node.id + "/"; }
     return null;
   }
 
-  var SKIP = { key: 1, id: 1, label: 1, __r: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
+  var SKIP = { key: 1, id: 1, label: 1, has_page: 1, huggingface_url: 1, huggingface_id: 1,
+               __r: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
                index: 1, __threeObj: 1, fx: 1, fy: 1, fz: 1 };
 
   function showDetail(node) {
