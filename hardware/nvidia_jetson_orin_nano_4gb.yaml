@@ -1,0 +1,38 @@
+id: nvidia_jetson_orin_nano_4gb
+display_name: NVIDIA Jetson Orin Nano 4GB
+vendor: nvidia
+family: NVIDIA Jetson Orin
+device_class: edge
+released: 2022
+memory:
+  capacity_gb: 4
+  bandwidth_gb_s: 51
+  type: LPDDR5
+  bus_bits: 64
+  unified_with_host: true
+  bandwidth_derivation: NVIDIA-published 64-bit LPDDR5 at 51 GB/s on the Orin Nano 4GB column
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 3
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 25
+  sustained_differs_from_boost: true
+sources:
+- https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA Jetson Orin spec table, Jetson Orin Nano 4GB column: 4GB 64-bit LPDDR5
+  at 51 GB/s; AI performance quoted as 34 TOPS with no precision; GPU 512-core Ampere
+  with 16 Tensor Cores; 6-core Cortex-A78AE; power 7W-10W-25W (25 W stored as the configurable
+  Super-mode maximum); PCIe Gen3. TOPS is not stored as compute.tflops because the
+  precision is unspecified. Unified module memory. These are the Super Mode figures
+  the current product table publishes; the original module rating was 34 GB/s / 10 W.
+  Launch year 2022 from NVIDIA positioning Orin as the generation after Xavier on this
+  page; month is not on the table.'
