@@ -83,7 +83,10 @@ Each result names the evidence it rests on
 (<span class="mono">verified</span>, <span class="mono">partial-verified</span>,
 <span class="mono">mixed</span>, <span class="mono">unverified-legacy</span>, or
 <span class="mono">none</span>) and the share of this use case's benchmark weight that
-was actually measured. Treat the shortlist as something to investigate, not a verdict.
+was actually measured. The wizard orders a model when measurements cover at least
+<span class="mono">25%</span> of that weight and at least two benchmarks; thinner
+cards stay visible as unranked. The CLI uses a <span class="mono">50%</span> floor.
+Treat the shortlist as something to investigate, not a verdict.
 </div>
 <!-- catalogue-freshness -->
 
@@ -104,6 +107,7 @@ the server engine: filter, score, rank, explain.</p>
 
   var $ = function (id) { return document.getElementById(id); };
   var DATA = null, PROFILES = null, RANGES = null, DEVICES = [];
+  var POLICY = {};
 
   // ── the scoring, mirroring pipeline/ranking.py ────────────────────────────
   function normalize(benchId, raw) {
@@ -203,14 +207,28 @@ the server engine: filter, score, rank, explain.</p>
         basis = "unverified-legacy";
       }
     }
+    var floor = POLICY.wizard_min_benchmark_coverage;
+    if (floor === undefined) { floor = 0.25; }
+    var minCount = POLICY.min_benchmark_count;
+    if (minCount === undefined) { minCount = 2; }
+    var weightCount = 0;
+    Object.keys(benchWeights).forEach(function (id) {
+      if (benchWeights[id] > 0) { weightCount += 1; }
+    });
+    var required = Math.min(minCount, weightCount);
+    var rankable = totalW > 0 && coverage + 1e-12 >= floor && contributing >= required;
+    var composite = Math.max(0, Math.min(100, bench + cap + cost + ctx + typeBonus));
 
     return {
       c: c,
-      total: Math.max(0, Math.min(100, bench + cap + cost + ctx + typeBonus)),
+      total: rankable ? composite : null,
+      lower: composite,
       bench: bench, cap: cap, cost: cost, ctx: ctx, type: typeBonus,
       contributions: contributions.slice(0, 4),
       evidence_basis: basis,
-      coverage: coverage
+      coverage: coverage,
+      benchmark_count: contributing,
+      rank_status: rankable ? "ranked" : "unranked"
     };
   }
 
@@ -243,11 +261,16 @@ the server engine: filter, score, rank, explain.</p>
     });
 
     var priceWeight = Number(s.price || 0);
-    var ranked = pool.map(function (c) { return score(c, profile, { costWeight: priceWeight }); })
+    var scored = pool.map(function (c) { return score(c, profile, { costWeight: priceWeight }); });
+    var ranked = scored.filter(function (r) { return r.rank_status === "ranked"; })
       .sort(function (a, b) {
         return b.total - a.total || a.c.display_name.localeCompare(b.c.display_name);
-      })
-      .slice(0, 25);
+      });
+    var unranked = scored.filter(function (r) { return r.rank_status === "unranked"; })
+      .sort(function (a, b) {
+        return a.c.display_name.localeCompare(b.c.display_name);
+      });
+    var shown = ranked.slice(0, 25);
 
     var reasons = [];
     if (dropped.open) { reasons.push(dropped.open + " not open-weights"); }
@@ -256,9 +279,12 @@ the server engine: filter, score, rank, explain.</p>
     if (dropped.cost) { reasons.push(dropped.cost + " over budget or unpriced"); }
     $("summary").textContent =
       pool.length.toLocaleString() + " of " + DATA.candidates.length.toLocaleString() +
-      " models considered" + (reasons.length ? " — excluded: " + reasons.join(", ") : "");
+      " models considered · " + ranked.length.toLocaleString() + " ranked (wizard floor " +
+      Math.round((POLICY.wizard_min_benchmark_coverage === undefined ? 0.25 : POLICY.wizard_min_benchmark_coverage) * 100) +
+      "%) · " + unranked.length.toLocaleString() + " unranked for insufficient evidence" +
+      (reasons.length ? " — excluded: " + reasons.join(", ") : "");
 
-    render(ranked, s);
+    render(shown, unranked, s);
     var query = Object.keys(s).filter(function (k) { return s[k]; })
       .map(function (k) { return k + "=" + encodeURIComponent(s[k]); }).join("&");
     history.replaceState(null, "", query ? "?" + query : location.pathname);
@@ -269,15 +295,15 @@ the server engine: filter, score, rank, explain.</p>
     return '<div class="bar" style="width:' + pct.toFixed(1) + '%;background:' + color + '"></div>';
   }
 
-  function render(ranked, state) {
+  function render(ranked, unranked, state) {
     $("status").style.display = "none";
-    if (!ranked.length) {
+    if (!ranked.length && !unranked.length) {
       $("results").innerHTML =
         '<div class="notice">Nothing matches those constraints. That is a real answer — ' +
         'loosen one of them, or the data does not yet cover what you need.</div>';
       return;
     }
-    $("results").innerHTML = ranked.map(function (r, i) {
+    function card(r, i, rankedRow) {
       var c = r.c;
       var why = [];
       if (r.bench > 0) { why.push("<b>" + r.bench.toFixed(1) + "</b> benchmarks"); }
@@ -301,11 +327,13 @@ the server engine: filter, score, rank, explain.</p>
       var openPill = c.open_weights ? '<span class="pill">open weights</span>' : "";
       var stale = c.scores_as_of ? '<span class="pill">scores ' + c.scores_as_of + "</span>" : "";
 
+      var rankLabel = rankedRow ? String(i + 1) : "—";
+      var totalLabel = rankedRow && r.total !== null ? r.total.toFixed(1) : "unranked";
       return '<div class="result"><div class="top">' +
-        '<span class="rank">' + (i + 1) + "</span>" +
+        '<span class="rank">' + rankLabel + "</span>" +
         '<a class="name" href="/m/' + c.model_id + '/">' + c.display_name + "</a>" +
         '<span class="prov">' + c.provider + "</span>" +
-        '<span class="total">' + r.total.toFixed(1) + "</span></div>" +
+        '<span class="total">' + totalLabel + "</span></div>" +
         '<div class="bars">' +
           bar(r.bench, 100, "#63c9d9") + bar(r.cap, 100, "#78b5a2") +
           bar(r.type, 100, "#f5b342") + bar(r.ctx, 100, "#8fa4d4") +
@@ -315,7 +343,25 @@ the server engine: filter, score, rank, explain.</p>
         contrib + basis +
         '<div style="margin-top:9px">' + openPill + speed + stale + "</div>" +
         "</div>";
-    }).join("");
+    }
+    var html = "";
+    if (!ranked.length) {
+      html += '<div class="notice">Nothing has enough evidence to order for this use case. ' +
+        'Models below are visible as unranked, not ranked last.</div>';
+    } else {
+      html += ranked.map(function (r, i) { return card(r, i, true); }).join("");
+    }
+    if (unranked.length) {
+      var shownUnranked = unranked.filter(function (r) { return r.benchmark_count > 0; }).slice(0, 40);
+      var hidden = unranked.length - shownUnranked.length;
+      html += '<p class="lede" style="margin-top:28px">Unranked — insufficient evidence, not ranked low</p>';
+      html += shownUnranked.map(function (r, i) { return card(r, i, false); }).join("");
+      if (hidden > 0) {
+        html += '<p class="meta">' + hidden.toLocaleString() +
+          " more with no usable score on this profile.</p>";
+      }
+    }
+    $("results").innerHTML = html;
   }
 
   // ── boot ──────────────────────────────────────────────────────────────────
@@ -332,6 +378,7 @@ the server engine: filter, score, rank, explain.</p>
     DATA = all[0];
     PROFILES = all[1].profiles;
     RANGES = all[1].benchmark_ranges;
+    POLICY = all[1].ranking_policy || {};
     DEVICES = (all[2].nodes || []).filter(function (n) { return n.label === "Hardware"; });
 
     var params = new URLSearchParams(location.search);

@@ -9,7 +9,8 @@ import pytest
 from pipeline.ranking import Candidate, score, rank, rank_report, format_report, build_candidates
 from api.ranking.engine import (
     USE_CASE_PROFILES, IncompleteEvidenceError, ModelData, RankingEngine,
-    MIN_BENCHMARK_COVERAGE, _benchmark_evidence,
+    MIN_BENCHMARK_COVERAGE, WIZARD_BENCHMARK_COVERAGE, _benchmark_evidence,
+    ranking_policy,
 )
 from schema.card import ModelCard
 from schema.graph import CollectingSink
@@ -251,7 +252,27 @@ def test_export_versions_changed_shape_and_keeps_unranked_models(tmp_path, monke
     assert report['unranked'][0]['model_id'] == 'x'
     assert report['unranked'][0]['score'] is None
     profiles = json.loads((tmp_path / 'profiles.json').read_text())
-    assert profiles['ranking_policy'] == report['policy']
+    assert profiles['ranking_policy']['min_benchmark_coverage'] == MIN_BENCHMARK_COVERAGE
+    assert profiles['ranking_policy']['wizard_min_benchmark_coverage'] == WIZARD_BENCHMARK_COVERAGE
+    assert report['policy']['min_benchmark_coverage'] == WIZARD_BENCHMARK_COVERAGE
+    assert report['policy']['cli_min_benchmark_coverage'] == MIN_BENCHMARK_COVERAGE
+
+
+def test_wizard_floor_is_below_cli_and_does_not_change_cli_default():
+    assert WIZARD_BENCHMARK_COVERAGE == 0.25
+    assert MIN_BENCHMARK_COVERAGE == 0.50
+    weights = {'a': 0.18, 'b': 0.18, 'c': 0.64}
+    scores = {'a': 90, 'b': 90}
+    cli = _benchmark_evidence(scores, {'benchmark_weights': weights})
+    wizard = _benchmark_evidence(scores, {'benchmark_weights': weights},
+                                 min_coverage=WIZARD_BENCHMARK_COVERAGE)
+    assert cli['benchmark_coverage'] == pytest.approx(0.36)
+    assert cli['benchmark_count'] == 2
+    assert cli['rank_status'] == 'unranked'
+    assert wizard['rank_status'] == 'ranked'
+    assert ranking_policy()['min_benchmark_coverage'] == MIN_BENCHMARK_COVERAGE
+    assert ranking_policy(min_benchmark_coverage=WIZARD_BENCHMARK_COVERAGE)[
+        'min_benchmark_coverage'] == WIZARD_BENCHMARK_COVERAGE
 
 
 def test_cli_report_is_explicit_in_json_and_text(monkeypatch, capsys):

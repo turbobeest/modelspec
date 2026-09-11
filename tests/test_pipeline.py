@@ -177,6 +177,8 @@ def test_wizard_discloses_per_result_evidence_basis() -> None:
     for term in ("verified", "partial-verified", "mixed", "unverified-legacy", "none"):
         assert term in src
     assert "coverage" in src
+    assert "wizard_min_benchmark_coverage" in src
+    assert "unranked for insufficient evidence" in src
     assert "<!-- catalogue-freshness -->" in src
 
 
