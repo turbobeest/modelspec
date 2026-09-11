@@ -702,6 +702,30 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports, anthropic-system-card-mythos, domain-evals
   benchmark_as_of: 2026-04
   evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: gpt_5_4
+    score: 341.735276
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-04-10'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [186.581591, 768.779526] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: gpt_5_4
+    score: 53.877851
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-04-10'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [23.957027, 108.679232] minutes. METR states measurements above 16 hours are unreliable on this suite.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-5.4
     score: 1465.61

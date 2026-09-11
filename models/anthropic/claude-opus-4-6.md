@@ -754,6 +754,30 @@ benchmarks:
     preference-evals, domain-evals, anthropic-system-card-mythos
   benchmark_as_of: 2026-04
   evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: claude_opus_4_6_inspect
+    score: 718.80683
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-02-20'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [316.685725, 3633.786163] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: claude_opus_4_6_inspect
+    score: 69.874587
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-02-20'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [27.026521, 170.437873] minutes. METR states measurements above 16 hours are unreliable on this suite.
   - benchmark_id: aa_lcr
     model_id_as_evaluated: Claude Opus 4.6 (max)
     score: 78.0

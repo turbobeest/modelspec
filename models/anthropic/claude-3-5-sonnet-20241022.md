@@ -709,6 +709,30 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: claude_3_5_sonnet_20241022_inspect
+    score: 20.522872
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-01-29'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [10.144026, 40.82028] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: claude_3_5_sonnet_20241022_inspect
+    score: 2.595677
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-01-29'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [0.89379, 7.363864] minutes. METR states measurements above 16 hours are unreliable on this suite.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-3-5-sonnet-20241022
     score: 1373.65

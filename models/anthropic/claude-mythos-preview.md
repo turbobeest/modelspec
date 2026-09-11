@@ -698,6 +698,31 @@ benchmarks:
     swe_bench_verified: 93.9
     terminal_bench_2: 82.0
     usamo_2026: 97.6
+  evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: claude_mythos_preview_early_inspect
+    score: 1044.780145
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-05-08'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [508.876789, 3304.261235] minutes. Point estimate is above METR's 16-hour (960 minute) reliability note for this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: claude_mythos_preview_early_inspect
+    score: 185.911829
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-05-08'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [97.30292, 398.514614] minutes. METR states measurements above 16 hours are unreliable on this suite.
   benchmark_source: anthropic-system-card
   benchmark_as_of: 2026-04
   benchmark_notes: arena_elo/mmlu_pro/humaneval/math_500/ifeval/mt_bench imputed at Opus 4.6 floor per system card claim of across-the-board improvement
