@@ -5,10 +5,10 @@ ingest, so the published graph and the database can never disagree about what
 the cards say. Nothing here needs a database running.
 
 Why per-view files rather than one graph the client filters: the whole graph is
-~1,600 nodes and ~18,600 edges. That is trivial as JSON but far too dense to
-render legibly all at once. Each view answers one question, and answering one
-question at a time is what makes a force-directed graph readable rather than a
-hairball.
+thousands of nodes and tens of thousands of edges. That is still a JSON file,
+but far too dense to render legibly all at once. Each view answers one question,
+and answering one question at a time is what makes a force-directed graph
+readable rather than a hairball.
 """
 
 from __future__ import annotations
@@ -47,6 +47,28 @@ VIEWS: tuple[View, ...] = (
 #: Above this, a force-directed layout stops being readable and starts being a
 #: hairball. The view is still published; the client is told to sample or warn.
 LEGIBLE_EDGE_LIMIT = 4000
+
+#: Cloudflare Pages refuses any file over 25 MiB. The hardware view is the one
+#: that actually hits it: every open-weight model × every device is a FITS_ON
+#: edge, each carrying a fat props dict. The explorer already samples illegible
+#: views down to LEGIBLE_EDGE_LIMIT and never reads edge props, so those views
+#: are published as topology only. Full properties stay on the sink (model
+#: pages, ranking candidates, FalkorDB).
+CLOUDFLARE_PAGES_MAX_FILE_BYTES = 25 * 1024 * 1024
+
+
+def _publish_edge(edge: dict[str, Any], *, include_props: bool) -> dict[str, Any]:
+    """The view identity of an edge. Props are omitted on hairball views."""
+    published = {
+        "from": node_key(edge["from_label"], edge["from"]),
+        "from_label": edge["from_label"],
+        "to": node_key(edge["to_label"], edge["to"]),
+        "to_label": edge["to_label"],
+        "type": edge["type"],
+    }
+    if include_props and "props" in edge:
+        published["props"] = edge["props"]
+    return published
 
 
 def node_key(label: str, node_id: str) -> str:
@@ -175,8 +197,14 @@ def write(out_dir: Path, sink: CollectingSink, build_json: dict[str, Any],
         path = out_dir / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         text = json.dumps(payload, sort_keys=True, default=str)
+        n = len(text.encode("utf-8"))
+        if n > CLOUDFLARE_PAGES_MAX_FILE_BYTES:
+            raise ValueError(
+                f"{rel} is {n} bytes; Cloudflare Pages refuses files over "
+                f"{CLOUDFLARE_PAGES_MAX_FILE_BYTES} bytes"
+            )
         path.write_text(text, encoding="utf-8")
-        return len(text.encode("utf-8"))
+        return n
 
     nodes: dict[str, dict[str, Any]] = {}
     for (label, node_id), props in sink.nodes.items():
@@ -190,12 +218,11 @@ def write(out_dir: Path, sink: CollectingSink, build_json: dict[str, Any],
 
     summaries: list[dict[str, Any]] = []
     for view in VIEWS:
-        edges = [
-            {**e,
-             "from": node_key(e["from_label"], e["from"]),
-             "to": node_key(e["to_label"], e["to"])}
-            for e in sink.edges if e["type"] in view.edge_types
-        ]
+        raw = [e for e in sink.edges if e["type"] in view.edge_types]
+        # A hairball is topology for the explorer, not a dump of every prop.
+        # Legible views keep props so a small JSON file stays self-contained.
+        include_props = len(raw) <= LEGIBLE_EDGE_LIMIT
+        edges = [_publish_edge(e, include_props=include_props) for e in raw]
         # A view carries only the nodes its own edges touch, so the client never
         # renders an unconnected cloud of everything else.
         touched = sorted({e["from"] for e in edges} | {e["to"] for e in edges})
@@ -203,7 +230,7 @@ def write(out_dir: Path, sink: CollectingSink, build_json: dict[str, Any],
         if missing:
             raise ValueError(f"view {view.key!r} references unknown nodes: {missing[:5]}")
 
-        legible = len(edges) <= LEGIBLE_EDGE_LIMIT
+        legible = include_props
         size = dump(f"views/{view.key}.json", {
             "build": build_json,
             "key": view.key,
@@ -213,14 +240,15 @@ def write(out_dir: Path, sink: CollectingSink, build_json: dict[str, Any],
             "counts": {"nodes": len(touched), "edges": len(edges)},
             "legible": legible,
             "legible_edge_limit": LEGIBLE_EDGE_LIMIT,
+            "edge_properties": include_props,
             "nodes": [nodes[n] for n in touched],
             "edges": edges,
         })
         summaries.append({
             "key": view.key, "title": view.title, "question": view.question,
             "nodes": len(touched), "edges": len(edges),
-            "legible": legible, "bytes": size,
-            "empty": not edges,
+            "legible": legible, "edge_properties": include_props,
+            "bytes": size, "empty": not edges,
         })
 
     dump("views.json", {"build": build_json, "views": summaries})
