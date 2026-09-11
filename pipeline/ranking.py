@@ -32,12 +32,13 @@ from api.ranking.engine import (
 from schema.graph import CollectingSink
 
 #: Profiles offered in the wizard. All 51 are exported for the API, but a
-#: dropdown of 51 is a worse experience than one of 12, and these cover the
-#: questions people actually arrive with.
+#: dropdown of 51 is a worse experience than a short list. speech_to_text
+#: currently ranks nothing (MODEL-30); offered-and-empty is worse than hiding
+#: it. image_generation stays out until clip_score's range is sourced.
 FEATURED_PROFILES = (
     "general", "coding", "reasoning", "chat", "agentic", "rag",
     "vision", "multilingual", "math_competition", "writing_technical",
-    "summarization", "embedding", "speech_to_text", "text_to_speech",
+    "summarization", "embedding", "text_to_speech",
 )
 
 

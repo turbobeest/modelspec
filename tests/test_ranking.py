@@ -73,6 +73,17 @@ def test_no_new_benchmark_loses_its_normalisation_range() -> None:
     )
 
 
+def test_speech_to_text_stays_off_the_wizard_while_it_cannot_rank() -> None:
+    """MODEL-30: offered-and-empty is worse than hidden.
+
+    Cost stays a query parameter (CLI `--price-sensitivity`, wizard Price
+    sensitivity); every profile still defaults cost_weight to 0.
+    """
+    assert "speech_to_text" not in FEATURED_PROFILES
+    assert "image_generation" not in FEATURED_PROFILES
+    assert all(p.get("cost_weight", 0) == 0 for p in USE_CASE_PROFILES.values())
+
+
 def test_a_profile_resting_on_an_unranged_benchmark_is_not_featured() -> None:
     """Do not put a ranking we know is guessing in front of anyone.
 
