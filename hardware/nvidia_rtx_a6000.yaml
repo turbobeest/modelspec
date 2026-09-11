@@ -1,0 +1,37 @@
+id: nvidia_rtx_a6000
+display_name: NVIDIA RTX A6000
+vendor: nvidia
+family: NVIDIA RTX Ampere
+device_class: workstation
+released: 2020-10
+memory:
+  capacity_gb: 48
+  bandwidth_gb_s: 768
+  type: GDDR6
+  bus_bits: 384
+  unified_with_host: false
+  bandwidth_derivation: 384 bits / 8 x 16 Gbps GDDR6 = 768 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: nvlink
+  link_gb_s: 112.5
+power:
+  tdp_w: 300
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-a6000-datasheet.pdf
+- https://images.nvidia.com/aem-dam/en-zz/Solutions/technologies/NVIDIA-ADA-GPU-PROVIZ-Architecture-Whitepaper_1.1.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA RTX A6000 datasheet (MAY22): 48GB GDDR6, 384-bit, 768 GB/s, PCIe 4.0
+  x16, total board power 300 W, 10,752 CUDA cores, third-generation NVLink 112.5 GB/s
+  bidirectional (two-GPU). Memory data rate 16 Gbps is from NVIDIA''s Ada GPU Architecture
+  whitepaper comparison table (RTX A6000 column). Bandwidth is derived as 384/8 x 16.
+  Single-precision 38.7 TFLOPS is a qualified FP32 peak; Tensor 309.7 TFLOPS uses
+  sparsity and is not stored as compute.tflops. Distinct from RTX 6000 Ada Generation
+  (48GB GDDR6 at 960 GB/s, no NVLink). Ampere; fp8 is not claimed on this datasheet.'

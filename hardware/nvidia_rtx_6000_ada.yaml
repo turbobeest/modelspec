@@ -1,0 +1,40 @@
+id: nvidia_rtx_6000_ada
+display_name: NVIDIA RTX 6000 Ada Generation
+vendor: nvidia
+family: NVIDIA RTX Ada
+device_class: workstation
+released: 2023-01
+memory:
+  capacity_gb: 48
+  bandwidth_gb_s: 960
+  type: GDDR6
+  bus_bits: 384
+  unified_with_host: false
+  bandwidth_derivation: 384 bits / 8 x 20.0 Gbps GDDR6 = 960 GB/s
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 300
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/design-visualization/rtx-6000/
+- https://resources.nvidia.com/en-us-briefcase-for-datasheets/proviz-print-rtx6000-1
+- https://images.nvidia.com/aem-dam/en-zz/Solutions/technologies/NVIDIA-ADA-GPU-PROVIZ-Architecture-Whitepaper_1.1.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA RTX 6000 Ada Generation datasheet (FEB 23): 48GB GDDR6, 384-bit, 960
+  GB/s, PCIe 4.0 x16, total board power 300 W, 18,176 CUDA cores. Product page lists
+  48GB GDDR6 ECC and 300 W but not bandwidth; bandwidth and bus width are from the
+  datasheet. Memory data rate 20.0 Gbps is from NVIDIA''s Ada GPU Architecture whitepaper
+  comparison table (RTX 6000 Ada vs RTX A6000). Bandwidth is derived as 384/8 x 20.0.
+  Single-precision 91.1 TFLOPS is a qualified FP32 peak; Tensor 1457 TFLOPS/TOPS is
+  sparsity-using FP8 and is not stored as compute.tflops. No NVLink on this SKU (unlike
+  RTX A6000). Distinct from RTX A6000 (Ampere, 768 GB/s).'

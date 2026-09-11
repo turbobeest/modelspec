@@ -1,0 +1,37 @@
+id: qualcomm_snapdragon_x_elite
+display_name: Qualcomm Snapdragon X Elite
+vendor: qualcomm
+family: Snapdragon X Elite
+device_class: integrated
+released: 2024
+memory:
+  capacity_gb: 64
+  bandwidth_gb_s: 135
+  type: LPDDR5X
+  bus_bits: 128
+  unified_with_host: true
+  bandwidth_derivation: Qualcomm-published 135 GB/s; 8 x 16-bit LPDDR5x channels at 8448 MT/s = 8 x 16/8 x 8.448 Gbps = 135.168 GB/s
+precisions_native: []
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: true
+sources:
+- https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/Product-Brief-Snapdragon-X-Elite.pdf
+- https://www.qualcomm.com/laptops/products/snapdragon-x-elite
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'Qualcomm Snapdragon X Elite product brief (DCN 87-71471-1 Rev C): LPDDR5x,
+  transfer rate 8448 MT/s, capacity up to 64 GB, bandwidth 135 GB/s, 16-bit width,
+  8 channels. 64 GB is Qualcomm''s published maximum; OEM capacity varies. Bandwidth
+  is the vendor figure (derivation from the same brief''s channel, width and rate
+  agrees at 135.168 GB/s). Hexagon NPU "up to 45 TOPS" and Adreno GPU "up to 4.6 TFLOPs"
+  are not stored as compute rows (precision unspecified). TDP is not on the brief.
+  Unified memory. Thin-chassis clocks differ from boost. The brief does not put a
+  calendar month on the spec table; 2024 is the laptop-shipping year on Qualcomm''s
+  product page generation. Distinct SKUs (X1E-84-100, X1E-80-100, X1E-78-100) share
+  this memory subsystem. Native GPU/NPU precisions are not listed on the brief, so
+  precisions_native is empty rather than guessed.'
