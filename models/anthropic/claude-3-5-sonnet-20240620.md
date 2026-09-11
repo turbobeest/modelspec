@@ -710,6 +710,30 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: claude_3_5_sonnet_20240620_inspect
+    score: 11.395377
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-01-29'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [5.489734, 22.384214] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: claude_3_5_sonnet_20240620_inspect
+    score: 1.671757
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-01-29'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [0.57927, 4.573519] minutes. METR states measurements above 16 hours are unreliable on this suite.
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: Claude 3.5 Sonnet (June)
     score: 55.96

@@ -667,6 +667,31 @@ benchmarks:
   scores:
     live_code_bench: 91.7
     legalbench: 87.0
+  evidence:
+  - benchmark_id: metr_time_horizon_50
+    model_id_as_evaluated: gemini_3_pro
+    score: 224.325884
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-02-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [139.565157, 379.235434] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: metr_time_horizon_80
+    model_id_as_evaluated: gemini_3_pro
+    score: 54.142849
+    unit: minutes
+    source_url: https://metr.org/assets/benchmark_results_1_1.yaml
+    source_kind: benchmark_author
+    evidence_date: '2026-02-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: METR-Horizon-v1.1
+    configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
+    limitations: YAML CI [25.650451, 103.295501] minutes. METR states measurements above 16 hours are unreliable on this suite.
   benchmark_source: livecodebench, aider, swe-bench, terminal-bench, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
