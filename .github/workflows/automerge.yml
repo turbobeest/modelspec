@@ -1,0 +1,32 @@
+name: Enable auto-merge
+
+# Agent PRs should land when required checks pass, without a human click.
+# Daily research is the exception: those cards are a starting point, not a
+# finished record (MODEL-5). That job opens research/daily-models and must
+# never be auto-merged.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable:
+    name: Queue squash auto-merge
+    if: >
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref != 'research/daily-models' &&
+      !startsWith(github.head_ref, 'research/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge --auto --squash \
+            --repo "${{ github.repository }}" \
+            "${{ github.event.pull_request.number }}"
