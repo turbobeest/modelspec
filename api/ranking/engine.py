@@ -1023,16 +1023,29 @@ _apply_verified_additions()
 
 # Product defaults, not statistical confidence thresholds. The benchmark set
 # stays fixed, including when a candidate or an evaluator has sparse coverage.
+# CLI / API stay conservative. The wizard is a different surface: a browser
+# wants breadth, dpf wants a shortlist it can defend. MODEL-34, 2026-09-11.
 MIN_BENCHMARK_COVERAGE = 0.50
+WIZARD_BENCHMARK_COVERAGE = 0.25
 MIN_BENCHMARK_COUNT = 2
-RANKING_POLICY = {
-    "version": "incomplete-evidence-v1",
-    "ordering": "conservative_lower_bound",
-    "min_benchmark_coverage": MIN_BENCHMARK_COVERAGE,
-    "min_benchmark_count": MIN_BENCHMARK_COUNT,
-    "limit_applies_to": "ranked_only",
-    "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
-}
+
+
+def ranking_policy(*, min_benchmark_coverage: float | None = None) -> dict[str, Any]:
+    """Policy for one ranking surface. Default is the CLI floor."""
+    coverage = MIN_BENCHMARK_COVERAGE if min_benchmark_coverage is None else min_benchmark_coverage
+    return {
+        "version": "incomplete-evidence-v1",
+        "ordering": "conservative_lower_bound",
+        "min_benchmark_coverage": coverage,
+        "cli_min_benchmark_coverage": MIN_BENCHMARK_COVERAGE,
+        "wizard_min_benchmark_coverage": WIZARD_BENCHMARK_COVERAGE,
+        "min_benchmark_count": MIN_BENCHMARK_COUNT,
+        "limit_applies_to": "ranked_only",
+        "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+    }
+
+
+RANKING_POLICY = ranking_policy()
 
 
 class IncompleteEvidenceError(ValueError):
@@ -1060,7 +1073,8 @@ class IncompleteEvidenceError(ValueError):
         )
 
 
-def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any]) -> dict[str, Any]:
+def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any],
+                       min_coverage: float | None = None) -> dict[str, Any]:
     """Bound the fixed profile without guessing unmeasured benchmark values.
 
     All normalized benchmarks lie in [0, 100]. Missing weight therefore spans
@@ -1081,7 +1095,8 @@ def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any]) -> di
     missing_weight = sum(weights[b] for b in missing)
     coverage = present_weight / total_weight if total_weight else 0.0
     required = min(MIN_BENCHMARK_COUNT, len(weights))
-    rankable = (total_weight > 0 and coverage + 1e-12 >= MIN_BENCHMARK_COVERAGE
+    floor = MIN_BENCHMARK_COVERAGE if min_coverage is None else min_coverage
+    rankable = (total_weight > 0 and coverage + 1e-12 >= floor
                 and len(present) >= required)
     lower = sum(present[b] * weights[b] for b in present) * 0.40
     return {

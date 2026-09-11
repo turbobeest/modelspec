@@ -22,10 +22,12 @@ from api.ranking.engine import (
     BENCHMARK_RANGES,
     USE_CASE_PROFILES,
     RANKING_POLICY,
+    WIZARD_BENCHMARK_COVERAGE,
     _benchmark_evidence,
     _ranking_status,
     _tier_points,
     _tier_rank,
+    ranking_policy,
 )
 from schema.graph import CollectingSink
 
@@ -116,7 +118,8 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
 
 
 def score(candidate: Candidate, profile: dict[str, Any],
-          cost_weight: float | None = None) -> dict[str, Any]:
+          cost_weight: float | None = None,
+          min_coverage: float | None = None) -> dict[str, Any]:
     """Score one candidate. Mirrors RankingEngine._score.
 
     `cost_weight` overrides the profile's own. Every shipped profile carries
@@ -124,7 +127,8 @@ def score(candidate: Candidate, profile: dict[str, Any],
     quality someone will trade for price is a property of the person, not of the
     use case, so it belongs in the query rather than in the table. See MODEL-30.
     """
-    evidence = _benchmark_evidence(candidate.benchmark_scores, profile)
+    evidence = _benchmark_evidence(candidate.benchmark_scores, profile,
+                                  min_coverage=min_coverage)
     contributions = evidence["benchmark_contributions"]
     contributing_verified = len(contributions.keys() & candidate.verified_benchmarks)
     weights = profile.get("benchmark_weights", {})
@@ -219,24 +223,30 @@ def _basis(contributing: int, verified: int, coverage: float) -> str:
 
 def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
          open_weights_only: bool = False, hardware_id: str | None = None,
-         cost_weight: float | None = None) -> list[dict[str, Any]]:
+         cost_weight: float | None = None,
+         min_benchmark_coverage: float | None = None) -> list[dict[str, Any]]:
     """Return the models that can honestly be ordered for this profile.
 
     Unrankable models are the normal catalogue state, not an error. This
     returns the ranked shortlist, which may be empty when nothing has enough
     evidence. Use rank_report() to see withheld models and ranking_status.
+    Default coverage floor is the CLI floor (0.50).
     """
     return rank_report(candidates, profile_key, limit, open_weights_only,
-                       hardware_id, cost_weight)["ranked"]
+                       hardware_id, cost_weight,
+                       min_benchmark_coverage)["ranked"]
 
 
 def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
                 open_weights_only: bool = False, hardware_id: str | None = None,
-                cost_weight: float | None = None) -> dict[str, Any]:
+                cost_weight: float | None = None,
+                min_benchmark_coverage: float | None = None) -> dict[str, Any]:
     """Rank sufficiently covered models and retain all others as unranked.
 
     `limit` caps the ranked shortlist only. Unranked entries are alphabetical,
     have null rank/score, and are never truncated or presented as ranked last.
+    Default coverage floor is the CLI floor (0.50). Pass
+    `WIZARD_BENCHMARK_COVERAGE` for the browser surface.
     """
     if limit < 0:
         raise ValueError("limit must be nonnegative")
@@ -246,7 +256,7 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
         pool = [c for c in pool if c.open_weights]
     if hardware_id:
         pool = [c for c in pool if hardware_id in c.fits]
-    scored = [score(c, profile, cost_weight) for c in pool]
+    scored = [score(c, profile, cost_weight, min_benchmark_coverage) for c in pool]
     ranked = [r for r in scored if r["rank_status"] == "ranked"]
     unranked = [r for r in scored if r["rank_status"] == "unranked"]
     ranked.sort(key=lambda r: (-r["score"], r["display_name"].lower(), r["model_id"]))
@@ -255,7 +265,8 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
         result["rank"] = position
     return {
         "ranking_status": _ranking_status(ranked, unranked),
-        "profile": profile_key, "policy": dict(RANKING_POLICY),
+        "profile": profile_key,
+        "policy": ranking_policy(min_benchmark_coverage=min_benchmark_coverage),
         "ranked_count": len(ranked), "unranked_count": len(unranked),
         "ranked": ranked[:limit], "unranked": unranked,
     }
@@ -291,7 +302,10 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
 
     precomputed = {}
     for key in FEATURED_PROFILES:
-        precomputed[key] = rank_report(candidates, key, limit=25)
+        precomputed[key] = rank_report(
+            candidates, key, limit=25,
+            min_benchmark_coverage=WIZARD_BENCHMARK_COVERAGE,
+        )
     dump("rankings.json", {"schema_version": "2.0", "build": build_json, "rankings": precomputed})
 
     return {

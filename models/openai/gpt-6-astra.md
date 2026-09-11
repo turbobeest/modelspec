@@ -6,7 +6,7 @@ provider_display: OpenAI
 family: gpt-astra
 version: gpt-6-astra
 release_date: '2026-09-04'
-last_updated: '2026-09-04'
+last_updated: '2026-09-11'
 status: active
 model_type: llm-reasoning
 model_subtypes: []
@@ -60,9 +60,9 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: null
-  license_url: ''
-  tos_url: ''
+  license_type: proprietary
+  license_url: https://openai.com/policies
+  tos_url: https://openai.com/policies/terms-of-use
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: null
@@ -190,7 +190,7 @@ capabilities:
     tool_selection_accuracy: null
     multi_turn_tool_use: false
     tool_error_recovery: false
-    computer_use: false
+    computer_use: true
   language:
     multilingual: false
     num_languages: null
@@ -216,7 +216,7 @@ capabilities:
     scientific_knowledge: null
   agent_capabilities:
     autonomous_execution: false
-    web_browsing: false
+    web_browsing: true
     file_system_access: false
     code_execution: false
     long_running_tasks: false
@@ -241,15 +241,17 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: ''
+  note: OpenAI Standard API pricing on the 2026-09-03 launch page. Fast mode is 2x
+    Standard price for up to 2x speed. Competitor price columns were not taken.
 availability:
   primary_provider:
-    name: ''
-    platform_url: ''
-    api_endpoint: ''
+    name: OpenAI API
+    platform_url: https://platform.openai.com/
+    api_endpoint: https://api.openai.com/v1
     npm_package: ''
-    env_vars: []
-    model_id_on_platform: ''
+    env_vars:
+    - OPENAI_API_KEY
+    model_id_on_platform: gpt-6-astra
     rate_limit_rpm: null
     rate_limit_tpm: null
     sla_uptime: ''
@@ -261,21 +263,21 @@ availability:
     free_tier: false
     free_tier_details: ''
   aws_bedrock:
-    available: false
+    available: true
     model_id: ''
     url: https://aws.amazon.com/bedrock/
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: Named on the 2026-09-03 launch page. Platform model id not published there.
   azure_ai_foundry:
-    available: false
+    available: true
     model_id: ''
     url: https://ai.azure.com/
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: Named on the 2026-09-03 launch page. Platform model id not published there.
   google_vertex_ai:
     available: false
     model_id: ''
@@ -413,13 +415,14 @@ availability:
     regions: []
     notes: ''
   chatgpt:
-    available: false
-    model_id: ''
+    available: true
+    model_id: gpt-6-astra
     url: https://chat.openai.com/
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: Plus, Pro, Business, Enterprise per the launch page. Enterprise off by
+      default. Pro/Business/Enterprise also get GPT-6 Astra Pro.
   claude_ai:
     available: false
     model_id: ''
@@ -775,6 +778,85 @@ benchmarks:
       Competitor columns were not taken. Publication date is OpenAI''s own dating
       of this article (Research, Sep 3, 2026) on openai.com/index/gpt-5-6/.'
     limitations: ''
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: GPT-6 Astra
+    score: 57.9
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Launch-page Coding table, Astra column only. Not attached to
+      terminal_bench (v1.0, superseded). Competitor columns were not taken.
+    limitations: OpenAI's 57.9% is not Artificial Analysis's 59.1% on the same
+      version label; different protocol.
+  - benchmark_id: terminal_bench_science
+    model_id_as_evaluated: GPT-6 Astra
+    score: 64.6
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: Terminal-Bench Science 0.1
+    configuration: Launch-page Academic table, Astra column only. Competitor
+      columns were not taken.
+    limitations: ''
+  - benchmark_id: browsecomp
+    model_id_as_evaluated: GPT-6 Astra
+    score: 91.5
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: BrowseComp
+    configuration: Launch-page Professional table, Astra column only. Competitor
+      columns were not taken.
+    limitations: ''
+  - benchmark_id: hle_tools
+    model_id_as_evaluated: GPT-6 Astra
+    score: 57.2
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: Humanity's Last Exam (w/ tools)
+    configuration: Launch-page Academic table. Attached to hle_tools, not hle.
+      Competitor columns were not taken.
+    limitations: ''
+  - benchmark_id: arc_agi_2
+    model_id_as_evaluated: GPT-6 Astra
+    score: 95.0
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: ARC-AGI-2
+    configuration: Launch-page Abstract reasoning table, Astra column only. ARC-AGI-3
+      99.9% is not attached; we have no arc_agi_3 page.
+    limitations: ''
+  - benchmark_id: automationbench
+    model_id_as_evaluated: GPT-6 Astra
+    score: 41.4
+    unit: percent
+    source_url: https://openai.com/index/gpt-6-astra/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-03'
+    date_type: published
+    verified_at: '2026-09-11'
+    benchmark_version: AutomationBench
+    configuration: Launch-page Professional table, Astra column only. Distinct from
+      automationbench_aa (AA held-out split, 68.5). Competitor columns were not taken.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -920,30 +1002,57 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/openai
-  provider_docs_url: ''
+  provider_docs_url: https://openai.com/index/gpt-6-astra/
   huggingface_url: ''
   arxiv_url: ''
-  paper_url: ''
+  paper_url: https://openai.com/index/gpt-6-astra/
   github_url: ''
   ollama_url: ''
-  artificial_analysis_url: ''
+  artificial_analysis_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
   arena_url: ''
   last_scraped_models_dev: ''
   last_scraped_huggingface: ''
-  last_scraped_benchmarks: ''
-  last_scraped_pricing: ''
+  last_scraped_benchmarks: '2026-09-11'
+  last_scraped_pricing: '2026-09-11'
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-11'
 ---
 
 # GPT-6 Astra
 
-GPT-6 Astra is a Llm Reasoning model from OpenAI. Part of the gpt-astra family. Knowledge cutoff: 2026-04-30.
+Closed-weight reasoning model from OpenAI, launched 3 September 2026. API id
+`gpt-6-astra`. Parameter count is unpublished. Standard API price is $10 / $50
+per million input / output tokens; Fast mode is 2× that price.
 
-## Key Features
-- Extended reasoning / chain-of-thought
-- Function calling / tool use
-- Structured output (JSON mode)
-- File/image attachments
+Rolling out to ChatGPT Plus, Pro, Business, and Enterprise, and on the OpenAI
+API, Azure, and Bedrock. Enterprise access is off by default. Pro, Business,
+and Enterprise also get GPT-6 Astra Pro.
+
+## What OpenAI published (Astra column only)
+
+Scores below are from [the launch page](https://openai.com/index/gpt-6-astra/),
+dated 3 September 2026. Competitor columns were not taken. Independent
+Artificial Analysis numbers stay on their own evidence rows.
+
+- GPQA Diamond 96.0%
+- Terminal-Bench 4.0 57.9%
+- Terminal-Bench Science 0.1 64.6%
+- BrowseComp 91.5%
+- Humanity's Last Exam (with tools) 57.2%
+- ARC-AGI-2 95.0%
+- AutomationBench 41.4% (not AA's held-out 68.5%)
+
+SWE-bench Verified, HumanEval, LiveCodeBench, Aider Polyglot, LM Arena, AIME,
+and MMLU-Pro are not on that page. OSWorld 2.0 (72.6%) and ARC-AGI-3 (99.9%)
+are not attached: our `osworld` page is not the 2.0 variant, and we have no
+`arc_agi_3` page.
+
+## Key features (launch page)
+
+- Computer use and browsing
+- Function calling
+- Structured JSON output
+- Image and file input
+- Chain-of-thought / effort settings
