@@ -18,7 +18,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline.graph import (  # noqa: E402
-    LEGIBLE_EDGE_LIMIT, VIEWS, node_key, prefer_card, resolve_card_ids, write,
+    CLOUDFLARE_PAGES_MAX_FILE_BYTES, LEGIBLE_EDGE_LIMIT, VIEWS,
+    node_key, prefer_card, resolve_card_ids, write,
 )
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import CollectingSink, CypherSink, derive_graph, ingest_model_card  # noqa: E402
@@ -181,6 +182,46 @@ def test_an_illegible_view_says_so(tmp_path: Path) -> None:
     payload = json.loads((tmp_path / "views" / "benchmarks.json").read_text())
     assert payload["counts"]["edges"] > LEGIBLE_EDGE_LIMIT
     assert payload["legible"] is False
+    assert payload["edge_properties"] is False
+    assert payload["edges"], "the hairball is still published, just without props"
+    assert "props" not in payload["edges"][0]
+
+
+def test_a_legible_view_keeps_edge_props(tmp_path: Path) -> None:
+    """A small view is self-contained JSON, not topology-only."""
+    sink = CollectingSink()
+    sink.node("Model", "id", "child", {"id": "child", "display_name": "Child"})
+    sink.node("Model", "id", "base", {"id": "base", "display_name": "Base"})
+    sink.edge("Model", "child", "DERIVED_FROM", "Model", "base", {"relation": "finetune"})
+    write(tmp_path, sink, {"commit": "test"})
+    payload = json.loads((tmp_path / "views" / "lineage.json").read_text())
+    assert payload["legible"] is True
+    assert payload["edge_properties"] is True
+    assert payload["edges"][0]["props"]["relation"] == "finetune"
+
+
+def test_an_illegible_hardware_view_omits_edge_props(tmp_path: Path) -> None:
+    """FITS_ON props on every (model, device) pair is what blew the 25 MiB cap."""
+    sink = CollectingSink()
+    sink.node("Hardware", "id", "gpu", {"id": "gpu", "display_name": "GPU"})
+    for i in range(LEGIBLE_EDGE_LIMIT + 1):
+        mid = f"m/{i}"
+        sink.node("Model", "id", mid, {"id": mid, "display_name": mid})
+        sink.edge("Model", mid, "FITS_ON", "Hardware", "gpu", {
+            "basis": "computed",
+            "predicted_decode_tps": 1.0,
+            "assumes_working_allowance": 0.25,
+        })
+    write(tmp_path, sink, {"commit": "test"})
+    payload = json.loads((tmp_path / "views" / "hardware.json").read_text())
+    assert payload["counts"]["edges"] == LEGIBLE_EDGE_LIMIT + 1
+    assert payload["legible"] is False
+    assert payload["edge_properties"] is False
+    assert "props" not in payload["edges"][0]
+    assert payload["edges"][0]["from"].startswith("Model:")
+    assert payload["edges"][0]["to"] == "Hardware:gpu"
+    size = (tmp_path / "views" / "hardware.json").stat().st_size
+    assert size < CLOUDFLARE_PAGES_MAX_FILE_BYTES
 
 
 def test_ids_reused_across_labels_stay_distinct(tmp_path: Path) -> None:
