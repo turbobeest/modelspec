@@ -1,0 +1,37 @@
+id: nvidia_jetson_orin_nx_8gb
+display_name: NVIDIA Jetson Orin NX 8GB
+vendor: nvidia
+family: NVIDIA Jetson Orin
+device_class: edge
+released: 2022
+memory:
+  capacity_gb: 8
+  bandwidth_gb_s: 102.4
+  type: LPDDR5
+  bus_bits: 128
+  unified_with_host: true
+  bandwidth_derivation: NVIDIA-published 128-bit LPDDR5 at 102.4 GB/s on the Orin NX 8GB column
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 40
+  sustained_differs_from_boost: true
+sources:
+- https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA Jetson Orin spec table, Jetson Orin NX 8GB column: 8GB 128-bit LPDDR5
+  at 102.4 GB/s; AI performance quoted as 117 TOPS with no precision; GPU 1024-core
+  Ampere with 32 Tensor Cores; 6-core Cortex-A78AE; power 10W-40W (40 W stored as the
+  configurable Super-mode maximum). TOPS is not stored as compute.tflops because the
+  precision is unspecified. Unified module memory. Same 102.4 GB/s as NX 16GB; capacity
+  is the difference. Launch year 2022 from NVIDIA positioning Orin as the generation
+  after Xavier on this page; month is not on the table.'
