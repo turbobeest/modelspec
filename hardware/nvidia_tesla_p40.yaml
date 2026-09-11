@@ -1,0 +1,34 @@
+id: nvidia_tesla_p40
+display_name: NVIDIA Tesla P40
+vendor: nvidia
+family: NVIDIA Tesla
+device_class: datacentre
+released: 2016-09
+memory:
+  capacity_gb: 24
+  bandwidth_gb_s: 346
+  type: GDDR5
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA datasheet 346 GB/s; transcribed, not bus-derived
+precisions_native:
+- fp16
+- int8
+interconnect:
+  pcie_gen: 3
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 250
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-product-literature/184427-Tesla-P40-Datasheet-NV-Final-Letter-Web.pdf
+- https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-product-literature/Tesla-P40-Product-Brief.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA Tesla P40 datasheet (Sep16): Pascal, 24 GB, 346 GB/s, PCIe 3.0 x16,
+  max power 250 W, ECC. Single-precision 12 TFLOPS and INT8 47 TOPS are boost-clock
+  peaks and are not stored as compute.tflops. The product brief (PB-08338-001) lists
+  24 GB GDDR5, 384-bit I/O, and "up to 347 GB/s"; type GDDR5 is from that brief, bandwidth
+  is the datasheet 346 GB/s rather than the brief''s rounded 347. Distinct from Tesla
+  P4 (8 GB, 192 GB/s). No NVLink on this SKU. fp8/bf16 are not claimed.'

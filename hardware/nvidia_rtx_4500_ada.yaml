@@ -1,0 +1,38 @@
+id: nvidia_rtx_4500_ada
+display_name: NVIDIA RTX 4500 Ada Generation
+vendor: nvidia
+family: NVIDIA RTX Ada
+device_class: workstation
+released: 2023
+memory:
+  capacity_gb: 24
+  bandwidth_gb_s: 432
+  type: GDDR6
+  bus_bits: 192
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA datasheet 192-bit GDDR6 at 432 GB/s; transcribed, not bus-derived
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 210
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/products/workstations/rtx-4500/
+- https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-4500-datasheet.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA RTX 4500 Ada Generation datasheet (OCT23): 24 GB GDDR6, 192-bit, 432
+  GB/s, PCIe 4.0 x16, total board power 210 W, 7,680 CUDA cores, no NVLink. Product
+  page lists 24 GB GDDR6 ECC and 210 W but not bandwidth; bandwidth and bus width
+  are from the datasheet. Single-precision 39.6 TFLOPS is a qualified FP32 peak; Tensor
+  634.0 TFLOPS uses sparsity/FP8 and is not stored as compute.tflops. Distinct from
+  RTX A4500 (Ampere) and from RTX 5000 Ada (32 GB, 576 GB/s). Month is not on the
+  product spec table.'

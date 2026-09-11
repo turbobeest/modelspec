@@ -1,0 +1,38 @@
+id: nvidia_jetson_t4000
+display_name: NVIDIA Jetson T4000
+vendor: nvidia
+family: NVIDIA Jetson Thor
+device_class: edge
+released: 2025
+memory:
+  capacity_gb: 64
+  bandwidth_gb_s: 273
+  type: LPDDR5X
+  bus_bits: 256
+  unified_with_host: true
+  bandwidth_derivation: NVIDIA-published 256-bit LPDDR5X at 273 GB/s on the Jetson T4000 column
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 5
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 70
+  sustained_differs_from_boost: true
+sources:
+- https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA Jetson Thor spec table, Jetson T4000 column: 64 GB 256-bit LPDDR5X
+  at 273 GB/s; GPU 1536-core Blackwell with fifth-gen Tensor Cores; 12-core Neoverse-V3AE;
+  power 40 W-70 W (70 W stored as the configurable maximum). AI performance is quoted
+  as 1200 TFLOPS (FP4—Sparse) and is not stored as compute.tflops. Unified module
+  memory. Distinct from Jetson T5000 (128 GB, same 273 GB/s, 40 W-130 W). Month is
+  not on the spec table. Newly announced T3000/T2000 modules are not on this table
+  and are not this record.'
