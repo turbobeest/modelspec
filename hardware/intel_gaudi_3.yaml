@@ -1,0 +1,40 @@
+id: intel_gaudi_3
+display_name: Intel Gaudi 3
+vendor: intel
+family: Intel Gaudi
+device_class: datacentre
+released: 2024
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 3700
+  type: HBM2e
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: Intel-published 3.7 TB/s HBM bandwidth (8 HBM2e devices); transcribed, not bus-derived
+precisions_native:
+- fp16
+- bf16
+- fp8
+interconnect:
+  pcie_gen: 5
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 900
+  sustained_differs_from_boost: false
+sources:
+- https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+- https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'Intel Gaudi 3 architecture page and Gaudi 3 AI Accelerator technical paper
+  (July 2025 V1 Rev. 3): 128 GB HBM2e, 3.7 TB/s HBM bandwidth stored as 3700 GB/s,
+  8 HBM2e chips, two compute dies, 8 MME / 64 TPC, 24x 200 Gbps RDMA NIC, PCIe Gen5
+  x16. HL-325L OAM TDP up to 900 W (paper lists 900 W for both passive and liquid
+  cooling). 1.8 PFlops of FP8 and BF16 and table-1 1678 BF16/FP8 MME TFLOPS are qualified
+  vendor compute claims and are not copied into compute.tflops (other datacentre
+  rows in this catalogue store memory, not peak GEMM). Bus width is not on those
+  pages. Distinct from Gaudi 2 (96 GB, 2.46 TB/s, PCIe Gen4) which is not this record.
+  The technical paper is dated July 2025 and says Gaudi 2 was introduced in 2022;
+  it does not put a calendar month on Gaudi 3 first shipment, so the year is 2024
+  from Intel''s product generation (post-2022, pre-this paper).'
