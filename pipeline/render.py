@@ -715,12 +715,24 @@ def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Bui
 # ── shared furniture ─────────────────────────────────────────────────────────
 
 def sitemap(base: str, paths: Iterable[str], today: date) -> str:
-    urls = "".join(
-        f"<url><loc>{esc(base + p)}</loc><lastmod>{today.isoformat()}</lastmod></url>"
+    """Pretty-print so a large catalogue cannot become one 100k+ line.
+
+    Search Console read the 100,405-byte one-line benchgraph sitemap and
+    refused the 143,458-byte one-line modelspec sitemap as "could not be
+    read". Both were well-formed. A single line over 128 KiB is the
+    difference that matches; one URL per line stays far under that.
+    """
+    lastmod = today.isoformat()
+    entries = "\n".join(
+        f"<url><loc>{esc(base + p)}</loc><lastmod>{lastmod}</lastmod></url>"
         for p in paths
     )
-    return ('<?xml version="1.0" encoding="UTF-8"?>'
-            f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>')
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{entries}\n"
+        "</urlset>\n"
+    )
 
 
 def not_found(site: str, build: Build, nav: list[tuple[str, str]], home: str) -> str:
