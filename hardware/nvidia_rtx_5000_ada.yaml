@@ -1,0 +1,38 @@
+id: nvidia_rtx_5000_ada
+display_name: NVIDIA RTX 5000 Ada Generation
+vendor: nvidia
+family: NVIDIA RTX Ada
+device_class: workstation
+released: 2023
+memory:
+  capacity_gb: 32
+  bandwidth_gb_s: 576
+  type: GDDR6
+  bus_bits: 256
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA datasheet 256-bit GDDR6 at 576 GB/s; transcribed, not bus-derived
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 250
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/products/workstations/rtx-5000/
+- https://resources.nvidia.com/en-us-briefcase-for-datasheets/rtx-5000-ada-datashe
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA RTX 5000 Ada Generation datasheet (AUG 23): 32 GB GDDR6, 256-bit, 576
+  GB/s, PCIe 4.0 x16, total board power 250 W, 12,800 CUDA cores. Product page lists
+  32 GB GDDR6 ECC and 250 W but not bandwidth; bandwidth and bus width are from the
+  datasheet. Single-precision 65.3 TFLOPS is a qualified FP32 peak; Tensor 1044.4
+  TFLOPS uses sparsity/FP8 and is not stored as compute.tflops. Distinct from the
+  RTX 5000 Ada laptop GPU (16 GB, 576 GB/s on NVIDIA''s mobile line card) and from
+  RTX 6000 Ada (48 GB, 960 GB/s). Month is not on the product spec table.'

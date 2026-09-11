@@ -1,0 +1,42 @@
+id: nvidia_dgx_spark
+display_name: NVIDIA DGX Spark
+vendor: nvidia
+family: NVIDIA DGX Spark
+device_class: workstation
+released: 2025-10
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 273
+  type: LPDDR5X
+  bus_bits: 256
+  unified_with_host: true
+  bandwidth_derivation: NVIDIA-published 273 GB/s; 256-bit LPDDR5X at 8533 MT/s on the user guide agrees (256/8 x 8.533 = 273.056)
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: null
+  link: nvlink
+  link_gb_s: null
+power:
+  tdp_w: 140
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/products/workstations/dgx-spark/
+- https://docs.nvidia.com/dgx/dgx-spark/hardware.html
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA DGX Spark product spec table: 128 GB LPDDR5x coherent unified system
+  memory, 256-bit, 273 GB/s; GB10 TDP 140 W (footnote: chip TDP including CPU and
+  GPU); 240 W external PSU. User guide repeats 128 GB LPDDR5x, 256-bit, 4266 MHz,
+  273 GB/s and 16 channels LPDDR5X 8533. Tensor performance is "up to 1 PFLOP FP4"
+  / "theoretical FP4 TOPS using the sparsity feature" and is not stored as compute.tflops.
+  GB10 Grace Blackwell Superchip is the SoC in this system, not a separate row. NVLink-C2C
+  is present; the spec table does not give a GB/s figure, so link_gb_s is null. ConnectX-7
+  at 200 Gbps is host networking, not GPU-GPU NVLink. Distinct from Jetson T5000
+  (also 128 GB / 273 GB/s LPDDR5X, edge module). Product page lists the 13 October
+  2025 shipping announcement.'

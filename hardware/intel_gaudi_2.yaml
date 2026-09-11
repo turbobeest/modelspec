@@ -1,0 +1,38 @@
+id: intel_gaudi_2
+display_name: Intel Gaudi 2
+vendor: intel
+family: Intel Gaudi
+device_class: datacentre
+released: 2022-05
+memory:
+  capacity_gb: 96
+  bandwidth_gb_s: 2450
+  type: HBM2E
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: Habana-published 2.45 TB/sec HBM2E bandwidth; transcribed, not bus-derived
+precisions_native:
+- fp16
+- bf16
+- fp8
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 600
+  sustained_differs_from_boost: false
+sources:
+- https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+- https://habana.ai/wp-content/uploads/pdf/2022/gaudi2_datasheet-10-22.pdf
+- https://download.intel.com/newsroom/2022/corporate/vision/Habana-Gaudi2-Launch-Fact-Sheet.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'Habana Gaudi architecture page: 96 GB HBM2E delivering 2.45 TB/sec (stored
+  as 2450 GB/s), 48 MB SRAM, 24x 100 Gbps RoCE v2, FP32/TF32/BF16/FP16/FP8. HL-225H
+  mezzanine datasheet: 96 GB HBM2E, PCIe Gen 4.0 x16, card TDP 600 W, OAM v1.1; that
+  sheet rounds HBM throughput to 2.4 TB/s. Intel Vision launch fact sheet (May 10,
+  2022) repeats 96 GB HBM2E at 2.45 TB/sec. The later Gaudi 3 technical paper comparison
+  table lists 2.46 TB/s; this record uses the Gaudi-2-specific 2.45 TB/s pages. Bus
+  width is not on those pages. Distinct from Gaudi 3 (128 GB, 3.7 TB/s, PCIe Gen5).
+  Peak MME TFLOPS are not copied into compute.tflops.'
