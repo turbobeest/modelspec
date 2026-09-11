@@ -35,6 +35,9 @@ def test_ledger_to_card_is_explicit_dict():
     assert "GPT-6 Astra (high)" not in LEDGER_TO_CARD
     assert LEDGER_TO_CARD["Command A+"] == "cohere/command-a-plus-05-2026"
     assert LEDGER_TO_CARD["GLM-5.3 (max)"] == "zhipu/glm-5-3"
+    assert LEDGER_TO_CARD["GLM-5.2 (max)"] == "zhipu/glm-5-2"
+    assert LEDGER_TO_CARD["glm-5.2-max"] == "zhipu/glm-5-2"
+    assert "GLM-5.2 (Non-reasoning)" not in LEDGER_TO_CARD
     assert LEDGER_TO_CARD["Inkling"] == "thinkingmachines/inkling"
     assert LEDGER_TO_CARD["inkling"] == "thinkingmachines/inkling"
     assert LEDGER_TO_CARD["Nemotron 3.5 Lightning"] == (
@@ -66,6 +69,7 @@ def test_model13_traps_are_not_mapped():
         "gemini-3-flash",
         "Gemma 4 12B",
         "Qwen2 72B",
+        "GLM-5.2 (Non-reasoning)",
     )
     for name in forbidden:
         assert name not in LEDGER_TO_CARD, name
@@ -183,6 +187,30 @@ def _evidence(model_id: str) -> list[dict]:
     path = _card_index()[model_id]
     front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
     return list((front.get("benchmarks") or {}).get("evidence") or [])
+
+
+def test_glm52_live_aa_arena_rows_are_on_the_product_card():
+    """AA (max) and Arena glm-5.2-max attach to zhipu/glm-5-2; Non-reasoning does not."""
+    rows = _evidence("zhipu/glm-5-2")
+    names = {e.get("model_id_as_evaluated") for e in rows}
+    assert "GLM-5.2 (max)" in names
+    assert "glm-5.2-max" in names
+    assert "GLM-5.2 (Non-reasoning)" not in names
+    by_id = {e["benchmark_id"]: e for e in rows
+             if e.get("model_id_as_evaluated") == "GLM-5.2 (max)"}
+    assert by_id["gpqa_diamond"]["score"] == 89.49
+    assert by_id["scicode"]["score"] == 51.16
+    assert by_id["aa_lcr"]["score"] == 78.33
+    assert by_id["gdpval_aa"]["score"] == 45.88
+    assert by_id["critpt"]["score"] == 20.86
+    arena = [
+        e for e in rows
+        if e.get("benchmark_id") == "arena_elo_style_control"
+        and e.get("model_id_as_evaluated") == "glm-5.2-max"
+    ]
+    assert arena and arena[0]["score"] == 1471.72
+    assert all(e.get("source_url", "").startswith("https://") for e in rows)
+    assert all(e.get("date_type") == "evaluated" for e in rows)
 
 
 def test_glm53_published_scicode_is_the_chart_correction():
