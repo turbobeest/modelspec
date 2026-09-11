@@ -1,0 +1,34 @@
+id: amd_ryzen_ai_max_plus_395
+display_name: AMD Ryzen AI Max+ 395
+vendor: amd
+family: Ryzen AI Max 300
+device_class: integrated
+released: 2025
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 256
+  type: LPDDR5X
+  bus_bits: 256
+  unified_with_host: true
+  bandwidth_derivation: 256-bit LPDDR5x-8000 (AMD Max. Memory Speed) = 256/8 x 8.0 Gbps = 256 GB/s
+precisions_native:
+- fp16
+- bf16
+- int8
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 55
+  sustained_differs_from_boost: true
+sources:
+- https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-plus-395.html
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'AMD Ryzen AI Max+ 395 product page (codename Strix Halo). System memory type
+  256-bit LPDDR5x, max 128 GB, LPDDR5x-8000. Bandwidth is derived, not transcribed.
+  OEM capacity varies; 128 GB is AMD''s published maximum. Default TDP 55 W, cTDP
+  45-120 W. Radeon 8060S, 40 graphics cores. "Up to 126 TOPS" / "NPU TOPS 50" are
+  not stored as compute rows (precision unspecified). Launch year 2025; AMD does not
+  put a month on this page. Unified memory. Thin-chassis clocks differ from boost.'

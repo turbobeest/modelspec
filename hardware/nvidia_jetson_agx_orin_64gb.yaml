@@ -1,0 +1,36 @@
+id: nvidia_jetson_agx_orin_64gb
+display_name: NVIDIA Jetson AGX Orin 64GB
+vendor: nvidia
+family: NVIDIA Jetson Orin
+device_class: edge
+released: 2022
+memory:
+  capacity_gb: 64
+  bandwidth_gb_s: 204.8
+  type: LPDDR5
+  bus_bits: 256
+  unified_with_host: true
+  bandwidth_derivation: NVIDIA-published 256-bit LPDDR5 at 204.8 GB/s on the AGX Orin 64GB row
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 60
+  sustained_differs_from_boost: true
+sources:
+- https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA Jetson Orin spec table, Jetson AGX Orin 64GB column: 64GB 256-bit LPDDR5
+  at 204.8 GB/s; AI performance quoted as 275 TOPS with no precision; GPU 2048-core
+  Ampere with 64 Tensor Cores; power 15W-60W (60 W stored as the configurable maximum).
+  TOPS is not stored as compute.tflops because the precision is unspecified. Unified
+  module memory. Launch year 2022 from NVIDIA positioning Orin as the generation after
+  Xavier on this page; month is not on the table.'
