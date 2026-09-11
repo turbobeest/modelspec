@@ -77,7 +77,7 @@ def _collect_filled(obj: object, prefix: str, result: set[str]) -> None:
 
     if not isinstance(obj, BaseModel):
         return
-    for field_name in obj.model_fields:
+    for field_name in type(obj).model_fields:
         value = getattr(obj, field_name)
         full_name = f"{prefix}.{field_name}"
         if isinstance(value, BaseModel):

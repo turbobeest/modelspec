@@ -801,7 +801,7 @@ class ModelCard(BaseModel):
         """Recursively count filled vs total fields."""
         filled = 0
         total = 0
-        for field_name, field_info in obj.model_fields.items():
+        for field_name, field_info in type(obj).model_fields.items():
             value = getattr(obj, field_name)
             if isinstance(value, BaseModel):
                 f, t = self._count_fields(value, _depth + 1)
