@@ -1,0 +1,31 @@
+id: intel_arc_a770_16gb
+display_name: Intel Arc A770 16GB
+vendor: intel
+family: Intel Arc A-Series
+device_class: consumer
+released: 2022-09
+memory:
+  capacity_gb: 16
+  bandwidth_gb_s: 560
+  type: GDDR6
+  bus_bits: 256
+  unified_with_host: false
+  bandwidth_derivation: Intel ARK Graphics Memory Bandwidth 560 GB/s; 256-bit GDDR6 at 17.5 Gbps = 256/8 x 17.5 = 560 GB/s
+precisions_native:
+- fp16
+- int8
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 225
+  sustained_differs_from_boost: false
+sources:
+- https://www.intel.com/content/www/us/en/products/sku/229151/intel-arc-a770-graphics-16gb/specifications.html
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'Intel ARK, Arc A770 Graphics 16GB (SKU 229151). Memory 16 GB GDDR6, 256-bit,
+  17.5 Gbps, 560 GB/s. TBP 225 W. Launch Date Q3''22 stored as 2022-09. GPU Peak TOPS
+  (Int8) 262 is Intel''s own INT8 figure and is not copied into compute.tflops (different
+  unit). PCIe 4.0 x16. Desktop Alchemist.'
