@@ -1,0 +1,38 @@
+id: nvidia_rtx_4000_sff_ada
+display_name: NVIDIA RTX 4000 SFF Ada Generation
+vendor: nvidia
+family: NVIDIA RTX Ada
+device_class: workstation
+released: 2023-04
+memory:
+  capacity_gb: 20
+  bandwidth_gb_s: 280
+  type: GDDR6
+  bus_bits: 160
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA datasheet 160-bit GDDR6 at 280 GB/s; transcribed, not bus-derived
+precisions_native:
+- fp16
+- bf16
+- fp8
+- int8
+- int4
+interconnect:
+  pcie_gen: 4
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: 70
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/nvidia-rtx-4000-sff-datasheet.pdf
+figures_are: vendor-specification
+verified_at: 2026-09-11
+notes: 'NVIDIA RTX 4000 SFF Ada Generation datasheet (APR23): 20 GB GDDR6, 160-bit,
+  280 GB/s, PCIe 4.0 x16, total board power 70 W, 6,144 CUDA cores, dual-slot SFF
+  2.7" H x 6.6" L, no NVLink. Single-precision 19.2 TFLOPS is a qualified FP32 peak;
+  Tensor 306.8 TFLOPS uses sparsity/FP8 and is not stored as compute.tflops. Distinct
+  from the full-size RTX 4000 Ada Generation desktop card (20 GB GDDR6 ECC, 130 W,
+  26.7 TFLOPS on the product page) which does not publish memory bandwidth on that
+  page and is not this record. Distinct from the RTX 4000 Ada laptop GPU (12 GB, 432
+  GB/s on NVIDIA''s mobile line card).'
