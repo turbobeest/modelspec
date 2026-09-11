@@ -268,6 +268,10 @@ LEDGER_TO_CARD: dict[str, str] = {
     "GLM-5": "zhipu/glm-5",
     "glm-5": "zhipu/glm-5",
     "glm-5.1": "zhipu/glm-5-1",
+    # Unique Z.ai product row. mistral/zai-glm-5-2 and qwen/glm-5-2
+    # no longer exist in the catalogue. Non-reasoning stays unmapped.
+    "GLM-5.2 (max)": "zhipu/glm-5-2",
+    "glm-5.2-max": "zhipu/glm-5-2",
     "GLM-5.3 (max)": "zhipu/glm-5-3",
     "glm-5.3-max": "zhipu/glm-5-3",
     "GLM-5.3-Flash": "zhipu/glm-5-3-flash",
@@ -471,7 +475,7 @@ LEDGER_TO_CARD: dict[str, str] = {
     "Tulu3 405B": "allen-ai/llama-3-1-tulu-3-405b",
     # Unmapped on purpose:
     # "Claude Opus 5 (high)" / other effort rows — not the product card.
-    # "GLM-5.2 (max)" — two cards (mistral/zai-glm-5-2, qwen/glm-5-2).
+    # "GLM-5.2 (Non-reasoning)" — serving variant, not the (max) product row.
     # "Qwen3.8-Max" as a *static* HF score still has no stated day;
     # the live AA row is mapped separately as "Qwen3.8 Max".
     # "Muse Glimmer (high)" — effort row, not meta/muse-glimmer-30b.
