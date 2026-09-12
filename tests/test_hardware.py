@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import functools
 import glob
+import json
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from pipeline.graph import CLOUDFLARE_PAGES_MAX_FILE_BYTES, write  # noqa: E402
 from pipeline.hardware import (  # noqa: E402
     BANDWIDTH_EFFICIENCY, KV_BYTES_PER_ELEMENT, QUANT_BYTES, WORKING_ALLOWANCE,
     Device, best_quant, compute, fitting_quants, kv_bytes_per_token,
@@ -239,6 +241,24 @@ def _real():
 def test_the_hardware_view_is_no_longer_empty() -> None:
     _, stats = _real()
     assert stats["edges"] > 0
+
+
+def test_published_hardware_view_fits_cloudflare_pages(tmp_path: Path) -> None:
+    """Wave-3 SKUs made the fat FITS_ON dump larger than Pages will host."""
+    sink, stats = _real()
+    assert stats["edges"] > 0
+    write(tmp_path, sink, {"commit": "test"})
+    path = tmp_path / "views" / "hardware.json"
+    size = path.stat().st_size
+    assert size < CLOUDFLARE_PAGES_MAX_FILE_BYTES, (
+        f"hardware.json is {size} bytes; Pages refuses files over "
+        f"{CLOUDFLARE_PAGES_MAX_FILE_BYTES}"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["counts"]["edges"] == stats["edges"]
+    assert payload["edge_properties"] is False
+    hardware_nodes = [n for n in payload["nodes"] if n["label"] == "Hardware"]
+    assert {n["id"] for n in hardware_nodes} == {d.id for d in _devices()}
 
 
 def test_closed_weights_models_get_no_fits_on_edge() -> None:
