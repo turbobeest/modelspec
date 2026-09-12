@@ -14,7 +14,7 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 1470308496
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -40,9 +40,9 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: ''
+  total_parameters_source: safetensors:base_model:LiquidAI/LFM2.5-Audio-1.5B
 lineage:
-  base_model: ''
+  base_model: LiquidAI/LFM2.5-Audio-1.5B
   base_model_relation: null
   merge_models: []
   adapter_type: ''
