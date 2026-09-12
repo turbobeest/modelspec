@@ -1,5 +1,7 @@
 # Handoff: who owns what after 2026-09-10
 
+**2026-09-12 freeze:** all further development is held until refreshed tickets next week. Read [`session-freeze-2026-09-12.md`](session-freeze-2026-09-12.md) first. Do not start a loop. `mvp-remainder.md` is stale on MODEL-7/30/34 (Done).
+
 ModelSpec's MVP is functionally complete. What remains splits into three piles,
 and the split is the point of this document: **most of it is not agent work**,
 and treating it as agent work wastes effort and produces confident nonsense.
