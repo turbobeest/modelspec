@@ -14,8 +14,8 @@ tags: []
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
-  total_parameters_source: ''
+  total_parameters: 763205315794
+  total_parameters_source: safetensors
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -637,9 +637,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: deepseek-ai/DeepSeek-V4.1-Flash
+    url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
     fine_tuning: false
     gated: false
     regions: []
@@ -810,7 +810,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/deepseek
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -818,7 +818,7 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-12'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
