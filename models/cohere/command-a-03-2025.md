@@ -17,7 +17,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 111057580032
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -43,7 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null
@@ -639,9 +639,9 @@ availability:
     regions: []
     notes: ''
   huggingface:
-    available: false
-    model_id: ''
-    url: https://huggingface.co/
+    available: true
+    model_id: CohereLabs/c4ai-command-a-03-2025
+    url: https://huggingface.co/CohereLabs/c4ai-command-a-03-2025
     fine_tuning: false
     gated: false
     regions: []
@@ -876,7 +876,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/cohere
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/CohereLabs/c4ai-command-a-03-2025
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -884,7 +884,7 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-12'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
