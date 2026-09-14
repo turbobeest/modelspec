@@ -1,13 +1,13 @@
 ---
 model_id: google/gemini-3-pro-image-preview
-display_name: Nano Banana Pro
+display_name: Nano Banana Pro Preview
 provider: google
 provider_display: Google DeepMind
 family: gemini-pro
 version: gemini-3-pro-image-preview
 release_date: '2025-11-20'
 last_updated: '2025-11-20'
-status: preview
+status: deprecated
 model_type: image-generation
 model_subtypes: []
 tags: []
@@ -809,7 +809,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/google
-  provider_docs_url: ''
+  provider_docs_url: https://ai.google.dev/gemini-api/docs/deprecations
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -824,12 +824,12 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-14'
 ---
 
-# Nano Banana Pro
+# Nano Banana Pro Preview
 
-Nano Banana Pro is a Image Generation model from Google DeepMind. Part of the gemini-pro family. Knowledge cutoff: 2025-01.
+Google's Gemini 3 Pro Image Preview (`gemini-3-pro-image-preview`), released 20 November 2025. The [Gemini API release notes](https://ai.google.dev/gemini-api/docs/changelog) dated 28 May 2026 (page last updated 2026-09-04 UTC) say: "The gemini-3.1-flash-image-preview and gemini-3-pro-image-preview models are deprecated and will be shut down on June 25, 2026." The [deprecations](https://ai.google.dev/gemini-api/docs/deprecations) page (last updated 2026-09-05 UTC) lists this preview's shutdown date as 25 June 2026 and the recommended replacement as `gemini-3-pro-image`. The current [models list](https://ai.google.dev/gemini-api/docs/models) (last updated 2026-09-04 UTC) no longer includes this preview id; Nano Banana Pro Stable is `gemini-3-pro-image`. Catalogue status is deprecated. This card is the predecessor of `google/gemini-3-pro-image`.
 
 ## Key Features
 - Extended reasoning / chain-of-thought
