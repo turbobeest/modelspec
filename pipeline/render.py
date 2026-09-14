@@ -13,6 +13,7 @@ Design rules this module enforces, rather than leaves to the author:
 from __future__ import annotations
 
 import html
+import math
 from collections.abc import Collection, Iterable
 from datetime import date
 from pathlib import Path
@@ -72,6 +73,30 @@ footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);colo
 .notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:14px 0;font-size:15px}
 .notice.ok{border-left-color:var(--good);background:#04120c}
 """
+
+
+def format_weight_size(gb: Any) -> str:
+    """Render a stored weight size in GB for a model page. Display only.
+
+    Values of 1 GB and above print to exactly two decimals ("3.62 GB"), the
+    page format before MODEL-47. Values below 1 GB print in MB to three
+    significant figures ("616 MB", "1.23 MB"), so a sub-10M-parameter model
+    never reads as "0.0 GB" and a non-zero size never reads as "0 MB".
+    """
+    if gb is None:
+        return ""
+    try:
+        value = float(gb)
+    except (TypeError, ValueError):
+        return f"{gb} GB"
+    if abs(value) >= 1:
+        return f"{value:.2f} GB"
+    mb = value * 1000.0
+    if mb == 0:
+        return "0 MB"
+    mb = float(f"{mb:.3g}")  # round first so 9.996 prints "10.0", not "10.00"
+    decimals = max(0, 2 - math.floor(math.log10(abs(mb))))
+    return f"{mb:.{decimals}f} MB"
 
 
 def format_score(value: Any, unit: Any) -> str:
@@ -286,7 +311,7 @@ def hardware_section(relations: Any) -> str:
             f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>'
             f'<td class="num">{esc(bandwidth)} GB/s</td>'
             f'<td>{esc(entry.get("quantization"))}</td>'
-            f'<td class="num">{esc(entry.get("weights_gb"))} GB</td>'
+            f'<td class="num">{esc(format_weight_size(entry.get("weights_gb")))}</td>'
             f'<td class="num">~{esc(entry.get("predicted_decode_tps"))}</td>'
             f'<td class="num">~{esc(entry.get("fastest_predicted_decode_tps"))} '
             f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')

@@ -28,6 +28,7 @@ from pipeline.hardware import (  # noqa: E402
     Device, best_quant, compute, fitting_quants, kv_bytes_per_token,
     load_devices, predicted_decode_tps, predicted_max_context, weights_gb,
 )
+from pipeline.render import format_weight_size, hardware_section  # noqa: E402
 from schema.card import (  # noqa: E402
     Architecture, Identity, Licensing, Modalities, ModelCard, TextDetail,
 )
@@ -529,7 +530,9 @@ def test_published_hardware_view_fits_cloudflare_pages(tmp_path: Path) -> None:
     assert payload["counts"]["edges"] == stats["edges"]
     assert payload["edge_properties"] is False
     hardware_nodes = [n for n in payload["nodes"] if n["label"] == "Hardware"]
-    assert {n["id"] for n in hardware_nodes} == {d.id for d in _devices()}
+    eligible = {d.id for d in _devices() if d.single_device_fit}
+    assert {n["id"] for n in hardware_nodes} == eligible
+    assert "cerebras_wse3" not in eligible
 
 
 def test_closed_weights_models_get_no_fits_on_edge() -> None:
@@ -586,3 +589,154 @@ def test_computed_fits_on_edges_carry_max_context_or_a_geometry_flag() -> None:
             assert props["max_context_bound_by"] in ("device", "model")
             with_context += 1
     assert stats["edges_with_max_context"] == with_context
+
+
+# ── single-device fit flag (MODEL-47) ────────────────────────────────────────
+
+_TINY_PARAMS = 616_032  # granite-timeseries-patchtst; bf16 is 0.001232064 GB
+
+
+def test_single_device_fit_false_without_reason_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "hardware").mkdir()
+    (tmp_path / "hardware/wafer.yaml").write_text(
+        "id: wafer\ndisplay_name: Wafer\nvendor: x\ndevice_class: datacentre\n"
+        "single_device_fit: false\n"
+        "memory:\n  capacity_gb: 44\n  bandwidth_gb_s: 21000000\n  type: SRAM\n",
+        encoding="utf-8")
+    with pytest.raises(ValueError, match="single_device_fit_reason"):
+        load_devices(tmp_path)
+
+
+def test_single_device_fit_false_loads_with_reason(tmp_path: Path) -> None:
+    (tmp_path / "hardware").mkdir()
+    (tmp_path / "hardware/wafer.yaml").write_text(
+        "id: wafer\ndisplay_name: Wafer\nvendor: x\ndevice_class: datacentre\n"
+        "single_device_fit: false\n"
+        "single_device_fit_reason: working SRAM, not a frame buffer\n"
+        "memory:\n  capacity_gb: 44\n  bandwidth_gb_s: 21000000\n  type: SRAM\n",
+        encoding="utf-8")
+    devices = load_devices(tmp_path)
+    assert len(devices) == 1
+    assert devices[0].single_device_fit is False
+    assert "working SRAM" in (devices[0].single_device_fit_reason or "")
+
+
+def test_omitted_single_device_fit_defaults_to_true(tmp_path: Path) -> None:
+    (tmp_path / "hardware").mkdir()
+    (tmp_path / "hardware/gpu.yaml").write_text(
+        "id: gpu\ndisplay_name: GPU\nvendor: x\ndevice_class: consumer\n"
+        "memory:\n  capacity_gb: 24\n  bandwidth_gb_s: 1000\n  type: GDDR6\n",
+        encoding="utf-8")
+    devices = load_devices(tmp_path)
+    assert devices[0].single_device_fit is True
+    assert devices[0].single_device_fit_reason is None
+
+
+def test_single_device_fit_false_suppresses_edges_and_predictions() -> None:
+    flagged = Device(
+        id="wafer", display_name="Wafer", vendor="x", device_class="datacentre",
+        bandwidth_gb_s=21_000_000, capacity_options_gb=(44.0,),
+        precisions_native=("bf16",), unified=False,
+        single_device_fit=False,
+        single_device_fit_reason="working SRAM, not a frame buffer",
+    )
+    sink = CollectingSink()
+    stats = compute(sink, [_card(params=_TINY_PARAMS)], [flagged, _gpu()])
+    assert stats["skipped_single_device_fit"] == 1
+    assert stats["edges"] == 1
+    fits = [e for e in sink.edges if e["type"] == "FITS_ON"]
+    assert {e["to"] for e in fits} == {"gpu24"}
+    assert not any(e["to"] == "wafer" for e in fits)
+    for edge in fits:
+        assert "predicted_decode_tps" in edge["props"]
+        assert edge["to"] != "wafer"
+    assert ("Hardware", "wafer") in sink.nodes
+    assert ("Hardware", "gpu24") in sink.nodes
+
+
+def test_yaml_false_flag_always_carries_a_reason() -> None:
+    for path, raw in _yaml_devices():
+        if raw.get("single_device_fit") is False:
+            reason = raw.get("single_device_fit_reason")
+            assert isinstance(reason, str) and reason.strip(), path.name
+
+
+def test_cerebras_wse3_is_flagged_and_emits_no_fits_on() -> None:
+    wse = next(d for d in _devices() if d.id == "cerebras_wse3")
+    assert wse.single_device_fit is False
+    assert wse.single_device_fit_reason
+    sink, stats = _real()
+    assert stats["skipped_single_device_fit"] >= 1
+    for edge in sink.edges:
+        if edge["type"] == "FITS_ON":
+            assert edge["to"] != "cerebras_wse3"
+            assert "predicted_decode_tps" not in edge or edge["to"] != "cerebras_wse3"
+
+
+def test_sub_10m_parameter_weights_stay_unrounded_on_the_edge() -> None:
+    stored = weights_gb(_TINY_PARAMS, "bf16")
+    assert stored < 0.01
+    assert round(stored, 2) == 0.0
+    sink = CollectingSink()
+    compute(sink, [_card(params=_TINY_PARAMS)], [_gpu()])
+    gb = sink.edges[0]["props"]["weights_gb"]
+    assert gb == pytest.approx(stored)
+    assert gb != 0.0
+    # Decode still uses the unrounded size, not a rounded-to-zero GB figure.
+    assert sink.edges[0]["props"]["predicted_decode_tps"] > 0
+
+
+def test_sub_10m_parameter_card_never_renders_zero_point_zero_gb() -> None:
+    from types import SimpleNamespace
+
+    stored = weights_gb(_TINY_PARAMS, "bf16")
+    html = hardware_section(SimpleNamespace(hardware=[{
+        "name": "24GB",
+        "device": {"memory_bandwidth_gb_s": 1000},
+        "device_memory_gb": 24,
+        "quantization": "bf16",
+        "weights_gb": stored,
+        "predicted_decode_tps": 1.0,
+        "fastest_predicted_decode_tps": 1.0,
+        "fastest_quantization": "q4",
+    }]))
+    assert "0.0 GB" not in html
+    assert "0.00 GB" not in html
+    assert "MB" in html
+    assert format_weight_size(stored) == "1.23 MB"
+    assert format_weight_size(4.0) == "4.00 GB"
+    assert format_weight_size(round(stored, 2)) != "0.0 GB"
+
+
+def test_ordinary_gb_weights_render_to_two_decimals() -> None:
+    """Unrounded storage must not print 3.620866048 GB on an ordinary model page."""
+    from types import SimpleNamespace
+
+    raw = 3.620866048
+    assert format_weight_size(raw) == "3.62 GB"
+    assert format_weight_size(16.060522496) == "16.06 GB"
+    html = hardware_section(SimpleNamespace(hardware=[{
+        "name": "24GB",
+        "device": {"memory_bandwidth_gb_s": 1000},
+        "device_memory_gb": 24,
+        "quantization": "bf16",
+        "weights_gb": raw,
+        "predicted_decode_tps": 1.0,
+        "fastest_predicted_decode_tps": 1.0,
+        "fastest_quantization": "q4",
+    }]))
+    assert "3.620866048 GB" not in html
+    assert "3.62 GB" in html
+
+
+def test_sub_mb_weight_never_renders_as_zero_mb() -> None:
+    """A non-zero stored size below 1 MB must still print a non-zero MB figure."""
+    tiny = 4e-7  # 0.0004 MB
+    text = format_weight_size(tiny)
+    assert text != "0 MB"
+    assert "MB" in text
+    assert text == "0.000400 MB"
+    assert format_weight_size(0) == "0 MB"
+    assert format_weight_size(0.616032) == "616 MB"
+    assert format_weight_size(0.009996) == "10.0 MB"
+    assert format_weight_size(None) == ""

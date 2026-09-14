@@ -25,6 +25,10 @@ sources:
 - https://cdn.sanity.io/files/e4qjo92p/production/2d7fa58e3b820715664bcf42097e86c05070c161.pdf
 figures_are: vendor-specification
 verified_at: 2026-09-09
+single_device_fit: false
+single_device_fit_reason: On-wafer SRAM is working memory, not a GPU-style frame
+  buffer; Cerebras streams weights from external MemoryX. The single-device FITS_ON
+  calculation is misleading for this part.
 notes: 'Cerebras architecture PDF for WSE-3 (linked from cerebras.ai/chip as the CS-3
   / WSE-3 datasheet) states 900,000 cores, 48 kB SRAM per core, and 21 PB/s of on-wafer
   memory bandwidth. Capacity is 900,000 x 48 KiB = 44.2 GB of on-wafer SRAM; this file
