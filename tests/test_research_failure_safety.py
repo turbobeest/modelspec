@@ -241,6 +241,31 @@ def test_validate_pr_all_is_what_gates_the_pull_request() -> None:
     assert "--all" in validate_step["run"]
 
 
+def test_survey_step_surfaces_its_output_and_fails_when_the_seeder_does() -> None:
+    """A broken source makes the seeder exit non-zero (see property 1 above).
+
+    The survey step redirects the seeder's stdout/stderr into survey.txt, so
+    a non-zero exit there must still (a) print survey.txt to the Actions log
+    and (b) fail the step -- otherwise the ERROR message this whole file
+    proves the seeder emits is captured in a file nobody looks at, and the
+    step reports success regardless.
+    """
+    steps = _workflow_steps()
+    survey_step = steps[
+        _index_of(steps, lambda s: "what is missing" in (s.get("name") or "").lower())
+    ]
+    script = survey_step["run"]
+
+    assert "cat survey.txt" in script, (
+        "the survey step must print survey.txt when the seeder fails, or a "
+        "broken-source error is captured but never seen"
+    )
+    assert "exit 1" in script, (
+        "the survey step must fail the job when the seeder exits non-zero"
+    )
+    assert survey_step.get("continue-on-error") in (None, False)
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Property 4: a write that dies partway leaves no half-written card.
 # ─────────────────────────────────────────────────────────────────────────
