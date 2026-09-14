@@ -10,6 +10,7 @@ memory:
   type: HBM3e
   bus_bits: null
   unified_with_host: false
+  bandwidth_derivation: NVIDIA-published 4.8 TB/s; transcribed, not bus-derived
 precisions_native:
 - fp16
 - bf16

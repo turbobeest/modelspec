@@ -55,6 +55,27 @@ both inputs so the derivation can be rechecked.
 Unified-memory parts (Apple, Strix Halo) do not work this way and the figure has
 to come from the vendor's own material.
 
+## One record per commercially distinct SKU
+
+A Hardware record is a product you can buy or rack, not a die with memory
+soldered later. The old id shape (`macbook_m4_pro_64gb`) is not used.
+
+* **Same silicon, same bandwidth, OEM RAM options** — one file. Apple SoCs list
+  those options as `capacity_options_gb` and set `capacity_gb` to the published
+  maximum. Fit uses that maximum. Unified parts whose vendor only publishes a
+  ceiling (Snapdragon X Elite, Ryzen AI Max+ 395) store the ceiling and say so
+  in notes; they do not invent an option list.
+* **Distinct memory subsystems** — separate files. A100 40GB SXM and 80GB SXM
+  differ in HBM generation and bandwidth. Jetson Orin/Thor modules are sold as
+  separate SKUs, so each capacity is its own row (`nvidia_jetson_agx_orin_32gb`,
+  `_64gb`). Consumer cards that NVIDIA names by capacity follow the same rule
+  (`nvidia_rtx_3060_12gb`, `nvidia_rtx_4060_ti_16gb`).
+* **A package is not a second chip.** GB10 is the SoC inside DGX Spark, not a
+  sibling row. The Jetson AGX Thor Developer Kit is the T5000 module.
+
+Groq LPU and Cerebras WSE-2 stay out: neither publishes a per-chip datasheet
+with capacity and bandwidth. WSE-3 does, and is present with the SRAM caveat.
+
 ## Provenance is required
 
 Every device carries `sources`, and `figures_are` says what kind of claim the
@@ -63,4 +84,5 @@ independent measurement, and labelled as such. This is the same standard the
 benchmark catalogue holds evidence to.
 
 A row without `memory.bandwidth_gb_s` cannot answer the question this layer
-exists to answer. Do not add one.
+exists to answer. Do not add one. `bandwidth_derivation` records how the
+figure was obtained (bus × rate, or transcribed from a vendor table).

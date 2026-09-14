@@ -11,10 +11,13 @@ from __future__ import annotations
 import functools
 import glob
 import json
+import re
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -57,6 +60,68 @@ def test_a_device_without_bandwidth_is_rejected(tmp_path: Path) -> None:
 def test_device_ids_are_unique() -> None:
     ids = [d.id for d in _devices()]
     assert len(ids) == len(set(ids))
+
+
+def _yaml_devices() -> list[tuple[Path, dict]]:
+    rows = []
+    for path in sorted((REPO_ROOT / "hardware").glob("*.yaml")):
+        if path.name.startswith("_"):
+            continue
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        rows.append((path, raw))
+    return rows
+
+
+def test_every_device_has_sourced_dated_capacity_and_bandwidth() -> None:
+    """MODEL-25: no published row without a URL, a check date, capacity and bandwidth."""
+    rows = _yaml_devices()
+    assert rows, "no hardware definitions found"
+    missing = []
+    for path, raw in rows:
+        mem = raw.get("memory") or {}
+        sources = raw.get("sources") or []
+        urls = [s for s in sources if isinstance(s, str) and s.startswith("https://")]
+        verified = raw.get("verified_at")
+        problems = []
+        if not urls:
+            problems.append("no https source")
+        if isinstance(verified, date):
+            verified = verified.isoformat()
+        if not isinstance(verified, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", verified):
+            problems.append(f"verified_at={verified!r}")
+        if mem.get("capacity_gb") is None and not mem.get("capacity_options_gb"):
+            problems.append("no capacity")
+        if not mem.get("bandwidth_gb_s"):
+            problems.append("no bandwidth")
+        if not mem.get("bandwidth_derivation"):
+            problems.append("no bandwidth_derivation")
+        if problems:
+            missing.append(f"{path.name}: {', '.join(problems)}")
+    assert missing == []
+
+
+def test_every_device_has_the_fields_fit_reads() -> None:
+    """load_devices needs id, display_name, vendor, device_class, bandwidth, capacity."""
+    for path, raw in _yaml_devices():
+        mem = raw.get("memory") or {}
+        assert raw.get("id") == path.stem, path.name
+        assert raw.get("display_name"), path.name
+        assert raw.get("vendor"), path.name
+        assert raw.get("device_class"), path.name
+        assert mem.get("bandwidth_gb_s"), path.name
+        assert mem.get("capacity_gb") is not None or mem.get("capacity_options_gb"), path.name
+
+
+def test_capacity_options_are_the_chip_not_a_soldered_sku() -> None:
+    """Apple-style option lists live on one chip id; capacity_gb is the published max."""
+    for path, raw in _yaml_devices():
+        mem = raw.get("memory") or {}
+        options = mem.get("capacity_options_gb")
+        if not options:
+            continue
+        assert raw["id"] == path.stem
+        assert not path.stem.endswith(tuple(f"_{int(c)}gb" for c in options)), path.name
+        assert mem["capacity_gb"] == max(options), path.name
 
 
 # ── the arithmetic ───────────────────────────────────────────────────────────

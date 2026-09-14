@@ -10,6 +10,7 @@ memory:
   type: HBM
   bus_bits: null
   unified_with_host: false
+  bandwidth_derivation: Google-published 2765 GBps per chip; transcribed, not bus-derived
 precisions_native:
 - bf16
 - fp8
