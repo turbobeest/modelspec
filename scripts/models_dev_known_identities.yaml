@@ -1,0 +1,29 @@
+# Explicit models.dev identities the catalogue already holds.
+#
+# scripts/seed_models_dev.py --new-only treats "no file at this provider/slug
+# path" as a new model. models.dev also lists other labs' models under a
+# serving or aggregator provider, so that path check re-proposes cards we
+# already merged (PR #43 re-added GLM-5.2 under Mistral and Qwen).
+#
+# Each row is a reviewable identity, not a name match. A display-name-only
+# collision must still be proposed — dropping a real new model is worse than
+# a duplicate a person can reject.
+#
+# models_dev:  <provider>/<id> as published by https://models.dev/api.json
+# seeder:      optional identity after PROVIDER_MAP + slugify (what NEW prints)
+# canonical:   catalogue model_id whose card file must exist, or the row is ignored
+
+identities:
+  - models_dev: mistral/zai-glm-5-2
+    canonical: zhipu/glm-5-2
+    note: >
+      Z.ai GLM-5.2 listed under Mistral. Merged onto zhipu/glm-5-2 on 2026-09-10
+      (qwen/glm-5-2 → zhipu/glm-5-2 in 3e78aad; misfiled copies dropped in 75830e2).
+      Hugging Face repo on the canonical card is zai-org/GLM-5.2.
+  - models_dev: alibaba/glm-5.2
+    seeder: qwen/glm-5-2
+    canonical: zhipu/glm-5-2
+    note: >
+      Same GLM-5.2 listed under Alibaba. The seeder maps alibaba → qwen and
+      slugifies glm-5.2 → glm-5-2, which is how daily research opened
+      models/qwen/glm-5-2.md in PR #43.
