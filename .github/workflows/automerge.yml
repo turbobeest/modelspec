@@ -23,9 +23,48 @@ jobs:
       !startsWith(github.head_ref, 'research/')
     runs-on: ubuntu-latest
     steps:
-      - name: Enable auto-merge
+      - name: Fail if RESEARCH_PR_TOKEN is empty
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESEARCH_PR_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+        run: |
+          if [ -z "${RESEARCH_PR_TOKEN}" ]; then
+            echo "::error::RESEARCH_PR_TOKEN is empty. Auto-merge with GITHUB_TOKEN is attributed to github-actions[bot], and GitHub will not start push workflows on that merge, so deploy never runs. Recreate a fine-grained PAT with Contents and Pull requests (read and write) and store it as the RESEARCH_PR_TOKEN repository secret."
+            exit 1
+          fi
+
+      - name: Skip pull requests that change workflow files
+        id: workflow_files
+        env:
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+        run: |
+          gh api --paginate \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --jq '.[] | [.filename, .previous_filename] | .[] | select(. != null and . != "")' \
+            > changed-paths.txt
+
+          skip=false
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/*)
+                skip=true
+                echo "$path" >> workflow-paths.txt
+                ;;
+            esac
+          done < changed-paths.txt
+
+          if [ "$skip" = true ]; then
+            echo "Skipping auto-merge: this PR changes files under .github/workflows/. CI changes must be merged by a person."
+            cat workflow-paths.txt
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enable auto-merge
+        if: steps.workflow_files.outputs.skip != 'true'
+        env:
+          # Automerge and daily research share RESEARCH_PR_TOKEN (one PAT, one expiry).
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
         run: |
           gh pr merge --auto --squash \
             --repo "${{ github.repository }}" \
