@@ -10,6 +10,7 @@ memory:
   type: HBM3E
   bus_bits: 8192
   unified_with_host: false
+  bandwidth_derivation: AMD-published 8 TB/s; transcribed, not bus-derived (8192-bit interface is published, data rate is not)
 precisions_native:
 - fp16
 - bf16
