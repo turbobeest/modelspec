@@ -23,10 +23,13 @@ item you picked and why.
 * **Read `docs/handoff/README.md` first.** Its eight standing rules apply to
   everything here, especially: absence is data, a wrong answer is worse than no
   answer, and verify by running rather than by reading a ticket comment.
-* **Own your work end to end**: branch from `origin/main`, run
-  `.venv/bin/python -m pytest -q` and require it green, commit, push, open a PR
-  with `gh pr create --base main --fill`. `Run pytest` is a required check on
-  `main`, so a red branch cannot merge.
+* **Own your work end to end**: branch from `origin/main` **in a new
+  worktree**, run tests from that tree
+  (`PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q`)
+  and require them green, commit, push, open a PR with
+  `gh pr create --repo turbobeest/modelspec --base main`. Required checks on
+  `main` are **Run pytest** and **Build both sites**. A red branch cannot merge.
+  Read [`worktrees.md`](worktrees.md) before touching `/Users/terbeest/dev/modelspec`.
 * **One branch per iteration.** Never run two agents in this working tree at
   once — they fight over `HEAD`. If a worktree is dirty or on someone else's
   branch, stop and report rather than checking out over it.
@@ -62,6 +65,10 @@ item you picked and why.
    these.** MODEL-3 is off the critical path because the CLI reads a static
    export, and `docs/agent-commerce-assessment.md` recommends against metering
    for now. They are listed here so nobody "helpfully" picks them up.
+
+MODEL-5 is not a loop item while daily-research PRs are opened with
+`GITHUB_TOKEN` and therefore never receive required checks. See
+[`mvp-remainder.md`](mvp-remainder.md). Do not auto-merge `research/*`.
 
 ## Standing background work, safe to pick when the queue is blocked
 

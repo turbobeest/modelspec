@@ -1,14 +1,23 @@
-# Handoff: who owns what after 2026-09-10
+# Handoff: who owns what
 
-ModelSpec's MVP is functionally complete. What remains splits into three piles,
-and the split is the point of this document: **most of it is not agent work**,
-and treating it as agent work wastes effort and produces confident nonsense.
+**Current orientation:** [`current.md`](current.md). The 2026-09-12 hold is
+lifted; the record is [`session-freeze-2026-09-12.md`](session-freeze-2026-09-12.md).
+
+ModelSpec's MVP is functionally complete on a **static Pages export**. What
+remains splits into three piles, and the split is the point of this document:
+**most of it is not agent work**, and treating it as agent work wastes effort
+and produces confident nonsense.
 
 | Pile | Owner | Where |
 |---|---|---|
-| Four MVP remainders | Grok Build, as *preparer* — the decisions stay Jamie's | [`mvp-remainder.md`](mvp-remainder.md) |
+| Remaining MVP (MODEL-5) | Grok Build as *preparer*; the Actions token is Jamie's | [`mvp-remainder.md`](mvp-remainder.md) |
 | Post-MVP backlog | Grok Build, autonomous loop | [`post-mvp-loop.md`](post-mvp-loop.md) |
 | Taste and judgement | Claude Code, with Jamie | this file, below |
+
+DPF consumers start at [`../cli-contract.md`](../cli-contract.md) and
+[`current.md`](current.md). Architecture map:
+[`architecture-map.md`](architecture-map.md). Worktrees:
+[`worktrees.md`](worktrees.md).
 
 ## The standing rules, which apply to every worker
 
@@ -21,7 +30,7 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
 2. **A wrong answer is worse than no answer.** `total_parameters` parsed from
    filenames produced **1,589 published "it fits" answers for hardware that
    cannot hold the weights**. A null is skipped by the fit layer; a wrong number
-   is served.
+   is served. Hub `safetensors.total` only; never filenames.
 3. **Put limits in code, not prose.** Two agents were each given a Firecrawl
    budget in their prompt, acknowledged it, and together burned 920 of 1,000
    credits. The guard now lives in `scripts/benchmarks/fetch.py`.
@@ -61,10 +70,10 @@ will feel rather than what a source says:
 * **MODEL-24**, the design pass across both sites, once data and pages settle.
 * **The 3D graph explorer's look.** Jamie's standing note: "very professional and
   science fiction at the same time", explicitly not cartoonish.
-* **What a ranking should mean** when evidence is unequal — the live question in
-  MODEL-34.
 * **Naming, copy, and how a refusal is explained to a reader.** The catalogue's
   value is that it declines to answer; that has to *read* as rigour, not as a
   gap.
 * Any decision where two defensible options exist and the difference is
   editorial. Prepare the options, then bring them to Jamie.
+* **MODEL-5's Actions token.** Daily-research PRs opened with `GITHUB_TOKEN`
+  never get required checks. A PAT or GitHub App token is a console step.

@@ -141,11 +141,25 @@ would rather fail.
 
 ## What the numbers are worth
 
-Rankings are computed from the benchmark scores on the model cards. Those carry
-one collection date per card and a source list rather than a source per score,
-so every result reports `evidence_basis: unverified-legacy`. Hardware fit and
-predicted decode rates are **computed** from memory capacity and bandwidth, not
-measured; no one has run these models on these devices.
+Rankings are computed from the benchmark scores on the model cards. Each ranked
+or unranked row reports `evidence_basis` for the inputs that contributed, not a
+certification of the composite or of model quality. `_basis` in
+`pipeline/ranking.py` emits one of:
+
+* `none` — no usable weighted measurement contributed
+* `unverified-legacy` — every contributing measurement is a legacy card value
+* `mixed` — reviewed and legacy measurements both contribute
+* `partial-verified` — every present measurement is reviewed, but the profile
+  is incomplete
+* `verified` — every positively weighted benchmark is present and reviewed
+
+A live catalogue contains more than one of these. `verified` is not a quality
+verdict and is not applied to incomplete evidence (see
+`tests/test_ranking.py`). Older cards may still be `unverified-legacy`; that
+label is no longer universal.
+
+Hardware fit and predicted decode rates are **computed** from memory capacity
+and bandwidth, not measured; no one has run these models on these devices.
 
 Treat both as a shortlist to investigate, not a verdict. The interface says so
 in every response so that a calling agent can pass the caveat on rather than

@@ -1,0 +1,41 @@
+{
+  "observed_at": "2026-09-14T11:50:00+00:00",
+  "source_commit_at_prepare": "0b4a6122dfdc8d963dcfd0a1cddf7d174f3c89e0",
+  "first_build": {
+    "nodes": 402,
+    "edges": 687,
+    "communities": 36,
+    "probe_query": "MODEL-40-PROBE-2026-09-14",
+    "probe_found": true
+  },
+  "controlled_edit": {
+    "path": "docs/handoff/current.md",
+    "added": "Graphify incremental refresh token: `MODEL-40-REFRESH-2026-09-14`.",
+    "prepare_check_before_refresh": "STALE: docs/handoff/current.md (exit 1)",
+    "uncached_after_prepare": [
+      "/Users/terbeest/dev/worktrees/modelspec-model-40/docs/handoff/current.md"
+    ],
+    "semantic_cache": "11 hit / 1 uncached"
+  },
+  "after_refresh": {
+    "nodes": 403,
+    "edges": 686,
+    "communities": 38,
+    "node_delta": 1,
+    "refresh_query": "MODEL-40-REFRESH-2026-09-14",
+    "refresh_found": true,
+    "refresh_source": "docs/handoff/current.md:L102",
+    "prepare_check_after": "FRESH: all 24 source hashes, scope, and extraction prompt match (exit 0)"
+  },
+  "acceptance_queries": {
+    "cli_rank_implementation": "found pipeline/ranking.py rank_report/_basis and cli/modelspec/offline.py",
+    "tests": "found tests/test_ranking.py, tests/test_cli_snapshot.py, tests/test_incomplete_evidence_ranking.py, tests/test_export.py",
+    "dpf_cli_contract": "found docs/cli-contract.md envelope, exit codes, evidence_basis mixed/partial-verified/verified",
+    "ranking_floors": "found MIN_BENCHMARK_COVERAGE 0.50, WIZARD_BENCHMARK_COVERAGE 0.25, api/ranking/engine.py",
+    "static_export": "found MODEL-2 static Pages JSON, export_schema_version, snapshot fetch, no R2/D1"
+  },
+  "notes": [
+    "16 undirected same-endpoint collapsed edges are AST call+reference pairs; no missing/dangling endpoints.",
+    "Token usage unavailable; host-session extraction, no external LLM provider."
+  ]
+}

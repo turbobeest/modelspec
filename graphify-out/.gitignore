@@ -1,0 +1,19 @@
+scope-corpus/
+# Hashed AST/semantic extraction cache. Rebuildable; not source.
+cache/
+# Previous-run snapshots. Current GRAPH_REPORT.md is the tracked report.
+history/
+.graphify_detect.json
+.graphify_extract.json
+.graphify_ast.json
+.graphify_semantic.json
+.graphify_semantic_new.json
+.graphify_cached.json
+.graphify_uncached.txt
+.graphify_analysis.json
+.graphify_chunk_*.json
+.graphify_python
+.graphify_labels.json
+.graphify_root
+.build-source-snapshot.json
+.needs_update
