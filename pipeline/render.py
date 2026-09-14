@@ -13,6 +13,7 @@ Design rules this module enforces, rather than leaves to the author:
 from __future__ import annotations
 
 import html
+import math
 from collections.abc import Collection, Iterable
 from datetime import date
 from pathlib import Path
@@ -75,9 +76,12 @@ footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);colo
 
 
 def format_weight_size(gb: Any) -> str:
-    """Render stored weight size. Values below 1 GB use MB so they never show as 0.0 GB.
+    """Render a stored weight size in GB for a model page. Display only.
 
-    The underlying GB figure on the edge stays unrounded; this is display only.
+    Values of 1 GB and above print to exactly two decimals ("3.62 GB"), the
+    page format before MODEL-47. Values below 1 GB print in MB to three
+    significant figures ("616 MB", "1.23 MB"), so a sub-10M-parameter model
+    never reads as "0.0 GB" and a non-zero size never reads as "0 MB".
     """
     if gb is None:
         return ""
@@ -86,15 +90,13 @@ def format_weight_size(gb: Any) -> str:
     except (TypeError, ValueError):
         return f"{gb} GB"
     if abs(value) >= 1:
-        return f"{value} GB"
+        return f"{value:.2f} GB"
     mb = value * 1000.0
     if mb == 0:
         return "0 MB"
-    for decimals in (3, 6, 9):
-        text = f"{mb:.{decimals}f}".rstrip("0").rstrip(".")
-        if text not in {"", "-", "0"}:
-            return f"{text} MB"
-    return f"{mb} MB"
+    mb = float(f"{mb:.3g}")  # round first so 9.996 prints "10.0", not "10.00"
+    decimals = max(0, 2 - math.floor(math.log10(abs(mb))))
+    return f"{mb:.{decimals}f} MB"
 
 
 def format_score(value: Any, unit: Any) -> str:

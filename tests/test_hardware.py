@@ -703,6 +703,40 @@ def test_sub_10m_parameter_card_never_renders_zero_point_zero_gb() -> None:
     assert "0.0 GB" not in html
     assert "0.00 GB" not in html
     assert "MB" in html
-    assert format_weight_size(stored) == "1.232 MB"
-    assert format_weight_size(4.0) == "4.0 GB"
+    assert format_weight_size(stored) == "1.23 MB"
+    assert format_weight_size(4.0) == "4.00 GB"
     assert format_weight_size(round(stored, 2)) != "0.0 GB"
+
+
+def test_ordinary_gb_weights_render_to_two_decimals() -> None:
+    """Unrounded storage must not print 3.620866048 GB on an ordinary model page."""
+    from types import SimpleNamespace
+
+    raw = 3.620866048
+    assert format_weight_size(raw) == "3.62 GB"
+    assert format_weight_size(16.060522496) == "16.06 GB"
+    html = hardware_section(SimpleNamespace(hardware=[{
+        "name": "24GB",
+        "device": {"memory_bandwidth_gb_s": 1000},
+        "device_memory_gb": 24,
+        "quantization": "bf16",
+        "weights_gb": raw,
+        "predicted_decode_tps": 1.0,
+        "fastest_predicted_decode_tps": 1.0,
+        "fastest_quantization": "q4",
+    }]))
+    assert "3.620866048 GB" not in html
+    assert "3.62 GB" in html
+
+
+def test_sub_mb_weight_never_renders_as_zero_mb() -> None:
+    """A non-zero stored size below 1 MB must still print a non-zero MB figure."""
+    tiny = 4e-7  # 0.0004 MB
+    text = format_weight_size(tiny)
+    assert text != "0 MB"
+    assert "MB" in text
+    assert text == "0.000400 MB"
+    assert format_weight_size(0) == "0 MB"
+    assert format_weight_size(0.616032) == "616 MB"
+    assert format_weight_size(0.009996) == "10.0 MB"
+    assert format_weight_size(None) == ""
