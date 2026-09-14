@@ -139,6 +139,17 @@ def test_free_beats_expensive_on_the_cost_axis() -> None:
     assert free > cheap > dear
 
 
+def test_unknown_cost_does_not_take_the_free_branch() -> None:
+    """MODEL-48: None is unknown. Only a sourced 0.0 is published-free."""
+    profile = USE_CASE_PROFILES["general"]
+    unknown = score(_candidate(cost_input=None), profile, cost_weight=0.20)
+    free = score(_candidate(cost_input=0.0), profile, cost_weight=0.20)
+    cheap = score(_candidate(cost_input=0.5), profile, cost_weight=0.20)
+    assert unknown["cost_score"] == 0.0
+    assert free["cost_score"] > cheap["cost_score"]
+    assert unknown["cost_score"] < free["cost_score"]
+
+
 def test_price_is_ignored_unless_the_caller_asks_for_it() -> None:
     """Every shipped profile carries cost_weight 0.0, deliberately.
 

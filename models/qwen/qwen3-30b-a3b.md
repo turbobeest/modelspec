@@ -8,7 +8,7 @@ version: qwen3-30b-a3b
 release_date: 2025-04
 last_updated: 2025-04
 status: active
-model_type: null
+model_type: llm-reasoning
 model_subtypes:
 - llm-code
 - llm-reasoning
@@ -17,7 +17,7 @@ tags:
 pipeline_tag: ''
 architecture:
   type: null
-  total_parameters: null
+  total_parameters: 30532122624
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -43,7 +43,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: ''
+  total_parameters_source: safetensors
 lineage:
   base_model: ''
   base_model_relation: null
@@ -63,7 +63,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: false
+  open_weights: true
   license_type: apache-2.0
   license_url: ''
   tos_url: ''
@@ -240,8 +240,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.0
-  output: 0.0
+  input: null
+  output: null
   reasoning: null
   cache_read: null
   cache_write: null
@@ -258,7 +258,7 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: Open weights — cost is hardware/electricity only
+  note: ''
 availability:
   primary_provider:
     name: ''

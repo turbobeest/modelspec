@@ -223,8 +223,8 @@ capabilities:
     memory_management: false
     self_delegation: false
 cost:
-  input: 0.0
-  output: 0.0
+  input: null
+  output: null
   reasoning: null
   cache_read: null
   cache_write: null

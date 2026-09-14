@@ -154,6 +154,9 @@ def score(candidate: Candidate, profile: dict[str, Any],
 
     if cost_weight is None:
         cost_weight = profile.get("cost_weight", 0.0)
+    # MODEL-48: None is unknown and must not take the free branch. A sourced
+    # 0.0 stays legal as "vendor published $0 / million tokens" and scores as
+    # free (cost_raw = 10.0). Cards must not store 0.0 for missing research.
     cost_raw = 0.0
     if candidate.cost_input is not None:
         if candidate.cost_input == 0:
