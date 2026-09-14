@@ -10,8 +10,11 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
+import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 import httpx
@@ -144,6 +147,75 @@ PROVIDER_MAP: dict[str, dict] = {
         "org_type": "private",
     },
 }
+
+
+MODELS_DEV_URL = "https://models.dev/api.json"
+
+
+class SourceError(RuntimeError):
+    """models.dev could not be read, or did not return what the seeder needs.
+
+    Treated as fatal before anything is written. A broken source must never
+    look like a quiet day with no new models.
+    """
+
+
+def check_payload(api_data: object) -> None:
+    """Refuse a payload that is not the models.dev provider → models shape."""
+    if not isinstance(api_data, dict):
+        raise SourceError(f"expected a JSON object of providers, got {type(api_data).__name__}")
+    present = [pid for pid in PROVIDER_MAP if pid in api_data]
+    if not present:
+        raise SourceError(
+            f"none of the {len(PROVIDER_MAP)} mapped providers are in the payload "
+            f"({len(api_data)} top-level keys)"
+        )
+    for provider_id in present:
+        provider_data = api_data[provider_id]
+        if not isinstance(provider_data, dict):
+            raise SourceError(f"provider '{provider_id}' is not an object")
+        raw_models = provider_data.get("models")
+        if not isinstance(raw_models, dict):
+            raise SourceError(f"provider '{provider_id}' has no 'models' object")
+        for model_key, raw_model in raw_models.items():
+            if not isinstance(raw_model, dict):
+                raise SourceError(f"model '{provider_id}/{model_key}' is not an object")
+
+
+def fetch_models_dev() -> dict:
+    """Fetch and shape-check the models.dev payload, or raise SourceError."""
+    try:
+        resp = httpx.get(
+            MODELS_DEV_URL,
+            headers={"User-Agent": "ModelSpec-Seeder/1.0"},
+            follow_redirects=True,
+            timeout=60,
+        )
+        resp.raise_for_status()
+        api_data = resp.json()
+    except httpx.HTTPError as exc:
+        raise SourceError(f"{type(exc).__name__}: {exc}") from exc
+    except ValueError as exc:  # JSONDecodeError
+        raise SourceError(f"response is not valid JSON: {exc}") from exc
+    check_payload(api_data)
+    return api_data
+
+
+def write_card_atomically(file_path: Path, content: str) -> None:
+    """Write via a sibling temp file and rename, so no reader ever sees half a card."""
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{file_path.name}.", suffix=".tmp", dir=file_path.parent
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_name, file_path)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp_name)
+        raise
 
 
 def slugify(name: str) -> str:
@@ -551,14 +623,13 @@ def main() -> None:
     args = parser.parse_args()
 
     print("Fetching models.dev API...")
-    resp = httpx.get(
-        "https://models.dev/api.json",
-        headers={"User-Agent": "ModelSpec-Seeder/1.0"},
-        follow_redirects=True,
-        timeout=60,
-    )
-    resp.raise_for_status()
-    api_data = resp.json()
+    try:
+        api_data = fetch_models_dev()
+    except SourceError as exc:
+        # Fail before writing anything, and never exit 0: a zero here would
+        # read as "no new models today".
+        print(f"ERROR: models.dev source is broken; no cards written: {exc}", file=sys.stderr)
+        sys.exit(2)
     print(f"  Fetched {len(api_data)} providers from API")
 
     models_dir = PROJECT_ROOT / "models"
@@ -625,12 +696,12 @@ def main() -> None:
                     total_created += 1
                     continue
 
-                # Write the card
+                # Validate by round-tripping BEFORE touching disk, then write
+                # atomically: a card that does not parse, or a write that dies
+                # halfway, must leave no file behind.
                 content = card_to_yaml_clean(card)
-                file_path.write_text(content, encoding="utf-8")
-
-                # Validate by round-tripping
-                loaded = ModelCard.from_yaml_file(file_path)
+                loaded = ModelCard.from_yaml_string(content)
+                write_card_atomically(file_path, content)
                 created_ids.append(card.identity.model_id)
                 completeness = loaded.card_completeness
                 total_completeness += completeness
@@ -655,6 +726,9 @@ def main() -> None:
     print(f"  Unique model IDs:        {len(seen_model_ids)}")
     print(f"  Output directory:        {models_dir}")
     print("=" * 70)
+    if total_errors:
+        print(f"ERROR: {total_errors} models.dev rows could not be carded", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
