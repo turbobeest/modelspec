@@ -136,11 +136,25 @@ def test_scrape_refuses_json_format_by_default() -> None:
 
 
 class _FirecrawlMock:
-    """Credit-usage GET plus scrape POST. Decrements remaining only on POST."""
+    """Credit-usage GET plus scrape POST. Decrements remaining only on POST.
 
-    def __init__(self, remaining: int, *, spend_on_scrape: int = 1) -> None:
+    `metadata` (and `spend_on_scrape`) are read fresh on every POST, so a
+    test can mutate them between two `scrape()` calls on the same mock to
+    simulate the document's real size changing (or becoming knowable) on a
+    second attempt -- e.g. a low-budget truncated fetch followed by a
+    higher-budget one that gets the whole document.
+    """
+
+    def __init__(
+        self,
+        remaining: int,
+        *,
+        spend_on_scrape: int = 1,
+        metadata: dict | None = None,
+    ) -> None:
         self.remaining = remaining
         self.spend_on_scrape = spend_on_scrape
+        self.metadata = metadata
         self.posts: list[dict] = []
 
     def urlopen(self, req, timeout=30):
@@ -151,7 +165,10 @@ class _FirecrawlMock:
             body = json.loads(req.data.decode()) if req.data else {}
             self.posts.append(body)
             self.remaining -= self.spend_on_scrape
-            return _FakeResp({"success": True, "data": {"markdown": "ok"}})
+            data: dict = {"markdown": "ok"}
+            if self.metadata is not None:
+                data["metadata"] = self.metadata
+            return _FakeResp({"success": True, "data": data})
         raise AssertionError(f"unexpected {req.get_method()} {url}")
 
 
@@ -331,3 +348,99 @@ def test_hash_cache_hit_needs_no_key_and_no_network(tmp_path: Path) -> None:
         data = scrape(url, formats=formats)
     mocked.assert_not_called()
     assert data["markdown"] == "cached"
+
+
+def test_pdf_truncated_by_metadata_is_flagged_and_warns(tmp_path: Path, capsys) -> None:
+    # Firecrawl's own metadata.totalPages > metadata.numPages says outright
+    # that a 30-page document was cut down to the 10 pages we paid for.
+    mock = _FirecrawlMock(
+        remaining=100, spend_on_scrape=10, metadata={"numPages": 10, "totalPages": 30}
+    )
+    raw = tmp_path / "raw"
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=10)
+        guard.start()
+        scrape("https://example.com/big.pdf", guard=guard, named_cache_dir=raw)
+    cached = load_named_cache("https://example.com/big.pdf", raw)
+    assert cached is not None
+    assert cached.meta["truncated"] is True
+    assert cached.meta["num_pages"] == 10
+    assert cached.meta["total_pages"] == 30
+    assert "truncated" in capsys.readouterr().err.lower()
+
+
+def test_pdf_fully_parsed_is_not_flagged_truncated_even_at_the_cap(tmp_path: Path) -> None:
+    # totalPages == numPages: the document just happens to be exactly as
+    # long as the cap, not longer. Metadata overrides the cost heuristic.
+    mock = _FirecrawlMock(
+        remaining=100, spend_on_scrape=5, metadata={"numPages": 5, "totalPages": 5}
+    )
+    raw = tmp_path / "raw"
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=10)
+        guard.start()
+        scrape(
+            "https://example.com/exactly-five.pdf",
+            guard=guard,
+            max_pages=5,
+            named_cache_dir=raw,
+        )
+    cached = load_named_cache("https://example.com/exactly-five.pdf", raw)
+    assert cached is not None
+    assert cached.meta["truncated"] is False
+
+
+def test_pdf_truncation_falls_back_to_cost_heuristic_without_metadata(tmp_path: Path) -> None:
+    # Firecrawl omits numPages/totalPages ("omitted when it cannot be
+    # determined"); a PDF billed at its own page cap is treated as possibly
+    # truncated rather than silently assumed complete.
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=10)
+    raw = tmp_path / "raw"
+    with _scrape_harness(tmp_path, mock):
+        guard = CreditGuard(key="sk-test", budget=10)
+        guard.start()
+        scrape(
+            "https://example.com/opaque.pdf",
+            guard=guard,
+            max_pages=10,
+            named_cache_dir=raw,
+        )
+    cached = load_named_cache("https://example.com/opaque.pdf", raw)
+    assert cached is not None
+    assert cached.meta["truncated"] is True
+    assert cached.meta["num_pages"] is None
+    assert cached.meta["total_pages"] is None
+
+
+def test_truncated_pdf_is_not_replayed_from_cache_once_budget_grows(tmp_path: Path) -> None:
+    mock = _FirecrawlMock(remaining=100, spend_on_scrape=10)
+    raw = tmp_path / "raw"
+    url = "https://example.com/big-datasheet.pdf"
+
+    with _scrape_harness(tmp_path, mock):
+        low_guard = CreditGuard(key="sk-test", budget=10)
+        low_guard.start()
+        scrape(url, guard=low_guard, named_cache_dir=raw)
+    assert len(mock.posts) == 1
+    assert mock.posts[0]["parsers"][0]["maxPages"] == 10
+    cached = load_named_cache(url, raw)
+    assert cached is not None
+    assert cached.meta["truncated"] is True
+
+    # Same URL, much larger budget, and the document turns out to need only
+    # 12 pages -- the whole thing fits well under the new cap.
+    mock.spend_on_scrape = 12
+    mock.metadata = {"numPages": 12, "totalPages": 12}
+    with _scrape_harness(tmp_path, mock):
+        high_guard = CreditGuard(key="sk-test", budget=50)
+        high_guard.start()
+        second = scrape(url, guard=high_guard, named_cache_dir=raw)
+
+    # The truncated copy was not served from either cache -- a second real
+    # request went out.
+    assert len(mock.posts) == 2
+    assert second["markdown"] == "ok"
+    cached_after = load_named_cache(url, raw)
+    assert cached_after is not None
+    assert cached_after.meta["truncated"] is False
+    assert cached_after.meta["num_pages"] == 12

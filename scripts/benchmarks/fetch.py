@@ -16,6 +16,15 @@ process's worst-case cost. The guard refuses a request whose worst case would
 exceed remaining `--budget`, and every scrape is sent with `maxPages` set to
 at most that remainder unless `--allow-unbounded-cost` is passed.
 
+A capped PDF that has more pages than `maxPages` comes back truncated, not
+failed. Firecrawl's response reports `metadata.numPages` (pages parsed) and
+`metadata.totalPages` (the document's real page count, when knowable); this
+script flags `truncated: true` in the named-cache metadata whenever
+totalPages exceeds numPages (or, lacking those fields, whenever the request
+was billed at or above its own page cap) so a partial document is never
+mistaken for a complete one downstream, and never replayed as one from
+cache once more budget becomes available.
+
 The credit guard reads https://api.firecrawl.dev/v2/team/credit-usage before
 the first scrape, records remainingCredits, and aborts when spend since that
 opening snapshot reaches the budget. A number in a prompt is not a budget;
@@ -235,6 +244,38 @@ def looks_like_pdf(url: str) -> bool:
     return urlparse(url).path.lower().endswith(".pdf")
 
 
+#: Synthetic key stashed only in the on-disk hash-cache JSON (never in the
+#: dict returned to callers) so a truncated response can't be replayed as a
+#: complete one once more budget is available. See detect_truncation().
+_HASH_CACHE_TRUNCATED_KEY = "_modelspec_truncated"
+
+
+def detect_truncation(
+    metadata: dict[str, Any],
+    page_cap: int | None,
+    cost: int,
+    is_pdf: bool,
+) -> tuple[bool, int | None, int | None]:
+    """Whether a scrape returned fewer PDF pages than the source document has.
+
+    Firecrawl's own response metadata is authoritative when present:
+    `metadata.numPages` is "the number of pages parsed (capped by the parsers
+    maxPages option)" and `metadata.totalPages` is "the document's true page
+    count before any maxPages capping ... a totalPages greater than numPages
+    indicates the result was truncated" (docs.firecrawl.dev/api-reference/
+    endpoint/scrape). totalPages is "omitted when it cannot be determined",
+    so when either field is missing we fall back to a cost heuristic: a PDF
+    billed at or above its own page cap likely has pages we didn't pay for.
+    """
+    num_pages = metadata.get("numPages")
+    total_pages = metadata.get("totalPages")
+    if isinstance(total_pages, int) and isinstance(num_pages, int):
+        return total_pages > num_pages, total_pages, num_pages
+    if is_pdf and page_cap is not None and cost >= page_cap:
+        return True, total_pages, num_pages
+    return False, total_pages, num_pages
+
+
 def scrape_payload(
     url: str,
     formats: list[str],
@@ -338,15 +379,20 @@ def scrape(
     if max_pages is not None and max_pages < 1:
         raise ValueError("max_pages must be >= 1")
 
-    # Caches first: a cached response costs nothing and needs no key.
+    # Caches first: a cached response costs nothing and needs no key. A
+    # response flagged truncated (see detect_truncation) is never served
+    # from either cache -- it was cut short by whatever budget was live at
+    # the time, and a later call may have room for the whole document.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
     key_path = hash_cache_path(url, formats, max_pages=max_pages)
     if key_path.exists():
-        return json.loads(key_path.read_text(encoding="utf-8"))
+        cached_raw = json.loads(key_path.read_text(encoding="utf-8"))
+        if not cached_raw.pop(_HASH_CACHE_TRUNCATED_KEY, False):
+            return cached_raw
 
     if named_cache_dir is not None:
         cached = load_named_cache(url, named_cache_dir, suffix=".md")
-        if cached is not None:
+        if cached is not None and not cached.meta.get("truncated"):
             return {"markdown": cached.text, "from_cache": True, "fetched_at": cached.fetched_at}
 
     key = resolve_key()
@@ -412,7 +458,11 @@ def scrape(
         remaining_before if remaining_before is not None else remaining_after,
         remaining_after,
     )
-    kind = "pdf" if looks_like_pdf(url) else "page"
+    metadata = data.get("metadata") or {}
+    content_type = str(metadata.get("contentType") or "")
+    is_pdf = looks_like_pdf(url) or "pdf" in content_type.lower()
+    kind = "pdf" if is_pdf else "page"
+    truncated, total_pages, num_pages = detect_truncation(metadata, page_cap, cost, is_pdf)
     worst_case = estimated if page_cap is not None else "unbounded"
     print(
         f"credits request cost={cost} worst_case={worst_case} "
@@ -427,8 +477,20 @@ def scrape(
             "another process may be spending on this key",
             file=sys.stderr,
         )
+    if truncated:
+        print(
+            f"credits WARNING truncated=true url={url} max_pages={page_cap} "
+            f"num_pages={num_pages} total_pages={total_pages}; "
+            "downstream extraction will see a partial document",
+            file=sys.stderr,
+        )
 
-    key_path.write_text(json.dumps(data), encoding="utf-8")
+    # A truncated response is cached (so a repeat call at the same budget
+    # doesn't re-spend), but flagged so it is never handed back as if it
+    # were the complete document (see the cache-read checks above).
+    hash_cache_body = dict(data)
+    hash_cache_body[_HASH_CACHE_TRUNCATED_KEY] = truncated
+    key_path.write_text(json.dumps(hash_cache_body), encoding="utf-8")
     markdown = str(data.get("markdown") or "")
     if named_cache_dir is not None and markdown:
         write_named_cache(
@@ -444,6 +506,9 @@ def scrape(
                 "credits_remaining_after": remaining_after,
                 "credits_spent": cost,
                 "max_pages": page_cap,
+                "truncated": truncated,
+                "num_pages": num_pages,
+                "total_pages": total_pages,
             },
         )
     return data
