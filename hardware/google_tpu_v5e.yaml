@@ -6,11 +6,11 @@ device_class: datacentre
 released: 2023
 memory:
   capacity_gb: 16
-  bandwidth_gb_s: 800
+  bandwidth_gb_s: 859.0
   type: HBM
   bus_bits: null
   unified_with_host: false
-  bandwidth_derivation: Google-published 800 GiBps per chip, stored as 800 without GiB/s to GB/s conversion; transcribed, not bus-derived
+  bandwidth_derivation: Google-published 800 GiBps per chip × 1.073741824 = 859.0 GB/s (rounded to 1 decimal); transcribed, not bus-derived
 precisions_native:
 - bf16
 - int8
@@ -24,9 +24,9 @@ power:
 sources:
 - https://docs.cloud.google.com/tpu/docs/v5e
 figures_are: vendor-specification
-verified_at: 2026-09-09
+verified_at: 2026-09-14
 notes: 'Per chip, not per pod. Google Cloud TPU v5e system-architecture table lists
   HBM capacity per chip 16 GB, HBM bandwidth per chip 800 GiBps, peak compute per chip
   197 TFLOPs (bf16) / 393 TOPs (Int8), and bidirectional ICI 400 GBps per chip. A v5e
-  Pod is 256 chips; this file is one chip. bandwidth_gb_s records the published 800
-  GiBps figure without converting GiB/s to GB/s. No TDP is published.'
+  Pod is 256 chips; this file is one chip. bandwidth_gb_s stores 800 GiBps × 1.073741824
+  = 859.0 GB/s (rounded to 1 decimal). Capacity stays 16 GB as printed. No TDP is published.'

@@ -124,6 +124,117 @@ def test_capacity_options_are_the_chip_not_a_soldered_sku() -> None:
         assert mem["capacity_gb"] == max(options), path.name
 
 
+# ── GiB stored in a GB field ─────────────────────────────────────────────────
+
+#: 1 GiB = 1024³ bytes; 1 GB = 1000³ bytes.
+GIB_TO_GB = 1024 ** 3 / 1000 ** 3
+GIB_ROUND_DECIMALS = 1
+
+_GIB_QTY = re.compile(
+    r"(?P<num>\d+(?:\.\d+)?)\s*(?P<unit>GiBps|GiB/s|GiB)\b",
+    re.IGNORECASE,
+)
+#: Host DRAM / VM RAM on TPU pages is not chip HBM; do not treat it as capacity_gb.
+_NOT_CHIP_HBM = re.compile(
+    r"DRAM|per host|per VM|host RAM|RAM \(GB\)",
+    re.IGNORECASE,
+)
+
+
+def _converted_gb(gib: float) -> float:
+    return round(gib * GIB_TO_GB, GIB_ROUND_DECIMALS)
+
+
+def _close(a: float, b: float) -> bool:
+    return abs(a - b) <= 0.05
+
+
+def unconverted_gib_fields(raw: dict) -> list[str]:
+    """Problems in a parsed hardware record: GiB mentioned, GB field still holds the GiB number.
+
+    Reads `notes` and `memory.bandwidth_derivation` from the YAML mapping. Does not
+    grep the file as text.
+    """
+    mem = raw.get("memory") or {}
+    stored_bw = mem.get("bandwidth_gb_s")
+    stored_caps: list[float] = []
+    if mem.get("capacity_gb") is not None:
+        stored_caps.append(float(mem["capacity_gb"]))
+    stored_caps.extend(float(c) for c in (mem.get("capacity_options_gb") or []))
+
+    blobs: list[str] = []
+    deriv = mem.get("bandwidth_derivation")
+    if isinstance(deriv, str):
+        blobs.append(deriv)
+    notes = raw.get("notes")
+    if isinstance(notes, str):
+        blobs.append(notes)
+
+    problems: list[str] = []
+    for blob in blobs:
+        if re.search(r"without converting", blob, re.IGNORECASE) and _GIB_QTY.search(blob):
+            problems.append("notes/derivation still say the GiB figure was stored without conversion")
+        for match in _GIB_QTY.finditer(blob):
+            n = float(match.group("num"))
+            unit = match.group("unit").lower()
+            converted = _converted_gb(n)
+            window_start = max(0, match.start() - 80)
+            window = blob[window_start:match.end()]
+            if unit in ("gibps", "gib/s"):
+                if stored_bw is None:
+                    continue
+                bw = float(stored_bw)
+                if _close(bw, n) and not _close(bw, converted):
+                    problems.append(
+                        f"bandwidth_gb_s={bw} still holds {n:g} {match.group('unit')} "
+                        f"(converted {converted})"
+                    )
+                continue
+            if _NOT_CHIP_HBM.search(window):
+                continue
+            if any(_close(c, n) for c in stored_caps) and not any(
+                _close(c, converted) for c in stored_caps
+            ):
+                problems.append(
+                    f"capacity still holds {n:g} GiB unconverted (converted {converted})"
+                )
+    return problems
+
+
+def test_unconverted_gib_in_derivation_is_caught() -> None:
+    raw = {
+        "memory": {
+            "capacity_gb": 16,
+            "bandwidth_gb_s": 800,
+            "bandwidth_derivation": "800 GiBps stored without conversion",
+        },
+        "notes": "HBM bandwidth per chip 800 GiBps",
+    }
+    assert unconverted_gib_fields(raw)
+
+
+def test_converted_gib_in_derivation_passes() -> None:
+    raw = {
+        "memory": {
+            "capacity_gb": 16,
+            "bandwidth_gb_s": 859.0,
+            "bandwidth_derivation": "800 GiBps × 1.073741824 = 859.0 GB/s",
+        },
+        "notes": "HBM bandwidth per chip 800 GiBps; DRAM per host 512 GiB",
+    }
+    assert unconverted_gib_fields(raw) == []
+
+
+def test_hardware_yaml_converts_gib_figures_mentioned_in_notes() -> None:
+    """MODEL-41: a GiB figure in notes/derivation must not sit unconverted in a GB field."""
+    failures = []
+    for path, raw in _yaml_devices():
+        problems = unconverted_gib_fields(raw)
+        if problems:
+            failures.append(f"{path.name}: {'; '.join(problems)}")
+    assert failures == []
+
+
 # ── the arithmetic ───────────────────────────────────────────────────────────
 
 def test_weights_scale_with_quantisation() -> None:
