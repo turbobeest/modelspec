@@ -21,6 +21,8 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+KNOWN_IDENTITIES_PATH = PROJECT_ROOT / "scripts" / "models_dev_known_identities.yaml"
+
 from schema.card import (
     ModelCard,
     Identity,
@@ -164,6 +166,91 @@ def slugify(name: str) -> str:
     # Strip leading/trailing dashes
     s = s.strip("-")
     return s
+
+
+def load_known_identities(path: Path | None = None) -> dict[str, str]:
+    """Load the explicit models.dev → canonical catalogue mapping.
+
+    Keys are models.dev ``provider/id`` strings and, when present, the seeder's
+    ``slug/file-slug`` identity. Values are catalogue ``model_id``s. Display
+    names never appear here.
+    """
+    path = path or KNOWN_IDENTITIES_PATH
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    rows = raw.get("identities")
+    if not isinstance(rows, list):
+        raise ValueError(f"{path} has no identities list")
+    mapping: dict[str, str] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError(f"{path} identity row is not a mapping: {row!r}")
+        try:
+            models_dev_id = row["models_dev"]
+            canonical = row["canonical"]
+        except KeyError as exc:
+            raise ValueError(f"{path} identity row missing {exc}: {row!r}") from exc
+        keys = [models_dev_id]
+        seeder_id = row.get("seeder")
+        if seeder_id:
+            keys.append(seeder_id)
+        for key in keys:
+            previous = mapping.get(key)
+            if previous and previous != canonical:
+                raise ValueError(
+                    f"conflicting identity {key}: {previous} vs {canonical}"
+                )
+            mapping[key] = canonical
+    return mapping
+
+
+def models_dev_identity(provider_id: str, raw: dict, model_key: str) -> str:
+    """The models.dev identity: ``<provider>/<id>`` as published."""
+    return f"{provider_id}/{raw.get('id', model_key)}"
+
+
+def seeder_model_id(provider_cfg: dict, raw: dict, model_key: str) -> str:
+    """The identity the seeder would mint: ``<provider-slug>/<file-slug>``."""
+    return f"{provider_cfg['slug']}/{slugify(raw.get('id', model_key))}"
+
+
+def seeder_file_path(
+    models_dir: Path, provider_cfg: dict, raw: dict, model_key: str
+) -> Path:
+    return models_dir / provider_cfg["slug"] / f"{slugify(raw.get('id', model_key))}.md"
+
+
+def canonical_card_path(models_dir: Path, canonical_id: str) -> Path:
+    provider, sep, slug = canonical_id.partition("/")
+    if not sep or not provider or not slug:
+        raise ValueError(f"canonical id must be provider/slug, got {canonical_id!r}")
+    return models_dir / provider / f"{slug}.md"
+
+
+def already_held(
+    *,
+    models_dev_id: str,
+    seeder_id: str,
+    file_path: Path,
+    models_dir: Path,
+    known: dict[str, str],
+    new_only: bool,
+) -> str | None:
+    """Return a skip reason if this models.dev row must not become a new card.
+
+    ``known:<canonical>`` — explicit registry, and that card file exists.
+    ``exists`` — ``--new-only`` and the seeder path is already a card.
+
+    Display names are not an argument and are never consulted. A registry row
+    whose canonical card is missing is ignored, so a typo cannot swallow a
+    genuinely new model.
+    """
+    for key in (models_dev_id, seeder_id):
+        canonical = known.get(key)
+        if canonical and canonical_card_path(models_dir, canonical).is_file():
+            return f"known:{canonical}"
+    if new_only and file_path.exists():
+        return "exists"
+    return None
 
 
 def map_modalities(raw: dict) -> tuple[list[Modality], list[Modality]]:
@@ -475,8 +562,10 @@ def main() -> None:
     print(f"  Fetched {len(api_data)} providers from API")
 
     models_dir = PROJECT_ROOT / "models"
+    known = load_known_identities()
     total_created = 0
     total_skipped_existing = 0
+    total_skipped_known = 0
     total_errors = 0
     created_ids: list[str] = []
     total_completeness = 0.0
@@ -489,11 +578,9 @@ def main() -> None:
 
         provider_data = api_data[provider_id]
         raw_models = provider_data.get("models", {})
-        slug = provider_cfg["slug"]
-
-        # Ensure provider directory exists
-        provider_dir = models_dir / slug
-        provider_dir.mkdir(parents=True, exist_ok=True)
+        provider_dir = models_dir / provider_cfg["slug"]
+        if not args.dry_run:
+            provider_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n  Processing {provider_cfg['display']} ({provider_id}): {len(raw_models)} models")
 
@@ -506,14 +593,29 @@ def main() -> None:
                     continue
                 seen_model_ids.add(card.identity.model_id)
 
-                # Determine file path
-                file_slug = slugify(raw_model.get("id", model_key))
-                file_path = provider_dir / f"{file_slug}.md"
+                file_path = seeder_file_path(models_dir, provider_cfg, raw_model, model_key)
+                md_id = models_dev_identity(provider_id, raw_model, model_key)
+                seed_id = seeder_model_id(provider_cfg, raw_model, model_key)
 
                 # A card that already exists may carry research this script
                 # cannot reproduce — enrichment, hardware profiles, reviewed
                 # evidence. Overwriting it silently discards that.
-                if args.new_only and file_path.exists():
+                # A models.dev row we already hold under another provider/slug
+                # is the same model, not a new one (see models_dev_known_identities.yaml).
+                held = already_held(
+                    models_dev_id=md_id,
+                    seeder_id=seed_id,
+                    file_path=file_path,
+                    models_dir=models_dir,
+                    known=known,
+                    new_only=args.new_only,
+                )
+                if held and held.startswith("known:"):
+                    canonical = held.split(":", 1)[1]
+                    total_skipped_known += 1
+                    print(f"    SKIP {seed_id} (already {canonical})")
+                    continue
+                if held == "exists":
                     total_skipped_existing += 1
                     continue
 
@@ -544,6 +646,8 @@ def main() -> None:
     print("\n" + "=" * 70)
     print(f"SUMMARY")
     print(f"  Total cards created:     {total_created}")
+    print(f"  Skipped, file exists:    {total_skipped_existing}")
+    print(f"  Skipped, known identity: {total_skipped_known}")
     print(f"  Total errors:            {total_errors}")
     if total_created > 0:
         avg = total_completeness / total_created
