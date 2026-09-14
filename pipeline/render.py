@@ -74,6 +74,29 @@ footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);colo
 """
 
 
+def format_weight_size(gb: Any) -> str:
+    """Render stored weight size. Values below 1 GB use MB so they never show as 0.0 GB.
+
+    The underlying GB figure on the edge stays unrounded; this is display only.
+    """
+    if gb is None:
+        return ""
+    try:
+        value = float(gb)
+    except (TypeError, ValueError):
+        return f"{gb} GB"
+    if abs(value) >= 1:
+        return f"{value} GB"
+    mb = value * 1000.0
+    if mb == 0:
+        return "0 MB"
+    for decimals in (3, 6, 9):
+        text = f"{mb:.{decimals}f}".rstrip("0").rstrip(".")
+        if text not in {"", "-", "0"}:
+            return f"{text} MB"
+    return f"{mb} MB"
+
+
 def format_score(value: Any, unit: Any) -> str:
     """Render a score with its unit readably.
 
@@ -286,7 +309,7 @@ def hardware_section(relations: Any) -> str:
             f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>'
             f'<td class="num">{esc(bandwidth)} GB/s</td>'
             f'<td>{esc(entry.get("quantization"))}</td>'
-            f'<td class="num">{esc(entry.get("weights_gb"))} GB</td>'
+            f'<td class="num">{esc(format_weight_size(entry.get("weights_gb")))}</td>'
             f'<td class="num">~{esc(entry.get("predicted_decode_tps"))}</td>'
             f'<td class="num">~{esc(entry.get("fastest_predicted_decode_tps"))} '
             f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')

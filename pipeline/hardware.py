@@ -67,10 +67,43 @@ class Device:
     capacity_options_gb: tuple[float, ...]
     precisions_native: tuple[str, ...]
     unified: bool
+    single_device_fit: bool = True
+    single_device_fit_reason: str | None = None
 
     @property
     def max_capacity_gb(self) -> float:
         return max(self.capacity_options_gb)
+
+
+def _single_device_fit(raw: dict[str, Any], path: Path) -> tuple[bool, str | None]:
+    """DATA flag: false means this part must not answer single-device FITS_ON.
+
+    Default is true (omit the field). false requires a non-empty reason so a
+    reader can see why the layer refused rather than guessing from the device id.
+    """
+    if "single_device_fit" not in raw:
+        return True, None
+    flag = raw["single_device_fit"]
+    if flag is True:
+        reason = raw.get("single_device_fit_reason")
+        if reason is None:
+            return True, None
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(
+                f"{path.name}: single_device_fit_reason must be a non-empty string when present"
+            )
+        return True, reason.strip()
+    if flag is False:
+        reason = raw.get("single_device_fit_reason")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError(
+                f"{path.name}: single_device_fit is false but single_device_fit_reason "
+                "is missing. A part that cannot answer single-device fit must say why."
+            )
+        return False, reason.strip()
+    raise ValueError(
+        f"{path.name}: single_device_fit must be true or false, not {flag!r}"
+    )
 
 
 @dataclass(frozen=True)
@@ -103,12 +136,15 @@ def load_devices(root: Path) -> list[Device]:
                 "layer exists to answer. Fix the definition or remove it."
             )
         options = memory.get("capacity_options_gb") or [memory["capacity_gb"]]
+        fit, fit_reason = _single_device_fit(raw, path)
         out.append(Device(
             id=raw["id"], display_name=raw["display_name"], vendor=raw["vendor"],
             device_class=raw["device_class"], bandwidth_gb_s=float(bandwidth),
             capacity_options_gb=tuple(float(c) for c in options),
             precisions_native=tuple(raw.get("precisions_native") or []),
             unified=bool(memory.get("unified_with_host")),
+            single_device_fit=fit,
+            single_device_fit_reason=fit_reason,
         ))
     return out
 
@@ -268,6 +304,8 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         fitted_any = False
 
         for device in devices:
+            if not device.single_device_fit:
+                continue
             capacity = device.max_capacity_gb
             quants = fitting_quants(params, capacity)
             if not quants:
@@ -282,15 +320,17 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
             ctx = predicted_max_context(card, capacity, best)
             if ctx.tokens is not None:
                 edges_with_max_context += 1
+            # Store unrounded GB. Rounding to 2 decimals collapsed 616k-param
+            # bf16 weights to 0.0, which the page then printed as "0.0 GB".
             sink.edge("Model", card.identity.model_id, "FITS_ON", "Hardware", device.id, {
                 "quantization": best,
-                "weights_gb": round(weights_gb(params, best), 2),
+                "weights_gb": weights_gb(params, best),
                 "device_memory_gb": capacity,
                 "predicted_decode_tps": predicted_decode_tps(
                     device.bandwidth_gb_s, active, best),
                 "decode_reads_params": active,
                 "fastest_quantization": smallest,
-                "fastest_weights_gb": round(weights_gb(params, smallest), 2),
+                "fastest_weights_gb": weights_gb(params, smallest),
                 "fastest_predicted_decode_tps": predicted_decode_tps(
                     device.bandwidth_gb_s, active, smallest),
                 "quantizations_that_fit": ",".join(quants),
@@ -316,6 +356,8 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         "models_fitting_somewhere": fitted,
         "skipped_closed_weights": skipped_closed,
         "skipped_no_parameter_count": skipped_no_params,
+        "skipped_single_device_fit": sum(
+            1 for device in devices if not device.single_device_fit),
         "edges": edges,
         "edges_with_max_context": edges_with_max_context,
         "working_allowance": WORKING_ALLOWANCE,

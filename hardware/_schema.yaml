@@ -36,3 +36,5 @@ sources: [string]               # REQUIRED. URLs
 figures_are: string             # vendor-specification | independent-measurement | mixed
 verified_at: string             # ISO date the figures were checked
 notes: string|null
+single_device_fit: boolean      # optional, default true. false: do not emit FITS_ON or decode predictions
+single_device_fit_reason: string  # REQUIRED when single_device_fit is false
