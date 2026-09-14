@@ -15,7 +15,7 @@ tags:
 pipeline_tag: image-text-to-text
 architecture:
   type: null
-  total_parameters: 934400
+  total_parameters: 10292777472
   active_parameters: null
   num_experts: null
   experts_per_token: null
@@ -41,7 +41,7 @@ architecture:
   diffusion_scheduler: ''
   diffusion_steps_default: null
   vae_type: ''
-  total_parameters_source: safetensors
+  total_parameters_source: safetensors:parameters.BF16
 lineage:
   base_model: zai-org/GLM-4.1V-9B-Base
   base_model_relation: null
@@ -815,13 +815,13 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-14'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-14'
 ---
 
 # AutoGLM Phone 9B
