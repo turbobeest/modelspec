@@ -10,6 +10,12 @@ Default format is plain markdown (1 credit per page). JSON / extract / query /
 highlight formats cost extra and are refused unless --allow-expensive-formats
 is set.
 
+PDF parsing is billed 1 credit per page. Firecrawl v2 accepts
+`parsers: [{type: "pdf", maxPages: N}]` (N in 1..10000) and that N is this
+process's worst-case cost. The guard refuses a request whose worst case would
+exceed remaining `--budget`, and every scrape is sent with `maxPages` set to
+at most that remainder unless `--allow-unbounded-cost` is passed.
+
 The credit guard reads https://api.firecrawl.dev/v2/team/credit-usage before
 the first scrape, records remainingCredits, and aborts when spend since that
 opening snapshot reaches the budget. A number in a prompt is not a budget;
@@ -44,6 +50,9 @@ SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape"
 #: Conservative default: a handful of markdown scrapes, not a research binge.
 DEFAULT_BUDGET = 20
 
+#: Firecrawl v2 `parsers[].maxPages` maximum (docs.firecrawl.dev scrape API).
+FIRECRAWL_PDF_MAX_PAGES = 10000
+
 #: Firecrawl bills these at a 4-credit surcharge on top of the scrape.
 EXPENSIVE_FORMATS = frozenset(
     {
@@ -73,16 +82,20 @@ class CreditBudgetExceeded(RuntimeError):
         spent: int,
         budget: int,
         url: str | None = None,
+        estimated: int | None = None,
     ) -> None:
         self.opening = opening
         self.remaining = remaining
         self.spent = spent
         self.budget = budget
         self.url = url
+        self.estimated = estimated
         where = f" before {url}" if url else ""
+        estimate = f" estimated={estimated}" if estimated is not None else ""
         super().__init__(
             f"Firecrawl credit budget exceeded{where}: "
-            f"opening={opening} remaining={remaining} spent={spent} budget={budget}"
+            f"opening={opening} remaining={remaining} spent={spent} "
+            f"budget={budget}{estimate}"
         )
 
 
@@ -98,6 +111,8 @@ class CreditGuard:
     budget: int
     opening: int | None = None
     last_remaining: int | None = None
+    last_request_cost: int | None = None
+    request_costs: list[tuple[str, int]] = field(default_factory=list)
 
     def start(self) -> int:
         remaining = remaining_credits(self.key)
@@ -118,6 +133,16 @@ class CreditGuard:
             remaining = self.refresh()
         return self.opening - remaining
 
+    def remaining_budget(self) -> int:
+        return max(0, self.budget - self.spent())
+
+    def record_request_cost(self, url: str, remaining_before: int, remaining_after: int) -> int:
+        cost = max(0, remaining_before - remaining_after)
+        self.last_remaining = remaining_after
+        self.last_request_cost = cost
+        self.request_costs.append((url, cost))
+        return cost
+
     def assert_within_budget(self, url: str | None = None, estimated: int = 1) -> None:
         if self.opening is None:
             self.start()
@@ -130,6 +155,7 @@ class CreditGuard:
                 spent=spent,
                 budget=self.budget,
                 url=url,
+                estimated=estimated,
             )
 
 
@@ -205,6 +231,27 @@ def refuse_expensive_formats(formats: list[str]) -> None:
         )
 
 
+def looks_like_pdf(url: str) -> bool:
+    return urlparse(url).path.lower().endswith(".pdf")
+
+
+def scrape_payload(
+    url: str,
+    formats: list[str],
+    wait_for_ms: int,
+    max_pages: int | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "url": url,
+        "formats": formats,
+        "onlyMainContent": True,
+        "waitFor": wait_for_ms,
+    }
+    if max_pages is not None:
+        payload["parsers"] = [{"type": "pdf", "maxPages": max_pages}]
+    return payload
+
+
 def cache_stem(url: str) -> str:
     parsed = urlparse(url)
     host = parsed.netloc.replace("www.", "").replace(".", "-")
@@ -261,8 +308,13 @@ def load_named_cache(url: str, cache_dir: Path, suffix: str = ".md") -> CachedPa
     return CachedPage(url=url, path=path, text=text, fetched_at=fetched_at, from_cache=True, meta=meta)
 
 
-def hash_cache_path(url: str, formats: list[str]) -> Path:
-    digest = hashlib.sha256((url + "|" + ",".join(formats)).encode()).hexdigest()[:24]
+def hash_cache_path(url: str, formats: list[str], *, max_pages: int | None = None) -> Path:
+    """Response cache path. Keys without an explicit page cap are unchanged,
+    so responses cached before the page cap existed are still hits."""
+    material = url + "|" + ",".join(formats)
+    if max_pages is not None:
+        material += f"|max_pages={max_pages}"
+    digest = hashlib.sha256(material.encode()).hexdigest()[:24]
     return HASH_CACHE / (digest + ".json")
 
 
@@ -274,13 +326,21 @@ def scrape(
     allow_expensive: bool = False,
     wait_for_ms: int = 4000,
     named_cache_dir: Path | None = None,
+    max_pages: int | None = None,
+    allow_unbounded: bool = False,
 ) -> dict:
     """Scrape `url` as markdown. Honours the credit guard. Caches before return."""
     formats = list(formats or ["markdown"])
     if not allow_expensive:
         refuse_expensive_formats(formats)
+    if allow_unbounded and max_pages is not None:
+        raise ValueError("max_pages and allow_unbounded are mutually exclusive")
+    if max_pages is not None and max_pages < 1:
+        raise ValueError("max_pages must be >= 1")
+
+    # Caches first: a cached response costs nothing and needs no key.
     HASH_CACHE.mkdir(parents=True, exist_ok=True)
-    key_path = hash_cache_path(url, formats)
+    key_path = hash_cache_path(url, formats, max_pages=max_pages)
     if key_path.exists():
         return json.loads(key_path.read_text(encoding="utf-8"))
 
@@ -296,18 +356,33 @@ def scrape(
         )
     if guard is None:
         guard = CreditGuard(key=key, budget=DEFAULT_BUDGET)
+    if guard.opening is None:
         guard.start()
-    guard.assert_within_budget(url=url, estimated=1)
+    else:
+        guard.refresh()
+
+    # Bound the worst case BEFORE sending. Firecrawl bills PDF parsing at
+    # 1 credit per page up to parsers[].maxPages; a non-PDF page is 1 credit,
+    # which maxPages >= 1 also covers. So page_cap is the worst-case cost.
+    page_cap: int | None
+    if allow_unbounded:
+        # Explicit opt-in: no maxPages, so only the 1-credit floor is checked
+        # up front and the real cost is read from the balance afterwards.
+        page_cap = None
+        estimated = 1
+    else:
+        if max_pages is None:
+            page_cap = min(guard.remaining_budget(), FIRECRAWL_PDF_MAX_PAGES)
+        else:
+            page_cap = min(max_pages, FIRECRAWL_PDF_MAX_PAGES)
+        # A zero cap means the budget is spent; the check below refuses it.
+        estimated = max(1, page_cap)
+        page_cap = estimated
+
+    guard.assert_within_budget(url=url, estimated=estimated)
 
     remaining_before = guard.last_remaining
-    body = json.dumps(
-        {
-            "url": url,
-            "formats": formats,
-            "onlyMainContent": True,
-            "waitFor": wait_for_ms,
-        }
-    ).encode()
+    body = json.dumps(scrape_payload(url, formats, wait_for_ms, page_cap)).encode()
     data: dict[str, Any] | None = None
     for attempt in range(4):
         req = urllib.request.Request(
@@ -331,10 +406,31 @@ def scrape(
     if data is None:
         raise RuntimeError("firecrawl scrape failed after retries")
 
+    remaining_after = guard.refresh()
+    cost = guard.record_request_cost(
+        url,
+        remaining_before if remaining_before is not None else remaining_after,
+        remaining_after,
+    )
+    kind = "pdf" if looks_like_pdf(url) else "page"
+    worst_case = estimated if page_cap is not None else "unbounded"
+    print(
+        f"credits request cost={cost} worst_case={worst_case} "
+        f"max_pages={page_cap} kind={kind} url={url} "
+        f"remaining={remaining_after} spent={guard.spent()}",
+        file=sys.stderr,
+    )
+    if page_cap is not None and cost > page_cap:
+        # Balance deltas include any concurrent spend on the same team key.
+        print(
+            f"credits WARNING request cost={cost} exceeded max_pages={page_cap}; "
+            "another process may be spending on this key",
+            file=sys.stderr,
+        )
+
     key_path.write_text(json.dumps(data), encoding="utf-8")
     markdown = str(data.get("markdown") or "")
     if named_cache_dir is not None and markdown:
-        remaining_after = guard.refresh()
         write_named_cache(
             url,
             markdown,
@@ -346,10 +442,10 @@ def scrape(
                 "formats": formats,
                 "credits_remaining_before": remaining_before,
                 "credits_remaining_after": remaining_after,
+                "credits_spent": cost,
+                "max_pages": page_cap,
             },
         )
-    else:
-        guard.refresh()
     return data
 
 
@@ -413,6 +509,18 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="permit JSON/query/highlight formats (5x credit cost)",
     )
+    bound = parser.add_mutually_exclusive_group()
+    bound.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="cap PDF pages parsed (Firecrawl parsers.maxPages). Default: remaining --budget",
+    )
+    bound.add_argument(
+        "--allow-unbounded-cost",
+        action="store_true",
+        help="omit the PDF page cap; a multi-page document may exceed --budget",
+    )
     parser.add_argument("--formats", default="markdown", help="comma-separated Firecrawl formats")
     args = parser.parse_args(argv)
 
@@ -458,6 +566,8 @@ def main(argv: list[str] | None = None) -> int:
             guard=guard,
             allow_expensive=args.allow_expensive_formats,
             named_cache_dir=cache_dir,
+            max_pages=args.max_pages,
+            allow_unbounded=args.allow_unbounded_cost,
         )
     except CreditBudgetExceeded as exc:
         print(str(exc), file=sys.stderr)
