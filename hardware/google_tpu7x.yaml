@@ -5,12 +5,12 @@ family: Google TPU
 device_class: datacentre
 released: 2025
 memory:
-  capacity_gb: 206.2
+  capacity_gb: 192
   bandwidth_gb_s: 7380
   type: HBM
   bus_bits: null
   unified_with_host: false
-  bandwidth_derivation: Google-published 7380 GBps per chip; transcribed, not bus-derived. Architecture-table HBM capacity 192 GiB × 1.073741824 = 206.2 GB (rounded to 1 decimal)
+  bandwidth_derivation: Google-published 7380 GBps per chip; transcribed, not bus-derived. HBM capacity unit is ambiguous (architecture-table header 192 GiB vs body 192 GB); 192 is stored unconverted as the conservative reading pending an unambiguous primary source.
 precisions_native:
 - bf16
 - fp8
@@ -29,8 +29,9 @@ notes: 'Per chip, not per pod. Google Cloud TPU7x (Ironwood) architecture table 
   HBM capacity per chip 192 GiB, HBM bandwidth per chip 7380 GBps, peak compute per
   chip 2307 TFLOPs (BF16) / 4614 TFLOPs (FP8), two TensorCores per chip, and bidirectional
   ICI 1200 GBps per chip. Body copy also says approximately 7.37 TB/s, which is the
-  same 7380 GBps figure, and "192 GB of HBM" / "96 GB" per chiplet, which disagrees
-  with the table''s GiB header. Capacity stores the table''s 192 GiB × 1.073741824 =
-  206.2 GB (rounded to 1 decimal). Bandwidth stays 7380 GBps as printed. A TPU7x Pod
-  is 9216 chips; this file is one chip. Each chip is two chiplets; frameworks may expose
-  two devices per chip. No TDP is published.'
+  same 7380 GBps figure, and "192 GB of HBM" / "96 GB" per chiplet. The source states
+  both 192 GiB (table header) and 192 GB (body); the unit is ambiguous, so capacity_gb
+  stores 192 as the conservative reading pending an unambiguous primary source.
+  Bandwidth stays 7380 GBps as printed. A TPU7x Pod is 9216 chips; this file is one
+  chip. Each chip is two chiplets; frameworks may expose two devices per chip. No TDP
+  is published.'

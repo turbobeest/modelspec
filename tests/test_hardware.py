@@ -149,19 +149,11 @@ def _close(a: float, b: float) -> bool:
     return abs(a - b) <= 0.05
 
 
-def unconverted_gib_fields(raw: dict) -> list[str]:
-    """Problems in a parsed hardware record: GiB mentioned, GB field still holds the GiB number.
+_AMBIGUOUS_UNIT = re.compile(r"unit is ambiguous", re.IGNORECASE)
 
-    Reads `notes` and `memory.bandwidth_derivation` from the YAML mapping. Does not
-    grep the file as text.
-    """
+
+def _notes_and_derivation(raw: dict) -> list[str]:
     mem = raw.get("memory") or {}
-    stored_bw = mem.get("bandwidth_gb_s")
-    stored_caps: list[float] = []
-    if mem.get("capacity_gb") is not None:
-        stored_caps.append(float(mem["capacity_gb"]))
-    stored_caps.extend(float(c) for c in (mem.get("capacity_options_gb") or []))
-
     blobs: list[str] = []
     deriv = mem.get("bandwidth_derivation")
     if isinstance(deriv, str):
@@ -169,9 +161,36 @@ def unconverted_gib_fields(raw: dict) -> list[str]:
     notes = raw.get("notes")
     if isinstance(notes, str):
         blobs.append(notes)
+    return blobs
 
+
+def _unit_is_ambiguous(raw: dict) -> bool:
+    return any(_AMBIGUOUS_UNIT.search(blob) for blob in _notes_and_derivation(raw))
+
+
+def _stored_bandwidth_and_capacities(raw: dict) -> tuple[float | None, list[float]]:
+    mem = raw.get("memory") or {}
+    stored_bw = mem.get("bandwidth_gb_s")
+    stored_caps: list[float] = []
+    if mem.get("capacity_gb") is not None:
+        stored_caps.append(float(mem["capacity_gb"]))
+    stored_caps.extend(float(c) for c in (mem.get("capacity_options_gb") or []))
+    return (None if stored_bw is None else float(stored_bw), stored_caps)
+
+
+def unconverted_gib_fields(raw: dict) -> list[str]:
+    """Problems in a parsed hardware record: GiB mentioned, GB field still holds the GiB number.
+
+    Reads `notes` and `memory.bandwidth_derivation` from the YAML mapping. Does not
+    grep the file as text. Records that say the unit is ambiguous are exempt —
+    those must keep the unconverted figure (see `converted_despite_ambiguous_unit`).
+    """
+    if _unit_is_ambiguous(raw):
+        return []
+
+    stored_bw, stored_caps = _stored_bandwidth_and_capacities(raw)
     problems: list[str] = []
-    for blob in blobs:
+    for blob in _notes_and_derivation(raw):
         if re.search(r"without converting", blob, re.IGNORECASE) and _GIB_QTY.search(blob):
             problems.append("notes/derivation still say the GiB figure was stored without conversion")
         for match in _GIB_QTY.finditer(blob):
@@ -183,10 +202,9 @@ def unconverted_gib_fields(raw: dict) -> list[str]:
             if unit in ("gibps", "gib/s"):
                 if stored_bw is None:
                     continue
-                bw = float(stored_bw)
-                if _close(bw, n) and not _close(bw, converted):
+                if _close(stored_bw, n) and not _close(stored_bw, converted):
                     problems.append(
-                        f"bandwidth_gb_s={bw} still holds {n:g} {match.group('unit')} "
+                        f"bandwidth_gb_s={stored_bw} still holds {n:g} {match.group('unit')} "
                         f"(converted {converted})"
                     )
                 continue
@@ -197,6 +215,43 @@ def unconverted_gib_fields(raw: dict) -> list[str]:
             ):
                 problems.append(
                     f"capacity still holds {n:g} GiB unconverted (converted {converted})"
+                )
+    return problems
+
+
+def converted_despite_ambiguous_unit(raw: dict) -> list[str]:
+    """Problems: notes/derivation say the unit is ambiguous, but a GB field holds the converted number.
+
+    An ambiguous source must store the unconverted (conservative) figure. Reads
+    `notes` and `memory.bandwidth_derivation` from the YAML mapping, not the file as text.
+    """
+    if not _unit_is_ambiguous(raw):
+        return []
+
+    stored_bw, stored_caps = _stored_bandwidth_and_capacities(raw)
+    problems: list[str] = []
+    for blob in _notes_and_derivation(raw):
+        for match in _GIB_QTY.finditer(blob):
+            n = float(match.group("num"))
+            unit = match.group("unit").lower()
+            converted = _converted_gb(n)
+            window_start = max(0, match.start() - 80)
+            window = blob[window_start:match.end()]
+            if unit in ("gibps", "gib/s"):
+                if stored_bw is None:
+                    continue
+                if not _close(stored_bw, n):
+                    problems.append(
+                        f"unit is ambiguous but bandwidth_gb_s={stored_bw} is not the "
+                        f"unconverted {n:g} {match.group('unit')} (converted would be {converted})"
+                    )
+                continue
+            if _NOT_CHIP_HBM.search(window):
+                continue
+            if not any(_close(c, n) for c in stored_caps):
+                problems.append(
+                    f"unit is ambiguous but capacity is not the unconverted {n:g} GiB "
+                    f"(converted would be {converted})"
                 )
     return problems
 
@@ -230,6 +285,46 @@ def test_hardware_yaml_converts_gib_figures_mentioned_in_notes() -> None:
     failures = []
     for path, raw in _yaml_devices():
         problems = unconverted_gib_fields(raw)
+        if problems:
+            failures.append(f"{path.name}: {'; '.join(problems)}")
+    assert failures == []
+
+
+def test_ambiguous_unit_stores_unconverted() -> None:
+    raw = {
+        "memory": {
+            "capacity_gb": 192,
+            "bandwidth_gb_s": 7380,
+            "bandwidth_derivation": (
+                "HBM capacity unit is ambiguous (192 GiB table vs 192 GB body); "
+                "192 stored unconverted"
+            ),
+        },
+        "notes": "The unit is ambiguous. Table header 192 GiB, body 192 GB.",
+    }
+    assert unconverted_gib_fields(raw) == []
+    assert converted_despite_ambiguous_unit(raw) == []
+
+
+def test_ambiguous_unit_fails_if_converted() -> None:
+    raw = {
+        "memory": {
+            "capacity_gb": 206.2,
+            "bandwidth_gb_s": 7380,
+            "bandwidth_derivation": (
+                "192 GiB × 1.073741824 = 206.2 GB; the unit is ambiguous"
+            ),
+        },
+        "notes": "The unit is ambiguous (192 GiB table vs 192 GB body).",
+    }
+    assert converted_despite_ambiguous_unit(raw)
+
+
+def test_hardware_yaml_ambiguous_units_store_unconverted() -> None:
+    """MODEL-41: an ambiguous unit must keep the unconverted conservative figure."""
+    failures = []
+    for path, raw in _yaml_devices():
+        problems = converted_despite_ambiguous_unit(raw)
         if problems:
             failures.append(f"{path.name}: {'; '.join(problems)}")
     assert failures == []
