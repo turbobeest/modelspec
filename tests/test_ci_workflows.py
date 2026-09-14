@@ -26,6 +26,12 @@ def test_ci_failure_probe() -> None:
         pytest.fail("intentional CI failure probe")
 
 
+def _on_block(workflow_text: str) -> str:
+    """The GitHub `on:` mapping, which is what decides whether a check reports."""
+    after_on = workflow_text.split("\non:", 1)[1]
+    return after_on.split("\njobs:", 1)[0]
+
+
 def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
 
@@ -33,6 +39,29 @@ def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     assert "continue-on-error" not in workflow
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow
+
+
+def test_required_check_job_names_match_branch_protection() -> None:
+    """Main requires these exact check names (GitHub Actions app 15368)."""
+    test_workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    deploy_workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
+    assert "    name: Run pytest\n" in test_workflow
+    assert "    name: Build both sites\n" in deploy_workflow
+
+
+def test_required_workflows_run_on_every_pull_request() -> None:
+    """A path filter on a required job leaves the check pending and deadlocks merge."""
+    for name in ("test.yml", "deploy-sites.yml"):
+        on_block = _on_block((WORKFLOWS / name).read_text(encoding="utf-8"))
+        assert "pull_request:" in on_block, f"{name} is not triggered by pull_request"
+        assert "paths:" not in on_block, f"{name} still filters pull_request by path"
+
+
+def test_site_build_guards_pages_limits_before_deploy() -> None:
+    workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
+    assert "size +25M" in workflow
+    assert "20000" in workflow
+    assert "if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'" in workflow
 
 
 def test_validation_workflow_checks_status_and_report_shape() -> None:
