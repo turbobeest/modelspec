@@ -41,8 +41,8 @@ architecture:
   diffusion_steps_default: null
   vae_type: ''
 lineage:
-  base_model: ''
-  base_model_relation: null
+  base_model: google/gemini-3-pro-image-preview
+  base_model_relation: continuation
   merge_models: []
   adapter_type: ''
   adapter_rank: null
@@ -809,7 +809,7 @@ downselect:
   next_review_date: ''
 sources:
   models_dev_url: https://models.dev/google
-  provider_docs_url: ''
+  provider_docs_url: https://ai.google.dev/gemini-api/docs/models
   huggingface_url: ''
   arxiv_url: ''
   paper_url: ''
@@ -824,12 +824,12 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-14'
 ---
 
 # Nano Banana Pro
 
-Nano Banana Pro is a Image Generation model from Google DeepMind. Part of the gemini-pro family. Knowledge cutoff: 2025-01.
+Google's generally available Gemini 3 Pro Image (`gemini-3-pro-image`). The [Gemini API release notes](https://ai.google.dev/gemini-api/docs/changelog) dated 28 May 2026 (page last updated 2026-09-04 UTC) say: "Released gemini-3.1-flash-image (Nano Banana 2) and gemini-3-pro-image (Nano Banana Pro), the generally available (GA) versions of our native visual models, Gemini 3.1 Flash Image and Gemini 3 Pro Image." The [models list](https://ai.google.dev/gemini-api/docs/models) (last updated 2026-09-04 UTC) lists Nano Banana Pro as Stable at this id. This card is a continuation of `google/gemini-3-pro-image-preview`. Weights are closed. No benchmark scores on this card.
 
 ## Key Features
 - Extended reasoning / chain-of-thought
