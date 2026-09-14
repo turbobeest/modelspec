@@ -146,6 +146,7 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
             cost_input=c.get("cost_input"), context_window=c.get("context_window"),
             open_weights=bool(c.get("open_weights")), scores_as_of=c.get("scores_as_of"),
             fits=c.get("fits") or {},
+            verified_benchmarks=set(c.get("verified_benchmarks") or []),
         )
         for c in snapshot.data["candidates"]["candidates"]
     ]

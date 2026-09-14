@@ -260,7 +260,14 @@ def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [_modelspec_cli(), *args],
         capture_output=True, text=True, timeout=120,
-        env={"PATH": "/usr/bin:/bin", "MODELSPEC_CACHE": str(cache), "HOME": str(cache.parent)},
+        env={
+            "PATH": "/usr/bin:/bin",
+            "MODELSPEC_CACHE": str(cache),
+            "HOME": str(cache.parent),
+            # Worktree pytest sets PYTHONPATH=$PWD; the subprocess must too,
+            # or it ranks the primary checkout's CLI instead of this tree.
+            "PYTHONPATH": str(REPO_ROOT),
+        },
     )
 
 
@@ -417,3 +424,23 @@ def test_snapshot_fetch_unreachable_origin_is_a_runtime_error(cache: Path) -> No
     assert result.stdout == ""
     assert result.stderr.startswith("error: could not fetch the snapshot:")
     assert "Traceback" not in result.stderr
+
+
+def test_offline_rank_keeps_snapshot_verified_benchmarks(cache: Path) -> None:
+    """Dropping verified_benchmarks makes every ranked row unverified-legacy."""
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    payload["data"]["candidates"]["candidates"][0]["verified_benchmarks"] = ["humaneval"]
+    path.write_text(json.dumps(payload))
+
+    rebuilt = offline._candidates(snapshot.load(cache))
+    assert rebuilt[0].verified_benchmarks == {"humaneval"}
+
+    result = _run(["offline", "rank", "coding", "--json", "-n", "1"], cache)
+    assert result.returncode == offline.EXIT_OK
+    report = json.loads(result.stdout)
+    assert report["schema_version"] == offline.SCHEMA_VERSION == "1.0"
+    row = report["result"][0]
+    assert row["evidence_basis"] == "mixed"
+    assert row["verified_contributions"] == 1
