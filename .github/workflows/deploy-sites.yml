@@ -7,13 +7,10 @@ name: Build and deploy the sites
 on:
   push:
     branches: [main]
-  pull_request:
-    paths:
-      - 'models/**'
-      - 'benchmarks/**'
-      - 'pipeline/**'
-      - 'site/**'
-      - '.github/workflows/deploy-sites.yml'
+  # Required check "Build both sites" must report on every PR. Filtering
+  # this workflow by path leaves the check pending and deadlocks merge
+  # (docs-only PR #34). Deploy still runs only on main, below.
+  pull_request: {}
   workflow_dispatch:
 
 permissions:
