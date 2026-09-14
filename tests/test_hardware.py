@@ -32,6 +32,7 @@ from pipeline.render import format_weight_size, hardware_section  # noqa: E402
 from schema.card import (  # noqa: E402
     Architecture, Identity, Licensing, Modalities, ModelCard, TextDetail,
 )
+from schema.enums import ModelType  # noqa: E402
 from schema.graph import CollectingSink, derive_graph  # noqa: E402
 
 
@@ -393,9 +394,15 @@ def _card(
     context: int | None = 131_072,
     open_weights: bool = True,
     model_id: str = "test/model",
+    # A token-generating type by default: most of this module's tests are
+    # about the KV-cache/context arithmetic, not about MODEL-53's type gate,
+    # and should keep getting a decode prediction unless a test asks for
+    # something else.
+    model_type: ModelType | None = ModelType.LLM_CHAT,
 ) -> ModelCard:
     return ModelCard(
-        identity=Identity(model_id=model_id, display_name=model_id, provider="test"),
+        identity=Identity(model_id=model_id, display_name=model_id, provider="test",
+                          model_type=model_type),
         architecture=Architecture(
             total_parameters=params,
             num_layers=layers,
@@ -727,6 +734,87 @@ def test_ordinary_gb_weights_render_to_two_decimals() -> None:
     }]))
     assert "3.620866048 GB" not in html
     assert "3.62 GB" in html
+
+
+# ── non-token model types get capacity, not decode speed (MODEL-53) ─────────
+
+def test_non_token_type_fits_but_gets_no_decode_prediction() -> None:
+    """A vision encoder's weights fit in memory; it does not decode tokens."""
+    card = _card(model_type=ModelType.VISION_ENCODER)
+    sink = CollectingSink()
+    stats = compute(sink, [card], [_gpu()])
+    assert stats["edges"] == 1
+    assert stats["decode_predictions_omitted"] == 1
+    props = sink.edges[0]["props"]
+    assert props["quantization"]  # capacity fit still answered
+    assert props["weights_gb"] > 0
+    assert props["predicted_decode_tps"] is None
+    assert props["fastest_predicted_decode_tps"] is None
+    assert props["decode_reads_params"] is None
+    assert props["moe_prediction_is_conservative"] is False
+
+
+def test_no_model_type_is_treated_as_non_token() -> None:
+    """Absence is not a guess that a card chats. No type -> no decode figure."""
+    card = _card(model_type=None)
+    sink = CollectingSink()
+    stats = compute(sink, [card], [_gpu()])
+    assert stats["decode_predictions_omitted"] == 1
+    assert sink.edges[0]["props"]["predicted_decode_tps"] is None
+
+
+def test_llm_types_are_unaffected_by_the_non_token_gate() -> None:
+    card = _card(model_type=ModelType.LLM_CHAT)
+    sink = CollectingSink()
+    stats = compute(sink, [card], [_gpu()])
+    assert stats["decode_predictions_omitted"] == 0
+    props = sink.edges[0]["props"]
+    assert props["predicted_decode_tps"] is not None
+    assert props["predicted_decode_tps"] > 0
+
+
+def test_real_corpus_omits_decode_only_for_non_token_types() -> None:
+    """Every FITS_ON edge with a null decode prediction traces to a non-token type."""
+    from pipeline.hardware import TOKEN_GENERATING_MODEL_TYPES
+    sink, stats = _real()
+    cards_by_id = {
+        c.identity.model_id: c
+        for c in (ModelCard.from_yaml_file(f)
+                  for f in sorted(glob.glob(str(REPO_ROOT / "models/**/*.md"), recursive=True))
+                  if not f.endswith("LICENSE.md"))
+    }
+    omitted = 0
+    for edge in sink.edges:
+        if edge["type"] != "FITS_ON":
+            continue
+        card = cards_by_id[edge["from"]]
+        if edge["props"]["predicted_decode_tps"] is None:
+            omitted += 1
+            assert card.identity.model_type not in TOKEN_GENERATING_MODEL_TYPES
+        else:
+            assert card.identity.model_type in TOKEN_GENERATING_MODEL_TYPES
+    assert omitted == stats["decode_predictions_omitted"]
+    assert omitted > 0, "expected at least the retyped MODEL-53 cards to omit decode"
+
+
+def test_null_decode_renders_as_na_not_blank_or_zero() -> None:
+    """A non-token model's row must say n/a, never an empty cell or 0."""
+    from types import SimpleNamespace
+
+    html = hardware_section(SimpleNamespace(hardware=[{
+        "name": "24GB",
+        "device": {"memory_bandwidth_gb_s": 1000},
+        "device_memory_gb": 24,
+        "quantization": "bf16",
+        "weights_gb": 1.0,
+        "predicted_decode_tps": None,
+        "fastest_predicted_decode_tps": None,
+        "fastest_quantization": "q4",
+    }]))
+    assert "n/a" in html
+    assert ">~None<" not in html
+    assert "None" not in html
+    assert ">0<" not in html
 
 
 def test_sub_mb_weight_never_renders_as_zero_mb() -> None:

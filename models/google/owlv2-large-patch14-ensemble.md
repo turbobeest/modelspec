@@ -8,7 +8,7 @@ version: ''
 release_date: '2023-10-13'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: vision-encoder
 model_subtypes: []
 tags:
 - zero-shot-object-detection

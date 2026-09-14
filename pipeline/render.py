@@ -301,6 +301,13 @@ def platforms_section(relations: Any) -> str:
                     "Taken from the card's availability section.")
 
 
+def _decode_cell(value: Any) -> str:
+    """'n/a' for a non-token model (or missing data), never blank or 0."""
+    if value is None:
+        return "n/a"
+    return f"~{esc(value)}"
+
+
 def hardware_section(relations: Any) -> str:
     rows = []
     for entry in relations.hardware:
@@ -312,8 +319,8 @@ def hardware_section(relations: Any) -> str:
             f'<td class="num">{esc(bandwidth)} GB/s</td>'
             f'<td>{esc(entry.get("quantization"))}</td>'
             f'<td class="num">{esc(format_weight_size(entry.get("weights_gb")))}</td>'
-            f'<td class="num">~{esc(entry.get("predicted_decode_tps"))}</td>'
-            f'<td class="num">~{esc(entry.get("fastest_predicted_decode_tps"))} '
+            f'<td class="num">{_decode_cell(entry.get("predicted_decode_tps"))}</td>'
+            f'<td class="num">{_decode_cell(entry.get("fastest_predicted_decode_tps"))} '
             f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')
     if not rows:
         return ""

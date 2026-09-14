@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-10-14'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: vision-encoder
 model_subtypes: []
 tags:
 - object-detection

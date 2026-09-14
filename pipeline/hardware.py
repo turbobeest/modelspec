@@ -28,7 +28,38 @@ from typing import Any
 
 import yaml
 
+from schema.enums import ModelType
 from schema.graph import CollectingSink
+
+#: model_type values that autoregressively decode tokens, so a tok/s figure is
+#: a meaningful prediction. Everything else (embeddings, rerankers, safety
+#: classifiers, generation of another modality, OCR, reward models, and the
+#: perception/encoder/time-series types) still gets a capacity FITS_ON answer
+#: — the weights either fit in memory or they don't — but never a decode
+#: speed, because there is no token being decoded. A card with no model_type
+#: is treated the same as a non-token type: absence is not a guess that it
+#: chats. Single source of truth for this distinction — do not scatter
+#: per-type checks elsewhere.
+TOKEN_GENERATING_MODEL_TYPES: frozenset[ModelType] = frozenset({
+    ModelType.LLM_CHAT, ModelType.LLM_REASONING, ModelType.LLM_CODE, ModelType.LLM_BASE,
+    ModelType.VLM, ModelType.MEDICAL, ModelType.LEGAL, ModelType.FINANCIAL,
+    ModelType.AGENT_MODEL, ModelType.ROUTER,
+    ModelType.ADAPTER, ModelType.QUANTIZED_VARIANT, ModelType.DISTILLED, ModelType.MERGED,
+})
+
+
+def is_token_generating(model_type: Any) -> bool:
+    """Whether `model_type` decodes tokens and so gets a decode-speed prediction.
+
+    Accepts the raw `Identity.model_type` (a `ModelType | None`, possibly
+    already a plain string in code that reads snapshots rather than cards).
+    """
+    if model_type is None:
+        return False
+    if isinstance(model_type, ModelType):
+        return model_type in TOKEN_GENERATING_MODEL_TYPES
+    return str(model_type) in {t.value for t in TOKEN_GENERATING_MODEL_TYPES}
+
 
 #: Bytes per parameter at each quantisation, best case. Real files carry
 #: metadata and some layers stay at higher precision, which the working
@@ -282,6 +313,7 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
 
     considered = fitted = skipped_closed = skipped_no_params = 0
     edges = edges_with_max_context = 0
+    decode_predictions_omitted = 0
 
     used_active = 0
     for card in cards:
@@ -302,6 +334,9 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
         if has_active:
             used_active += 1
         fitted_any = False
+        # Whether the weights fit is meaningful for every open-weights model.
+        # Decode tok/s is only meaningful for a model that decodes tokens.
+        decode_eligible = is_token_generating(card.identity.model_type)
 
         for device in devices:
             if not device.single_device_fit:
@@ -320,6 +355,8 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
             ctx = predicted_max_context(card, capacity, best)
             if ctx.tokens is not None:
                 edges_with_max_context += 1
+            if not decode_eligible:
+                decode_predictions_omitted += 1
             # Store unrounded GB. Rounding to 2 decimals collapsed 616k-param
             # bf16 weights to 0.0, which the page then printed as "0.0 GB".
             sink.edge("Model", card.identity.model_id, "FITS_ON", "Hardware", device.id, {
@@ -327,12 +364,12 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
                 "weights_gb": weights_gb(params, best),
                 "device_memory_gb": capacity,
                 "predicted_decode_tps": predicted_decode_tps(
-                    device.bandwidth_gb_s, active, best),
-                "decode_reads_params": active,
+                    device.bandwidth_gb_s, active, best) if decode_eligible else None,
+                "decode_reads_params": active if decode_eligible else None,
                 "fastest_quantization": smallest,
                 "fastest_weights_gb": weights_gb(params, smallest),
                 "fastest_predicted_decode_tps": predicted_decode_tps(
-                    device.bandwidth_gb_s, active, smallest),
+                    device.bandwidth_gb_s, active, smallest) if decode_eligible else None,
                 "quantizations_that_fit": ",".join(quants),
                 "max_context_at_quant": ctx.tokens,
                 "max_context_bound_by": ctx.bound_by,
@@ -346,7 +383,7 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
                 # No card carries active_parameters, so an MoE prediction uses
                 # total parameters and understates its real speed.
                 # Only conservative where the active count is still unknown.
-                "moe_prediction_is_conservative": is_moe and not has_active,
+                "moe_prediction_is_conservative": decode_eligible and is_moe and not has_active,
             })
         fitted += 1 if fitted_any else 0
 
@@ -360,6 +397,7 @@ def compute(sink: CollectingSink, cards: list[Any], devices: list[Device]) -> di
             1 for device in devices if not device.single_device_fit),
         "edges": edges,
         "edges_with_max_context": edges_with_max_context,
+        "decode_predictions_omitted": decode_predictions_omitted,
         "working_allowance": WORKING_ALLOWANCE,
         "bandwidth_efficiency": BANDWIDTH_EFFICIENCY,
         "used_active_parameters": used_active,

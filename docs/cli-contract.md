@@ -164,3 +164,20 @@ and bandwidth, not measured; no one has run these models on these devices.
 Treat both as a shortlist to investigate, not a verdict. The interface says so
 in every response so that a calling agent can pass the caveat on rather than
 laundering it into confidence.
+
+### `predicted_decode_tps` can be `null` (MODEL-53)
+
+A model that fits in memory is not necessarily a model that decodes tokens.
+Time-series forecasters, vision encoders (classification, segmentation,
+detection), and text encoders (fill-mask, token classification) fit on a
+device the same as any other set of weights, but there is no token being
+decoded, so a tok/s figure would be invented. `offline fit`'s
+`predicted_decode_tps` is `null` for these rows rather than a number — this
+was already possible under `schema_version` "1.0" (any field may be null) and
+no existing field changed name, type, or meaning. Rows with a `null` decode
+rate always sort after every row with a real rate, never mixed in above a
+model that actually predicts a speed. The human-readable form prints `n/a`
+for these rows, never a blank or a `0.0`.
+
+Filtering `--fits <device>` still returns these models: whether the weights
+fit is meaningful on its own. Only the speed is withheld.

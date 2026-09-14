@@ -8,7 +8,7 @@ version: ''
 release_date: '2024-04-05'
 last_updated: ''
 status: active
-model_type: llm-reasoning
+model_type: time-series
 model_subtypes: []
 tags:
 - time-series-forecasting

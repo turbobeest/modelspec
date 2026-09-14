@@ -55,7 +55,9 @@ class Candidate:
     context_window: int | None = None
     open_weights: bool = False
     scores_as_of: str | None = None
-    fits: dict[str, float] = field(default_factory=dict)  # hardware id -> predicted tok/s
+    #: hardware id -> predicted decode tok/s, or None when the weights fit
+    #: but the model does not decode tokens (or, rarely, geometry is missing).
+    fits: dict[str, float | None] = field(default_factory=dict)
     #: Benchmarks whose score came from a reviewed evidence record rather than
     #: the card's undated flat block. A ranking is only as good as the weakest
     #: evidence under it, so this is tracked per benchmark, not per model.
@@ -84,10 +86,15 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             if props.get("tier"):
                 tiers.setdefault(edge["from"], {})[edge["to"]] = str(props["tier"])
         elif edge["type"] == "FITS_ON":
+            # The capacity fit is meaningful even when there is no decode
+            # speed (a non-token model, or a token model still missing
+            # geometry): record the edge either way, with tps as None rather
+            # than dropping the row. `--fits <device>` and the fit ranking
+            # both need to see "this model fits" separately from "at this
+            # speed" (MODEL-53).
             props = edge.get("props") or {}
             tps = props.get("fastest_predicted_decode_tps")
-            if tps:
-                fits.setdefault(edge["from"], {})[edge["to"]] = float(tps)
+            fits.setdefault(edge["from"], {})[edge["to"]] = float(tps) if tps else None
 
     out = []
     for card in cards:

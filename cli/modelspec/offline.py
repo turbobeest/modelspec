@@ -316,7 +316,16 @@ def fit_offline(
     except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
         _emit_error("fit", f"could not read the snapshot: {exc}", as_json)
         raise typer.Exit(EXIT_ERROR) from exc
-    pool.sort(key=lambda c: -c.fits[hardware])
+    # A non-token model (or, rarely, a token model missing KV geometry) fits
+    # in memory but has no decode-speed prediction. It must not crash the
+    # sort (None has no ordering against a float) and must not lead the list
+    # by an absent rate: real rates first, fastest first; null-decode rows
+    # follow, alphabetically (MODEL-53).
+    pool.sort(key=lambda c: (
+        c.fits[hardware] is None,
+        -c.fits[hardware] if c.fits[hardware] is not None else 0.0,
+        c.display_name.lower(),
+    ))
     results = [{"model_id": c.model_id, "display_name": c.display_name,
                 "predicted_decode_tps": c.fits[hardware],
                 "prediction_basis": "computed, not measured"}
@@ -328,8 +337,11 @@ def fit_offline(
         typer.echo(f"Nothing in the catalogue fits {hardware}.")
     else:
         for r in results:
-            typer.echo(f"  ~{r['predicted_decode_tps']:>7.1f} tok/s  {r['display_name']}")
-        typer.echo("\npredicted from memory bandwidth, not measured")
+            tps = r["predicted_decode_tps"]
+            rate = f"~{tps:>7.1f}" if tps is not None else f"{'n/a':>8}"
+            typer.echo(f"  {rate} tok/s  {r['display_name']}")
+        typer.echo("\npredicted from memory bandwidth, not measured; "
+                   "n/a means the weights fit but the model does not decode tokens")
 
     if not results:
         raise typer.Exit(EXIT_NO_MATCH)

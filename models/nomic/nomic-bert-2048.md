@@ -8,7 +8,7 @@ version: ''
 release_date: '2024-01-04'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: text-encoder
 model_subtypes: []
 tags:
 - fill-mask

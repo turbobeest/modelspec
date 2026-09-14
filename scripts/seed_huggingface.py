@@ -163,8 +163,52 @@ def slugify(name: str) -> str:
 
 # ── Model Type Detection ──────────────────────────────────────────
 
-def determine_model_type(hf_model: dict) -> ModelType:
-    """Determine ModelType from HuggingFace metadata."""
+#: Pipeline tags for non-token models classifiable from the HF pipeline_tag
+#: alone. These predict labels, masks, boxes, embeddings or a numeric series —
+#: never autoregressively-generated tokens — so they must never fall through
+#: to LLM_CHAT. Only add a tag here when it unambiguously implies the type;
+#: everything else non-token falls to the null branch below rather than a guess.
+NON_TOKEN_PIPELINE_TYPE_MAP: dict[str, ModelType] = {
+    "time-series-forecasting": ModelType.TIME_SERIES,
+    "image-classification": ModelType.VISION_ENCODER,
+    "image-segmentation": ModelType.VISION_ENCODER,
+    "object-detection": ModelType.VISION_ENCODER,
+    "zero-shot-object-detection": ModelType.VISION_ENCODER,
+    "video-classification": ModelType.VISION_ENCODER,
+    "depth-estimation": ModelType.VISION_ENCODER,
+    "mask-generation": ModelType.VISION_ENCODER,
+    # CLIP/SigLIP-style dual encoders: an image/text embedding pair used for
+    # zero-shot classification or retrieval, not generation. Reuses the
+    # existing embedding-multimodal type rather than inventing a new one.
+    "zero-shot-image-classification": ModelType.EMBEDDING_MULTIMODAL,
+    "image-feature-extraction": ModelType.EMBEDDING_MULTIMODAL,
+    # Masked/token-level text encoders (BERT-family): read text, do not
+    # autoregressively generate it.
+    "fill-mask": ModelType.TEXT_ENCODER,
+    "token-classification": ModelType.TEXT_ENCODER,
+}
+
+#: Pipeline tags whose models generate tokens (directly, or via a decoder
+#: head), so it is safe to fall through to the name-based LLM/VLM heuristics
+#: and the LLM_CHAT default below. Anything NOT in this set and NOT in
+#: NON_TOKEN_PIPELINE_TYPE_MAP is an unrecognised tag: leave model_type unset
+#: rather than guess.
+TOKEN_GENERATING_PIPELINE_TAGS: frozenset[str] = frozenset({
+    "", "text-generation", "text2text-generation", "image-text-to-text",
+    "visual-question-answering", "any-to-any", "image-to-text",
+    "video-text-to-text", "audio-text-to-text", "translation", "summarization",
+    "table-question-answering",
+})
+
+
+def determine_model_type(hf_model: dict) -> ModelType | None:
+    """Determine ModelType from HuggingFace metadata.
+
+    Returns None when the pipeline_tag is set but implies neither a known
+    non-token category nor a token-generating one — an unmatched tag must not
+    be guessed as LLM_CHAT. Callers should log/report a None so the card stays
+    reviewable rather than silently wrong.
+    """
     name = (hf_model.get("id", "") + " " + hf_model.get("modelId", "")).lower()
     pipeline = hf_model.get("pipeline_tag", "")
     tags = [t.lower() for t in hf_model.get("tags", [])]
@@ -227,6 +271,12 @@ def determine_model_type(hf_model: dict) -> ModelType:
     if any(kw in name for kw in ("ocr", "document", "doctr")):
         return ModelType.DOCUMENT_OCR
 
+    # Non-token models classifiable from pipeline_tag alone (time-series,
+    # vision perception, vision/text encoders). Checked before the
+    # text-generation default so a known non-token tag always wins.
+    if pipeline in NON_TOKEN_PIPELINE_TYPE_MAP:
+        return NON_TOKEN_PIPELINE_TYPE_MAP[pipeline]
+
     # Base models (no instruct/chat tag)
     if pipeline == "text-generation":
         if any(kw in name for kw in ("base", "-base")):
@@ -235,7 +285,17 @@ def determine_model_type(hf_model: dict) -> ModelType:
             # Might be a base model, but default to chat for well-known ones
             pass
 
-    # Default
+    if pipeline and pipeline not in TOKEN_GENERATING_PIPELINE_TAGS:
+        # A pipeline_tag we don't recognise is not a plausible LLM_CHAT guess.
+        # A null is honest; defaulting here is exactly the MODEL-53 defect.
+        print(
+            f"    WARNING: unmatched pipeline_tag {pipeline!r} for "
+            f"{hf_model.get('id', hf_model.get('modelId', '?'))}; leaving model_type unset",
+            file=sys.stderr,
+        )
+        return None
+
+    # Default: an empty or genuinely token-generating pipeline_tag.
     return ModelType.LLM_CHAT
 
 
@@ -438,7 +498,7 @@ def _extract_base_model(hf_model: dict) -> str:
     return ""
 
 
-def _build_modalities(hf_model: dict, model_type: ModelType) -> Modalities:
+def _build_modalities(hf_model: dict, model_type: ModelType | None) -> Modalities:
     """Build Modalities section from HF pipeline_tag and model_type."""
     pipeline = hf_model.get("pipeline_tag", "")
 
@@ -473,6 +533,22 @@ def _build_modalities(hf_model: dict, model_type: ModelType) -> Modalities:
     elif pipeline == "text-to-audio":
         inputs.append(Modality.TEXT)
         outputs.append(Modality.AUDIO)
+    elif pipeline == "token-classification":
+        inputs.append(Modality.TEXT)
+        outputs.append(Modality.CLASSIFICATIONS)
+    elif pipeline == "time-series-forecasting":
+        inputs.append(Modality.TABULAR)
+        outputs.append(Modality.TABULAR)
+    elif pipeline in ("image-classification", "video-classification"):
+        inputs.append(Modality.IMAGE if pipeline == "image-classification" else Modality.VIDEO)
+        outputs.append(Modality.CLASSIFICATIONS)
+    elif pipeline in ("image-segmentation", "object-detection", "zero-shot-object-detection",
+                       "depth-estimation", "mask-generation"):
+        inputs.append(Modality.IMAGE)
+        outputs.append(Modality.SCORES)
+    elif pipeline in ("zero-shot-image-classification", "image-feature-extraction"):
+        inputs.append(Modality.IMAGE)
+        outputs.append(Modality.EMBEDDINGS)
     else:
         # Default for text models
         if model_type in (ModelType.LLM_CHAT, ModelType.LLM_REASONING, ModelType.LLM_CODE,
@@ -493,7 +569,8 @@ def _build_modalities(hf_model: dict, model_type: ModelType) -> Modalities:
 
     if model_type == ModelType.VLM:
         vision_detail.supported = True
-    if model_type == ModelType.EMBEDDING_TEXT:
+    if model_type in (ModelType.EMBEDDING_TEXT, ModelType.EMBEDDING_MULTIMODAL,
+                       ModelType.EMBEDDING_CODE):
         embedding_detail.supported = True
     if model_type == ModelType.IMAGE_GENERATION:
         image_gen_detail.supported = True

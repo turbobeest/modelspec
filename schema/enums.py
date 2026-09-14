@@ -39,6 +39,14 @@ class ModelType(str, Enum):
     QUANTIZED_VARIANT = "quantized-variant"
     DISTILLED = "distilled"
     MERGED = "merged"
+    #: Forecasts a numeric sequence forward (e.g. PatchTST, Moirai). No tokens in or out.
+    TIME_SERIES = "time-series"
+    #: Vision backbone for perception tasks — classification, segmentation,
+    #: detection, depth — that predict labels/masks/boxes, not text tokens.
+    VISION_ENCODER = "vision-encoder"
+    #: Masked/token-level text encoder (e.g. BERT-style fill-mask, token
+    #: classification). Reads text but does not autoregressively generate it.
+    TEXT_ENCODER = "text-encoder"
 
 
 class ModelStatus(str, Enum):

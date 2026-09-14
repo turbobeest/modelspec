@@ -8,7 +8,7 @@ version: ''
 release_date: '2023-09-30'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: embedding-multimodal
 model_subtypes: []
 tags:
 - zero-shot-image-classification
