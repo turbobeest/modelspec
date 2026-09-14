@@ -59,7 +59,11 @@ jobs:
         run: |
           # --new-only is not optional. Without it the seeder rewrites every
           # card in the repository and discards all curation. See MODEL-31.
-          python scripts/seed_models_dev.py --new-only --dry-run > survey.txt 2>&1
+          if ! python scripts/seed_models_dev.py --new-only --dry-run > survey.txt 2>&1; then
+            cat survey.txt
+            echo "::error::models.dev survey failed; see output above"
+            exit 1
+          fi
           count=$(grep -c '^    NEW' survey.txt || true)
           echo "count=${count:-0}" >> "$GITHUB_OUTPUT"
           {
