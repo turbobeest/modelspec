@@ -1,0 +1,17 @@
+{
+  "observed_at": "2026-09-14T11:50:00+00:00",
+  "command": "graphify global add graphify-out/graph.json --as modelspec-architecture",
+  "global_graph": "/Users/terbeest/.graphify/global-graph.json",
+  "local_nodes": 403,
+  "registered_nodes": 403,
+  "tag": "modelspec-architecture",
+  "siblings": {
+    "dev-mux": 10942,
+    "dpf-operating-contracts": 195
+  },
+  "notes": [
+    "Registration is a snapshot, not live sync.",
+    "DPF's dpf-operating-contracts map still excludes ModelSpec; this tag is the DPF-consumer discovery handle.",
+    "CLI contract path: docs/cli-contract.md"
+  ]
+}

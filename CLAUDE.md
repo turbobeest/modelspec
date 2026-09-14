@@ -1,144 +1,110 @@
-# CLAUDE.md — Project Context for Claude Code
+# CLAUDE.md — ModelSpec
+
+**Current orientation:** [`docs/handoff/current.md`](docs/handoff/current.md).
+Standing rules: [`docs/handoff/README.md`](docs/handoff/README.md).
+DPF / offline CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md).
+Codex/AGENTS parity: [`AGENTS.md`](AGENTS.md).
+
+This file used to describe Phase 1 and a FalkorDB-served architecture. That is
+historical. MODEL-2 closed on a **static Pages export**. There is no R2/D1 on
+the serving path.
 
 ## What is this?
 
-**ModelSpec** is an open-source model intelligence platform. It catalogs every AI model (LLMs, embeddings, image gen, safety classifiers, etc.) in a FalkorDB knowledge graph and serves recommendations through a Web UI, CLI, and MCP tool.
+ModelSpec catalogs AI models (LLMs, embeddings, image, speech, safety
+classifiers, …) as YAML+Markdown cards, exports them to versioned JSON, and
+serves rankings through a static Web UI and an offline CLI. DPF's ticket author
+calls the CLI.
 
-## Architecture
-
-```
-Web UI ─┐
-CLI ────┤──▶ FastAPI ──▶ FalkorDB Knowledge Graph ◀── Backend Researcher (scrapers)
-MCP ────┘                      │
-                         Model Card Repo (YAML + Markdown)
-```
-
-## Key Design Decisions
-
-1. **One universal template** for ALL model types (750 fields). Null = "not yet researched."
-2. **The template IS the graph schema** — every YAML field maps to a node property or edge.
-3. **Three graph layers**: factual (scraped), derived (computed), institutional (private overlay).
-4. **12 node types, 22 edge types**, ~25K-50K edges at maturity.
-5. **83 platform availability entries** per model — from AWS Bedrock to Ollama to Chinese platforms.
-
-## Tech Stack
-
-- **Graph DB**: FalkorDB (Redis-compatible, OpenCypher, GraphBLAS)
-- **Backend**: Python 3.11+, FastAPI, Pydantic v2
-- **Frontend**: React + TypeScript + Tailwind (dark theme, force-directed graph viz)
-- **CLI**: Python, Typer + Rich
-- **MCP**: Python mcp-sdk
-- **Scrapers**: httpx + BeautifulSoup
-- **Containers**: Docker Compose
-
-## Project Structure
+## Architecture (current)
 
 ```
-modelspec/
-├── schema/              # ★ Source of truth — Pydantic models
-│   ├── enums.py         # 30 model types, all controlled vocabularies
-│   ├── card.py          # ModelCard: 750-field universal schema
-│   └── graph.py         # FalkorDB nodes, edges, ingestion, Cypher
-├── models/              # Model card YAML+Markdown files
-├── api/                 # FastAPI backend (routes, ranking engine)
-├── cli/                 # CLI tool (Typer)
-├── mcp/                 # MCP server for agent integration
-├── researcher/          # Automated scrapers and LLM gap-filler
-├── web/                 # React frontend
-├── hardware/            # Hardware profile definitions
-├── docs/                # Design documents from planning phase
-├── tests/
-├── docker-compose.yml
-└── pyproject.toml
+models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Pages
+                                      (modelspec.dev /api/*.json)
+                                            │
+CLI `snapshot fetch` ───────────────────────┘
+Wizard / 3D graph read the same JSON in the browser.
+
+FalkorDB ── optional local exploration (`modelspec stats|search|info`).
+            Not required to rank, fit, or render the sites.
 ```
 
-## Schema Details
+Pin identity for a snapshot: `build.commit` plus `build.export_schema_version`
+(`pipeline/export.py`, currently `"1.0"`). That is not the CLI `--json`
+envelope (`cli.modelspec.offline.SCHEMA_VERSION`, also `"1.0"`) and not
+`rankings.json` (`schema_version` `"2.0"`).
 
-The `schema/` directory is the foundation everything else builds on:
-- `enums.py` — ModelType (30 values), ArchitectureType, LicenseType, Tier, etc.
-- `card.py` — `ModelCard` Pydantic model with 15 sections, YAML serialization, completeness tracking
-- `graph.py` — `ingest_model_card()` takes a ModelCard and creates all FalkorDB nodes + edges
+## Ranking floors (product defaults)
 
-Run `python tests/test_schema.py` to validate the schema compiles (should show 750 fields, all tests pass).
+In `api/ranking/engine.py`:
 
-## Graph Ontology
+- CLI / API: `MIN_BENCHMARK_COVERAGE = 0.50`, `MIN_BENCHMARK_COUNT = 2`
+- Wizard: `WIZARD_BENCHMARK_COVERAGE = 0.25`
 
-### Node Types
-`:Model`, `:Provider`, `:Platform`, `:Capability`, `:Hardware`, `:Benchmark`, `:License`, `:Quantization`, `:UseCase`, `:DownselectProfile`, `:Runtime`, `:Tag`
+Live `https://modelspec.dev/api/rank/profiles.json` publishes the same policy.
+Do not change a floor without Jamie.
 
-### Key Edge Types
-- `:MADE_BY` (Model→Provider)
-- `:DERIVED_FROM` (Model→Model, with relation: finetune/quantized/merged/distilled)
-- `:HAS_CAPABILITY` (Model→Capability, with tier property)
-- `:SCORED_ON` (Model→Benchmark, with value + date)
-- `:FITS_ON` (Model→Hardware, with quant/TPS/TTFT/memory)
-- `:AVAILABLE_ON` (Model→Platform, with model_id + fine_tuning flag)
-- `:COMPETES_WITH` (Model→Model, derived)
-- `:APPROVED_BY` / `:EXCLUDED_BY` (DownselectProfile→Model, institutional)
+## Provenance
 
-Full ontology in `docs/graph-ontology.md`.
+Ranked rows report `evidence_basis`: `none`, `unverified-legacy`, `mixed`,
+`partial-verified`, or `verified`. That is input provenance, not a quality
+verdict. The CLI contract documents the labels; `_basis` in
+`pipeline/ranking.py` produces them.
 
-## Development Commands
+## Schema (still the card source of truth)
+
+`schema/` is the card and ontology source. Null on a card means "not yet
+researched" or "not published" — a null beats a guess.
+
+- `schema/enums.py` — ModelType, ArchitectureType, LicenseType, Tier, …
+- `schema/card.py` — `ModelCard` (universal template, YAML serialization)
+- `schema/graph.py` — how a card becomes FalkorDB nodes/edges **when ingested
+  locally**. Ingestion is not the serving path.
+
+Ontology: [`docs/graph-ontology.md`](docs/graph-ontology.md). The 2026-04
+design doc [`docs/system-architecture-v3.md`](docs/system-architecture-v3.md)
+is historical.
+
+## Project layout (serving-relevant)
+
+```
+schema/      card + graph types
+models/      DATA — model cards (not fact-checked by the architecture map)
+benchmarks/  DATA — benchmark wiki pages
+hardware/    DATA — device SKUs
+pipeline/    export, ranking, site build
+cli/         Typer CLI; offline path in cli/modelspec/offline.py + snapshot.py
+api/         ranking engine shared with the pipeline
+web3d/       static explorer + wizard
+docs/        contracts and handoff
+tests/
+```
+
+## Development
 
 ```bash
-# Start FalkorDB
-docker compose up -d
+# Isolated worktree, never someone else's checkout
+git -C /Users/terbeest/dev/modelspec worktree add -b <branch> \
+  /Users/terbeest/dev/worktrees/<name> origin/main
+cd /Users/terbeest/dev/worktrees/<name>
 
-# Install Python deps
-pip install -e ".[dev]"
-
-# Run schema tests
-python tests/test_schema.py
-
-# FalkorDB browser UI
-open http://localhost:3000
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q
 ```
 
-## Implementation Roadmap (Current Phase: 1)
+Required checks on `main`: **Run pytest** and **Build both sites**.
 
-### Phase 1: Foundation ← WE ARE HERE
-- [x] V3 universal template (750 fields)
-- [x] Pydantic schema (card.py, enums.py)
-- [x] Graph schema + ingestion (graph.py)
-- [x] Docker Compose for FalkorDB
-- [ ] Seed 30-50 model cards (scrape models.dev API → skeleton YAML)
-- [ ] Ingestion pipeline: load cards into FalkorDB
-- [ ] Basic CLI: `modelspec info`, `modelspec search`
+Optional FalkorDB for graph commands: `docker compose up -d`, browser
+`http://localhost:3000`.
 
-### Phase 2: Ranking Engine
-- [ ] 4-stage ranking pipeline (filter → score → rank → explain)
-- [ ] CLI: `modelspec rank`, `modelspec compare`
-- [ ] Hardware fit calculation logic
+## Do not start
 
-### Phase 3: Backend Researcher
-- [ ] Scrapers: models.dev, HuggingFace, Ollama, LMArena, Artificial Analysis
-- [ ] LLM gap-filler for qualitative fields
-- [ ] New model detection
+MODEL-3 (Worker), MODEL-6 (payment rail). Do not auto-merge `research/*`.
+MODEL-5 daily PRs are opened with `GITHUB_TOKEN`, so required checks never
+run; Jamie must install a PAT or GitHub App token.
 
-### Phase 4: Web UI
-- [ ] Force-directed graph visualization (dark theme, edge view toggles)
-- [ ] Explorer with faceted search
-- [ ] Downselect wizard
-- [ ] Compare view
+## Architecture map
 
-### Phase 5: Agent Integration
-- [ ] MCP server with recommend/compare/info/hardware_fit tools
-
-## UI Vision
-
-The graph visualization should be inspired by network knowledge graph UIs:
-- Dark theme
-- Force-directed + spatial layout modes
-- Edge view toggles (switch between competition network, lineage tree, hardware fit, platform availability)
-- Node coloring by model type
-- Legend with node type counts
-- Search overlay
-- Click-through to model detail panels
-
-## Important Files to Read First
-
-1. `schema/card.py` — the 750-field ModelCard (this IS the project)
-2. `schema/graph.py` — how cards become graph nodes + edges
-3. `docs/graph-ontology.md` — complete node/edge/property specification
-4. `docs/system-architecture-v3.md` — full system design with Cypher query examples
-5. `docs/model-card-template-v3.md` — the raw YAML template
+Bounded Graphify coverage, exclusions, and refresh:
+[`docs/handoff/architecture-map.md`](docs/handoff/architecture-map.md) and
+[`graphify-out/README.md`](graphify-out/README.md). Model and benchmark cards
+are DATA. Worktree CodeGraph: [`docs/handoff/worktrees.md`](docs/handoff/worktrees.md).

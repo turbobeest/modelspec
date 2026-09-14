@@ -1,0 +1,146 @@
+{
+  "api/ranking/engine.py": {
+    "mtime": 1789385576.8096054,
+    "seen": 1789386307.989164,
+    "ast_hash": "ada8abb29cbf0e3032be559ac33fb0ac",
+    "semantic_hash": "ada8abb29cbf0e3032be559ac33fb0ac"
+  },
+  "cli/modelspec/cli.py": {
+    "mtime": 1789385577.2104619,
+    "seen": 1789386307.989166,
+    "ast_hash": "8a4440d5fb99356d07c042d152e8914b",
+    "semantic_hash": "8a4440d5fb99356d07c042d152e8914b"
+  },
+  "cli/modelspec/offline.py": {
+    "mtime": 1789385577.2108405,
+    "seen": 1789386307.989166,
+    "ast_hash": "e10714da6026cf8608ab94dc9f7e16a4",
+    "semantic_hash": "e10714da6026cf8608ab94dc9f7e16a4"
+  },
+  "cli/modelspec/snapshot.py": {
+    "mtime": 1789385577.2110815,
+    "seen": 1789386307.9891672,
+    "ast_hash": "4bb577957793785555d6735f9f9d01d2",
+    "semantic_hash": "4bb577957793785555d6735f9f9d01d2"
+  },
+  "pipeline/build.py": {
+    "mtime": 1789385577.7718916,
+    "seen": 1789386307.9891672,
+    "ast_hash": "7eeb7b015538f11f513319c1e626179c",
+    "semantic_hash": "7eeb7b015538f11f513319c1e626179c"
+  },
+  "pipeline/export.py": {
+    "mtime": 1789385577.772398,
+    "seen": 1789386307.9891682,
+    "ast_hash": "185f2c77bfabb38b17a786d7c6018e54",
+    "semantic_hash": "185f2c77bfabb38b17a786d7c6018e54"
+  },
+  "pipeline/graph.py": {
+    "mtime": 1789385577.7726538,
+    "seen": 1789386307.9891682,
+    "ast_hash": "6b75c278fc7536f28ff67f9b87bd2ce9",
+    "semantic_hash": "6b75c278fc7536f28ff67f9b87bd2ce9"
+  },
+  "pipeline/ranking.py": {
+    "mtime": 1789385577.7734072,
+    "seen": 1789386307.989173,
+    "ast_hash": "595644a92d4a5a0fcaccd407c616c307",
+    "semantic_hash": "595644a92d4a5a0fcaccd407c616c307"
+  },
+  "tests/test_cli_snapshot.py": {
+    "mtime": 1789385577.7980652,
+    "seen": 1789386307.9891741,
+    "ast_hash": "539dd44468d60ffa620dd32116f61b1b",
+    "semantic_hash": "539dd44468d60ffa620dd32116f61b1b"
+  },
+  "tests/test_export.py": {
+    "mtime": 1789385577.7988207,
+    "seen": 1789386307.989175,
+    "ast_hash": "3d23a1c023bdf91aafd4af087afae19f",
+    "semantic_hash": "3d23a1c023bdf91aafd4af087afae19f"
+  },
+  "tests/test_incomplete_evidence_ranking.py": {
+    "mtime": 1789385577.8008199,
+    "seen": 1789386307.989175,
+    "ast_hash": "a771123034f16d7cd163abf9e8b33ff0",
+    "semantic_hash": "a771123034f16d7cd163abf9e8b33ff0"
+  },
+  "tests/test_ranking.py": {
+    "mtime": 1789385577.8012218,
+    "seen": 1789386307.989175,
+    "ast_hash": "51f3c0a7d4cec37138c3aa567122976d",
+    "semantic_hash": "51f3c0a7d4cec37138c3aa567122976d"
+  },
+  "AGENTS.md": {
+    "mtime": 1789385959.263154,
+    "seen": 1789386307.989176,
+    "ast_hash": "c4e39ae53da1e05c920695d9057ee44e",
+    "semantic_hash": "c4e39ae53da1e05c920695d9057ee44e"
+  },
+  "CLAUDE.md": {
+    "mtime": 1789385959.263223,
+    "seen": 1789386307.989176,
+    "ast_hash": "37ae165dd4752620ccbf7ad509565ef8",
+    "semantic_hash": "37ae165dd4752620ccbf7ad509565ef8"
+  },
+  "docs/agent-commerce-assessment.md": {
+    "mtime": 1789385577.2119164,
+    "seen": 1789386307.989176,
+    "ast_hash": "0f5b370e82f1263395c5f076be1a5e16",
+    "semantic_hash": "0f5b370e82f1263395c5f076be1a5e16"
+  },
+  "docs/cli-contract.md": {
+    "mtime": 1789386031.0668333,
+    "seen": 1789386307.989177,
+    "ast_hash": "6e535fc0542051582d84d356355c8598",
+    "semantic_hash": "6e535fc0542051582d84d356355c8598"
+  },
+  "docs/handoff/README.md": {
+    "mtime": 1789386031.066798,
+    "seen": 1789386307.989177,
+    "ast_hash": "d19ee3cd84c23b23d40bd324b85c498e",
+    "semantic_hash": "d19ee3cd84c23b23d40bd324b85c498e"
+  },
+  "docs/handoff/architecture-map.md": {
+    "mtime": 1789385959.26322,
+    "seen": 1789386307.989177,
+    "ast_hash": "d40837707154891b6f9e318f3f8636c4",
+    "semantic_hash": "d40837707154891b6f9e318f3f8636c4"
+  },
+  "docs/handoff/current.md": {
+    "mtime": 1789386330.8342586,
+    "seen": 1789386568.130477,
+    "ast_hash": "65217b04f82f0003dccdd9b659e1035c",
+    "semantic_hash": "65217b04f82f0003dccdd9b659e1035c"
+  },
+  "docs/handoff/mvp-remainder.md": {
+    "mtime": 1789386031.0668373,
+    "seen": 1789386307.9891782,
+    "ast_hash": "38942153be46ef337bbf3f9d7b27d3c3",
+    "semantic_hash": "38942153be46ef337bbf3f9d7b27d3c3"
+  },
+  "docs/handoff/post-mvp-loop.md": {
+    "mtime": 1789386031.0746975,
+    "seen": 1789386307.9891782,
+    "ast_hash": "91821e39f56f9ed184cca9b239e6bb37",
+    "semantic_hash": "91821e39f56f9ed184cca9b239e6bb37"
+  },
+  "docs/handoff/session-freeze-2026-09-12.md": {
+    "mtime": 1789386031.0667443,
+    "seen": 1789386307.989179,
+    "ast_hash": "b0620191d3fcd6a53ac557e2e46b486f",
+    "semantic_hash": "b0620191d3fcd6a53ac557e2e46b486f"
+  },
+  "docs/handoff/worktrees.md": {
+    "mtime": 1789385959.2632015,
+    "seen": 1789386307.989179,
+    "ast_hash": "91823500f3e00a30b090fb9c237524ab",
+    "semantic_hash": "91823500f3e00a30b090fb9c237524ab"
+  },
+  "docs/incomplete-evidence-ranking.md": {
+    "mtime": 1789385577.2131152,
+    "seen": 1789386307.989179,
+    "ast_hash": "121e48300849b8525616c50551e97e0f",
+    "semantic_hash": "121e48300849b8525616c50551e97e0f"
+  }
+}

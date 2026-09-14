@@ -1,0 +1,16 @@
+scope-corpus/
+cache/last_query_stamp
+.graphify_detect.json
+.graphify_extract.json
+.graphify_ast.json
+.graphify_semantic.json
+.graphify_semantic_new.json
+.graphify_cached.json
+.graphify_uncached.txt
+.graphify_analysis.json
+.graphify_chunk_*.json
+.graphify_python
+.graphify_labels.json
+.graphify_root
+.build-source-snapshot.json
+.needs_update
