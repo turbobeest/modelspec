@@ -30,28 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install pydantic pyyaml
-
       - name: Build
         id: build
         run: |
-          python -m pipeline.build --out dist | tee summary.json
-          {
-            echo '### Site build'
-            echo
-            echo '```json'
-            cat summary.json
-            echo '```'
-            echo
-            echo "modelspec.dev: $(find dist/modelspec -type f | wc -l) files, $(du -sh dist/modelspec | cut -f1)"
-            echo "benchgraph.dev: $(find dist/benchgraph -type f | wc -l) files, $(du -sh dist/benchgraph | cut -f1)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          # MODEL-39 evidence only. Do not merge. A 26 MiB file must fail the
+          # Pages guard below, so the deploy job never starts.
+          mkdir -p dist/modelspec dist/benchgraph
+          dd if=/dev/zero of=dist/modelspec/oversized.bin bs=1048576 count=26
 
       - name: Guard the Cloudflare Pages limits
         run: |
