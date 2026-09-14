@@ -76,7 +76,7 @@ def main() -> int:
 
     # Stage outside the worktree. Copies of tests/ under graphify-out/ are
     # collected by pytest and fail because models/ is not in the staged tree.
-    stage = Path("/tmp") / f"modelspec-graphify-scope-{ROOT.name}"
+    stage = (Path("/tmp") / f"modelspec-graphify-scope-{ROOT.name}").resolve()
     if stage.exists():
         shutil.rmtree(stage)
     for name in paths:

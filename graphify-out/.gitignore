@@ -1,5 +1,8 @@
 scope-corpus/
-cache/last_query_stamp
+# Hashed AST/semantic extraction cache. Rebuildable; not source.
+cache/
+# Previous-run snapshots. Current GRAPH_REPORT.md is the tracked report.
+history/
 .graphify_detect.json
 .graphify_extract.json
 .graphify_ast.json

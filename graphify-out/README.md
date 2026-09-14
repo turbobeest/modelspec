@@ -24,6 +24,9 @@ Linear or live Pages still match.
 Do **not** run `graphify extract .` or `graphify update` here. Those commands
 do not enforce `scope.json` and would ingest the catalogue.
 
+`cache/` is local hashed AST/semantic JSON (gitignored). A clone does not need
+it; `prepare_scope.py` rebuilds AST from the allowlist. Do not commit it.
+
 ## Manual scoped refresh
 
 1. `"$(cat graphify-out/.graphify_python)" graphify-out/prepare_scope.py`
