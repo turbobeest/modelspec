@@ -195,3 +195,7 @@ def test_codex_command_is_confined(tmp_path):
     assert cmd[cmd.index("-m") + 1] == "gpt-5.6-sol"
     assert "--ignore-user-config" in cmd and "--ephemeral" in cmd
     assert cmd[cmd.index("-C") + 1] == str(tmp_path / "run")
+
+
+def test_per_run_cap_is_20_minutes():
+    assert runner.RUN_TIMEOUT_S == 1200

@@ -160,7 +160,7 @@ sandbox-exec -p <profile> <opencode binary> run <prompt> -m spark-ollama/<model>
 
 ## Estimate for the full pass (7 setups x 20 tasks x 3 reps = 420 runs)
 
-This is low confidence: it is based on one task per setup. The 570 s cap bounds every run, and each includes about 3 s of grading.
+This is low confidence: it is based on one task per setup. The per-run cap is 1200 s (raised from 570 s for the full pass; the smoke ran under the old cap), and each includes about 3 s of grading.
 
 | Setup | Smoke | 60 runs |
 |---|---:|---:|

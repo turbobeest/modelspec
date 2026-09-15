@@ -28,7 +28,7 @@ REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / "benchmarks" / "_latency"
 HOST_ID = "apple_macbook_pro_m5_max"
 OLLAMA = "http://100.127.37.30:11434"
-RUN_TIMEOUT_S = 570
+RUN_TIMEOUT_S = 1200  # per-run cap, raised from 570 s by Jamie for the full pass
 RATE_LIMIT_RE = re.compile(
     r"rate.?limit|usage.?limit|quota|\b429\b|\b402\b|too many requests|limit reached|balance exhausted|payment required",
     re.I)
@@ -212,6 +212,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--sandbox-root", type=Path, required=True)
     ap.add_argument("--mode", choices=["smoke", "full"], default="smoke")
     ap.add_argument("--setup", action="append", help="limit to these setup names")
+    ap.add_argument("--max-runs", type=int, help="stop after this many runs; state makes the rest resumable")
     args = ap.parse_args(argv)
 
     root = args.sandbox_root.resolve()
@@ -230,6 +231,7 @@ def main(argv: list[str] | None = None) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     names = args.setup or list(SETUPS)
+    completed = 0
     for name in names:
         setup = SETUPS[name]
         for rep in range(1, reps + 1):
@@ -256,9 +258,14 @@ def main(argv: list[str] | None = None) -> None:
                     continue
                 record.update(run_record(setup, task, root, key))
                 _write(out, record, state, state_path, key)
+                completed += 1
                 if record["status"] == "rate_limited":
                     state["stopped_setups"][name] = record["error"]
                     state_path.write_text(json.dumps(state, indent=2) + "\n")
+                    break  # stop this setup cleanly; other setups continue
+                if args.max_runs and completed >= args.max_runs:
+                    print(f"stopping after {completed} runs; resume with the same command", flush=True)
+                    return
 
 
 def run_record(setup: dict, task: T.Task, root: Path, key: str) -> dict:
