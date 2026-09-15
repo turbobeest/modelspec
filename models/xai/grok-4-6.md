@@ -825,6 +825,54 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4-6
+    version: grok-4.6
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Prompts above 200k tokens are billed at double the input and output rates.
+      sources:
+      - url: https://docs.x.ai/docs/release-notes
+        title: xAI release notes
+        accessed: '2026-09-15'
+        kind: release-notes
+    - text: xAI reports strong first passes from a concrete product idea, then iterating with feedback.
+      sources:
+      - url: https://x.ai/news/grok-4-6
+        title: Grok 4.6 announcement
+        accessed: '2026-09-15'
+        kind: release-notes
+    system_message: []
+    reasoning_and_tools:
+    - text: Reasoning effort supports low, medium, high (default) and xhigh.
+      sources:
+      - url: https://docs.x.ai/docs/release-notes
+        title: xAI release notes
+        accessed: '2026-09-15'
+        kind: release-notes
+      - url: https://docs.x.ai/developers/grok-4-6
+        title: Grok 4.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    - text: Set prompt_cache_key (x-grok-conv-id on Chat Completions) so cache hits are reliable; without
+        it requests often pay full input price.
+      sources:
+      - url: https://docs.x.ai/developers/grok-4-6
+        title: Grok 4.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    - text: Long agent loops benefit from context compaction.
+      sources:
+      - url: https://docs.x.ai/developers/grok-4-6
+        title: Grok 4.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Grok 4.6

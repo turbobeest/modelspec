@@ -827,6 +827,53 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-3-8-flash
+    version: gemini-3.8-flash
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: Thinking levels are low, medium (default) and high; minimal is unsupported and returns an
+        error.
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/latest-model
+        title: What's new in Gemini 3.8 Flash
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Medium is recommended for complex code and agents, high for deep reasoning and math, low for
+        latency-critical tasks.
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/latest-model
+        title: What's new in Gemini 3.8 Flash
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Uses more tokens on long complex tasks by design, verifying as it goes; lower the thinking
+        level for everyday tasks.
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/latest-model
+        title: What's new in Gemini 3.8 Flash
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Replace thinking_budget with thinking_level; remove temperature, top_p, top_k and candidate_count.
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/latest-model
+        title: What's new in Gemini 3.8 Flash
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    formatting: []
+    failure_modes:
+    - text: Malformed_Function_Call errors can be tied to text emitted before a tool call; Google documents
+        workarounds.
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/latest-model
+        title: What's new in Gemini 3.8 Flash
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 # Gemini 3.8 Flash
