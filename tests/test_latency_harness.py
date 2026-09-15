@@ -76,10 +76,28 @@ def test_sandbox_env_drops_secrets(monkeypatch):
 
 
 def test_claude_command_is_confined(tmp_path):
-    cmd = runner.build_command(runner.SETUPS["claude-code/opus-5"], "p", tmp_path)
+    cmd = runner.build_command(runner.SETUPS["claude-code/opus-5"], "p", tmp_path / "run")
     assert "--strict-mcp-config" in cmd and "--no-session-persistence" in cmd
+    assert cmd[cmd.index("--setting-sources") + 1] == "project"
     settings = json.loads(cmd[cmd.index("--settings") + 1])
-    assert settings["sandbox"]["enabled"] and not settings["sandbox"]["allowUnsandboxedCommands"]
+    # Inner Bash sandbox cannot nest in the outer Seatbelt; the outer profile confines Bash.
+    assert settings["sandbox"]["enabled"] is False
+    deny = settings["permissions"]["deny"]
+    for tool in ("Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit"):
+        assert f"{tool}(//Users/**)" in deny
+    assert "WebFetch" in deny and "WebSearch" in deny
+    assert "allow" not in settings["permissions"]
+    assert cmd.count("--settings") == 1 and str(Path.home() / ".claude") not in cmd[cmd.index("--settings") + 1]
+
+
+def test_claude_runs_under_seatbelt(tmp_path):
+    cmd = runner.build_command(runner.SETUPS["claude-code/opus-5"], "p", tmp_path / "run")
+    assert cmd[0] == "sandbox-exec" and cmd[1] == "-p"
+    prof = cmd[2]
+    assert prof.index('(deny file-read* (subpath "/Users"))') < prof.index("(allow file-read*")
+    assert '(deny file-write* (subpath "/"))' in prof and f'(subpath "{tmp_path}")' in prof
+    for secret in (".ssh", "Documents", ".zshrc", "dev"):
+        assert f'{Path.home()}/{secret}"' not in prof
 
 
 def test_blocked_setups_have_no_adapter(tmp_path):

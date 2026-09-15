@@ -34,7 +34,7 @@ Terminal-Bench was rejected. Its tasks need the agent's shell inside the task co
 
 | Setup | Status | Total s | Startup s | Model s | Tool s | Turns | Tool calls | Tokens in / out | Tests |
 |---|---|---:|---:|---:|---:|---:|---:|---|---|
-| claude-code / claude-opus-5 | ok | 18.9 | 0.7 | 17.7 | 0.3 | 5 | 4 | 83,846 / 1,141 | **pass** |
+| claude-code / claude-opus-5 (confined re-run) | ok | 22.2 | 0.5 | 20.3 | 1.2 | 5 | 4 | 73,708 / 1,411 | **pass** |
 | codex / GPT-5.6 | skipped | | | | | | | | model id ambiguous |
 | grok / grok-4.6 | usage limit | 8.3 | | n/a | n/a | 0 | 0 | | not run (HTTP 402) |
 | gemini / Gemini 3.8 Flash | skipped | | | | | | | | CLI uses API-key auth |
@@ -46,7 +46,8 @@ Terminal-Bench was rejected. Its tasks need the agent's shell inside the task co
 
 Status and timing notes:
 
-- **Claude.** The CLI's own `duration_api_ms` is 18,393 against a derived model_s of 17.66 s. The CLI figure is slightly larger than wall time, which suggests auxiliary API calls counted in parallel.
+- **Claude.** The table shows the confined re-run from 2026-09-15 20:41 UTC. The CLI reports `duration_api_ms` 21,261 against a derived model_s of 20.3 s.
+  The first run, under the weaker confinement, took 18.9 s total (model 17.7 s, tool 0.3 s) and passed. It stays in `runs/smoke.jsonl` with status `superseded`.
 - **gemma4:26b.** One write step took about 106 s to emit 6,918 output tokens. The startup of 37 s includes the first request to the Spark, and the model was probably loading there.
 - **qwen3:30b-a3b.** About 14 s falls after the last step_finish (shutdown and exit) and is not model time.
 - **Grok.** It returned `API error (status 402 Payment Required): Grok Build usage balance exhausted` before any event. The setup is stopped in state.
@@ -67,18 +68,58 @@ All runs share these properties:
 - The machine has `ANTHROPIC_BASE_URL` set. Dropping it means Claude used the first-party claude.ai OAuth login.
 - No global CLI config was modified.
 
-### Claude Code 2.1.272
+### Claude Code 2.1.272 (confinement tightened after review)
 
 ```
-claude -p <prompt> --model claude-opus-5 --output-format stream-json --verbose \
-  --dangerously-skip-permissions --no-session-persistence --strict-mcp-config \
-  --setting-sources project --settings '<run settings>'
+sandbox-exec -p <claude profile> <claude binary> -p <prompt> --model claude-opus-5 \
+  --output-format stream-json --verbose --dangerously-skip-permissions --no-session-persistence \
+  --strict-mcp-config --setting-sources project --settings '<run settings>'
 ```
 
-- **Confinement.** The run settings enable the Bash sandbox (Seatbelt) with `allowUnsandboxedCommands: false`. They also deny `Read`/`Edit` of `~/.ssh`, `~/.aws`, `~/.config`, `~/.gnupg`, `~/.codex`, `~/.grok`, `~/.gemini`, `~/.claude`, `~/dev` and `~/Library`.
-  User settings, hooks and MCP servers are not loaded. Auth is the CLI's own keychain login and is never copied.
-- **Reach.** Sandboxed shell writes are limited to the working directory. File tools can still read other paths under `$HOME` that the deny list doesn't name. Network is available to the CLI itself.
-- **Separability: yes.** The split is derived from line-receipt timestamps. A `tool_use` block opens a tool interval and the matching `tool_result` closes it. The CLI also reports `duration_api_ms`, which is recorded.
+**Run settings: permission deny rules.** `//` marks an absolute path, and a single `/` would be project-relative.
+
+```
+Read(//Users/**)  Edit(//Users/**)  Write(//Users/**)  Glob(//Users/**)  Grep(//Users/**)  NotebookEdit(//Users/**)
+WebFetch  WebSearch
+```
+
+The run directory is under `/private/tmp`, so these rules never block the task. There are no allow rules.
+
+**Outer Seatbelt profile.** The profile does the following:
+
+- Denies `file-read*` under `/Users`, then re-allows only what claude needs:
+  - its install directory (`~/.local/share/claude/versions`)
+  - `~/.claude`
+  - `~/.claude.json*`
+  - `~/Library/Keychains`, for the claude.ai keychain login
+  - the literal directories `/Users` and `$HOME`, for path lookups only
+- Denies `file-write*` everywhere except:
+  - the run sandbox
+  - `/private/var/folders`
+  - `/private/tmp/claude-501`
+  - `/private/tmp/srt-*`
+  - `~/.claude`
+  - `~/.claude.json*`
+  - `/dev/null` and `/dev/tty`
+
+The claude.ai login still works under this profile.
+
+**Claude's inner Bash sandbox is disabled (`sandbox.enabled: false`).** It is a deliberate deviation from the review request. The inner sandbox calls `sandbox-exec` itself, and Seatbelt cannot nest. Under the outer profile every Bash call failed with `sandbox_apply: Operation not permitted` (exit 71), so the agent could not run tests.
+The outer profile confines Bash instead. It is stricter on reads: it denies Bash reads under `/Users`, and the inner sandbox restricts only writes.
+
+**Reach.** The process can read system paths outside `/Users`, its own install, config and keychain, and the run directory. It can write only to the run directory and temp directories. The network is open for the CLI's API calls, and the web tools are denied.
+
+**Confinement probe on 2026-09-15.** It was a throwaway prompt with no task. No file contents were recorded, and a check found no content from `~/.zshrc` or `~/Documents` names in any event.
+
+| Attempt | Result |
+|---|---|
+| Read tool on `/Users/terbeest/.zshrc` | denied: "File is in a directory that is denied by your permission settings." |
+| Bash with literal `/Users/...` paths | denied by the permission rules; the command did not run |
+| Bash with the path hidden from the permission checker (`a=/Us; b=ers/...`) | ran, but `ls ~/Documents` and reading `~/.zshrc` were denied by Seatbelt ("operation not permitted"). Writing to the run directory succeeded. |
+
+A side effect: Claude's cwd-tracking file `/tmp/claude-*-cwd` cannot be written under the profile. Bash then prints a harmless "operation not permitted" line after each command. The smoke run passed regardless.
+
+**Separability: yes.** The split is derived from line-receipt timestamps. A `tool_use` block opens a tool interval, and the matching `tool_result` closes it. The CLI also reports `duration_api_ms`, which is recorded.
 
 ### Grok CLI 1.0.30
 
@@ -113,7 +154,7 @@ This is extrapolated from one task per setup and is low confidence. Task difficu
 
 | Setup | Smoke total | 60 runs, including about 3 s of grading each |
 |---|---:|---:|
-| Claude Opus 5 | 19 s | about 25 min |
+| Claude Opus 5 | 22 s | about 25 min |
 | qwen3:30b-a3b | 27 s | about 30 min |
 | gemma4:26b | 156 s | about 2.6 h |
 | Codex, Grok, Gemini (not measured; assumed similar to Claude, 20–60 s) | | about 0.5–1 h each |
@@ -121,5 +162,5 @@ This is extrapolated from one task per setup and is low confidence. Task difficu
 | mistral-large 123B q4 (dense; likely to hit the 570 s cap) | | up to about 9.5 h |
 
 - **Duration.** About 20–28 h sequential, and local models dominate.
-- **Usage.** Claude used about 84k input tokens (mostly cache reads) and 1.1k output per run; the CLI-reported equivalent is $0.18 per run. Over 60 runs that is about 5M input tokens, or about $11 at the CLI's equivalent price, taken from a subscription allowance.
+- **Usage.** Claude used about 74–84k input tokens (mostly cache reads) and 1.1–1.4k output per run; the CLI-reported equivalent is $0.16–0.18 per run. Over 60 runs that is about 5M input tokens, or about $11 at the CLI's equivalent price, taken from a subscription allowance.
 - **Blockers.** Grok's usage balance is already exhausted. Codex and Gemini are blocked on a model id decision and on auth. Three Spark models are not pulled.

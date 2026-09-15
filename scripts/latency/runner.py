@@ -37,11 +37,18 @@ RATE_LIMIT_RE = re.compile(
 ENV_ALLOW = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TERM", "SHELL")
 FORBIDDEN_ENV = re.compile(r"API_KEY|TOKEN|SECRET|PASSWORD|SSH_AUTH|^OP_|BASE_URL", re.I)
 
+FILE_TOOLS = ("Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit")
+# `//Users/**` is an absolute-path rule (a single leading `/` would be project-relative).
+# The run dir is under /private/tmp, so denying all of /Users never blocks the task.
+# Claude's own Bash sandbox is OFF on purpose: it calls sandbox-exec, which cannot
+# nest inside the outer Seatbelt (`sandbox_apply: Operation not permitted`, exit 71),
+# so every Bash call failed. The outer profile (claude_profile) confines Bash
+# instead, and unlike the inner sandbox it also denies Bash reads under /Users.
 CLAUDE_SETTINGS = {
-    "sandbox": {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False},
-    "permissions": {"deny": [f"{v}(~/{p}/**)" for v in ("Read", "Edit") for p in (
-        ".ssh", ".aws", ".config", ".gnupg", ".codex", ".grok", ".gemini", ".claude", "dev", "Library")]},
+    "sandbox": {"enabled": False},
+    "permissions": {"deny": [f"{tool}(//Users/**)" for tool in FILE_TOOLS] + ["WebFetch", "WebSearch"]},
 }
+
 
 SETUPS: dict[str, dict] = {
     "claude-code/opus-5": {"harness": "claude", "model": "claude-opus-5", "inference_host": "anthropic", "parser": "claude"},
@@ -66,7 +73,8 @@ def sandbox_env() -> dict:
 def build_command(setup: dict, prompt: str, workdir: Path) -> list[str]:
     h = setup["harness"]
     if h == "claude":
-        return ["claude", "-p", prompt, "--model", setup["model"], "--output-format", "stream-json", "--verbose",
+        exe = Path(shutil.which("claude")).resolve()
+        return ["sandbox-exec", "-p", claude_profile(workdir, exe), str(exe), "-p", prompt, "--model", setup["model"], "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions", "--no-session-persistence", "--strict-mcp-config",
                 "--setting-sources", "project", "--settings", json.dumps(CLAUDE_SETTINGS)]
     if h == "grok":
@@ -81,6 +89,23 @@ def build_command(setup: dict, prompt: str, workdir: Path) -> list[str]:
         return ["sandbox-exec", "-p", opencode_profile(workdir, Path(exe)), exe, "run", prompt,
                 "-m", f"spark-ollama/{setup['model']}", "--format", "json", "--auto", "--pure", "--dir", str(workdir)]
     raise NotImplementedError(f"no verified adapter for {h}")
+
+
+def claude_profile(workdir: Path, exe: Path) -> str:
+    """Seatbelt around the whole claude process. Reads under /Users are denied
+    except the install and what the claude.ai keychain login needs."""
+    home = Path.home()
+    reads = [exe.parent, home / ".claude", home / ".claude.json", home / "Library/Keychains"]
+    writes = [workdir.parent, home / ".claude", home / ".claude.json", "/private/var/folders", "/private/tmp/claude-501"]
+    rd = " ".join(f'(subpath "{p}")' for p in reads) + f' (literal "{home}") (literal "/Users")'
+    wr = " ".join(f'(subpath "{p}")' for p in writes)
+    return (
+        "(version 1)(allow default)"
+        '(deny file-read* (subpath "/Users"))'
+        f"(allow file-read* {rd} (regex #\"^{home}/\\.claude\\.json.*\"))"
+        '(deny file-write* (subpath "/"))'
+        f'(allow file-write* {wr} (regex #"^{home}/\\.claude\\.json.*") (regex #"^/private/tmp/srt-") (literal "/dev/null") (literal "/dev/tty"))'
+    )
 
 
 def opencode_config(model: str) -> dict:
