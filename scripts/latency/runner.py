@@ -52,14 +52,11 @@ CLAUDE_SETTINGS = {
 
 SETUPS: dict[str, dict] = {
     "claude-code/opus-5": {"harness": "claude", "model": "claude-opus-5", "inference_host": "anthropic", "parser": "claude"},
-    "codex/gpt-5.6": {"harness": "codex", "model": None, "inference_host": "openai", "parser": None,
-                      "blocked": "model id ambiguous: codex lists gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna"},
-    "grok/grok-4.6": {"harness": "grok", "model": "grok-4.6", "inference_host": "xai", "parser": "unverified"},
-    "gemini/gemini-3.8-flash": {"harness": "gemini", "model": None, "inference_host": "google", "parser": None,
-                                "blocked": "gemini CLI auth is gemini-api-key (not a subscription login); no gemini-3.8 id found in the CLI"},
+    "codex/gpt-5.6-sol": {"harness": "codex", "model": "gpt-5.6-sol", "inference_host": "openai", "parser": "unverified"},
 }
-for _m in ("qwen3:32b", "gemma4:31b", "gemma4:26b", "mistral-large:123b-instruct-2411-q4_K_M",
-           "qwen3:30b-a3b-instruct-2507-q4_K_M"):
+# Jamie, 2026-09-15: Grok, Gemini and all Google (Gemma) models are dropped from the pilot.
+for _m in ("qwen3:32b", "mistral-large:123b-instruct-2411-q4_K_M", "qwen3:30b-a3b-instruct-2507-q4_K_M",
+           "nemotron-3-nano:latest", "nemotron-3-super:latest"):
     SETUPS[f"opencode/{_m}"] = {"harness": "opencode", "model": _m, "inference_host": "nvidia_dgx_spark",
                                 "parser": "opencode", "local": True}
 
@@ -77,9 +74,13 @@ def build_command(setup: dict, prompt: str, workdir: Path) -> list[str]:
         return ["sandbox-exec", "-p", claude_profile(workdir, exe), str(exe), "-p", prompt, "--model", setup["model"], "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions", "--no-session-persistence", "--strict-mcp-config",
                 "--setting-sources", "project", "--settings", json.dumps(CLAUDE_SETTINGS)]
-    if h == "grok":
-        return ["grok", "-p", prompt, "-m", setup["model"], "--output-format", "streaming-json",
-                "--always-approve", "--sandbox", "workspace", "--cwd", str(workdir), "--disable-web-search"]
+    if h == "codex":
+        # Codex's own Seatbelt sandbox cannot nest inside ours, so it is bypassed
+        # and the outer profile (codex_profile) confines the whole process.
+        exe = Path(shutil.which("codex")).resolve()
+        return ["sandbox-exec", "-p", codex_profile(workdir, exe), str(exe), "exec", "-m", setup["model"], "--json",
+                "--dangerously-bypass-approvals-and-sandbox", "--ephemeral", "--ignore-user-config", "--ignore-rules",
+                "--skip-git-repo-check", "--color", "never", "-C", str(workdir), prompt]
     if h == "opencode":
         # Run-scoped: HOME is a fresh dir inside the run sandbox, so the user's
         # ~/.config/opencode and any stored provider auth are never loaded.
@@ -105,6 +106,22 @@ def claude_profile(workdir: Path, exe: Path) -> str:
         f"(allow file-read* {rd} (regex #\"^{home}/\\.claude\\.json.*\"))"
         '(deny file-write* (subpath "/"))'
         f'(allow file-write* {wr} (regex #"^{home}/\\.claude\\.json.*") (regex #"^/private/tmp/srt-") (literal "/dev/null") (literal "/dev/tty"))'
+    )
+
+
+def codex_profile(workdir: Path, exe: Path) -> str:
+    """Seatbelt around codex. Reads under /Users are denied except CODEX_HOME
+    (~/.codex: the install, ChatGPT login and session state). Writes only to
+    the run sandbox, temp dirs and ~/.codex."""
+    home = Path.home()
+    codex_home = home / ".codex"
+    return (
+        "(version 1)(allow default)"
+        '(deny file-read* (subpath "/Users"))'
+        f'(allow file-read* (subpath "{codex_home}") (subpath "{exe.parent}") (literal "{home}") (literal "/Users"))'
+        '(deny file-write* (subpath "/"))'
+        f'(allow file-write* (subpath "{workdir.parent}") (subpath "{codex_home}") (subpath "/private/var/folders")'
+        ' (literal "/dev/null") (literal "/dev/tty"))'
     )
 
 

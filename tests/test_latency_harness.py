@@ -100,14 +100,14 @@ def test_claude_runs_under_seatbelt(tmp_path):
         assert f'{Path.home()}/{secret}"' not in prof
 
 
-def test_blocked_setups_have_no_adapter(tmp_path):
+def test_unknown_harness_has_no_adapter(tmp_path):
     with pytest.raises(NotImplementedError):
-        runner.build_command(runner.SETUPS["codex/gpt-5.6"], "p", tmp_path)
+        runner.build_command({"harness": "gemini", "model": "x"}, "p", tmp_path)
 
 
 def test_opencode_env_is_run_scoped(tmp_path):
     work = tmp_path / "run"
-    env = runner.harness_env(runner.SETUPS["opencode/gemma4:26b"], work)
+    env = runner.harness_env(runner.SETUPS["opencode/qwen3:32b"], work)
     assert env["HOME"].startswith(str(tmp_path)) and env["XDG_CONFIG_HOME"].startswith(str(tmp_path))
     cfg = json.loads(env["OPENCODE_CONFIG_CONTENT"])
     assert cfg["provider"]["spark-ollama"]["options"]["baseURL"] == runner.OLLAMA + "/v1"
@@ -174,3 +174,24 @@ def test_opencode_empty_stream_has_null_split():
 
     t = parse_opencode([], end=3.0)
     assert t.model_s is None and t.tool_s is None and t.startup_s == 3.0
+
+
+def test_pilot_roster():
+    assert sorted(runner.SETUPS) == [
+        "claude-code/opus-5", "codex/gpt-5.6-sol", "opencode/mistral-large:123b-instruct-2411-q4_K_M",
+        "opencode/nemotron-3-nano:latest", "opencode/nemotron-3-super:latest",
+        "opencode/qwen3:30b-a3b-instruct-2507-q4_K_M", "opencode/qwen3:32b",
+    ]
+
+
+def test_codex_command_is_confined(tmp_path):
+    cmd = runner.build_command(runner.SETUPS["codex/gpt-5.6-sol"], "p", tmp_path / "run")
+    assert cmd[:2] == ["sandbox-exec", "-p"]
+    prof = cmd[2]
+    assert prof.index('(deny file-read* (subpath "/Users"))') < prof.index("(allow file-read*")
+    assert '(deny file-write* (subpath "/"))' in prof and f'(subpath "{tmp_path}")' in prof
+    for private in (".ssh", "Documents", ".zshrc", "dev", ".claude"):
+        assert f'{Path.home()}/{private}"' not in prof
+    assert cmd[cmd.index("-m") + 1] == "gpt-5.6-sol"
+    assert "--ignore-user-config" in cmd and "--ephemeral" in cmd
+    assert cmd[cmd.index("-C") + 1] == str(tmp_path / "run")

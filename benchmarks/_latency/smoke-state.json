@@ -1,16 +1,18 @@
 {
   "done": {
-    "grok/grok-4.6|affine-cipher|1": "rate_limited",
-    "codex/gpt-5.6|affine-cipher|1": "skipped",
-    "gemini/gemini-3.8-flash|affine-cipher|1": "skipped",
-    "opencode/qwen3:32b|affine-cipher|1": "skipped",
-    "opencode/gemma4:31b|affine-cipher|1": "skipped",
-    "opencode/mistral-large:123b-instruct-2411-q4_K_M|affine-cipher|1": "skipped",
-    "opencode/gemma4:26b|affine-cipher|1": "ok",
+    "grok/grok-4.6|affine-cipher|1": "dropped",
+    "gemini/gemini-3.8-flash|affine-cipher|1": "dropped",
+    "opencode/gemma4:26b|affine-cipher|1": "dropped",
     "opencode/qwen3:30b-a3b-instruct-2507-q4_K_M|affine-cipher|1": "ok",
-    "claude-code/opus-5|affine-cipher|1": "ok"
+    "claude-code/opus-5|affine-cipher|1": "ok",
+    "codex/gpt-5.6-sol|affine-cipher|1": "rate_limited",
+    "opencode/qwen3:32b|affine-cipher|1": "timeout",
+    "opencode/gemma4:31b|affine-cipher|1": "dropped",
+    "opencode/mistral-large:123b-instruct-2411-q4_K_M|affine-cipher|1": "ok",
+    "opencode/nemotron-3-nano:latest|affine-cipher|1": "ok",
+    "opencode/nemotron-3-super:latest|affine-cipher|1": "timeout"
   },
   "stopped_setups": {
-    "grok/grok-4.6": "HTTP 402 usage balance exhausted"
+    "codex/gpt-5.6-sol": "usage limit until 2026-09-19 06:22"
   }
 }

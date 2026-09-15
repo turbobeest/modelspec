@@ -1,4 +1,4 @@
-# MODEL-60 smoke report: 9 setups x 1 task x 1 run
+# MODEL-60 smoke report: agentic latency pilot
 
 Run date: 2026-09-15. Harness host: `apple_macbook_pro_m5_max`, one run at a time.
 Raw records: [`runs/smoke.jsonl`](runs/smoke.jsonl). State: [`smoke-state.json`](smoke-state.json).
@@ -6,69 +6,80 @@ Raw CLI streams stay in the run sandbox and are not committed.
 Spec: [`docs/agentic-latency-benchmark.md`](../../docs/agentic-latency-benchmark.md).
 
 This is a pilot of 1 task and 1 run per setup. It shows only that the harness works. It is not a ranking.
-Totals from different setups are not comparable yet.
+
+## Pilot roster (Jamie, 2026-09-15)
+
+| Setup | Inference host |
+|---|---|
+| Claude Code, `claude-opus-5` | Anthropic |
+| Codex, `gpt-5.6-sol` | OpenAI |
+| opencode, `qwen3:30b-a3b-instruct-2507-q4_K_M` | DGX Spark, Ollama |
+| opencode, `qwen3:32b` | DGX Spark, Ollama |
+| opencode, `mistral-large:123b-instruct-2411-q4_K_M` | DGX Spark, Ollama |
+| opencode, `nemotron-3-nano:latest` (24.3 GB) | DGX Spark, Ollama |
+| opencode, `nemotron-3-super:latest` (86.8 GB) | DGX Spark, Ollama |
+
+Dropped: Grok 4.6, Gemini 3.8 Flash, and all Google models (`gemma4:26b`, `gemma4:31b`). Their smoke records are kept with status `dropped`. No substitutes were added. The two Nemotron models were added by Jamie later the same day; they were already installed on the Spark, and nothing was pulled or updated.
 
 ## Task set
 
 - **Aider polyglot benchmark, Python track** (`https://github.com/Aider-AI/polyglot-benchmark`),
   commit `7e0611e77b54e2dea774cdc0aa00cf9f7ed6144f` (2024-12-22).
-- 20 tasks: the first 20 `python/exercises/practice/*` directories by name, from `affine-cipher` to `pov`.
-  The selection is deterministic, not cherry-picked.
+- 20 tasks: the first 20 `python/exercises/practice/*` directories by name, from `affine-cipher` to `pov`. The selection is deterministic.
 - Task-set hash: `b9d1b251884edf2f4d0df195585f2b7b850ca95a6e65751da032b284c8fa5ed3`. It is the sha256 over each file's path and sha256, for every file in the 20 directories.
 - Smoke task: `affine-cipher`.
-- Grading: the exercise's own unittest file, restored from the pinned checkout. It runs in `python:3.12-slim` with `--network none` and `--read-only`.
+- Grading: the exercise's own unittest file, restored from the pinned checkout. It runs in `python:3.12-slim` with `--network none` and `--read-only`. The reference solution (`.meta/`) is never copied to the agent.
 
 Why this set, measured against the spec:
 
-| Spec requirement | How this set meets it |
-|---|---|
-| Named, versioned, public benchmark with a known licence | A published benchmark (Aider leaderboard). Exercises come from Exercism, whose tracks are MIT-licensed. The repo has no LICENSE file, so this is a caveat. |
-| Tools deterministic, local containers, no live web | Pure standard-library Python. Grading is offline in Docker. |
-| Mix of short and long loops | The exercises range from `beer-song` to `forth`, `poker` and `pov`. |
-| Graded by tests | Every exercise ships a unittest file, and the reference solution (`.meta/`) is withheld from the agent. |
-| Cheap enough for 540 rollouts | Each task is small, and a run takes seconds to minutes. |
+- It is a named, pinned, public benchmark. The exercises come from Exercism, whose tracks are MIT-licensed; the repo itself has no LICENSE file.
+- The tools are deterministic: the tasks use only the Python standard library, and grading is offline in Docker.
+- Loop lengths vary, from `beer-song` to `forth`, `poker` and `pov`.
+- Every task is graded by tests, and each is small enough for hundreds of rollouts.
 
-Terminal-Bench was rejected. Its tasks need the agent's shell inside the task container, and the four subscription CLIs run on the Mac host and cannot be moved into a Linux container without moving their keychain or OAuth auth. SWE-bench subsets were rejected because each needs a heavy per-repo image, and a single run would take much longer.
+Terminal-Bench was rejected because the agent's shell must be inside the task container, and the subscription CLIs keep their logins on the Mac. SWE-bench was rejected because it needs heavy per-repo images.
 
-## Results
+## Smoke results (current roster)
 
 | Setup | Status | Total s | Startup s | Model s | Tool s | Turns | Tool calls | Tokens in / out | Tests |
 |---|---|---:|---:|---:|---:|---:|---:|---|---|
-| claude-code / claude-opus-5 (confined re-run) | ok | 22.2 | 0.5 | 20.3 | 1.2 | 5 | 4 | 73,708 / 1,411 | **pass** |
-| codex / GPT-5.6 | skipped | | | | | | | | model id ambiguous |
-| grok / grok-4.6 | usage limit | 8.3 | | n/a | n/a | 0 | 0 | | not run (HTTP 402) |
-| gemini / Gemini 3.8 Flash | skipped | | | | | | | | CLI uses API-key auth |
-| opencode / qwen3:32b | skipped | | | | | | | | not on Spark |
-| opencode / gemma4:31b | skipped | | | | | | | | not on Spark |
-| opencode / gemma4:26b | ok | 156.1 | 37.4 | 112.2 | 0.1 | 7 | 6 | 60,885 / 7,393 | fail (5/16) |
-| opencode / mistral-large:123b-instruct-2411-q4_K_M | skipped | | | | | | | | not on Spark |
-| opencode / qwen3:30b-a3b-instruct-2507-q4_K_M | ok | 27.5 | 12.2 | 1.3 | 0.02 | 4 | 3 | 33,151 / 935 | **pass** |
+| Claude Code 2.1.272 / claude-opus-5 (confined) | ok | 22.2 | 0.5 | 20.3 | 1.2 | 5 | 4 | 73,708 / 1,411 | **pass** |
+| Codex 0.153.4 / gpt-5.6-sol | usage limit | | | | | | | | not run |
+| opencode 1.18.30 / qwen3:30b-a3b-instruct-2507-q4_K_M | ok | 27.5 | 12.2 | 1.3 | 0.02 | 4 | 3 | 33,151 / 935 | **pass** |
+| opencode 1.18.30 / qwen3:32b | timeout | 570.0 | 57.7 | n/a | n/a | 0 | 0 | | fail (no edit) |
+| opencode 1.18.30 / mistral-large:123b-instruct-2411-q4_K_M | ok | 498.9 | 72.0 | 419.5 | 0.005 | 2 | 1 | 10,209 / 1,127 | fail |
+| opencode 1.18.30 / nemotron-3-nano:latest | ok | 106.5 | 15.7 | 83.2 | 0.1 | 7 | 6 | 65,258 / 6,182 | **pass** |
+| opencode 1.18.30 / nemotron-3-super:latest | timeout | 570.0 | 64.1 | 347.4 (partial) | 0.05 | 5 | 5 | 51,536 / 7,459 (partial) | fail |
 
-Status and timing notes:
+Notes:
 
-- **Claude.** The table shows the confined re-run from 2026-09-15 20:41 UTC. The CLI reports `duration_api_ms` 21,261 against a derived model_s of 20.3 s.
-  The first run, under the weaker confinement, took 18.9 s total (model 17.7 s, tool 0.3 s) and passed. It stays in `runs/smoke.jsonl` with status `superseded`.
-- **gemma4:26b.** One write step took about 106 s to emit 6,918 output tokens. The startup of 37 s includes the first request to the Spark, and the model was probably loading there.
-- **qwen3:30b-a3b.** About 14 s falls after the last step_finish (shutdown and exit) and is not model time.
-- **Grok.** It returned `API error (status 402 Payment Required): Grok Build usage balance exhausted` before any event. The setup is stopped in state.
-  The first run of the limit regex missed this wording and logged the run as `error`. The regex now matches 402, "balance exhausted" and "payment required", and the record was relabelled `rate_limited` by hand, as noted in the record.
+- **Claude.** This is the confined re-run. The CLI reports `duration_api_ms` 21,261. An earlier run under weaker confinement (18.9 s, pass) is kept as `superseded`.
+- **Codex.** The confinement probe returned `You've hit your usage limit … try again at Sep 19th, 2026 6:22 AM` (ChatGPT plan) before any tool ran.
+  The login worked under the outer Seatbelt profile, because the request reached the API. Per stop-on-first-limit, the smoke was not attempted. Confinement is therefore not yet proven by a live tool call; re-probe after the reset.
+- **qwen3:32b.** Killed at the 570 s cap. Its first step never finished, and no step_finish was emitted, so no model/tool split exists. Startup, including the cold model load on the Spark, was 57.7 s.
+  This looks like extended thinking. The ticket forbids effort levels, so whether to disable thinking is Jamie's call.
+- **mistral-large.** One tool call, and the edited solution fails the tests. The run spent 419.5 s on model time for 1,127 output tokens, about 2.7 tokens/s including prefill. Startup, including the cold load, was 72 s.
+- **nemotron-3-super.** Killed at the 570 s cap in the middle of a step. It had completed 5 steps (347 s of model time, 7,459 output tokens). The model and token figures cover the completed steps only; the open step's time is not counted. Startup, including the cold load, was 64 s.
+- **nemotron-3-nano.** Passed. It emitted 6,182 output tokens over 7 steps, likely mostly reasoning.
+- **qwen3:30b-a3b.** About 14 s falls after the last step (CLI shutdown) and is not model time.
 
-## Skipped setups
+Dropped setups, historical:
 
-- **Codex.** `codex debug models` lists `gpt-5.6-sol`, `gpt-5.6-terra` and `gpt-5.6-luna`. "GPT-5.6" is ambiguous, so per the ticket no model was guessed. The CLI is logged in with ChatGPT.
-- **Gemini.** `~/.gemini/settings.json` has `security.auth.selectedType = gemini-api-key`. That is API-key auth, not a subscription login, which the ticket forbids. No `gemini-3.8*` model id string was found in the installed CLI (0.59.0) either.
-- **qwen3:32b, gemma4:31b, mistral-large:123b-instruct-2411-q4_K_M.** These are not in `http://100.127.37.30:11434/api/tags` at run time. Present were gemma4:26b, qwen3:30b-a3b-instruct-2507-q4_K_M, and models outside the scope.
+- Grok 4.6: HTTP 402, "usage balance exhausted".
+- Gemini 3.8 Flash: skipped, because the CLI uses API-key auth.
+- gemma4:26b: 156.1 s, failed the tests.
 
-## Adapters: command, confinement, reach, and separability
+The gemma4:31b smoke also ran, for 339.5 s, and passed. It was run before the Google drop reached this worker, and its record is marked `dropped`.
 
-All runs share these properties:
+## Confinement per adapter
 
-- The working directory is a fresh copy of the task: the stub, the tests and `.docs`, with no `.meta`. It lives under the session scratchpad in `/private/tmp`, never in `$HOME`, `~/dev` or a repo. The runner refuses any other root.
-- The environment is an allowlist: `PATH HOME USER LOGNAME LANG LC_ALL TERM SHELL`. `SSH_AUTH_SOCK`, `GH_TOKEN`, `OP_*`, `*_API_KEY` and `ANTHROPIC_BASE_URL` are all dropped.
-- The machine has `ANTHROPIC_BASE_URL` set. Dropping it means Claude used the first-party claude.ai OAuth login.
-- No global CLI config was modified.
+All adapters share these properties:
 
-### Claude Code 2.1.272 (confinement tightened after review)
+- The working directory is a fresh copy of the task (stub, tests and `.docs`, no `.meta`) under `/private/tmp`. The runner refuses `$HOME`.
+- The environment is an allowlist: `PATH HOME USER LOGNAME LANG LC_ALL TERM SHELL`. Tokens, API keys, `SSH_AUTH_SOCK`, `OP_*` and `ANTHROPIC_BASE_URL` are dropped.
+- No global CLI config is modified. The Gemini settings were not touched.
+
+### Claude Code
 
 ```
 sandbox-exec -p <claude profile> <claude binary> -p <prompt> --model claude-opus-5 \
@@ -76,24 +87,22 @@ sandbox-exec -p <claude profile> <claude binary> -p <prompt> --model claude-opus
   --strict-mcp-config --setting-sources project --settings '<run settings>'
 ```
 
-**Run settings: permission deny rules.** `//` marks an absolute path, and a single `/` would be project-relative.
+**Run-settings deny rules.** `//` marks an absolute path. There are no allow rules.
 
 ```
 Read(//Users/**)  Edit(//Users/**)  Write(//Users/**)  Glob(//Users/**)  Grep(//Users/**)  NotebookEdit(//Users/**)
 WebFetch  WebSearch
 ```
 
-The run directory is under `/private/tmp`, so these rules never block the task. There are no allow rules.
+**Outer Seatbelt profile.**
 
-**Outer Seatbelt profile.** The profile does the following:
-
-- Denies `file-read*` under `/Users`, then re-allows only what claude needs:
-  - its install directory (`~/.local/share/claude/versions`)
+- Reads under `/Users` are denied, except:
+  - the claude install directory
   - `~/.claude`
   - `~/.claude.json*`
-  - `~/Library/Keychains`, for the claude.ai keychain login
-  - the literal directories `/Users` and `$HOME`, for path lookups only
-- Denies `file-write*` everywhere except:
+  - `~/Library/Keychains`, for the claude.ai login
+  - the literal directories `/Users` and `$HOME`
+- Writes are allowed only to:
   - the run sandbox
   - `/private/var/folders`
   - `/private/tmp/claude-501`
@@ -102,65 +111,71 @@ The run directory is under `/private/tmp`, so these rules never block the task. 
   - `~/.claude.json*`
   - `/dev/null` and `/dev/tty`
 
-The claude.ai login still works under this profile.
+**Inner Bash sandbox is disabled (`sandbox.enabled: false`).** Seatbelt cannot nest: every Bash call failed with `sandbox_apply: Operation not permitted`. The outer profile confines Bash instead, and it also denies Bash reads under `/Users`.
 
-**Claude's inner Bash sandbox is disabled (`sandbox.enabled: false`).** It is a deliberate deviation from the review request. The inner sandbox calls `sandbox-exec` itself, and Seatbelt cannot nest. Under the outer profile every Bash call failed with `sandbox_apply: Operation not permitted` (exit 71), so the agent could not run tests.
-The outer profile confines Bash instead. It is stricter on reads: it denies Bash reads under `/Users`, and the inner sandbox restricts only writes.
+A harmless side effect: `/tmp/claude-*-cwd` cannot be written, so Bash prints one "operation not permitted" line per command.
 
-**Reach.** The process can read system paths outside `/Users`, its own install, config and keychain, and the run directory. It can write only to the run directory and temp directories. The network is open for the CLI's API calls, and the web tools are denied.
-
-**Confinement probe on 2026-09-15.** It was a throwaway prompt with no task. No file contents were recorded, and a check found no content from `~/.zshrc` or `~/Documents` names in any event.
+**Probe on 2026-09-15.** No contents were recorded, and a check found no content from `~/.zshrc` or `~/Documents` in any event.
 
 | Attempt | Result |
 |---|---|
-| Read tool on `/Users/terbeest/.zshrc` | denied: "File is in a directory that is denied by your permission settings." |
+| Read tool on `/Users/terbeest/.zshrc` | denied by the permission rules |
 | Bash with literal `/Users/...` paths | denied by the permission rules; the command did not run |
-| Bash with the path hidden from the permission checker (`a=/Us; b=ers/...`) | ran, but `ls ~/Documents` and reading `~/.zshrc` were denied by Seatbelt ("operation not permitted"). Writing to the run directory succeeded. |
+| Bash with the path hidden from the checker (`a=/Us; b=ers/...`) | ran, but Seatbelt denied `ls ~/Documents` and reading `~/.zshrc`. Writing to the run directory succeeded. |
 
-A side effect: Claude's cwd-tracking file `/tmp/claude-*-cwd` cannot be written under the profile. Bash then prints a harmless "operation not permitted" line after each command. The smoke run passed regardless.
+**Separability: yes.** The split is derived from line-receipt timestamps: a `tool_use` block opens an interval, and its `tool_result` closes it. The CLI's `duration_api_ms` is also recorded.
 
-**Separability: yes.** The split is derived from line-receipt timestamps. A `tool_use` block opens a tool interval, and the matching `tool_result` closes it. The CLI also reports `duration_api_ms`, which is recorded.
-
-### Grok CLI 1.0.30
+### Codex
 
 ```
-grok -p <prompt> -m grok-4.6 --output-format streaming-json --always-approve \
-  --sandbox workspace --cwd <workdir> --disable-web-search
+sandbox-exec -p <codex profile> <codex binary> exec -m gpt-5.6-sol --json \
+  --dangerously-bypass-approvals-and-sandbox --ephemeral --ignore-user-config --ignore-rules \
+  --skip-git-repo-check --color never -C <workdir> <prompt>
 ```
 
-- **Confinement.** The built-in `workspace` sandbox profile applies. Web tools are disabled. Auth is `~/.grok` (a grok.com login).
-- **Separability: not established.** No events were emitted before the 402, so there is no recorded stream to verify a parser against. Records use `parse_unverified`, which gives total time only, with model and tool time left null.
+**Outer Seatbelt profile.**
 
-### opencode 1.18.30 (local, DGX Spark Ollama)
+- Reads under `/Users` are denied, except `~/.codex` and the literal directories `/Users` and `$HOME`.
+  `~/.codex` is CODEX_HOME. It holds the install (under `packages/standalone/releases`), the ChatGPT login (`auth.json`) and Codex's own session history, so Codex can read its own state.
+- Writes are allowed only to the run sandbox, `~/.codex`, `/private/var/folders`, `/dev/null` and `/dev/tty`.
+
+Codex's own sandbox also uses Seatbelt and cannot nest, so it is bypassed, and the outer profile confines the whole process.
+
+**Caveat.** `--ignore-user-config` did not stop a plugin MCP client from starting: stderr showed an OAuth-required error from a Cloudflare MCP server.
+
+**Probe:** blocked by the usage limit, so there is no tool-level result yet.
+
+**Separability: unknown.** No tool-bearing `--json` stream has been recorded. Records use the unverified parser, which gives total time only.
+
+### opencode (DGX Spark Ollama)
 
 ```
 sandbox-exec -p <profile> <opencode binary> run <prompt> -m spark-ollama/<model> \
   --format json --auto --pure --dir <workdir>
 ```
 
-- **Run-scoped config.** `HOME` and `XDG_*` point at a fresh directory inside the run sandbox. The provider comes from `OPENCODE_CONFIG_CONTENT`: `spark-ollama`, `@ai-sdk/openai-compatible`, base URL `http://100.127.37.30:11434/v1`, with permissions `external_directory: deny` and `webfetch: deny`.
-  Project config, Claude Code imports, autoupdate and models fetch are disabled. The user's `~/.config/opencode` is never read.
-- **Confinement.** The Seatbelt profile denies all reads under `/Users` except the opencode install directory. It denies all writes except the run sandbox, `/private/var/folders`, `/private/tmp/opencode` and `/dev/null` or `/dev/tty`.
-- **Reach.** Read-only access to system paths outside `/Users`. Network is open, and is used for the Spark. No credentials are involved.
-- **Separability: yes.** Tool time is opencode's own `state.time.start/end` for each tool part. Model time is the span from `step_start` to `step_finish`, using event `timestamp`, minus the tool spans in that step.
+- **Run-scoped config.** `HOME` and `XDG_*` point at a fresh directory. The provider comes from `OPENCODE_CONFIG_CONTENT` (base URL `http://100.127.37.30:11434/v1`), with permissions `external_directory: deny` and `webfetch: deny`.
+- **Seatbelt.** Reads under `/Users` are denied except the opencode install. Writes are allowed only to the run sandbox, `/private/var/folders`, `/private/tmp/opencode` and `/dev/null` or `/dev/tty`.
+- **Separability: yes.** Tool time comes from opencode's own `state.time` for each tool part. Model time is the span from `step_start` to `step_finish`, using event timestamps, minus the tool spans in that step.
 
-### Codex 0.153.4 and Gemini 0.59.0
+## Estimate for the full pass (7 setups x 20 tasks x 3 reps = 420 runs)
 
-No adapter was run. Because no stream was recorded, no parser is claimed for them.
+This is low confidence: it is based on one task per setup. The 570 s cap bounds every run, and each includes about 3 s of grading.
 
-## Estimate for the 540-run pass (9 setups x 20 tasks x 3)
-
-This is extrapolated from one task per setup and is low confidence. Task difficulty varies widely.
-
-| Setup | Smoke total | 60 runs, including about 3 s of grading each |
+| Setup | Smoke | 60 runs |
 |---|---:|---:|
-| Claude Opus 5 | 22 s | about 25 min |
-| qwen3:30b-a3b | 27 s | about 30 min |
-| gemma4:26b | 156 s | about 2.6 h |
-| Codex, Grok, Gemini (not measured; assumed similar to Claude, 20–60 s) | | about 0.5–1 h each |
-| qwen3:32b, gemma4:31b (dense; assumed at or above gemma4:26b) | | about 3–5 h each |
-| mistral-large 123B q4 (dense; likely to hit the 570 s cap) | | up to about 9.5 h |
+| Claude Opus 5 | 22 s, pass | about 25 min |
+| Codex gpt-5.6-sol | not measured (assumed 20–60 s) | about 0.5–1 h |
+| qwen3:30b-a3b | 27 s, pass | about 30 min |
+| nemotron-3-nano | 106 s, pass | about 1.8 h |
+| mistral-large 123B | 499 s, fail | about 8.3–9.6 h |
+| qwen3:32b | 570 s timeout | up to about 9.6 h (every run at the cap) |
+| nemotron-3-super | 570 s timeout | up to about 9.6 h (every run at the cap) |
 
-- **Duration.** About 20–28 h sequential, and local models dominate.
-- **Usage.** Claude used about 74–84k input tokens (mostly cache reads) and 1.1–1.4k output per run; the CLI-reported equivalent is $0.16–0.18 per run. Over 60 runs that is about 5M input tokens, or about $11 at the CLI's equivalent price, taken from a subscription allowance.
-- **Blockers.** Grok's usage balance is already exhausted. Codex and Gemini are blocked on a model id decision and on auth. Three Spark models are not pulled.
+- **Duration.** About 30–32 h run one at a time. The three slow local models (mistral-large, qwen3:32b, nemotron-3-super) make up about 90% of it.
+- **Usage.** Claude uses about 74k input tokens (mostly cache reads) and 1.4k output per run, which is about 4.4M input tokens over 60 runs. The CLI-equivalent price is $0.16 per run, about $10, from the subscription.
+  Codex usage is unmeasured, and its plan is exhausted until 2026-09-19 06:22. Local models cost only Spark time.
+- **Before the full pass:**
+  - Codex must reset, and then be re-probed and smoked.
+  - Jamie should decide about the cap and about thinking for qwen3:32b and nemotron-3-super, which both timed out on the easiest-sorted task. At the current cap, most of their runs would be recorded as timeouts rather than times.
+  - Jamie should consider a higher cap for mistral-large as well.
