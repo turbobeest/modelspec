@@ -1,0 +1,49 @@
+id: apple_m5_max
+display_name: Apple M5 Max
+vendor: apple
+family: Apple M5
+device_class: integrated
+released: 2026-03
+memory:
+  capacity_gb: 128
+  bandwidth_gb_s: 614
+  type: unified
+  bus_bits: null
+  unified_with_host: true
+  capacity_options_gb:
+  - 36
+  - 48
+  - 64
+  - 128
+  bandwidth_derivation: Apple-published unified memory bandwidth for the 18-core CPU
+    / 40-core GPU configuration (not bus-derived)
+precisions_native:
+- fp16
+- bf16
+- int8
+- int4
+interconnect:
+  pcie_gen: null
+  link: none
+  link_gb_s: null
+power:
+  tdp_w: null
+  sustained_differs_from_boost: true
+sources:
+- https://www.apple.com/macbook-pro/specs/
+- https://www.apple.com/mac-studio/specs/
+- https://www.apple.com/newsroom/2026/03/apple-debuts-m5-pro-and-m5-max-to-supercharge-the-most-demanding-pro-workflows/
+figures_are: vendor-specification
+verified_at: 2026-09-15
+notes: 'Two GPU configurations with different bandwidth, one chip record (same convention
+  as apple_m4_max). This record uses the 18-core CPU / 40-core GPU configuration at
+  614 GB/s, the only one offering 48 GB, 64 GB or 128 GB. The 18-core CPU / 32-core
+  GPU configuration is 460 GB/s and is sold only with 36 GB. Capacity options cover
+  both configurations as sold. CPU: 6 super cores and 12 performance cores. Quotes:
+  MacBook Pro specs "M5 Max with 18-core CPU and 40-core GPU (614GB/s memory bandwidth)",
+  "M5 Max with 18-core CPU and 32-core GPU (460GB/s memory bandwidth)", "36GB (M5 Max
+  with 32-core GPU)", "or 48GB (M5 Pro or M5 Max with 40-core GPU)", "or 64GB (M5 Pro
+  with 20-core GPU or M5 Max with 40-core GPU)", "or 128GB (M5 Max with 40-core GPU)",
+  "18-core CPU with 6 super cores and 12 performance cores"; Newsroom 2026-03-03 "availability
+  beginning Wednesday, March 11". Apple does not publish a TDP or a DRAM generation.
+  Sustained clocks differ from boost in thin chassis.'

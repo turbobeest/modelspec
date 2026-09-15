@@ -1,0 +1,32 @@
+id: apple_macbook_pro_m5_max
+display_name: Apple MacBook Pro (M5 Max, 18-core CPU / 40-core GPU, 48 GB)
+kind: system
+unified: true
+hardware_ref: apple_m5_max
+cpu:
+  model: Apple M5 Max
+  cores: 18
+  threads: null
+system_memory:
+  type: unified
+  channels: null
+  max_speed_mt_s: null
+  capacity_max_gb: 48
+  capacity_options_gb: [48]
+  bandwidth_gb_s: 614
+  bandwidth_derivation: Apple-published unified memory bandwidth for the 40-core GPU configuration (not bus-derived). Apple sells 48 GB on M5 Max only with the 40-core GPU.
+pcie:
+  cpu_gen: null
+  cpu_lanes_usable: null
+  accelerator_link_gen: null
+  accelerator_link_width: null
+storage:
+  class: internal-ssd
+  capacity_options_gb: null
+field_sources:
+  cpu.cores: &apple {url: "https://www.apple.com/macbook-pro/specs/", read_at: "2026-09-15", quote: "18-core CPU with 6 super cores and 12 performance cores"}
+  system_memory.capacity_max_gb: {<<: *apple, quote: "or 48GB (M5 Pro or M5 Max with 40-core GPU)"}
+  system_memory.capacity_options_gb: {<<: *apple, quote: "or 48GB (M5 Pro or M5 Max with 40-core GPU)"}
+  system_memory.bandwidth_gb_s: {<<: *apple, quote: "M5 Max with 18-core CPU and 40-core GPU (614GB/s memory bandwidth)"}
+figures_are: vendor-specification
+notes: Jamie's machine (Mac17,7). This profile is the 48 GB configuration, not the full option list; the chip's options live on hardware/apple_m5_max.yaml. Unified, so there is no offload tier. Storage options left null because the specs page's per-configuration storage table could not be attributed to this configuration from the text read.

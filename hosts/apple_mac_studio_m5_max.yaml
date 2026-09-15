@@ -2,7 +2,7 @@ id: apple_mac_studio_m5_max
 display_name: Apple Mac Studio (M5 Max, 18-core CPU / 40-core GPU)
 kind: system
 unified: true
-hardware_ref: null
+hardware_ref: apple_m5_max
 cpu:
   model: Apple M5 Max
   cores: 18
@@ -30,4 +30,4 @@ field_sources:
   system_memory.bandwidth_gb_s: {<<: *apple, quote: "(614GB/s memory bandwidth)"}
   storage.capacity_options_gb: {<<: *apple, quote: "1TB, 2TB, 4TB, or 8TB SSD"}
 figures_are: vendor-specification
-notes: Unified. Host memory is accelerator memory, so there is no offload tier and fit is two-state. hardware_ref stays null until an apple_m5_max hardware record exists. Storage uses 1 TB = 1000 GB.
+notes: Unified. Host memory is accelerator memory, so there is no offload tier and fit is two-state. Storage uses 1 TB = 1000 GB.
