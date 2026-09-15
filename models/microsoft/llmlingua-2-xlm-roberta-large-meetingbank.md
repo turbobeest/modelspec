@@ -8,7 +8,7 @@ version: ''
 release_date: '2024-03-17'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: text-encoder
 model_subtypes: []
 tags:
 - token-classification

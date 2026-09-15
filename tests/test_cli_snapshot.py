@@ -444,3 +444,59 @@ def test_offline_rank_keeps_snapshot_verified_benchmarks(cache: Path) -> None:
     row = report["result"][0]
     assert row["evidence_basis"] == "mixed"
     assert row["verified_contributions"] == 1
+
+
+# ── offline fit: null decode does not crash or lead the list (MODEL-53) ─────
+
+def _write_fit_fixture(directory: Path) -> None:
+    """Two models that fit `gpu`: one decodes tokens, one does not.
+
+    A vision encoder's weights fit the same as any other model's, but it has
+    no decode speed — `fits["gpu"]` is `None`, not a dropped key. Before
+    MODEL-53, `predicted_decode_tps`/`fastest_predicted_decode_tps` were never
+    null, so nothing sorted or printed this case; a naive `-tps` sort key
+    would raise `TypeError` on `None`, and a naive f-string would crash on it too.
+    """
+    _write(directory)
+    path = directory / "snapshot.json"
+    payload = json.loads(path.read_text())
+    candidates = payload["data"]["candidates"]["candidates"]
+    chat = dict(candidates[0])
+    chat["model_id"], chat["display_name"] = "a/chat", "Chat Model"
+    chat["model_type"] = "llm-chat"
+    chat["fits"] = {"gpu": 40.0}
+    vision = dict(candidates[0])
+    vision["model_id"], vision["display_name"] = "b/vision", "Vision Encoder"
+    vision["model_type"] = "vision-encoder"
+    vision["fits"] = {"gpu": None}
+    payload["data"]["candidates"]["candidates"] = [vision, chat]
+    path.write_text(json.dumps(payload))
+
+
+def test_offline_fit_does_not_crash_on_a_null_decode_rate(cache: Path) -> None:
+    _write_fit_fixture(cache)
+    result = _run(["offline", "fit", "gpu", "--json"], cache)
+    assert result.returncode == offline.EXIT_OK
+    assert "Traceback" not in result.stderr
+
+
+def test_offline_fit_sorts_null_decode_after_real_rates(cache: Path) -> None:
+    """A model with no decode prediction must never lead the list."""
+    _write_fit_fixture(cache)
+    result = _run(["offline", "fit", "gpu", "--json"], cache)
+    assert result.returncode == offline.EXIT_OK
+    rows = json.loads(result.stdout)["result"]
+    assert [r["model_id"] for r in rows] == ["a/chat", "b/vision"]
+    assert rows[0]["predicted_decode_tps"] == 40.0
+    assert rows[1]["predicted_decode_tps"] is None
+
+
+def test_offline_fit_prints_na_for_null_decode(cache: Path) -> None:
+    _write_fit_fixture(cache)
+    result = _run(["offline", "fit", "gpu"], cache)
+    assert result.returncode == offline.EXIT_OK
+    assert "n/a tok/s  Vision Encoder" in result.stdout
+    assert "~   40.0 tok/s  Chat Model" in result.stdout
+    lines = [line for line in result.stdout.splitlines() if "tok/s" in line]
+    assert lines[0].endswith("Chat Model")
+    assert lines[1].endswith("Vision Encoder")

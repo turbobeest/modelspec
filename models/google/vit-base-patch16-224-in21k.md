@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-03-02'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: embedding-multimodal
 model_subtypes: []
 tags:
 - image-feature-extraction
