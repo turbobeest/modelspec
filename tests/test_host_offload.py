@@ -15,6 +15,12 @@ from pipeline.hardware import (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
+#: Hosts present before any later additions; a deletion must fail the tests.
+ORIGINAL_HOSTS = {"amd_ryzen_9_9950x_am5", "apple_mac_studio_m5_max"}
+
+
+def _host_ids_on_disk() -> set[str]:
+    return {p.stem for p in (ROOT / "hosts").glob("*.yaml") if p.name != "_schema.yaml"}
 
 
 def _host(unified: bool = False, ram: float | None = 64.0, bandwidth: float | None = 100.0,
@@ -27,7 +33,8 @@ def _host(unified: bool = False, ram: float | None = 64.0, bandwidth: float | No
 
 def test_hosts_load_and_validate():
     hosts = {h.id: h for h in H.load_hosts(ROOT)}
-    assert set(hosts) == {"amd_ryzen_9_9950x_am5", "apple_mac_studio_m5_max"}
+    assert set(hosts) == _host_ids_on_disk()
+    assert ORIGINAL_HOSTS <= set(hosts)
     assert hosts["amd_ryzen_9_9950x_am5"].bandwidth_gb_s == 89.6  # 2-DIMM rated, as-is
     assert hosts["apple_mac_studio_m5_max"].unified
 
@@ -110,10 +117,11 @@ def test_offload_tps_is_null_for_non_token_models():
 def test_hosts_json_is_exported(tmp_path):
     counts = H.write_export(tmp_path, H.load_hosts(ROOT), {"commit": "abc"})
     payload = json.loads((tmp_path / "hosts.json").read_text())
-    assert counts == {"hosts": 2} and payload["count"] == 2
+    on_disk = _host_ids_on_disk()
+    assert counts == {"hosts": len(on_disk)} and payload["count"] == len(on_disk)
     assert payload["os_reserve_gb"] == H.OS_RESERVE_GB
-    assert {h["id"] for h in payload["hosts"]} == {"amd_ryzen_9_9950x_am5",
-                                                   "apple_mac_studio_m5_max"}
+    assert {h["id"] for h in payload["hosts"]} == on_disk
+    assert ORIGINAL_HOSTS <= on_disk
 
 
 def test_build_writes_hosts_json():
