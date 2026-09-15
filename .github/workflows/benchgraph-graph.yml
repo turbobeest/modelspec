@@ -3,7 +3,8 @@ name: Benchgraph graph
 # MODEL-9 part 1. Builds the FalkorDB graph export from benchmarks/*.md, proves
 # the round trip and the named queries against a real FalkorDB, smoke-tests the
 # query container, and keeps the export as a workflow artifact.
-# No R2 upload and no deploy here: that is part 2 and needs Jamie's account.
+# Part 2: on push to main only, the `deploy` job uploads that export to R2 and
+# deploys the Worker + Container. PR runs never reach it or its secrets.
 # This is not a required check; `Run pytest` and `Build both sites` are.
 
 on:
@@ -17,7 +18,8 @@ permissions:
 
 concurrency:
   group: benchgraph-graph-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs; never cancel a main run mid-deploy.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   graph:
@@ -94,3 +96,80 @@ jobs:
           path: dist/benchgraph-graph/
           if-no-files-found: error
           retention-days: 30
+
+  deploy:
+    name: Deploy graph service to Cloudflare
+    needs: graph
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: benchgraph-graph-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_GRAPH_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BUCKET: benchgraph-graph-exports
+      GRAPH_HOST: graph.benchgraph.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download the export
+        uses: actions/download-artifact@v4
+        with:
+          name: benchgraph-graph-${{ github.sha }}
+          path: dist/benchgraph-graph
+
+      - name: Install wrangler
+        working-directory: graph-service/worker
+        run: npm ci
+
+      - name: Upload the export to R2 (manifest last)
+        working-directory: graph-service/worker
+        run: |
+          set -euo pipefail
+          for prefix in "benchgraph-graph/${GITHUB_SHA}" "benchgraph-graph/latest"; do
+            for f in nodes.json edges.json manifest.json; do
+              npx wrangler r2 object put "${BUCKET}/${prefix}/${f}" \
+                --file "${GITHUB_WORKSPACE}/dist/benchgraph-graph/${f}" \
+                --content-type application/json --remote
+            done
+          done
+
+      - name: Deploy Worker and Container
+        working-directory: graph-service/worker
+        run: npx wrangler deploy
+
+      - name: Smoke-test graph.benchgraph.dev
+        run: |
+          set -uo pipefail
+          url="https://${GRAPH_HOST}/graph"
+          deadline=$((SECONDS + 300))
+          status=""; body=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status=$(curl -sS -o health.json -w '%{http_code}' --max-time 20 "${url}/health" || echo 000)
+            if [ "$status" = 200 ]; then
+              commit=$(python3 -c 'import json,sys
+          try: print(json.load(open("health.json")).get("build_commit") or "")
+          except Exception as e: print(f"unparseable health body: {e}", file=sys.stderr)')
+              [ "$commit" = "${GITHUB_SHA}" ] && break
+              echo "health 200 but build_commit=${commit:-none}, want ${GITHUB_SHA}; retrying"
+            else
+              echo "health HTTP ${status}; retrying"
+            fi
+            sleep 10
+          done
+          if [ "$status" = 000 ]; then
+            echo "::error::${GRAPH_HOST} unreachable after 5 min. Check the proxied DNS record for ${GRAPH_HOST} (see docs/benchgraph-graph.md)."
+            exit 1
+          fi
+          if [ "$status" != 200 ] || [ "${commit:-}" != "${GITHUB_SHA}" ]; then
+            echo "::error::${url}/health did not report build_commit ${GITHUB_SHA} within 5 min (last HTTP ${status}). A 404/522 usually means the route or DNS record is missing."
+            exit 1
+          fi
+          curl -fsS --max-time 60 "${url}/benchmarks_still_separating?capability=coding&limit=3"
