@@ -1,0 +1,12 @@
+# Hosts whose pages need JavaScript rendering to show their content.
+# The watcher still reads them with plain HTTP; Firecrawl renders them only when
+# --firecrawl-credit-cap > 0 and the host is on _census/sources.yaml scrape_allow.
+hosts:
+  - lmarena.ai
+  - artificialanalysis.ai
+  - llm-stats.com
+  - vals.ai
+  - scale.com
+  - epoch.ai
+  - livebench.ai
+  - hal.cs.princeton.edu

@@ -1,0 +1,26 @@
+# MODEL-10 pilot: status active + leaderboard_url, first 25 by id
+aa_briefcase
+aa_lcr
+aclue
+adv_glue
+agent_bench
+agentdojo
+agieval
+aider_polyglot
+aime
+aime_2025
+aime_2026
+air_bench
+alghafa
+alpaca_eval
+alrage
+anima
+anthropic_red_team
+arabic_exams
+arc_agi_2
+arena_elo
+arena_elo_coding
+arena_elo_hard_prompts
+arena_elo_math
+arena_elo_overall
+arena_elo_style_control

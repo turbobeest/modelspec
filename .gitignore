@@ -27,3 +27,8 @@ web/node_modules/
 # source URL and date for every score, so these are re-fetchable and are not
 # vendored third-party content.
 benchmarks/_census/ranking_evidence/raw/
+
+# MODEL-10 curation watcher state and run output (cached in CI, not committed)
+benchmarks/_curation/state/
+benchmarks/_curation/reports/
+benchmarks/_curation/drafts/
