@@ -296,3 +296,63 @@ def test_load_failure_is_not_exposed(capsys):
                 assert json.loads(body) == {"error": "graph not loaded"}
     finally:
         server.shutdown()
+
+
+# --- MODEL-9 part 2b: Cloudflare deploy wiring ----------------------------
+
+WRANGLER = ROOT / "graph-service" / "worker" / "wrangler.jsonc"
+WORKFLOW = ROOT / ".github" / "workflows" / "benchgraph-graph.yml"
+
+
+def _jsonc(text: str) -> dict:
+    return json.loads(re.sub(r"^\s*//.*$", "", text, flags=re.M))
+
+
+def _deploy_job() -> tuple[dict, dict]:
+    import yaml
+
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    return wf, wf["jobs"]["deploy"]
+
+
+def test_wrangler_config_is_filled_in():
+    text = WRANGLER.read_text()
+    assert not re.search(r"<[A-Z_]+>", text)
+    cfg = _jsonc(text)
+    assert cfg["account_id"] == "43840d11c8c4586acdba8b048414900a"
+    from urllib.parse import urlparse
+
+    url = urlparse(cfg["vars"]["GRAPH_EXPORT_URL"])
+    assert url.scheme == "https" and url.hostname == "graph-exports.benchgraph.dev"
+    assert url.path == "/benchgraph-graph/latest"
+    assert cfg["routes"] == [
+        {"pattern": "graph.benchgraph.dev/graph/*", "zone_name": "benchgraph.dev"}
+    ]
+
+
+def test_deploy_job_only_on_push_to_main_with_graph_token():
+    wf, job = _deploy_job()
+    assert job["needs"] == "graph"
+    cond = job["if"].replace(" ", "")
+    assert "github.event_name=='push'" in cond and "github.ref=='refs/heads/main'" in cond
+    assert "&&" in cond and "||" not in cond
+    assert job["permissions"] == {"contents": "read"}
+    assert job["concurrency"]["cancel-in-progress"] is False
+    assert job["env"]["CLOUDFLARE_API_TOKEN"] == "${{ secrets.CLOUDFLARE_GRAPH_API_TOKEN }}"
+    text = WORKFLOW.read_text()
+    assert "secrets.CLOUDFLARE_API_TOKEN" not in text
+    # Secrets live on the deploy job only, never on the PR-reachable export job.
+    assert "secrets." not in json.dumps(wf["jobs"]["graph"])
+    assert "secrets." not in json.dumps({k: v for k, v in wf.items() if k != "jobs"})
+
+
+def test_deploy_uploads_manifest_last():
+    _, job = _deploy_job()
+    upload = next(s["run"] for s in job["steps"] if "R2" in s.get("name", ""))
+    order = re.search(r"for f in ([^;]+);", upload).group(1).split()
+    assert order[-1] == "manifest.json" and set(order[:-1]) == {"nodes.json", "edges.json"}
+    assert "benchgraph-graph/${GITHUB_SHA}" in upload and "benchgraph-graph/latest" in upload
+    assert "--remote" in upload
+    steps = [s.get("name", "") for s in job["steps"]]
+    assert steps.index("Deploy Worker and Container") > steps.index(
+        "Upload the export to R2 (manifest last)")

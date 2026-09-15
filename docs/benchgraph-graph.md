@@ -4,8 +4,8 @@ Benchmarks as nodes in FalkorDB, served read-only from a Cloudflare Container
 behind a Worker. Decision (Jamie, 2026-09-15): FalkorDB is a **read-only query
 service**; `benchmarks/*.md` stays canonical.
 
-Part 1 (this doc's code) needs no Cloudflare account. Part 2 is Jamie's checklist
-at the end.
+Part 1 (this doc's code) needs no Cloudflare account. Part 2 (Cloudflare deploy)
+is at the end.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ benchmarks/*.md ─┐
 models/*.md  ────┴─▶ CI: python -m pipeline.benchgraph_graph export --verify
    (evidence)              │  manifest.json + nodes.json + edges.json
                            ▼
-                        R2 bucket  (part 2; part 1 stops at a workflow artifact)
+                        R2 bucket  benchgraph-graph-exports (push to main only)
                            │  fetched on every container start (disk is ephemeral)
                            ▼
           Container: FalkorDB (loopback) + graph-service/service.py :8080
@@ -223,39 +223,66 @@ non-allowlisted route, then uploads `dist/benchgraph-graph/` as the workflow
 artifact `benchgraph-graph-<sha>`. No R2 upload. It is not a required check;
 `Run pytest` and `Build both sites` are unchanged.
 
-## Part 2 checklist (Jamie)
+## Part 2: Cloudflare deploy
 
-1. **Workers Paid plan** on the account (Containers require it).
-2. **R2 bucket** for exports, e.g. `benchgraph-graph-exports`. Layout:
-   `benchgraph-graph/<commit>/…` plus `benchgraph-graph/latest/…`. Give it a
-   read-only public custom domain (or r2.dev URL): the export is derived from
-   public Markdown. That host is `<R2_EXPORT_HOST>`.
-   Prefer that public read-only custom domain for the export. If a presigned URL
-   is ever used, the service redacts it from logs and never returns it.
-3. **API token** for CI, scoped to that account only:
-   - Workers Scripts: Edit
-   - Containers: Edit (Cloudflare's "Workers Containers" / Cloudchamber permission)
-   - Workers R2 Storage: Edit, limited to the export bucket
-   - (Account Settings: Read if wrangler asks for it)
-   Store as `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
-4. **wrangler.jsonc values** in `graph-service/worker/wrangler.jsonc`:
-   `account_id` = `<CLOUDFLARE_ACCOUNT_ID>`; `routes` = `<GRAPH_HOST>/graph/*` in
-   zone `<ZONE_NAME>` (for example `benchgraph.dev/graph/*`, which Pages does not
-   serve); `vars.GRAPH_EXPORT_URL` =
-   `https://<R2_EXPORT_HOST>/benchgraph-graph/latest`; review `instance_type`
-   and `max_instances`.
-5. **CI upload step** (on push to main only): after `export --verify`, upload the
-   three files to `benchgraph-graph/<sha>/` and then `benchgraph-graph/latest/`
-   with `wrangler r2 object put`, manifest last.
-6. **Deploy**: `cd graph-service/worker && npm ci && npx wrangler deploy` (builds
-   and pushes the image to Cloudflare's registry). Then check
-   `curl https://<GRAPH_HOST>/graph/health` reports the expected `build_commit`.
-7. Decide whether a new export should restart running containers; today a
-   container picks up `latest` on its next cold start (after `sleepAfter`, 15 min idle).
+Created by Jamie on 2026-09-15 (account "Sparks and Sawdust LLC",
+`43840d11c8c4586acdba8b048414900a`, Workers Paid, Containers enabled):
+
+- **R2 bucket** `benchgraph-graph-exports` (Standard). Public custom domain
+  `graph-exports.benchgraph.dev`; r2.dev URL disabled. Layout
+  `benchgraph-graph/<commit>/{nodes,edges,manifest}.json` plus
+  `benchgraph-graph/latest/…`.
+- **API token** `benchgraph-graph-ci`: Workers Scripts Edit, Workers Containers
+  Edit, Workers R2 Storage Edit (account-wide), Workers Routes Edit on zone
+  `benchgraph.dev`. Stored as the repo secret **`CLOUDFLARE_GRAPH_API_TOKEN`**.
+  Do **not** store it as `CLOUDFLARE_API_TOKEN`: that secret is the Pages deploy
+  token. The deploy job maps the graph secret into wrangler's
+  `CLOUDFLARE_API_TOKEN` env var on that job only. `CLOUDFLARE_ACCOUNT_ID` is the
+  existing secret.
+- **Query host** `graph.benchgraph.dev`, zone `benchgraph.dev`.
+
+`graph-service/worker/wrangler.jsonc` holds the account id, the route
+`graph.benchgraph.dev/graph/*` on zone `benchgraph.dev`, and
+`GRAPH_EXPORT_URL=https://graph-exports.benchgraph.dev/benchgraph-graph/latest`.
+
+### DNS step (Jamie, once)
+
+The Worker uses a **route**, not a Custom Domain. A Custom Domain creates its own
+DNS record, which needs DNS edit on the zone; the CI token does not have it.
+Cloudflare's routes docs say every hostname a route serves must have a proxied
+DNS record. Add, in zone `benchgraph.dev`:
+
+| Type | Name | Content | Proxy |
+|---|---|---|---|
+| `AAAA` | `graph` | `100::` | Proxied (orange cloud) |
+
+`100::` is the discard prefix: the route intercepts `/graph/*`, and any other
+path on that host has no origin.
+
+### CI (`deploy` job in `.github/workflows/benchgraph-graph.yml`)
+
+Runs only on `push` to `main`, after the `graph` export job, with
+`contents: read` and concurrency group `benchgraph-graph-deploy` (never
+cancelled). It:
+
+1. downloads the `benchgraph-graph-<sha>` artifact;
+2. uploads `nodes.json`, `edges.json`, then `manifest.json` to
+   `benchgraph-graph/<sha>/` and then `benchgraph-graph/latest/` with
+   `wrangler r2 object put --remote` (manifest last, so a reader never sees a
+   manifest pointing at missing files);
+3. runs `npx wrangler deploy` in `graph-service/worker` (builds and pushes the
+   container image);
+4. polls `https://graph.benchgraph.dev/graph/health` for up to 5 minutes until
+   `build_commit` equals the pushed sha, then calls
+   `benchmarks_still_separating?capability=coding&limit=3`. It fails with a
+   DNS/route hint instead of hanging.
+
+Open: a running container picks up `latest` only on its next cold start (after
+`sleepAfter`, 15 min idle), so the health check may need a redeployed container
+to report the new commit.
 
 ## Not built
 
-- No deploy, no R2 upload, no Cloudflare resources (part 2).
 - No site or CLI caller of `/graph/*` yet.
 - No reload of a running container when a new export lands.
 - No auth or rate limiting on the Worker beyond the allowlist and parameter bounds.

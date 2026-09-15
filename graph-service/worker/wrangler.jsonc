@@ -1,17 +1,18 @@
 // benchgraph graph Worker + Container (MODEL-9).
-// PART 1: placeholders only. Nothing here has been deployed.
-// PART 2 (Jamie): fill the <...> values, uncomment account_id and routes,
-// then `npx wrangler deploy` from this directory. See docs/benchgraph-graph.md.
+// Deployed by .github/workflows/benchgraph-graph.yml (job `deploy`) on push to
+// main. See docs/benchgraph-graph.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "benchgraph-graph",
   "main": "src/index.js",
   "compatibility_date": "2026-05-01",
-  // "account_id": "<CLOUDFLARE_ACCOUNT_ID>",
+  "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,
-  // "routes": [
-  //   { "pattern": "<GRAPH_HOST>/graph/*", "zone_name": "<ZONE_NAME>" }
-  // ],
+  // A Workers route, not a Custom Domain: the CI token has no DNS edit
+  // permission. The route needs a proxied DNS record for graph.benchgraph.dev.
+  "routes": [
+    { "pattern": "graph.benchgraph.dev/graph/*", "zone_name": "benchgraph.dev" }
+  ],
   "observability": { "enabled": true },
   "containers": [
     {
@@ -29,8 +30,9 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GraphContainer"] }],
   "vars": {
     // Base URL of the export directory CI uploads to R2 (manifest.json,
-    // nodes.json, edges.json), e.g. the bucket's custom domain.
+    // nodes.json, edges.json): R2 bucket benchgraph-graph-exports via its
+    // public custom domain.
     // Local dev overrides this in .dev.vars.
-    "GRAPH_EXPORT_URL": "https://<R2_EXPORT_HOST>/benchgraph-graph/latest"
+    "GRAPH_EXPORT_URL": "https://graph-exports.benchgraph.dev/benchgraph-graph/latest"
   }
 }
