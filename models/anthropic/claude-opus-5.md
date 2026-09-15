@@ -918,6 +918,148 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-opus-5
+    version: claude-opus-5
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Performs best when given the complete task specification up front and then left to run.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Can widen a task beyond what was asked; for narrow tasks, state the intended scope explicitly.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: In review prompts, wording like 'only report high-severity issues' may be followed literally
+        and reduce findings.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    system_message:
+    - text: In a long system prompt, pair a conciseness instruction with a short reminder near the end.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Positive examples of the wanted communication style work better than lists of what not to
+        do.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Remove system-prompt rules telling the model not to think or reason; they increase internal
+        tag leakage when thinking is off.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Thinking is on by default and can only be disabled at effort high or below.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Low and medium effort give strong quality for far fewer tokens; start at high, use lower levels
+        where evals hold, xhigh for demanding agentic coding.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Thinking enabled at low effort usually beats thinking disabled at similar cost.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Delegates to subagents more readily than prior models; cap or scope delegation for cost-sensitive
+        work.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Vision work does best with tools to crop and verify; tools are a cheaper lever than more thinking.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    formatting:
+    - text: Default responses run longer than prior Opus models and lowering effort does not reliably
+        shorten them; ask for brevity explicitly.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Documents it writes to disk tend to be long; add an instruction to match length to what the
+        task needs.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Narrates heavily during agentic work; describe the update cadence and shape you want.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    failure_modes:
+    - text: With thinking disabled it occasionally writes a tool call as plain text, so the call never
+        runs.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: With thinking disabled it can emit internal XML tags into visible output.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Narrates corrections to its own earlier statements more than prior models.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    retry_advice:
+    - text: Remove explicit verify or double-check instructions; the model self-verifies and those instructions
+        waste tokens without improving results.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5
+        title: Prompting Claude Opus 5
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
 ---
 
 # Claude Opus 5

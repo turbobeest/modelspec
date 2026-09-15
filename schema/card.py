@@ -756,6 +756,90 @@ class Sources(BaseModel):
     last_scraped_pricing: str = ""
 
 
+
+# ═══════════════════════════════════════════════════════════════
+# Section 16: Authoring Guide (MODEL-8)
+# ═══════════════════════════════════════════════════════════════
+#
+# How to write for one model: what helps, what wastes tokens. Every claim is a
+# short paraphrase of the provider's own guidance, dated and sourced. A guide is
+# pinned to the card's `version` (the provider's API model string); when that
+# changes, the guide must be re-reviewed or marked `stale`. Stale is never kept
+# silently.
+
+GuideSourceKind = Literal["provider-guidance", "system-card", "release-notes", "model-docs"]
+GUIDE_SECTIONS = (
+    "prompt_shape", "system_message", "reasoning_and_tools",
+    "formatting", "failure_modes", "retry_advice",
+)
+
+
+def _iso_date(value: str, what: str) -> str:
+    try:
+        date.fromisoformat(str(value))
+    except ValueError:
+        raise ValueError(f"{what} must be an ISO date (YYYY-MM-DD), got {value!r}") from None
+    return str(value)
+
+
+class GuideSource(BaseModel):
+    url: str
+    title: str = ""
+    accessed: str
+    kind: GuideSourceKind
+
+    @field_validator("url")
+    @classmethod
+    def _url_must_be_real(cls, value: str) -> str:
+        if not str(value).startswith(("http://", "https://")):
+            raise ValueError(f"guide source url must be http(s), got {value!r}")
+        return value
+
+    @field_validator("accessed", mode="before")
+    @classmethod
+    def _accessed_iso(cls, value: Any) -> str:
+        return _iso_date(value, "guide source accessed")
+
+
+class GuideClaim(BaseModel):
+    text: str
+    sources: list[GuideSource]
+
+    @model_validator(mode="after")
+    def _needs_source(self) -> "GuideClaim":
+        if not self.text.strip():
+            raise ValueError("guide claim text is empty")
+        if not self.sources:
+            raise ValueError(f"guide claim has no source: {self.text[:60]!r}")
+        return self
+
+
+class GuideAppliesTo(BaseModel):
+    model_id: str
+    version: str
+
+
+class GuideSections(BaseModel):
+    prompt_shape: list[GuideClaim] = []
+    system_message: list[GuideClaim] = []
+    reasoning_and_tools: list[GuideClaim] = []
+    formatting: list[GuideClaim] = []
+    failure_modes: list[GuideClaim] = []
+    retry_advice: list[GuideClaim] = []
+
+
+class AuthoringGuide(BaseModel):
+    applies_to: GuideAppliesTo
+    as_of: str
+    status: Literal["current", "stale"]
+    sections: GuideSections = GuideSections()
+
+    @field_validator("as_of", mode="before")
+    @classmethod
+    def _as_of_iso(cls, value: Any) -> str:
+        return _iso_date(value, "authoring_guide.as_of")
+
+
 # ═══════════════════════════════════════════════════════════════
 # THE COMPLETE MODEL CARD
 # ═══════════════════════════════════════════════════════════════
@@ -782,6 +866,8 @@ class ModelCard(BaseModel):
     adoption: Adoption = Adoption()
     downselect: Downselect = Downselect()
     sources: Sources = Sources()
+    # Optional, additive (MODEL-8). Absent guides serialize and count as before.
+    authoring_guide: AuthoringGuide | None = None
 
     # Card metadata
     card_schema_version: str = "3.0"
@@ -789,6 +875,22 @@ class ModelCard(BaseModel):
     card_created: str = ""
     card_updated: str = ""
     prose_body: str = ""  # The markdown content below the YAML frontmatter
+
+    @model_validator(mode="after")
+    def _guide_matches_card(self) -> "ModelCard":
+        guide = self.authoring_guide
+        if guide is None:
+            return self
+        if guide.applies_to.model_id != self.identity.model_id:
+            raise ValueError(
+                f"authoring_guide.applies_to.model_id {guide.applies_to.model_id!r} "
+                f"does not match card model_id {self.identity.model_id!r}")
+        if guide.status != "stale" and guide.applies_to.version != self.identity.version:
+            raise ValueError(
+                f"authoring_guide was written for version {guide.applies_to.version!r} "
+                f"but the card is now {self.identity.version!r}: re-review the guide "
+                "against current provider guidance, or set status: stale")
+        return self
 
     @computed_field
     @property
@@ -803,6 +905,8 @@ class ModelCard(BaseModel):
         total = 0
         for field_name, field_info in type(obj).model_fields.items():
             value = getattr(obj, field_name)
+            if field_name == "authoring_guide":
+                continue  # guidance, not model facts: never moves completeness
             if isinstance(value, BaseModel):
                 f, t = self._count_fields(value, _depth + 1)
                 filled += f
@@ -815,7 +919,7 @@ class ModelCard(BaseModel):
                 total += 1
                 if len(value) > 0:
                     filled += 1
-            elif field_name.startswith("card_") or field_name == "prose_body":
+            elif field_name.startswith("card_") or field_name in ("prose_body", "authoring_guide"):
                 continue  # Skip metadata fields
             else:
                 total += 1
@@ -873,6 +977,7 @@ class ModelCard(BaseModel):
             "adoption": Adoption,
             "downselect": Downselect,
             "sources": Sources,
+            "authoring_guide": AuthoringGuide,
         }
 
         for section_key, section_cls in section_map.items():
@@ -892,5 +997,7 @@ class ModelCard(BaseModel):
             exclude_none=False,
             exclude={"prose_body", "card_completeness"},
         )
+        if self.authoring_guide is None:
+            data.pop("authoring_guide", None)
         yaml_str = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
         return f"---\n{yaml_str}---\n\n{self.prose_body}"

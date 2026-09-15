@@ -839,6 +839,166 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-fable-5-1
+    version: claude-fable-5-1
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Prompts written for Claude Fable 5 should work on 5.1 without changes.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: May add unrequested fixes or extra tests; say explicitly what to leave out of the change.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Summaries can reproduce source text unmarked; include one complete example of a correct response.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    system_message:
+    - text: Send per-turn reminders as turn-scoped system messages rather than editing earlier turns.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Remove prompt lines that suppress progress narration before adding update instructions.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: If the product hides tool output from the user, tell the model so it does not run commands
+        just to show output.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Thinking is always on; effort is the primary cost/latency control. Re-run an effort sweep,
+        since level names differ across models.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: At low effort it searches less and answers from memory more; raise effort for those turns
+        or add a search nudge.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: In coding and computer-use loops it may make one tool call per turn; append a batching nudge
+        after each round of tool results.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Keep history append-only and return thinking blocks unchanged; edited earlier turns can make
+        requests fail.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: For client-side compaction, state what the summary must preserve.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Let the lead agent keep working while subagents run instead of forcing it to wait.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    formatting:
+    - text: Formats less than earlier models; remove anti-formatting rules or replace them with a rule
+        for when structure helps.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+      - url: https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Prose can be denser than Fable 5; an instruction defining mannered prose helps.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    failure_modes:
+    - text: May end a turn describing next steps, or ask permission for work already requested; an autonomy
+        instruction mitigates this.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Safety classifiers can return a refusal on benign coding requests, more often with compile-check
+        phrasing, lesser-known languages or base64 tool output.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Tends to rewrite whole files for small edits, costing output tokens; ask for targeted edits.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: At xhigh and max it may draft a long deliverable in thinking then write it again; run at high
+        or leave max_tokens headroom.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    retry_advice:
+    - text: For a false-positive refusal, rephrase compile-check questions as a request to find bugs rather
+        than resending unchanged.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: If requests fail as bound to a different conversation, find and remove the harness edits to
+        earlier turns.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
+        title: Prompting Claude Fable 5.1
+        accessed: '2026-09-15'
+        kind: provider-guidance
 ---
 
 # Claude Fable 5.1

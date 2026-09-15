@@ -825,6 +825,161 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-04-05'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-6
+    version: gpt-5.6
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Works best when the prompt states the outcome, constraints, available evidence and completion
+        bar, leaving the path to the model.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Trimming repeated rules, non-behavioural examples and irrelevant tools can raise scores while
+        cutting tokens; OpenAI reports leaner prompts did so in internal coding-agent evals.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Reserve ALWAYS/NEVER/must for true invariants; use decision rules for judgment calls, and
+        check remaining instructions for contradictions.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Infers intent well; still give domain context, hard constraints, approval boundaries and success
+        criteria.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.6
+        title: Using GPT-5.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    system_message:
+    - text: State an autonomy and approval policy once, in one place; repeating 'ask first' style rules
+        causes unnecessary approval requests.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Keep personality and collaboration-style instructions short, describing concrete writing choices
+        rather than labels like 'friendly'.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Keep reusable prompt prefixes stable to benefit from prompt caching.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Reasoning effort supports none through max, defaulting to medium; when migrating, test the
+        current setting and one level lower.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.6
+        title: Using GPT-5.6
+        accessed: '2026-09-15'
+        kind: model-docs
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Before raising effort, check whether the prompt lacks a success criterion, tool-routing rule
+        or verification loop.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Expose only task-relevant tools; describe what each does, when to use it, key return fields
+        and error behaviour.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Use Programmatic Tool Calling only for bounded data-reduction stages, not for steps that need
+        judgment, approval or citations.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Persisted reasoning helps when goals stay stable; stale reasoning adds tokens and can anchor
+        an outdated approach.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: The gpt-5.6 alias routes to gpt-5.6-sol.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.6
+        title: Using GPT-5.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    formatting:
+    - text: More concise by default than GPT-5.5; broad brevity instructions may now make answers too
+        short.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Set text.verbosity for default detail level and use the prompt for task-specific length and
+        structure.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: For long tasks, ask for a short preamble and sparse phase-change updates rather than narrating
+        routine tool calls.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    failure_modes:
+    - text: Real-time cyber and biology classifiers can refuse legitimate dual-use work or pause generation
+        for several seconds.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.6
+        title: Using GPT-5.6
+        accessed: '2026-09-15'
+        kind: model-docs
+    - text: Conflicting prompt rules create more instability than missing detail, since the model follows
+        prompt contracts closely.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    retry_advice:
+    - text: If a tool returns empty or suspiciously narrow results, try one or two meaningful fallbacks
+        before concluding nothing exists.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Add a stopping condition so it answers once evidence suffices instead of searching again for
+        nonessential detail.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6.md
+        title: Prompting guidance for GPT-5.6 Sol
+        accessed: '2026-09-15'
+        kind: provider-guidance
 ---
 
 # GPT-5.6

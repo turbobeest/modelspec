@@ -1018,6 +1018,114 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-11'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-6-astra
+    version: gpt-6-astra
+  as_of: '2026-09-15'
+  status: current
+  sections:
+    prompt_shape:
+    - text: More likely to stop and ask clarifying questions; prompt it to infer intent and persist when
+        the request implies authorization.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Ask it to request approval only after preparing a concrete, reviewable result.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    system_message:
+    - text: Sensitive to instructions in skills and files like AGENTS.md; audit them and state that user
+        instructions take precedence.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Does not support none reasoning effort; if migrating from none or minimal, start at low.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Tool calling requires the Responses API.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: temperature, top_p and top_logprobs are unsupported and must be removed.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: To change effort mid-conversation, use configuration_update items so the cached prompt prefix
+        is preserved.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: May delegate to subagents less than wanted; specify when and how much to delegate.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    formatting:
+    - text: Tends toward lists, tables and Markdown; specify prose if the application needs it.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: May reuse recurring phrases; state the required writing style.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Inter-agent messages can contain spacing errors; instruct it to keep them legible.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    failure_modes:
+    - text: Unclear or conflicting guidance in skill files can make it block work early.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: On small coding tasks it can test more broadly than needed; calibrate how much verification
+        a change requires.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    retry_advice:
+    - text: If it keeps pausing for approval, add follow-through guidance rather than re-running the same
+        prompt.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
+    - text: Ask it to name the skill instruction that caused a pause, to find the conflicting guidance.
+      sources:
+      - url: https://platform.openai.com/docs/guides/latest-model
+        title: Using GPT-6 Astra
+        accessed: '2026-09-15'
+        kind: provider-guidance
 ---
 
 # GPT-6 Astra
