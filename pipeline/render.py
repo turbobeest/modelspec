@@ -603,6 +603,55 @@ DISPOSITION_BLURB = {
 }
 
 
+def _safe_link(url: Any, label: Any) -> str:
+    """Link only http(s) URLs; anything else renders as escaped plain text."""
+    u = str(url or "").strip()
+    text = str(label or "").strip() or u
+    if u.lower().startswith(("http://", "https://")):
+        return f'<a href="{esc(u)}" rel="nofollow noopener">{esc(text)}</a>'
+    return esc(text)
+
+
+def benchmark_links_section(front: dict[str, Any]) -> str:
+    """Leaderboard, paper, repo and dated sources for a benchmark page.
+
+    Empty or unset fields render nothing, and so does a section with no rows.
+    """
+    links: list[str] = []
+    lb = str(front.get("leaderboard_url") or "").strip()
+    if lb:
+        links.append(f"<li>Leaderboard: {_safe_link(lb, lb)}</li>")
+    paper = front.get("paper")
+    if isinstance(paper, dict):
+        title = str(paper.get("title") or "").strip()
+        url = str(paper.get("url") or "").strip()
+        arxiv = str(paper.get("arxiv") or "").strip()
+        if not url and arxiv:
+            url = f"https://arxiv.org/abs/{arxiv}"
+        if title or url:
+            extra = f" (arXiv {esc(arxiv)})" if arxiv else ""
+            links.append(f"<li>Paper: {_safe_link(url, title or url)}{extra}</li>")
+    repo = str(front.get("repo_url") or "").strip()
+    if repo:
+        links.append(f"<li>Repository: {_safe_link(repo, repo)}</li>")
+    out = _section("Links", f"<ul>{''.join(links)}</ul>" if links else "")
+
+    items: list[str] = []
+    sources = front.get("sources")
+    for src in sources if isinstance(sources, list) else []:
+        if not isinstance(src, dict):
+            continue
+        url = str(src.get("url") or "").strip()
+        title = str(src.get("title") or "").strip()
+        if not (url or title):
+            continue
+        accessed = str(src.get("accessed") or "").strip()
+        date_note = f' <span class="meta">read {esc(accessed)}</span>' if accessed else ""
+        items.append(f"<li>{_safe_link(url, title or url)}{date_note}</li>")
+    return out + _section("Sources", f"<ul>{''.join(items)}</ul>" if items else "",
+                          lede="Where each fact on this page came from, and when it was read.")
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -683,6 +732,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 {f'<h2>What it measures</h2><p>{esc(measures)}</p>' if measures else ''}
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {verified}
+{benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>
 {covered_block}
 <h2>Data</h2>
