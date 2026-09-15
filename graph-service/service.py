@@ -16,13 +16,14 @@ the query runs through GRAPH.RO_QUERY.
 from __future__ import annotations
 
 import json
+import re
 import os
 import sys
 import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from pipeline import benchgraph_graph as bg
 
@@ -30,7 +31,33 @@ from pipeline import benchgraph_graph as bg
 META_ROUTES = ("health", "manifest")
 ALLOWED = frozenset(META_ROUTES) | frozenset(bg.QUERIES)
 
-STATE: dict[str, object] = {"manifest": None, "error": None, "graph": None}
+#: `error` is a stable, non-sensitive code; exception text never leaves the process.
+STATE: dict[str, object] = {"manifest": None, "error": None, "graph": None, "status": "loading"}
+
+_URLISH = re.compile(r"[a-z][a-z0-9+.-]*://\S+", re.I)
+_QUERY = re.compile(r"\?\S*")
+
+
+def redact_url(source: str) -> str:
+    """Keep scheme, host and path; drop userinfo, query and fragment.
+
+    A local path (no scheme) passes through unchanged.
+    """
+    parts = urlsplit(source)
+    if not parts.scheme or len(parts.scheme) == 1:  # "C:\\" style paths too
+        return source
+    host = parts.hostname or ""
+    if parts.port:
+        host = f"{host}:{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
+
+
+def redact_message(text: str, source: str = "") -> str:
+    """Strip the source URL, anything URL-shaped and query strings from a message."""
+    if source:
+        text = text.replace(source, redact_url(source))
+    text = _URLISH.sub(lambda m: redact_url(m.group(0)), text)
+    return _QUERY.sub("", text)
 
 
 def load(source: str) -> None:
@@ -38,7 +65,7 @@ def load(source: str) -> None:
     graph = bg.connect(host=os.environ.get("FALKORDB_HOST", "127.0.0.1"),
                        port=int(os.environ.get("FALKORDB_PORT", "6379")))
     bg.load_document(graph, doc)
-    STATE.update(manifest=manifest, graph=graph, error=None)
+    STATE.update(manifest=manifest, graph=graph, error=None, status="ok")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -78,11 +105,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if name == "health":
             loaded = STATE["manifest"] is not None
-            return self._send(200 if loaded else 503,
-                              {**self._base(), "status": "ok" if loaded else "loading",
-                               "error": STATE["error"]})
+            body = {**self._base(), "status": "ok" if loaded else STATE["status"]}
+            if not loaded:
+                body["error"] = "export_not_loaded"
+            return self._send(200 if loaded else 503, body)
         if STATE["manifest"] is None:
-            return self._send(503, {"error": "graph not loaded", "detail": STATE["error"]})
+            return self._send(503, {"error": "graph not loaded"})
         if name == "manifest":
             return self._send(200, {**self._base(), "manifest": STATE["manifest"]})
         try:
@@ -102,16 +130,20 @@ class Handler(BaseHTTPRequestHandler):
     do_PUT = do_DELETE = do_PATCH = do_POST
 
 
-def _loader(source: str) -> None:
-    for attempt in range(1, 31):
+def _loader(source: str, attempts: int = 30, sleep=time.sleep) -> None:
+    last = ""
+    for attempt in range(1, attempts + 1):
         try:
             load(source)
-            print(f"loaded export {self_commit()} from {source}", flush=True)
+            print(f"loaded export {self_commit()} from {redact_url(source)}", flush=True)
             return
         except Exception as exc:  # noqa: BLE001 - FalkorDB may still be starting
-            STATE["error"] = f"{type(exc).__name__}: {exc}"
-            time.sleep(min(attempt, 5))
-    print(f"giving up loading export: {STATE['error']}", file=sys.stderr, flush=True)
+            STATE["error"] = "export_not_loaded"
+            last = f"{type(exc).__name__}: {redact_message(str(exc), source)}"
+            if attempt < attempts:
+                sleep(min(attempt, 5))
+    STATE["status"] = "error"
+    print(f"giving up loading export from {redact_url(source)}: {last}", file=sys.stderr, flush=True)
 
 
 def self_commit() -> str | None:

@@ -179,7 +179,7 @@ base URL), checks sha256s, loads the graph, then serves:
 
 | Route | Returns |
 |---|---|
-| `GET /graph/health` | 200 `{status, build_commit, format_version}`; 503 while loading |
+| `GET /graph/health` | 200 `{status: ok, build_commit, format_version}`; 503 `{status: loading\|error, error: export_not_loaded}` |
 | `GET /graph/manifest` | the export manifest |
 | `GET /graph/benchmarks_still_separating?...` | `{build_commit, format_version, query, params, rows}` |
 
@@ -230,6 +230,8 @@ artifact `benchgraph-graph-<sha>`. No R2 upload. It is not a required check;
    `benchgraph-graph/<commit>/…` plus `benchgraph-graph/latest/…`. Give it a
    read-only public custom domain (or r2.dev URL): the export is derived from
    public Markdown. That host is `<R2_EXPORT_HOST>`.
+   Prefer that public read-only custom domain for the export. If a presigned URL
+   is ever used, the service redacts it from logs and never returns it.
 3. **API token** for CI, scoped to that account only:
    - Workers Scripts: Edit
    - Containers: Edit (Cloudflare's "Workers Containers" / Cloudchamber permission)

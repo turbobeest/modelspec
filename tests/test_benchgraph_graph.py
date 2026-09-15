@@ -247,3 +247,52 @@ def test_query_service_http(graph, tmp_path):
         assert get("/graph/manifest")[1]["manifest"]["format"] == bg.EXPORT_FORMAT
     finally:
         server.shutdown()
+
+
+# ── service never exposes load errors or the export URL ───────────────────────
+SIGNED = "https://bucket.example/benchgraph-graph/latest/manifest.json?X-Amz-Signature=SECRET"
+
+
+def test_redact_url():
+    svc = _service_module()
+    assert svc.redact_url("https://user:pw@bucket.example:8443/a/b?X-Amz-Signature=SECRET#frag") == \
+        "https://bucket.example:8443/a/b"
+    assert svc.redact_url("/export") == "/export"
+    assert svc.redact_url("relative/dir") == "relative/dir"
+    assert "SECRET" not in svc.redact_message(f"HTTP Error 403 for url {SIGNED}")
+
+
+def test_load_failure_is_not_exposed(capsys):
+    svc = _service_module()
+
+    def boom(source):
+        raise OSError(f"urlopen error for {SIGNED} at 10.0.0.7:6379")
+
+    svc.load = boom
+    svc.STATE.update(manifest=None, graph=None, error=None, status="loading")
+    svc._loader(SIGNED.rsplit("/", 1)[0] + "?X-Amz-Signature=SECRET", attempts=2, sleep=lambda s: None)
+    logs = capsys.readouterr()
+    assert "SECRET" not in logs.out + logs.err and "X-Amz" not in logs.out + logs.err
+    assert "OSError" in logs.err
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), svc.Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        for path in ("/graph/health", "/graph/benchmarks_still_separating?capability=coding",
+                     "/graph/manifest"):
+            try:
+                urllib.request.urlopen(base + path)
+                raise AssertionError("expected 503")
+            except urllib.error.HTTPError as e:
+                assert e.code == 503
+                body = e.read().decode()
+            for bad in ("SECRET", "X-Amz", "example", "urlopen", "OSError", "10.0.0.7"):
+                assert bad not in body, (path, body)
+            if path == "/graph/health":
+                assert json.loads(body) == {"build_commit": None, "format_version": None,
+                                            "status": "error", "error": "export_not_loaded"}
+            else:
+                assert json.loads(body) == {"error": "graph not loaded"}
+    finally:
+        server.shutdown()
