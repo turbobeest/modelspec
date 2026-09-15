@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-04-18'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: text-encoder
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/microsoft/layoutlmv3-base (config.json model_type=layoutlmv3, library_name=transformers); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''

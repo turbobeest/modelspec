@@ -8,7 +8,7 @@ version: ''
 release_date: '2024-08-16'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: embedding-text
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/jinaai/jina-colbert-v2 (config.json architectures=[HF_ColBERT], library_name=sentence-transformers, tags multi-vector/passage-retrieval); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''

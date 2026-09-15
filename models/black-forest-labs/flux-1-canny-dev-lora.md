@@ -8,7 +8,7 @@ version: ''
 release_date: '2024-11-20'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: image-generation
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/black-forest-labs/FLUX.1-Canny-dev-lora (library_name=diffusion-single-file, tags flux/image-generation); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''

@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-11-23'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: image-generation
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler (library_name=diffusers, tag diffusers:StableDiffusionUpscalePipeline); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''
