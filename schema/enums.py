@@ -108,6 +108,9 @@ class BaseModelRelation(str, Enum):
     MERGE = "merge"
     DISTILLATION = "distillation"
     CONTINUATION = "continuation"
+    #: Same weights re-uploaded under another repo (a mirror or a re-save).
+    #: Byte-identical for fit purposes, so excluded from default fit pools.
+    REPACKAGED = "repackaged"
 
 
 class TrainingMethod(str, Enum):

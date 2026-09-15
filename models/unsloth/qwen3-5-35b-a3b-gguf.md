@@ -43,8 +43,8 @@ architecture:
   vae_type: ''
   total_parameters_source: model_card_published:size_token_total
 lineage:
-  base_model: Qwen/Qwen3.5-35B-A3B
-  base_model_relation: null
+  base_model: qwen/qwen3-5-35b-a3b
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null

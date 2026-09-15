@@ -393,3 +393,56 @@ def test_every_verified_benchmark_has_a_normalisation_range() -> None:
         (REPO_ROOT / "benchmarks/_census/eligibility/current-report.json").read_text())
     for benchmark in report["active_ids"]:
         assert benchmark in BENCHMARK_RANGES, f"{benchmark} would fall back to a guess"
+
+
+# ── rehosts: one weight set, one id (MODEL-54) ───────────────────────────────
+
+def test_a_rehost_is_left_out_of_default_rankings_and_fit() -> None:
+    canonical = _candidate(model_id="meta/x", display_name="X", fits={"gpu": 10.0})
+    copy = _candidate(model_id="mirror/x", display_name="X", fits={"gpu": 10.0},
+                      rehost_of="meta/x")
+    ids = lambda r: {row["model_id"] for row in r["ranked"] + r["unranked"]}  # noqa: E731
+    assert ids(rank_report([canonical, copy], "coding", hardware_id="gpu")) == {"meta/x"}
+    assert ids(rank_report([canonical, copy], "coding", hardware_id="gpu",
+                           include_rehosts=True)) == {"meta/x", "mirror/x"}
+
+
+def _catalogue_cards() -> list[ModelCard]:
+    cards = []
+    for path in sorted(glob.glob(str(REPO_ROOT / "models" / "**" / "*.md"), recursive=True)):
+        try:
+            cards.append(ModelCard.from_yaml_file(path))
+        except Exception:  # noqa: BLE001 - non-card markdown (README, LICENSE)
+            continue
+    return cards
+
+
+def test_no_byte_identical_rehost_reenters_the_default_fit_pool() -> None:
+    """Same display name AND same safetensors parameter count is the same weights.
+
+    Two such open-weight cards may not both sit in the default pool: all but the
+    canonical one must say `base_model_relation: repackaged`. A quantised copy
+    reports a different count (or its own name), so it is not caught here.
+    """
+    import re
+    from pipeline.ranking import rehost_of
+
+    groups: dict[tuple[str, int], list[str]] = {}
+    for card in _catalogue_cards():
+        params = card.architecture.total_parameters
+        if not card.licensing.open_weights or not params or rehost_of(card):
+            continue
+        name = re.sub(r"[^a-z0-9]", "", (card.identity.display_name or "").lower())
+        groups.setdefault((name, params), []).append(card.identity.model_id)
+    dupes = {k: v for k, v in groups.items() if len(v) > 1}
+    assert not dupes, f"rehosts not marked repackaged: {dupes}"
+
+
+def test_every_repackaged_card_points_at_a_catalogue_card() -> None:
+    from pipeline.ranking import rehost_of
+
+    cards = _catalogue_cards()
+    ids = {c.identity.model_id for c in cards}
+    dangling = {c.identity.model_id: rehost_of(c) for c in cards
+                if rehost_of(c) and rehost_of(c) not in ids}
+    assert not dangling

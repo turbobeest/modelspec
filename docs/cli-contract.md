@@ -14,9 +14,10 @@ modelspec offline fit [<hardware-id>]     what a given machine can run, or list 
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
-`--json`, `--require-fresh`.
+`--json`, `--require-fresh`, `--include-rehosts`.
 
-`fit` also accepts `--limit/-n`, `--json`, and `--require-fresh`. These options
+`fit` also accepts `--limit/-n`, `--json`, `--require-fresh`, and
+`--include-rehosts`. These options
 are additive and do not change the meaning of the commands above. `--origin`
 is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 
@@ -191,3 +192,19 @@ human-readable form prints `n/a` for these rows, never a blank or a `0.0`.
 
 Filtering `--fits <device>` still returns these models: whether the weights
 fit is meaningful on its own. Only the speed is withheld.
+
+## Rehosts (MODEL-54)
+
+A card whose `lineage.base_model_relation` is `repackaged` re-hosts another
+catalogue card's weights unchanged (a mirror such as `NousResearch/Llama-2-7b-hf`
+of `meta-llama/Llama-2-7b-hf`). `lineage.base_model` names the canonical model
+id. `candidates.json` rows carry an additive `rehost_of` field: the canonical id,
+or `null`.
+
+`rank` and `fit` leave rehosts out by default, and so do the precomputed
+featured rankings in `rankings.json`, so one weight set has one id. Pass
+`--include-rehosts` to keep them. A rehost stays reachable by id and on its own
+page, and the canonical page lists it under Lineage.
+
+Quantised copies (`quantized`) and finetunes have different weights and fit
+differently, so they stay in every pool. They are related, not hidden.

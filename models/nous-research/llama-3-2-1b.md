@@ -44,8 +44,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors
 lineage:
-  base_model: ''
-  base_model_relation: null
+  base_model: meta/llama-3-2-1b
+  base_model_relation: repackaged
   merge_models: []
   adapter_type: ''
   adapter_rank: null

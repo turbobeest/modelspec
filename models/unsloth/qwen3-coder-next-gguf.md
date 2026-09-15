@@ -43,8 +43,8 @@ architecture:
   vae_type: ''
   total_parameters_source: model_card_published:prose
 lineage:
-  base_model: Qwen/Qwen3-Coder-Next
-  base_model_relation: null
+  base_model: qwen/qwen3-coder-next
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null
