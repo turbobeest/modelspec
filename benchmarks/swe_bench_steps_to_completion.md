@@ -25,7 +25,7 @@ metric:
   human_baseline: null
   baseline_note: >
     No maximum or baseline. The step cap depends on the harness configuration; a cap was not read
-    from a source for this page.
+    from a source for this page. swebench.com does not define "step" in any text read for this page; the steps-equal-api_calls reading comes from the embedded data field name, not a published definition. A second field, instance_calls, also exists and its meaning is not established.
 dataset:
   size: null
   size_note: >
@@ -99,7 +99,7 @@ Part of the [SWE-bench](swe_bench.md) family.
 The number of agent steps a model takes on a SWE-bench task. The SWE-bench leaderboards publish
 this in the "Cumulative step distribution" and "Resolved vs step limit" views. The embedded data
 counts `api_calls` per task instance. In the Bash Only view every model runs in the same
-mini-SWE-agent environment, so step counts compare models on one scaffold.
+mini-SWE-agent environment, so step counts compare models on one scaffold. swebench.com does not define "step" in any text read for this page; the steps-equal-api_calls reading comes from the embedded data field name, not a published definition. A second field, instance_calls, also exists and its meaning is not established.
 
 It is a count of steps, not seconds. It does not measure wall-clock time, tool execution time or
 network time. It does not reflect your hardware or your harness.
