@@ -31,11 +31,19 @@ from pipeline import benchgraph_graph as bg
 META_ROUTES = ("health", "manifest")
 ALLOWED = frozenset(META_ROUTES) | frozenset(bg.QUERIES)
 
-#: `error` is a stable, non-sensitive code; exception text never leaves the process.
-STATE: dict[str, object] = {"manifest": None, "error": None, "graph": None, "status": "loading"}
+#: `error` is a stable, non-sensitive code. `last_error` is a redacted
+#: diagnostic (exception class + host-free message) that /graph/health reports
+#: so a load failure is visible without the container's stdout, which does not
+#: reach `wrangler tail`. Raw exception text never leaves the process.
+STATE: dict[str, object] = {"manifest": None, "error": None, "graph": None, "status": "loading",
+                            "last_error": None, "attempts": 0}
 
 _URLISH = re.compile(r"[a-z][a-z0-9+.-]*://\S+", re.I)
 _QUERY = re.compile(r"\?\S*")
+#: A bare IPv4 address or dotted hostname, with an optional port.
+_HOSTISH = re.compile(r"\b(?:\d{1,3}(?:\.\d{1,3}){3}|[a-z0-9-]+(?:\.[a-z0-9-]+)+)(?::\d+)?", re.I)
+#: A public endpoint gets a short message, never a stack trace or an env dump.
+MAX_DIAGNOSTIC = 200
 
 
 def redact_url(source: str) -> str:
@@ -60,12 +68,24 @@ def redact_message(text: str, source: str = "") -> str:
     return _QUERY.sub("", text)
 
 
+def redact_diagnostic(text: str, source: str = "") -> str:
+    """A short, host-free one-liner safe to publish on /graph/health.
+
+    Stricter than `redact_message`, which keeps the host: here every URL becomes
+    `<url>` and every hostname, IP and port becomes `<host>`, so the endpoint
+    says what went wrong without saying where the export lives.
+    """
+    text = _URLISH.sub("<url>", redact_message(text, source))
+    text = _HOSTISH.sub("<host>", text)
+    return " ".join(text.split())[:MAX_DIAGNOSTIC]
+
+
 def load(source: str) -> None:
     manifest, doc = bg.read_export(source)
     graph = bg.connect(host=os.environ.get("FALKORDB_HOST", "127.0.0.1"),
                        port=int(os.environ.get("FALKORDB_PORT", "6379")))
     bg.load_document(graph, doc)
-    STATE.update(manifest=manifest, graph=graph, error=None, status="ok")
+    STATE.update(manifest=manifest, graph=graph, error=None, status="ok", last_error=None)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -107,7 +127,12 @@ class Handler(BaseHTTPRequestHandler):
             loaded = STATE["manifest"] is not None
             body = {**self._base(), "status": "ok" if loaded else STATE["status"]}
             if not loaded:
+                # Redacted, so the loader's failure is diagnosable from outside
+                # the container without leaking the export URL.
                 body["error"] = "export_not_loaded"
+                body["attempts"] = STATE["attempts"]
+                if STATE["last_error"]:
+                    body["last_error"] = STATE["last_error"]
             return self._send(200 if loaded else 503, body)
         if STATE["manifest"] is None:
             return self._send(503, {"error": "graph not loaded"})
@@ -139,6 +164,9 @@ def _loader(source: str, attempts: int = 30, sleep=time.sleep) -> None:
             return
         except Exception as exc:  # noqa: BLE001 - FalkorDB may still be starting
             STATE["error"] = "export_not_loaded"
+            STATE["attempts"] = attempt
+            STATE["last_error"] = {"exception": type(exc).__name__,
+                                   "message": redact_diagnostic(str(exc), source)}
             last = f"{type(exc).__name__}: {redact_message(str(exc), source)}"
             if attempt < attempts:
                 sleep(min(attempt, 5))

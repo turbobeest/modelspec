@@ -295,6 +295,16 @@ def test_redact_url():
     assert "SECRET" not in svc.redact_message(f"HTTP Error 403 for url {SIGNED}")
 
 
+def test_redact_diagnostic_drops_host_and_caps_length():
+    """The health diagnostic says what failed, never where the export lives."""
+    svc = _service_module()
+    assert svc.redact_diagnostic(f"HTTP Error 403 for url {SIGNED}") == \
+        "HTTP Error 403 for url <url>"
+    assert svc.redact_diagnostic("connect to 10.0.0.7:6379 refused") == "connect to <host> refused"
+    assert svc.redact_diagnostic("a\n  b") == "a b"
+    assert len(svc.redact_diagnostic("x" * 500)) == svc.MAX_DIAGNOSTIC
+
+
 def test_load_failure_is_not_exposed(capsys):
     svc = _service_module()
 
@@ -302,7 +312,8 @@ def test_load_failure_is_not_exposed(capsys):
         raise OSError(f"urlopen error for {SIGNED} at 10.0.0.7:6379")
 
     svc.load = boom
-    svc.STATE.update(manifest=None, graph=None, error=None, status="loading")
+    svc.STATE.update(manifest=None, graph=None, error=None, status="loading",
+                     last_error=None, attempts=0)
     svc._loader(SIGNED.rsplit("/", 1)[0] + "?X-Amz-Signature=SECRET", attempts=2, sleep=lambda s: None)
     logs = capsys.readouterr()
     assert "SECRET" not in logs.out + logs.err and "X-Amz" not in logs.out + logs.err
@@ -320,12 +331,19 @@ def test_load_failure_is_not_exposed(capsys):
             except urllib.error.HTTPError as e:
                 assert e.code == 503
                 body = e.read().decode()
-            for bad in ("SECRET", "X-Amz", "example", "urlopen", "OSError", "10.0.0.7"):
+            # Never on any route: the signed URL, its host, or the FalkorDB address.
+            for bad in ("SECRET", "X-Amz", "example", "10.0.0.7", "6379"):
                 assert bad not in body, (path, body)
             if path == "/graph/health":
-                assert json.loads(body) == {"build_commit": None, "format_version": None,
-                                            "status": "error", "error": "export_not_loaded"}
+                # health alone carries the redacted loader diagnostic (MODEL-9),
+                # so a container that never loads is diagnosable from outside.
+                assert json.loads(body) == {
+                    "build_commit": None, "format_version": None, "status": "error",
+                    "error": "export_not_loaded", "attempts": 2,
+                    "last_error": {"exception": "OSError",
+                                   "message": "urlopen error for <url> at <host>"}}
             else:
+                assert "OSError" not in body and "urlopen" not in body
                 assert json.loads(body) == {"error": "graph not loaded"}
     finally:
         server.shutdown()
@@ -434,3 +452,21 @@ console.log(JSON.stringify([
         stub.unlink()
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout.strip().splitlines()[-1]) == [200, 404, 405, 404, 404, 200]
+
+
+def test_container_failures_are_visible_in_worker_logs():
+    """MODEL-9: the container's own stdout/stderr does not reach `wrangler tail`.
+
+    Container logs go to the dashboard Container logs page (which needs
+    `observability` on the Worker); tail only sees Worker-side logs. So the
+    lifecycle hooks and the export interception must log from the Worker.
+    """
+    index_js = (ROOT / "graph-service/worker/src/index.js").read_text()
+    export_js = (ROOT / "graph-service/worker/src/export.js").read_text()
+    assert "onError(error)" in index_js and "console.error(" in index_js
+    assert "onStart()" in index_js and "onStop(" in index_js
+    # No log line for a route means the container never asked for the export,
+    # which is what distinguishes a broken interception from a broken load.
+    assert "console.log(`export ${request.method} ${url.pathname} -> ${response.status}`)" \
+        in export_js
+    assert _jsonc(WRANGLER.read_text())["observability"] == {"enabled": True}
