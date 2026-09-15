@@ -1,7 +1,9 @@
 # The host layer (MODEL-26)
 
-Status: **phase A**, a design plus schema groundwork. No pipeline, CLI or export
-code changes yet. Phase B implements this after PR #59 lands.
+Status: **phase B implemented** (`pipeline/hosts.py`, `offline fit --host`). Jamie
+accepted decisions 1-6 below as recommended on 2026-09-15; agentic latency moved
+to MODEL-57. The contract is documented in `docs/cli-contract.md` under "Hosts
+and offload".
 
 ## Why
 

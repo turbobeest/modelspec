@@ -289,10 +289,28 @@ def fit_offline(
     require_fresh: bool = typer.Option(False, "--require-fresh"),
     include_rehosts: bool = typer.Option(
         False, "--include-rehosts", help="Keep repackaged copies of another model's weights."),
+    host: str = typer.Option(
+        None, "--host", help="Host profile id (hosts.json). Adds fit_state to every row."),
+    host_ram: float = typer.Option(
+        None, "--host-ram",
+        help="GB of RAM on this machine, before the fixed 8 GB OS reserve. Needs --host."),
+    include_offload: bool = typer.Option(
+        False, "--include-offload",
+        help="Append a separate offload tier: models that fit only by spilling to host RAM. "
+             "Needs --host."),
 ) -> None:
     """What can this machine actually run?"""
     if limit < 0:
         _emit_error("fit", "--limit must be nonnegative", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    if include_offload and not host:
+        _emit_error("fit", "--include-offload requires --host", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    if host_ram is not None and not host:
+        _emit_error("fit", "--host-ram requires --host", as_json)
+        raise typer.Exit(EXIT_ERROR)
+    if host_ram is not None and host_ram <= 0:
+        _emit_error("fit", "--host-ram must be positive", as_json)
         raise typer.Exit(EXIT_ERROR)
     snapshot = _load_or_exit(require_fresh, command="fit", as_json=as_json)
     devices = [
@@ -317,6 +335,26 @@ def fit_offline(
                     "with no argument to list them.", as_json)
         raise typer.Exit(EXIT_ERROR)
 
+    host_profile = None
+    if host:
+        sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+        from pipeline import hosts as host_layer
+
+        profiles = {h.get("id"): h for h in (snapshot.data.get("hosts") or {}).get("hosts") or []}
+        if not profiles:
+            _emit_error("fit", "this snapshot has no host profiles (an export older than "
+                        "MODEL-26 phase B). Run `modelspec snapshot fetch`.", as_json)
+            raise typer.Exit(EXIT_ERROR)
+        if host not in profiles:
+            _emit_error("fit", f"unknown host {host!r}. Known hosts: "
+                        f"{', '.join(sorted(profiles))}", as_json)
+            raise typer.Exit(EXIT_ERROR)
+        try:
+            host_profile = host_layer.host_from_raw(profiles[host])
+        except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
+            _emit_error("fit", f"host profile {host!r} is unreadable: {exc}", as_json)
+            raise typer.Exit(EXIT_ERROR) from exc
+
     try:
         pool = [c for c in _candidates(snapshot) if hardware in c.fits
                 and (include_rehosts or not c.rehost_of)]
@@ -338,17 +376,85 @@ def fit_offline(
                 "prediction_basis": "computed, not measured"}
                for c in pool[:limit]]
 
+    # Without --host nothing below runs, so the output is byte-identical to the
+    # pre-host CLI (MODEL-26 decision 1).
+    offload: list[dict[str, Any]] = []
+    if host_profile is not None:
+        for r in results:
+            r.update({
+                "fit_state": "accelerator", "offload_fraction": 0.0, "host_id": host,
+                "predicted_decode_tps_basis": (
+                    "accelerator-roofline" if r["predicted_decode_tps"] is not None else None),
+            })
+        if include_offload and not host_profile.unified:
+            offload = _offload_tier(snapshot, hardware, host_profile, host_ram,
+                                    include_rehosts, limit)
+
     if as_json:
-        typer.echo(json.dumps(_envelope("fit", snapshot, results), indent=2, default=str))
-    elif not results:
+        typer.echo(json.dumps(_envelope("fit", snapshot, results + offload),
+                              indent=2, default=str))
+    elif not results and not offload:
         typer.echo(f"Nothing in the catalogue fits {hardware}.")
     else:
         for r in results:
             tps = r["predicted_decode_tps"]
             rate = f"~{tps:>7.1f}" if tps is not None else f"{'n/a':>8}"
             typer.echo(f"  {rate} tok/s  {r['display_name']}")
+        if offload:
+            typer.echo(f"\noffload tier on {host} (spills to host RAM; "
+                       "not ranked with the rows above):")
+            for r in offload:
+                tps = r["predicted_decode_tps"]
+                rate = f"~{tps:>7.1f}" if tps is not None else f"{'n/a':>8}"
+                typer.echo(f"  {rate} tok/s  {r['display_name']}  "
+                           f"({r['offload_fraction']:.0%} offloaded, {r['quantization']})")
         typer.echo("\npredicted from memory bandwidth, not measured; "
                    "n/a means the weights fit but the model does not decode tokens")
 
-    if not results:
+    if not results and not offload:
         raise typer.Exit(EXIT_NO_MATCH)
+
+
+def _offload_tier(snapshot: snap.Snapshot, hardware: str, host: Any,
+                  host_ram: float | None, include_rehosts: bool,
+                  limit: int) -> list[dict[str, Any]]:
+    """Models that fit `hardware` only by spilling to `host` RAM, fastest first.
+
+    A separate tier, never interleaved with accelerator rows (decision 2).
+    """
+    from pipeline import hosts as host_layer
+
+    device = next(n for n in snapshot.data["hardware"]["nodes"]
+                  if n.get("label") == "Hardware" and n.get("id") == hardware)
+    capacity = device.get("memory_gb")
+    bandwidth = device.get("memory_bandwidth_gb_s")
+    raw = snapshot.data["candidates"]["candidates"]
+    # A device that answers no single-device fit at all (single_device_fit:
+    # false) must not grow an offload tier either.
+    if not capacity or not bandwidth or not any(hardware in (c.get("fits") or {}) for c in raw):
+        return []
+    rows = []
+    for c in raw:
+        if not c.get("open_weights") or hardware in (c.get("fits") or {}):
+            continue
+        if c.get("rehost_of") and not include_rehosts:
+            continue
+        if not c.get("total_parameters"):
+            continue
+        a = host_layer.assess(
+            total_params=float(c["total_parameters"]),
+            active_params=float(c["active_parameters"]) if c.get("active_parameters") else None,
+            model_type=c.get("model_type"), accelerator_gb=float(capacity),
+            accelerator_bandwidth=float(bandwidth), host=host, host_ram_gb=host_ram)
+        if a["fit_state"] != host_layer.FIT_OFFLOAD:
+            continue
+        rows.append({"model_id": c["model_id"], "display_name": c["display_name"],
+                     "predicted_decode_tps": a["predicted_decode_tps"],
+                     "prediction_basis": "computed, not measured",
+                     "fit_state": a["fit_state"], "offload_fraction": a["offload_fraction"],
+                     "host_id": host.id,
+                     "predicted_decode_tps_basis": a["predicted_decode_tps_basis"],
+                     "quantization": a["quantization"]})
+    rows.sort(key=lambda r: (r["predicted_decode_tps"] is None,
+                             -(r["predicted_decode_tps"] or 0.0), r["display_name"].lower()))
+    return rows[:limit]
