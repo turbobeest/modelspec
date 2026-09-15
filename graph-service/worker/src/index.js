@@ -27,6 +27,23 @@ export class GraphContainer extends Container {
     super(ctx, env);
     this.envVars = { GRAPH_EXPORT_URL: env.GRAPH_EXPORT_URL };
   }
+
+  // Container stdout/stderr goes to the dashboard Container logs page, not to
+  // `wrangler tail`. These hooks put the lifecycle on the Worker's own log
+  // stream, where tail does see them. Messages only: no env, no stack.
+  onStart() {
+    console.log("GraphContainer started");
+  }
+
+  onStop({ exitCode, reason } = {}) {
+    console.log(`GraphContainer stopped: exitCode=${exitCode} reason=${reason}`);
+  }
+
+  onError(error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error(`GraphContainer error: ${detail}`);
+    throw error;
+  }
 }
 
 function json(status, body) {

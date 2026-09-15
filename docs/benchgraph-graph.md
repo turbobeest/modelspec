@@ -254,6 +254,59 @@ serves them from the `EXPORTS` binding: GET only, and only
 `benchgraph-graph/latest/{manifest,nodes,edges}.json`. No listing and no writes,
 and nothing new on the public `/graph/*` route.
 
+### Why the interception wiring is correct
+
+Checked against `@cloudflare/containers` 0.3.7 (`dist/lib/container.js`) and
+Cloudflare's [outbound traffic
+docs](https://developers.cloudflare.com/containers/guides/outbound-traffic/):
+
+- Interception is transparent to the process inside the container. It is applied
+  by the runtime with `ctx.container.interceptOutboundHttp(host, fetcher)`, so a
+  plain `http://` request from **any** process — Python's `urllib` included —
+  is routed to the handler. There is no proxy environment variable to set.
+- A hostname that does not resolve publicly is the intended usage. Cloudflare's
+  own docs use a fake host: "Calls to `http://my.worker` from the container
+  invoke the handler, which runs inside the Workers runtime, outside the
+  container sandbox."
+- Only **HTTPS** interception needs `interceptHttps = true` plus the ephemeral CA
+  at `/etc/cloudflare/certs/cloudflare-containers-ca.crt`. `GRAPH_EXPORT_URL` is
+  `http://`, so neither is needed.
+- We take the library's **per-host** path (a static `outboundByHost` with no
+  `outbound` catch-all and no `allowedHosts`/`deniedHosts`), so only
+  `graph-export.internal` is intercepted and everything else keeps the default
+  network behaviour. `allowedHosts` is deliberately unset: it is a deny-by-default
+  gate that would have to list the host as well.
+- `enableInternet` is irrelevant here: the per-host interception is registered
+  either way, and `applyOutboundInterception()` runs immediately before
+  `container.start()`, so it is in place before the container's loader runs.
+
+So the wiring can work as written; the load failure is elsewhere, which is why
+the diagnostics below exist.
+
+### Diagnosing a container that never loads
+
+The container's own stdout/stderr does **not** reach `wrangler tail` — tail sees
+Worker and Durable Object logs. Container logs go to the dashboard Container logs
+page, which needs `observability.enabled` on the Worker (already set). Per the
+[Containers FAQ](https://developers.cloudflare.com/containers/faq/#how-do-container-logs-work),
+that is the only switch; the library exposes no stdout-forwarding option. So two
+Worker-side channels carry the diagnosis instead:
+
+1. **`/graph/health`** reports the last loader failure when the export is not
+   loaded — `attempts` plus `last_error: {exception, message}`. The message is
+   redacted by `redact_diagnostic()`: every URL becomes `<url>` and every
+   hostname, IP and port becomes `<host>`, capped at 200 characters. No stack
+   trace, no environment. The `error` code stays `export_not_loaded`.
+2. **`serveExport` logs every intercepted request** (`export GET /path -> status`)
+   and `GraphContainer` logs `onStart`/`onStop`/`onError`. Both appear in
+   `wrangler tail`. This splits the two failure modes apart:
+
+| `wrangler tail` shows | Meaning |
+|---|---|
+| no `export …` line | the container never requested the export: interception or the loader never ran |
+| `export GET … -> 404` | interception works; the object is missing in R2 |
+| `export GET … -> 200`, health still failing | the export loaded but FalkorDB ingest failed — read `last_error` |
+
 ### DNS step (Jamie, once)
 
 The Worker uses a **route**, not a Custom Domain. A Custom Domain creates its own
