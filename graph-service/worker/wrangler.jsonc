@@ -1,0 +1,36 @@
+// benchgraph graph Worker + Container (MODEL-9).
+// PART 1: placeholders only. Nothing here has been deployed.
+// PART 2 (Jamie): fill the <...> values, uncomment account_id and routes,
+// then `npx wrangler deploy` from this directory. See docs/benchgraph-graph.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "benchgraph-graph",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-01",
+  // "account_id": "<CLOUDFLARE_ACCOUNT_ID>",
+  "workers_dev": false,
+  // "routes": [
+  //   { "pattern": "<GRAPH_HOST>/graph/*", "zone_name": "<ZONE_NAME>" }
+  // ],
+  "observability": { "enabled": true },
+  "containers": [
+    {
+      "class_name": "GraphContainer",
+      "image": "../Dockerfile",
+      // The Dockerfile copies pipeline/benchgraph_graph.py from the repo root.
+      "image_build_context": "../..",
+      "instance_type": "basic",
+      "max_instances": 2
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "GRAPH", "class_name": "GraphContainer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GraphContainer"] }],
+  "vars": {
+    // Base URL of the export directory CI uploads to R2 (manifest.json,
+    // nodes.json, edges.json), e.g. the bucket's custom domain.
+    // Local dev overrides this in .dev.vars.
+    "GRAPH_EXPORT_URL": "https://<R2_EXPORT_HOST>/benchgraph-graph/latest"
+  }
+}
