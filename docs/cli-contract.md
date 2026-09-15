@@ -124,6 +124,31 @@ We may change, only with a major version bump:
 * Changing what an exit code means.
 * Changing the shape of `result`.
 
+### Versioning rule (MODEL-59)
+
+Any change that **widens** a contract field's range bumps the **major** version
+of that contract. Widening means a client that handled every old value can now
+receive one it does not handle. Examples:
+
+* a number becoming nullable;
+* a new enum value a client must handle;
+* a field that can now be absent.
+
+Snapshot data is versioned by `build.export_schema_version`; the CLI `--json`
+envelope by `schema_version`. Purely additive changes (new optional fields, new
+flags, new files) do not bump the major. The CLI already refuses a snapshot
+whose export major differs from its own, so a widening fails cleanly with an
+error instead of crashing a client that assumed the old range.
+
+The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
+shipped without a bump; that is the case the rule exists to prevent.
+
+### Deprecated: CLIs older than MODEL-53
+
+CLIs older than #56 (MODEL-53, merge `1d8dd53`) are unsupported. They raise
+`TypeError` in `offline fit` against snapshots with a null
+`predicted_decode_tps`. Upgrade.
+
 We make no promise about:
 
 * The **ordering or content of results.** The catalogue changes daily — that is

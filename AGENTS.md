@@ -5,6 +5,7 @@ Standing rules: [`docs/handoff/README.md`](docs/handoff/README.md).
 DPF / offline CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md).
 Architecture map: [`graphify-out/README.md`](graphify-out/README.md).
 Worktrees and CodeGraph: [`docs/handoff/worktrees.md`](docs/handoff/worktrees.md).
+Contract versioning (MODEL-59): a change that widens a contract field's range (nullable, new enum value, may be absent) bumps that contract's major version. See [`docs/cli-contract.md`](docs/cli-contract.md).
 
 This file is the Codex / ChatGPT.app / Cursor / Grok Build entry. Claude Code
 also reads [`CLAUDE.md`](CLAUDE.md). Do not fork serving-path facts per TUI.
