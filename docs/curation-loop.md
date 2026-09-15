@@ -93,6 +93,12 @@ Both need reading scores and splits, which is the drafter's job. They surface as
 
 ## Drafter contract
 
+The drafter treats all fetched content as untrusted and runs with no tools:
+`claude -p --output-format text --tools "" --strict-mcp-config --setting-sources "" --no-session-persistence`,
+in an empty temp directory, with only PATH, HOME, USER, LOGNAME and the Claude auth variables passed
+through. The source text is wrapped in random `<<<UNTRUSTED_SOURCE_…>>>` delimiters, and a draft that
+adds a URL outside the page's existing sources and the watched URL is rejected.
+
 `scripts/curation/draft.py`. The drafter is tool-agnostic. Any drafter is a callable
 `(prompt, page_text) -> revised full page`, which must include front matter.
 
