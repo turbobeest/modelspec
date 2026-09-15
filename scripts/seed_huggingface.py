@@ -200,49 +200,104 @@ TOKEN_GENERATING_PIPELINE_TAGS: frozenset[str] = frozenset({
     "table-question-answering",
 })
 
-#: HF `library_name` values that unambiguously imply a non-token model, used
-#: only when `pipeline_tag` itself is empty. An empty pipeline_tag is HF
+#: HF `library_name` values that unambiguously imply a single non-token type,
+#: used only when `pipeline_tag` itself is empty. An empty pipeline_tag is HF
 #: telling us nothing, not evidence of a chat model — but a card whose HF
 #: repo actually carries a stated `pipeline_tag` is stronger evidence than
 #: this library-level guess, so this is never consulted otherwise. See
 #: MODEL-53 review: granite-timeseries-tspulse-r1 (library_name
 #: "granite-tsfm") had no pipeline_tag and was defaulting to llm-reasoning.
+#: `diffusers` and `sentence-transformers` are not here: each hosts more than
+#: one type and is refined in `_non_token_type_from_evidence`.
 NON_TOKEN_LIBRARY_TYPE_MAP: dict[str, ModelType] = {
     "granite-tsfm": ModelType.TIME_SERIES,
     "timm": ModelType.VISION_ENCODER,
-    "diffusers": ModelType.IMAGE_GENERATION,
-    "sentence-transformers": ModelType.EMBEDDING_TEXT,
 }
 
-#: Substrings of HF `tags` that unambiguously imply a non-token model. Used
-#: as a second check, after `library_name`, because the common libraries
+#: Exact HF `tags` that unambiguously imply a non-token model. Used as a
+#: second check, after `library_name`, because the common libraries
 #: (`transformers` above all) host both LLMs and non-token encoders — the
 #: library alone does not disambiguate, but a specific architecture tag does.
-#: Order matters: the first match wins.
-NON_TOKEN_TAG_TYPE_MAP: tuple[tuple[str, ModelType], ...] = (
-    ("time-series", ModelType.TIME_SERIES),
-    ("time series", ModelType.TIME_SERIES),
-    ("bert", ModelType.TEXT_ENCODER),
-    ("layoutlmv3", ModelType.TEXT_ENCODER),
-    ("stable-diffusion", ModelType.IMAGE_GENERATION),
+#: Exact matches only: a substring test let "bert" match any tag containing
+#: it. Order matters: the first match wins.
+NON_TOKEN_TAG_TYPE_MAP: tuple[tuple[frozenset[str], ModelType], ...] = (
+    (frozenset({"time-series", "time series", "time-series-forecasting"}),
+     ModelType.TIME_SERIES),
+    (frozenset({"bert", "roberta", "xlm-roberta", "deberta", "deberta-v2",
+                "electra", "layoutlmv3"}), ModelType.TEXT_ENCODER),
+    (frozenset({"stable-diffusion", "stable-diffusion-xl"}),
+     ModelType.IMAGE_GENERATION),
 )
 
+#: Returned by `_non_token_type_from_evidence` when the evidence says the
+#: model is not a token model but does not say which type it is (a diffusers
+#: VAE, a diffusers audio generator). `determine_model_type` turns it into
+#: None so the card stays reviewable instead of defaulting to llm-chat.
+NON_TOKEN_UNDECIDED = object()
 
-def _non_token_type_from_evidence(hf_model: dict) -> ModelType | None:
-    """Classify a card with no pipeline_tag from `library_name`/`tags` alone.
+#: diffusers `_class_name` values for standalone autoencoder components. The
+#: catalogue leaves SD VAEs with a null model_type pending a decision.
+DIFFUSERS_VAE_CLASSES: frozenset[str] = frozenset({
+    "autoencoderkl", "autoencodertiny", "asymmetricautoencoderkl",
+    "autoencoderkltemporaldecoder", "consistencydecodervae", "vqmodel",
+})
+DIFFUSERS_VIDEO_TAGS: frozenset[str] = frozenset({"text-to-video", "image-to-video", "video-to-video"})
+DIFFUSERS_AUDIO_TAGS: frozenset[str] = frozenset({"text-to-audio", "audio-to-audio", "text-to-speech"})
+DIFFUSERS_IMAGE_TAGS: frozenset[str] = frozenset({
+    "text-to-image", "image-to-image", "unconditional-image-generation",
+    "stable-diffusion", "stable-diffusion-xl",
+})
+#: Tags marking a sentence-transformers repo as multimodal (CLIP-style).
+SENTENCE_TRANSFORMERS_MULTIMODAL_TAGS: frozenset[str] = frozenset({
+    "clip", "siglip", "zero-shot-image-classification", "image-feature-extraction",
+    "multimodal", "image-text-to-text", "visual-document-retrieval",
+})
+
+
+def _diffusers_class_name(hf_model: dict) -> str:
+    """`_class_name` from model_index.json/config.json, as the HF API exposes it."""
+    config = hf_model.get("config") or {}
+    name = (config.get("diffusers") or {}).get("_class_name") or config.get("_class_name")
+    return str(name or "").lower()
+
+
+def _diffusers_type(hf_model: dict, tags: set[str]) -> object:
+    class_name = _diffusers_class_name(hf_model)
+    if class_name in DIFFUSERS_VAE_CLASSES:
+        return NON_TOKEN_UNDECIDED
+    if tags & DIFFUSERS_VIDEO_TAGS or "video" in class_name:
+        return ModelType.VIDEO_GENERATION
+    if "text-to-speech" in tags:
+        return ModelType.AUDIO_TTS
+    if tags & DIFFUSERS_AUDIO_TAGS or "audio" in class_name:
+        return NON_TOKEN_UNDECIDED
+    if tags & DIFFUSERS_IMAGE_TAGS:
+        return ModelType.IMAGE_GENERATION
+    return NON_TOKEN_UNDECIDED
+
+
+def _non_token_type_from_evidence(hf_model: dict) -> object:
+    """Classify a card with no pipeline_tag from `library_name`/`tags`/config.
 
     Never reads the model id or display name — that is the guess this
-    function exists to replace. Returns None when neither source has
-    anything unambiguous to say, which keeps a genuine LLM with no
-    pipeline_tag on the LLM_CHAT default rather than being reclassified by
-    a coincidental tag.
+    function exists to replace. Returns None when no source has anything
+    unambiguous to say, which keeps a genuine LLM with no pipeline_tag on the
+    LLM_CHAT default rather than being reclassified by a coincidental tag.
+    Returns NON_TOKEN_UNDECIDED when the evidence rules out a token model but
+    does not pin the type.
     """
     library = str(hf_model.get("library_name") or "").lower()
+    tags = {str(t).lower() for t in (hf_model.get("tags") or [])}
     if library in NON_TOKEN_LIBRARY_TYPE_MAP:
         return NON_TOKEN_LIBRARY_TYPE_MAP[library]
-    tags = [str(t).lower() for t in (hf_model.get("tags") or [])]
-    for needle, model_type in NON_TOKEN_TAG_TYPE_MAP:
-        if any(needle in tag for tag in tags):
+    if library == "diffusers":
+        return _diffusers_type(hf_model, tags)
+    if library == "sentence-transformers":
+        if tags & SENTENCE_TRANSFORMERS_MULTIMODAL_TAGS:
+            return ModelType.EMBEDDING_MULTIMODAL
+        return ModelType.EMBEDDING_TEXT
+    for exact_tags, model_type in NON_TOKEN_TAG_TYPE_MAP:
+        if tags & exact_tags:
             return model_type
     return None
 
@@ -267,6 +322,8 @@ def determine_model_type(hf_model: dict) -> ModelType | None:
     # a pipeline_tag check).
     if not pipeline:
         evidence_type = _non_token_type_from_evidence(hf_model)
+        if evidence_type is NON_TOKEN_UNDECIDED:
+            return None
         if evidence_type is not None:
             return evidence_type
 
