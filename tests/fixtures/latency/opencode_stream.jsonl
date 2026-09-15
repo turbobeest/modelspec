@@ -1,0 +1,12 @@
+{"t": 37.4332, "event": {"type": "step_start", "timestamp": 1000037000, "sessionID": "s", "part": {"id": "p1", "type": "step-start"}}}
+{"t": 42.7854, "event": {"type": "tool_use", "timestamp": 1000042300, "sessionID": "s", "part": {"type": "tool", "tool": "glob", "callID": "c1", "state": {"status": "completed", "time": {"start": 1000042290, "end": 1000042300}}}}}
+{"t": 42.7856, "event": {"type": "step_finish", "timestamp": 1000042300, "sessionID": "s", "part": {"type": "step-finish", "reason": "tool-calls", "tokens": {"total": 8101, "input": 7719, "output": 382, "reasoning": 0, "cache": {"write": 0, "read": 0}}, "cost": 0}}}
+{"t": 44.6639, "event": {"type": "step_start", "timestamp": 1000044200, "sessionID": "s", "part": {"id": "p2", "type": "step-start"}}}
+{"t": 151.3609, "event": {"type": "tool_use", "timestamp": 1000150900, "sessionID": "s", "part": {"type": "tool", "tool": "write", "callID": "c2", "state": {"status": "completed", "time": {"start": 1000150896, "end": 1000150900}}}}}
+{"t": 151.3609, "event": {"type": "step_finish", "timestamp": 1000150900, "sessionID": "s", "part": {"type": "step-finish", "reason": "tool-calls", "tokens": {"total": 14961, "input": 8043, "output": 6918, "reasoning": 0, "cache": {"write": 0, "read": 0}}, "cost": 0}}}
+{"t": 155.0475, "event": {"type": "step_start", "timestamp": 1000154600, "sessionID": "s", "part": {"id": "p3", "type": "step-start"}}}
+{"t": 155.0951, "event": {"type": "tool_use", "timestamp": 1000154650, "sessionID": "s", "part": {"type": "tool", "tool": "bash", "callID": "c3", "state": {"status": "completed", "time": {"start": 1000154610, "end": 1000154650}}}}}
+{"t": 155.0952, "event": {"type": "step_finish", "timestamp": 1000154650, "sessionID": "s", "part": {"type": "step-finish", "reason": "tool-calls", "tokens": {"total": 10057, "input": 10035, "output": 22, "reasoning": 0, "cache": {"write": 0, "read": 0}}, "cost": 0}}}
+{"t": 155.857, "event": {"type": "step_start", "timestamp": 1000155400, "sessionID": "s", "part": {"id": "p4", "type": "step-start"}}}
+{"t": 156.0337, "event": {"type": "text", "timestamp": 1000155580, "sessionID": "s", "part": {"type": "text", "text": "Done.", "time": {"start": 1000155400, "end": 1000155570}}}}
+{"t": 156.0337, "event": {"type": "step_finish", "timestamp": 1000155580, "sessionID": "s", "part": {"type": "step-finish", "reason": "stop", "tokens": {"total": 10083, "input": 10070, "output": 13, "reasoning": 0, "cache": {"write": 0, "read": 0}}, "cost": 0}}}
