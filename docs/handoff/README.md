@@ -48,6 +48,8 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
    not a publication date. A *live leaderboard* row is dated by the observation
    (`date_type: evaluated`) — see `BENCHMARK_WRITE_RULE` in
    `scripts/build_manifest.py`.
+9. **Widening a contract range bumps its major** (MODEL-59): nullable, a new enum
+   value, or may-be-absent. See the versioning rule in [`../cli-contract.md`](../cli-contract.md).
 
 ## Three floors — stop treating these as backlog
 

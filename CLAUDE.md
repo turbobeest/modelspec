@@ -4,6 +4,7 @@
 Standing rules: [`docs/handoff/README.md`](docs/handoff/README.md).
 DPF / offline CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md).
 Codex/AGENTS parity: [`AGENTS.md`](AGENTS.md).
+Contract versioning (MODEL-59): a change that widens a contract field's range (nullable, new enum value, may be absent) bumps that contract's major version. See [`docs/cli-contract.md`](docs/cli-contract.md).
 
 This file used to describe Phase 1 and a FalkorDB-served architecture. That is
 historical. MODEL-2 closed on a **static Pages export**. There is no R2/D1 on

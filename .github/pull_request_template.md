@@ -15,3 +15,4 @@
 - [ ] Third-party material I included is identified with its source and licence.
 - [ ] For benchmark pages: `python3 scripts/benchmarks/validate.py benchmarks/<id>.md` passes.
 - [ ] For model cards: the card validation passes.
+- [ ] Does this change widen any contract field's range (nullable, new enum value a client must handle, may be absent)? If yes, the major version is bumped in this PR (see the versioning rule in `docs/cli-contract.md`).

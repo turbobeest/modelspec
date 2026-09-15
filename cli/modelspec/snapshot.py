@@ -38,6 +38,12 @@ PARTS = {
     "hardware": "/api/graph/views/hardware.json",
 }
 
+#: Parts a snapshot may lack. An export older than MODEL-26 phase B has no
+#: hosts.json; the snapshot still answers everything except `fit --host`.
+OPTIONAL_PARTS = {
+    "hosts": "/api/hosts.json",
+}
+
 #: Past this, the snapshot is still served but every answer says it is stale.
 #: Model releases move weekly, so a month-old snapshot is a different world.
 STALE_AFTER_DAYS = 30
@@ -183,6 +189,13 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
             response = client.get(origin + route)
             response.raise_for_status()
             payload[name] = response.json()
+        for name, route in OPTIONAL_PARTS.items():
+            try:
+                response = client.get(origin + route)
+                response.raise_for_status()
+                payload[name] = response.json()
+            except Exception:  # noqa: BLE001 - optional; `fit --host` reports its absence
+                continue
 
     build = (payload.get("index") or {}).get("build") or {}
     meta = {
