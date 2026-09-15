@@ -24,6 +24,8 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.card_updates import StaleNotice, carry_guide_forward, write_notices  # noqa: E402
+
 KNOWN_IDENTITIES_PATH = PROJECT_ROOT / "scripts" / "models_dev_known_identities.yaml"
 
 from schema.card import (
@@ -598,6 +600,8 @@ def card_to_yaml_clean(card: ModelCard) -> str:
     for mk in ("card_schema_version", "card_author", "card_created", "card_updated"):
         if mk in data:
             out[mk] = data.pop(mk)
+    if data.get("authoring_guide") is not None:
+        out["authoring_guide"] = data.pop("authoring_guide")
 
     yaml_str = yaml.dump(
         dict(out),
@@ -620,6 +624,10 @@ def main() -> None:
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Report what would be written without writing anything.")
+    parser.add_argument(
+        "--stale-notices", type=Path, default=None,
+        help="Write a PR-body snippet here when an overwrite marks an authoring "
+             "guide stale because the card's version changed (MODEL-65).")
     args = parser.parse_args()
 
     print("Fetching models.dev API...")
@@ -641,6 +649,7 @@ def main() -> None:
     created_ids: list[str] = []
     total_completeness = 0.0
     seen_model_ids: set[str] = set()
+    stale_notices: list[StaleNotice] = []
 
     for provider_id, provider_cfg in PROVIDER_MAP.items():
         if provider_id not in api_data:
@@ -699,6 +708,12 @@ def main() -> None:
                 # Validate by round-tripping BEFORE touching disk, then write
                 # atomically: a card that does not parse, or a write that dies
                 # halfway, must leave no file behind.
+                # Overwriting an existing card (never under --new-only): keep its
+                # authoring guide, and mark it stale if the version moved.
+                notice = None
+                if file_path.exists():
+                    existing = ModelCard.from_yaml_file(file_path)
+                    notice = carry_guide_forward(existing, card)
                 content = card_to_yaml_clean(card)
                 loaded = ModelCard.from_yaml_string(content)
                 write_card_atomically(file_path, content)
@@ -706,12 +721,18 @@ def main() -> None:
                 completeness = loaded.card_completeness
                 total_completeness += completeness
                 total_created += 1
+                if notice is not None:
+                    stale_notices.append(notice)
+                    print(f"    STALE guide {notice.model_id}: {notice.old_version} -> {notice.new_version}")
 
                 print(f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete)")
 
             except Exception as e:
                 total_errors += 1
                 print(f"    ERR {model_key}: {e}")
+
+    if args.stale_notices is not None and not args.dry_run:
+        write_notices(stale_notices, args.stale_notices)
 
     # Summary
     print("\n" + "=" * 70)
