@@ -150,3 +150,57 @@ def test_image_text_to_text_is_still_vlm() -> None:
 
 def test_feature_extraction_is_still_embedding_text() -> None:
     assert determine_model_type(_hf("feature-extraction")) == ModelType.EMBEDDING_TEXT
+
+
+# ── non-token evidence precision: exact tags, refined library mappings ──────
+
+def test_tag_merely_containing_bert_does_not_classify() -> None:
+    hf = _hf("", library_name="transformers", tags=["modernbert-style-chat", "albertine"])
+    assert determine_model_type(hf) == ModelType.LLM_CHAT
+
+
+def test_exact_roberta_tag_is_text_encoder() -> None:
+    hf = _hf("", library_name="transformers", tags=["roberta"])
+    assert determine_model_type(hf) == ModelType.TEXT_ENCODER
+
+
+def test_exact_time_series_forecasting_tag_is_time_series() -> None:
+    hf = _hf("", library_name="transformers", tags=["time-series-forecasting"])
+    assert determine_model_type(hf) == ModelType.TIME_SERIES
+
+
+def test_diffusers_vae_class_stays_null() -> None:
+    hf = _hf("", library_name="diffusers", tags=["stable-diffusion"])
+    hf["config"] = {"diffusers": {"_class_name": "AutoencoderKL"}}
+    assert determine_model_type(hf) is None
+
+
+def test_diffusers_video_tag_is_video_generation() -> None:
+    hf = _hf("", library_name="diffusers", tags=["image-to-video"])
+    hf["config"] = {"diffusers": {"_class_name": "StableVideoDiffusionPipeline"}}
+    assert determine_model_type(hf) == ModelType.VIDEO_GENERATION
+
+
+def test_diffusers_audio_generator_stays_null() -> None:
+    hf = _hf("", library_name="diffusers", tags=["text-to-audio"])
+    hf["config"] = {"diffusers": {"_class_name": "AudioLDMPipeline"}}
+    assert determine_model_type(hf) is None
+
+
+def test_diffusers_without_modality_evidence_stays_null() -> None:
+    assert determine_model_type(_hf("", library_name="diffusers", tags=[])) is None
+
+
+def test_diffusers_text_to_image_tag_is_image_generation() -> None:
+    hf = _hf("", library_name="diffusers", tags=["text-to-image"])
+    assert determine_model_type(hf) == ModelType.IMAGE_GENERATION
+
+
+def test_sentence_transformers_clip_is_embedding_multimodal() -> None:
+    hf = _hf("", library_name="sentence-transformers", tags=["clip"])
+    assert determine_model_type(hf) == ModelType.EMBEDDING_MULTIMODAL
+
+
+def test_sentence_transformers_text_only_is_embedding_text() -> None:
+    hf = _hf("", library_name="sentence-transformers", tags=["feature-extraction"])
+    assert determine_model_type(hf) == ModelType.EMBEDDING_TEXT
