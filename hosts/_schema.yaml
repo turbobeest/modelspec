@@ -1,0 +1,45 @@
+# The shape of a host profile (MODEL-26, phase A). A host is the machine around
+# an accelerator: CPU, system memory, the PCIe link, and storage. See
+# docs/host-layer.md. Only fields that change an answer are here.
+#
+# Rules:
+# - null means "not researched / not published". A null beats a guess.
+# - Every non-null numeric field under cpu, system_memory, pcie, storage
+#   MUST have an entry in field_sources keyed by its dotted path.
+# - unified: true means host memory IS accelerator memory (Apple silicon,
+#   Strix Halo). Then system_memory describes the one shared pool and
+#   pcie.accelerator_link_gen is null (there is no host-to-accelerator link).
+id: string                         # stable slug
+display_name: string
+kind: string                       # platform | system. platform = a CPU+chipset spec a builder configures; system = a shipped machine
+unified: boolean                   # REQUIRED
+hardware_ref: string|null          # id in hardware/ when unified (the same silicon); null if not catalogued yet
+
+cpu:
+  model: string
+  cores: number|null               # CPU-only inference, tool execution parallelism
+  threads: number|null
+
+system_memory:
+  type: string|null                # DDR5 | LPDDR5X | unified
+  channels: number|null            # sets bandwidth with speed
+  max_speed_mt_s: number|null      # rated speed at the cited population
+  capacity_max_gb: number|null     # upper bound of what offload can use
+  capacity_options_gb: [number]|null
+  bandwidth_gb_s: number|null      # sets offloaded-layer decode speed
+  bandwidth_derivation: string|null
+
+pcie:
+  cpu_gen: number|null             # the CPU's native gen; the link is min(cpu, slot, accelerator)
+  cpu_lanes_usable: number|null
+  accelerator_link_gen: number|null   # null when unified
+  accelerator_link_width: number|null
+
+storage:
+  class: string|null               # nvme-gen4 | nvme-gen5 | internal-ssd | sata | null
+  capacity_options_gb: [number]|null
+
+field_sources:                     # REQUIRED. dotted.path -> {url, read_at, quote}
+  "<dotted.path>": {url: string, read_at: string, quote: string}
+figures_are: string                # vendor-specification | independent-measurement | mixed
+notes: string|null

@@ -1,0 +1,33 @@
+id: apple_mac_studio_m5_max
+display_name: Apple Mac Studio (M5 Max, 18-core CPU / 40-core GPU)
+kind: system
+unified: true
+hardware_ref: null
+cpu:
+  model: Apple M5 Max
+  cores: 18
+  threads: null
+system_memory:
+  type: unified
+  channels: null
+  max_speed_mt_s: null
+  capacity_max_gb: 128
+  capacity_options_gb: [48, 64, 128]
+  bandwidth_gb_s: 614
+  bandwidth_derivation: Apple-published unified memory bandwidth for the 40-core GPU configuration (not bus-derived). The 32-core GPU base is 460 GB/s.
+pcie:
+  cpu_gen: null
+  cpu_lanes_usable: null
+  accelerator_link_gen: null
+  accelerator_link_width: null
+storage:
+  class: internal-ssd
+  capacity_options_gb: [1000, 2000, 4000, 8000]
+field_sources:
+  cpu.cores: &apple {url: "https://www.apple.com/mac-studio/specs/", read_at: "2026-09-15", quote: "18-core CPU with 6 super cores and 12 performance cores"}
+  system_memory.capacity_max_gb: {<<: *apple, quote: "Configurable to: 48GB, 64GB, or 128GB (M5 Max with 18-core CPU and 40-core GPU)"}
+  system_memory.capacity_options_gb: {<<: *apple, quote: "Configurable to: 48GB, 64GB, or 128GB (M5 Max with 18-core CPU and 40-core GPU)"}
+  system_memory.bandwidth_gb_s: {<<: *apple, quote: "(614GB/s memory bandwidth)"}
+  storage.capacity_options_gb: {<<: *apple, quote: "1TB, 2TB, 4TB, or 8TB SSD"}
+figures_are: vendor-specification
+notes: Unified. Host memory is accelerator memory, so there is no offload tier and fit is two-state. hardware_ref stays null until an apple_m5_max hardware record exists. Storage uses 1 TB = 1000 GB.

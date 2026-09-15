@@ -1,0 +1,36 @@
+id: amd_ryzen_9_9950x_am5
+display_name: AMD Ryzen 9 9950X (AM5, dual-channel DDR5)
+kind: platform
+unified: false
+hardware_ref: null
+cpu:
+  model: AMD Ryzen 9 9950X
+  cores: 16
+  threads: 32
+system_memory:
+  type: DDR5
+  channels: 2
+  max_speed_mt_s: 5600
+  capacity_max_gb: 256
+  capacity_options_gb: null
+  bandwidth_gb_s: 89.6
+  bandwidth_derivation: 2 channels x 64 bits / 8 x 5.6 Gbps (DDR5-5600, AMD Max Memory Speed at 2 DIMMs) = 89.6 GB/s. Same bus-derived convention as hardware/*.yaml. At 4 DIMMs AMD rates DDR5-3600, i.e. 57.6 GB/s.
+pcie:
+  cpu_gen: 5
+  cpu_lanes_usable: 24
+  accelerator_link_gen: null
+  accelerator_link_width: null
+storage:
+  class: null
+  capacity_options_gb: null
+field_sources:
+  cpu.cores: &amd {url: "https://www.amd.com/en/products/processors/desktops/ryzen/9000-series/amd-ryzen-9-9950x.html", read_at: "2026-09-15", quote: "# of CPU Cores 16"}
+  cpu.threads: {<<: *amd, quote: "# of Threads 32"}
+  system_memory.channels: {<<: *amd, quote: "Memory Channels 2"}
+  system_memory.max_speed_mt_s: {<<: *amd, quote: "Max Memory Speed 2x1R DDR5-5600"}
+  system_memory.capacity_max_gb: {<<: *amd, quote: "Max. Memory 256 GB"}
+  system_memory.bandwidth_gb_s: {<<: *amd, quote: "derived from Memory Channels 2 and DDR5-5600"}
+  pcie.cpu_gen: {<<: *amd, quote: "PCI Express Version PCIe 5.0"}
+  pcie.cpu_lanes_usable: {<<: *amd, quote: "Native PCIe Lanes (Total/Usable) 28 , 24"}
+figures_are: vendor-specification
+notes: A platform, not a build. The accelerator link and storage depend on the motherboard and slot, so they stay null.
