@@ -36,6 +36,7 @@ class EdgeType(str, Enum):
     SUPPORTS_RUNTIME = "SUPPORTS_RUNTIME"
     TESTS_CAPABILITY = "TESTS_CAPABILITY"
     REQUIRED_BY = "REQUIRED_BY"
+    HOSTS = "HOSTS"                    # (:Host)-[:HOSTS]->(:Hardware), unified hosts only
 
     # Derived (computed by ranking engine)
     COMPETES_WITH = "COMPETES_WITH"
@@ -74,6 +75,7 @@ INDEXES = [
     "CREATE INDEX ON :Capability(category)",
     "CREATE INDEX ON :Hardware(id)",
     "CREATE INDEX ON :Hardware(memory_gb)",
+    "CREATE INDEX ON :Host(id)",
     "CREATE INDEX ON :Benchmark(id)",
     "CREATE INDEX ON :Benchmark(category)",
     "CREATE INDEX ON :License(id)",

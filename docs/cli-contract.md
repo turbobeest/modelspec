@@ -16,8 +16,9 @@ Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
 `--json`, `--require-fresh`, `--include-rehosts`.
 
-`fit` also accepts `--limit/-n`, `--json`, `--require-fresh`, and
-`--include-rehosts`. These options
+`fit` also accepts `--limit/-n`, `--json`, `--require-fresh`,
+`--include-rehosts`, `--host <id>`, `--host-ram <GB>` and `--include-offload`
+(see "Hosts and offload" below). These options
 are additive and do not change the meaning of the commands above. `--origin`
 is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 
@@ -124,6 +125,31 @@ We may change, only with a major version bump:
 * Changing what an exit code means.
 * Changing the shape of `result`.
 
+### Versioning rule (MODEL-59)
+
+Any change that **widens** a contract field's range bumps the **major** version
+of that contract. Widening means a client that handled every old value can now
+receive one it does not handle. Examples:
+
+* a number becoming nullable;
+* a new enum value a client must handle;
+* a field that can now be absent.
+
+Snapshot data is versioned by `build.export_schema_version`; the CLI `--json`
+envelope by `schema_version`. Purely additive changes (new optional fields, new
+flags, new files) do not bump the major. The CLI already refuses a snapshot
+whose export major differs from its own, so a widening fails cleanly with an
+error instead of crashing a client that assumed the old range.
+
+The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
+shipped without a bump; that is the case the rule exists to prevent.
+
+### Deprecated: CLIs older than MODEL-53
+
+CLIs older than #56 (MODEL-53, merge `1d8dd53`) are unsupported. They raise
+`TypeError` in `offline fit` against snapshots with a null
+`predicted_decode_tps`. Upgrade.
+
 We make no promise about:
 
 * The **ordering or content of results.** The catalogue changes daily — that is
@@ -208,3 +234,49 @@ page, and the canonical page lists it under Lineage.
 
 Quantised copies (`quantized`) and finetunes have different weights and fit
 differently, so they stay in every pool. They are related, not hidden.
+
+## Hosts and offload (MODEL-26 phase B)
+
+`offline fit <device> --host <id>` evaluates the device inside a host profile
+(`/api/hosts.json`, from `hosts/*.yaml`; design in `docs/host-layer.md`).
+
+* `--host <id>`: a host profile id. An unknown id, or a snapshot with no host
+  profiles (an export from before this change), exits 1.
+* `--host-ram <GB>`: the RAM on this machine, before the reserve. Default: the
+  profile's `system_memory.capacity_max_gb`. A fixed 8 GB OS reserve is always
+  subtracted. Requires `--host`.
+* `--include-offload`: append an **offload tier**, which lists models that fit
+  only by spilling weights to host RAM. Requires `--host`; without it, exit 1.
+  A unified host (`unified: true`, for example Apple silicon) never has an
+  offload tier, because its RAM already is the accelerator's memory.
+
+With `--host`, every fit row gains four fields:
+
+| field | values |
+| --- | --- |
+| `fit_state` | `accelerator` or `offload` (`does_not_fit` rows are never emitted) |
+| `offload_fraction` | `0.0` for `accelerator`; `(W + A - C_acc) / W` in (0, 1] for `offload` |
+| `host_id` | the `--host` id |
+| `predicted_decode_tps_basis` | `accelerator-roofline`, `offload-roofline`, or `null` when `predicted_decode_tps` is null |
+
+Offload rows also carry `quantization`, the smallest quant that fits, which
+spills the least. Their `predicted_decode_tps` is
+`0.70 / ((1-f)*P/B_acc + f*P/B_host)` and is `null` for models that do not
+decode tokens. Candidates in `candidates.json` gain `total_parameters` and
+`active_parameters`, which the CLI needs to size those models.
+
+**Ordering.** Accelerator rows come first, in the existing order. Offload rows
+follow as a separate tier, sorted by their own predicted speed. The two tiers
+are never interleaved or ranked against each other. `--limit` applies to each
+tier separately. The exit code is 2 only when both tiers are empty.
+
+**Without `--host`, the output is byte-identical** to the CLI before this
+change (`tests/test_host_offload.py::test_fit_without_host_is_byte_identical`).
+
+**Versioning-rule check.** No existing field's range widens. Every new field
+and value appears only when `--host` is given, which is a new flag. `hosts.json`
+and the candidate parameter counts are new, optional data. So
+`schema_version` stays `"1.0"` and `build.export_schema_version` stays `"1.0"`.
+`fit_state` is a new field, not a widening of `fits`. A later change that emits
+a new `fit_state` value (for example `cpu_only`) does widen it and needs a major
+bump under the rule above.

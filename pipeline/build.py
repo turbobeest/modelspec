@@ -225,6 +225,11 @@ def main(argv: list[str] | None = None) -> int:
     graph_counts["competition"] = competition_counts
     graph_counts["hardware"] = hardware_counts
 
+    # Host profiles for offload-aware fit (MODEL-26). A new file; additive.
+    from pipeline import hosts as host_layer
+    graph_counts["hosts"] = host_layer.write_export(
+        ms / "api", host_layer.load_hosts(root), build.to_json())
+
     # Per-model views of the derived graph, so a page can show what a model is
     # descended from, where it runs and what it fits on.
     from pipeline.relations import Relations

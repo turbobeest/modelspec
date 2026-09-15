@@ -66,6 +66,10 @@ class Candidate:
     #: (`lineage.base_model_relation: repackaged`). Default fit pools and the
     #: featured rankings leave these out so one weight set has one id (MODEL-54).
     rehost_of: str | None = None
+    #: Parameter counts, so a consumer can size a model that does not fit an
+    #: accelerator (offload fit, MODEL-26). Additive to candidates.json.
+    total_parameters: float | None = None
+    active_parameters: float | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -78,6 +82,8 @@ class Candidate:
             "open_weights": self.open_weights, "scores_as_of": self.scores_as_of,
             "fits": self.fits, "verified_benchmarks": sorted(self.verified_benchmarks),
             "rehost_of": self.rehost_of,
+            "total_parameters": self.total_parameters,
+            "active_parameters": self.active_parameters,
         }
 
 
@@ -141,6 +147,8 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             scores_as_of=str(card.benchmarks.benchmark_as_of or "") or None,
             fits=fits.get(ident.model_id, {}),
             rehost_of=rehost_of(card),
+            total_parameters=card.architecture.total_parameters,
+            active_parameters=card.architecture.active_parameters,
         ))
     return out
 

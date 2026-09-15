@@ -171,6 +171,25 @@ Properties:
   form_factor           String                         # desktop-gpu | workstation | laptop | server | edge
 ```
 
+### :Host
+The machine around an accelerator (`hosts/*.yaml`, MODEL-26). **Unified hosts
+only**: a discrete host+device pairing is a query-time input (`offline fit
+--host`), not a stored record.
+
+```
+Properties:
+  id                    String    REQUIRED  INDEXED
+  display_name          String    REQUIRED
+  unified               Boolean   REQUIRED  # always true in the graph
+  kind                  String              # platform | system
+Edge:
+  (:Host)-[:HOSTS]->(:Hardware)             # only when hardware_ref is set
+```
+
+`pipeline/hosts.add_to_graph` produces these. It is not yet wired into the
+published graph or the FalkorDB ingest, because the one unified host has
+`hardware_ref: null` today, so there would be no edge to add.
+
 ### :Quantization
 A specific quantization format/method.
 
