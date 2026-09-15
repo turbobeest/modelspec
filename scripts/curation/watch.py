@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import html
 import json
+import os
 import re
 import sys
 import time
@@ -325,6 +326,24 @@ def watch(
     }
 
 
+def effective_firecrawl_cap(requested: int, key_from_env: bool, env: dict | None = None) -> tuple[int, str]:
+    """In CI the key comes only from FIRECRAWL_API_KEY. Empty key: cap 0, plain HTTP only, never a failure."""
+    env = os.environ if env is None else env
+    if requested > 0 and key_from_env and not str(env.get("FIRECRAWL_API_KEY") or "").strip():
+        return 0, f"FIRECRAWL_API_KEY is empty: plain HTTP only (Firecrawl cap {requested} -> 0)"
+    return requested, ""
+
+
+def export_source_texts(report: dict, state_dir: Path, report_dir: Path) -> None:
+    """Copy each changed source's new normalised text next to the report, for the drafter job."""
+    out = report_dir / "sources"
+    for c in report["changes"]:
+        _, text = load_state(state_dir, c["url"])
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"{state_key(c['url'])}.txt").write_text(text or "", encoding="utf-8")
+        c["source_text"] = f"sources/{state_key(c['url'])}.txt"
+
+
 def resolve_pages(spec: str, bench_dir: Path = BENCH_DIR) -> list[str]:
     if spec == "pilot":
         if PILOT_FILE.exists() and bench_dir == BENCH_DIR:
@@ -357,6 +376,8 @@ def render_md(report: dict) -> str:
              f"{report['sources_checked']}. Unchanged: {report['unchanged']}. Baselined: {report['baselined']}. "
              f"Changed: {len(report['changes'])}. Failed: {len(report['failures'])}. "
              f"Firecrawl calls: {report['firecrawl']['calls']} (cap {report['firecrawl']['cap']}).", ""]
+    if report["firecrawl"].get("note"):
+        lines += [f"**Firecrawl:** {report['firecrawl']['note']}", ""]
     if report.get("census_leads"):
         lines += ["## Census leads (immediate brief matched no page)", ""]
         lines += [f"- {u}" for u in report["census_leads"]] + [""]
@@ -381,6 +402,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--state-dir", type=Path, default=DEFAULT_STATE)
     ap.add_argument("--report-dir", type=Path, default=DEFAULT_REPORT)
     ap.add_argument("--firecrawl-credit-cap", type=int, default=0)
+    ap.add_argument("--firecrawl-key-from-env", action="store_true",
+                    help="CI: take the key only from FIRECRAWL_API_KEY; empty means plain HTTP only (cap 0)")
     ap.add_argument("--max-workers", type=int, default=8)
     ap.add_argument("--write-pilot", action="store_true", help="recompute and record the pilot list")
     args = ap.parse_args(argv)
@@ -399,10 +422,14 @@ def main(argv: list[str] | None = None) -> int:
         page_ids, leads = immediate_brief(args.immediate_brief)
     else:
         page_ids = resolve_pages(args.pages)
-    fc = FirecrawlBudget(cap=args.firecrawl_credit_cap, allow=load_scrape_allow())
+    cap, note = effective_firecrawl_cap(args.firecrawl_credit_cap, args.firecrawl_key_from_env)
+    fc = FirecrawlBudget(cap=cap, allow=load_scrape_allow())
     report = watch(page_ids, args.state_dir, firecrawl=fc, max_workers=args.max_workers)
+    report["firecrawl"]["requested_cap"] = args.firecrawl_credit_cap
+    report["firecrawl"]["note"] = note
     report["census_leads"] = leads
     args.report_dir.mkdir(parents=True, exist_ok=True)
+    export_source_texts(report, args.state_dir, args.report_dir)
     (args.report_dir / "change_report.json").write_text(json.dumps(report, indent=1))
     (args.report_dir / "change_report.md").write_text(render_md(report))
     print(render_md(report).split("\n## Changes")[0].strip())

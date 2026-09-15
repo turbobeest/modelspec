@@ -5,8 +5,9 @@ When a source changes, a drafter proposes an edit, the validator gates it, and t
 reaches `main` only through a human-merged pull request. The loop edits Markdown, never
 the graph. Nothing auto-merges.
 
-Part 1 (this change) builds the watcher, the classifier, the drafter interface and the
-PR gate. It runs the watcher weekly in CI, with no secrets, no drafter call and no PRs.
+Part 1 built the watcher, the classifier, the drafter interface and the PR gate in dry
+run. Part 2 (live) runs the drafter, opens draft PRs and files dead-leaderboard issues in
+CI, and runs a 7-day daily trial. See "Part 2 (live)" below.
 
 ## Architecture
 
@@ -84,7 +85,7 @@ Both need reading scores and splits, which is the drafter's job. They surface as
 - It goes only through `scripts/benchmarks/fetch.py` `scrape()` with a `CreditGuard` whose
   budget is `--firecrawl-credit-cap`, and with `max_pages=1`. That reuses the MODEL-43
   truncation and cost guards.
-- The default cap is **0**, and CI part 1 pins it at 0. With cap 0 the Firecrawl module is
+- The default cap is **0**. CI passes **10** with `--firecrawl-key-from-env` (see Part 2). With cap 0 the Firecrawl module is
   never called, and no key is resolved. JS-host sources are then listed under
   `needs_js_not_rendered`, and their plain-HTTP reading is still watched.
 - When the guard raises `CreditBudgetExceeded`, the run stops using Firecrawl, finishes the
@@ -103,8 +104,8 @@ adds a URL outside the page's existing sources and the watched URL is rejected.
 `(prompt, page_text) -> revised full page`, which must include front matter.
 
 - `ClaudeDrafter` runs `claude -p --output-format text`, with the prompt on stdin. It
-  extracts the page between `<<<BEGIN PAGE>>>` and `<<<END PAGE>>>`. Part 1 runs it locally
-  only.
+  extracts the page between `<<<BEGIN PAGE>>>` and `<<<END PAGE>>>`. CI job 2 runs it with
+  `CLAUDE_CODE_OAUTH_TOKEN`.
 - `FakeDrafter`, selected by `--dry-run`, is deterministic. It adds or refreshes the watched
   source in `sources` with today's accessed date. Tests inject broken drafts through
   `transform`.
@@ -137,7 +138,7 @@ Freshness is therefore updated only on accepted drafts.
 ## PR gate
 
 `scripts/curation/propose.py`. The default is a dry run, which writes
-`benchmarks/_curation/reports/pr_bodies.md`. `--open-prs` is for human-run local use only.
+`benchmarks/_curation/reports/pr_bodies.md`. `--open-prs` is used by CI job 2 (or a human).
 
 **Batching: one branch and one draft PR per changed page**, named
 `curation/benchmarks/<id>-<date>`. Reviewers check a page against its sources, so per-page
@@ -167,17 +168,26 @@ Run `watch.py --immediate-brief <page-id|URL>`, or dispatch the workflow with
 - **A page id** watches that page now.
 - **A URL** watches every page that cites it, either exactly or as a URL prefix.
 - **A URL no page cites** is recorded under `census_leads` in the report. That is how a
-  newly released benchmark enters the census queues: a human or census agent adds it to
-  `benchmarks/_census`. Part 1 does not write the queue files.
+  newly released benchmark enters the census queues. CI job 2 appends it to
+  `benchmarks/_census/` in the curation PR (see Part 2, decision E).
 
 ## Scheduler
 
-`.github/workflows/curation-benchmarks.yml`. It triggers on a weekly `schedule` (Monday
-06:17 UTC) and on `workflow_dispatch` with three inputs: `axis` (benchmarks), `pages`
-(pilot | all | ids) and `immediate_brief`. It has `permissions: contents: read`, no
-secrets and a Firecrawl cap of 0. It restores the state cache, runs the watcher, writes the
-summary and uploads `benchmarks/_curation/reports/` as an artifact. Inputs reach the
-shell through `env`, never interpolated into `run`.
+`.github/workflows/curation-benchmarks.yml`. Triggers: `schedule` (weekly Monday 06:17 UTC,
+plus the temporary daily 06:47 UTC trial cron) and `workflow_dispatch` with `axis`, `pages`
+and `immediate_brief`. There is no `pull_request` trigger, so no secret reaches a PR or fork
+run. Workflow permissions are `contents: read`; concurrency is one run at a time with no
+cancel in progress. Inputs reach the shell through `env`, never interpolated into `run`.
+
+| Job | Runs when | Permissions | Secret (one step only) |
+| --- | --- | --- | --- |
+| `gate` | always | contents: read | none |
+| `watch` | gate says run | contents: read | `FIRECRAWL_API_KEY` in the watcher step |
+| `draft` | schedule or dispatch, and watch found draftable changes or census leads | contents: read | `CLAUDE_CODE_OAUTH_TOKEN` in the drafter step; `RESEARCH_PR_TOKEN` in the open-PRs step |
+| `issues` | watch found `leaderboard_dead` | contents: read, issues: write | `GITHUB_TOKEN` |
+
+`watch` uploads `benchmarks/_curation/reports/` (the change report plus each changed
+source's text under `sources/`). `draft` and `issues` download it.
 
 ### How MODEL-5 moves in later
 
@@ -193,37 +203,62 @@ This is one shared scheduler, parameterised by axis:
 4. The drafter and the PR gate are already axis-neutral. Each needs the model validator in
    place of `scripts/benchmarks/validate.py`.
 
-## Part 2 checklist for Jamie
+## Part 2 (live)
 
-1. **Drafter credential for CI.** Choose one:
-   - a Claude Code OAuth token: run `claude setup-token` locally and store it as the repo
-     secret `CLAUDE_CODE_OAUTH_TOKEN`
-   - an `ANTHROPIC_API_KEY` repo secret
+Part 2 turns on drafting, PRs and issues in CI. Jamie's decisions of 2026-09-15:
 
-   Scope it to this workflow's environment.
-2. **Turn on drafting and PRs.**
-   - Add a job after `watch` that runs `draft.py` for each change, then `propose.py --open-prs`.
-   - Grant that job only `contents: write` and `pull-requests: write`.
-   - Required checks will not run on PRs opened with `GITHUB_TOKEN`, as with MODEL-5. Install
-     a PAT or GitHub App token for the PR step.
-3. **Firecrawl cap value.** Pick a per-run cap. For example, 10 covers the 8 JS-host pilot
-   sources. Credits are 1000 per month, shared with the census. Store `FIRECRAWL_API_KEY` as
-   a secret and pass `--firecrawl-credit-cap N`.
-4. **7-day run plan.**
-   - Day 0: dispatch `pages=pilot` to baseline.
-   - Days 1 to 7: run daily by temporarily adding a daily cron (or dispatching by hand).
-   - Pass: 7 consecutive green runs, no-change pages produce no PR, and at least one real
-     change goes end to end to a merged PR with a dated source.
-   - Then revert to weekly and widen to `pages=all`.
-5. **Decisions still open.** Where census leads should be written, and whether a
-   `leaderboard_dead` should open an issue instead of a draft.
+- **A. Drafter credential.** Repo secret `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`),
+  exposed only in the drafter step's env. Claude Code is installed with
+  `npm install -g @anthropic-ai/claude-code@2.1.267` (pinned; npm's `stable` tag on 2026-09-15).
+  The call is unchanged: no tools, strict MCP config, no setting sources, no session
+  persistence, empty temp cwd. The env allowlist (`DRAFTER_ENV_KEYS`) is PATH, HOME, USER,
+  LOGNAME, `CLAUDE_CODE_OAUTH_TOKEN` and `ANTHROPIC_API_KEY`. It never carries
+  `FIRECRAWL_API_KEY`, `RESEARCH_PR_TOKEN` or `GH_TOKEN`. An empty token fails the step.
+- **B. PRs.** Repo secret `RESEARCH_PR_TOKEN`, only in the open-PRs step, so required checks
+  run. Checkout uses `persist-credentials: false`; the step sets a masked git
+  `http.extraheader` from the token after drafting and removes it at the end. One **draft**
+  PR per changed page, branch `curation/benchmarks/<id>-<date>`. A page that already has an
+  open `curation/benchmarks/<id>-*` PR, or a branch that already exists, is skipped, so daily
+  runs do not stack PRs. Nothing auto-merges: `automerge.yml` skips draft PRs, and
+  `propose.py` never marks a PR ready or merges. Marking a curation PR ready is a human act;
+  `automerge.yml` would then queue it like any agent PR, because MODEL-44 forbids prefix
+  rules in its `if` (a curation exclusion needs Jamie's call).
+- **C. Firecrawl.** Cap **10 credits per run** from repo secret `FIRECRAWL_API_KEY`, only for
+  `js_hosts.yaml` hosts on the census allowlist, through the `CreditGuard` path.
+  `--firecrawl-key-from-env` makes an empty secret fall back to plain HTTP only (effective
+  cap 0). The run does not fail; the report records `requested_cap`, `cap: 0` and the note
+  "FIRECRAWL_API_KEY is empty: plain HTTP only".
+- **D. 7-day run.** See below.
+- **E. Census leads.** `scripts/curation/ci.py append_census_leads` writes census.py's own
+  formats: one `candidates.jsonl` line (`name, slug, source, url, evidence, category_hint,
+  kind, priority`, source `curation:immediate_brief`, kind `lead`, priority 3) and one
+  `queue_p3.json` entry (`slug, name, aliases, sources, source_count, urls, harness,
+  category_hint, priority, downloads, score`). A URL already in `candidates.jsonl` or any
+  `queue_p*.json`, or whose slug is already queued, is skipped. The files ride in the first
+  page PR of the run, or in a `curation/benchmarks/census-leads-<date>` draft PR if no page
+  changed.
+- **F. Dead leaderboards.** `leaderboard_dead` never drafts. The `issues` job (GITHUB_TOKEN,
+  `issues: write`) opens one issue per page titled `curation: leaderboard dead for <id>`, with
+  a hidden `<!-- curation-leaderboard-dead:<id> -->` marker. If an open issue carries that
+  marker, the job comments on it instead.
+
+### 7-day trial and revert
+
+- Day 0: dispatch `pages=pilot` to baseline (or let 2026-09-16 be the baseline).
+- The daily cron `47 6 * * *` runs 2026-09-16..2026-09-23 inclusive: 8 runs, baseline plus 7.
+  During the window the weekly cron is skipped, so Monday 09-21 does not run twice.
+- **Guard: a date window in `scripts/curation/ci.py gate`**, not a run counter. An Actions
+  cache counter can be evicted (7 days unused, 10 GB limit) or raced, and a failed run would
+  shift the end. The window is deterministic, needs no state, and is unit-tested. After
+  09-23 the daily cron fires but the gate job skips everything in seconds.
+- **Revert to weekly after 7 runs:** delete the `47 6 * * *` cron line and the
+  `DAILY_CRON`/`TRIAL_*` window in `ci.py` (and its test), then widen to `pages=all`.
+- Pass: 7 consecutive green runs, no-change pages produce no PR, and at least one real change
+  goes end to end to a merged PR with a dated source.
 
 ## What is not built
 
-- Drafter and PR steps in CI (no credential).
-- Firecrawl use in CI (cap 0).
 - Automatic `saturation_crossing` and `dataset_change` detection.
-- Writing census queue files from leads.
 - Rendering `freshness.researched` on benchmark pages.
 - The `models` axis.
 - Any auto-merge, which is out of scope permanently.

@@ -1,12 +1,23 @@
 name: Curation watcher
 
-# MODEL-10 part 1: watcher and classifier only. No drafter call, no PR creation,
-# no secrets, Firecrawl cap 0. The axis input is where MODEL-5 (models) joins later;
-# see docs/curation-loop.md.
+# MODEL-10 part 2: watch and classify, then draft and open draft PRs, then file
+# dead-leaderboard issues. See docs/curation-loop.md. The axis input is where
+# MODEL-5 (models) joins later.
+#
+# Secrets, each in exactly one step's env:
+#   FIRECRAWL_API_KEY        watch step (cap 10; empty key -> plain HTTP only)
+#   CLAUDE_CODE_OAUTH_TOKEN  drafter step
+#   RESEARCH_PR_TOKEN        open-PRs step (so required checks run on curation PRs)
+#   GITHUB_TOKEN             issues job (issues: write)
+# No pull_request trigger: secrets never reach PR or fork runs.
 
 on:
   schedule:
-    - cron: '17 6 * * 1'   # weekly, Monday 06:17 UTC
+    - cron: '17 6 * * 1'   # weekly, Monday 06:17 UTC (skipped by the gate during the daily trial)
+    # 7-DAY TRIAL (decision D): daily run. The gate in scripts/curation/ci.py runs it only
+    # 2026-09-16..2026-09-23 (8 runs) and skips it afterwards. REVERT TO WEEKLY AFTER 7 RUNS:
+    # delete this cron line and the DAILY_CRON window in ci.py.
+    - cron: '47 6 * * *'
   workflow_dispatch:
     inputs:
       axis:
@@ -31,10 +42,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    name: Trial gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Decide whether this run proceeds
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          python3 scripts/curation/ci.py gate --event "$EVENT" --schedule "$SCHEDULE" | tee -a "$GITHUB_OUTPUT"
+
   watch:
     name: Watch sources
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+      has_work: ${{ steps.plan.outputs.has_work }}
+      has_dead: ${{ steps.plan.outputs.has_dead }}
     env:
       AXIS: ${{ inputs.axis || 'benchmarks' }}
       PAGES: ${{ inputs.pages || 'pilot' }}
@@ -42,6 +78,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -58,14 +96,20 @@ jobs:
           key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
           restore-keys: curation-state-${{ env.AXIS }}-
 
-      - name: Run watcher and classifier (plain HTTP, Firecrawl cap 0)
+      - name: Run watcher and classifier (Firecrawl cap 10, plain HTTP if no key)
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           if [ -n "$BRIEF" ]; then
-            python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 0
+            python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 10 --firecrawl-key-from-env
           else
-            python scripts/curation/watch.py --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 0
+            python scripts/curation/watch.py --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 10 --firecrawl-key-from-env
           fi
           cat benchmarks/_curation/reports/change_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Plan follow-up jobs
+        id: plan
+        run: python scripts/curation/ci.py plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
 
       - name: Upload change report
         if: always()
@@ -73,3 +117,111 @@ jobs:
         with:
           name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
           path: benchmarks/_curation/reports/
+
+  draft:
+    name: Draft and propose
+    needs: watch
+    if: >
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      needs.watch.outputs.has_work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code CLI (pinned)
+        run: npm install -g @anthropic-ai/claude-code@2.1.267
+
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: benchmarks/_curation/reports/
+
+      - name: Draft each change (claude -p, no tools, untrusted source)
+        if: needs.watch.outputs.has_changes == 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN is empty; run claude setup-token and store it as a repo secret."
+            exit 1
+          fi
+          python scripts/curation/ci.py draft --drafter claude --report benchmarks/_curation/reports/change_report.json
+
+      - name: Open draft PRs (one per changed page)
+        env:
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::RESEARCH_PR_TOKEN is empty."
+            exit 1
+          fi
+          [ -f benchmarks/_curation/reports/drafts.json ] || echo '[]' > benchmarks/_curation/reports/drafts.json
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $auth"
+          git config --local user.name "modelspec-curation"
+          git config --local user.email "curation@modelspec.dev"
+          git fetch --no-tags origin main
+          python scripts/curation/propose.py --manifest benchmarks/_curation/reports/drafts.json \
+            --leads benchmarks/_curation/reports/change_report.json --repo "$REPO" --open-prs
+          git config --local --unset-all http.https://github.com/.extraheader
+
+  issues:
+    name: Dead-leaderboard issues
+    needs: watch
+    if: needs.watch.outputs.has_dead == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: benchmarks/_curation/reports/
+
+      - name: Open or comment on one issue per page
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python scripts/curation/ci.py issues --apply --repo "$REPO" --report benchmarks/_curation/reports/change_report.json
