@@ -1,0 +1,12 @@
+{"t": 0.6583, "event": {"type": "system", "subtype": "init", "model": "claude-opus-5", "tools": ["Bash", "Write"]}}
+{"t": 1.3497, "event": {"type": "rate_limit_event"}}
+{"t": 3.1288, "event": {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "tu_1", "name": "Bash", "input": {"command": "ls"}}]}}}
+{"t": 3.2612, "event": {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "tu_1", "content": "stub.py stub_test.py"}]}}}
+{"t": 10.244, "event": {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "tu_2", "name": "Write", "input": {"file_path": "stub.py"}}]}}}
+{"t": 10.2579, "event": {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "tu_2", "content": "ok"}]}}}
+{"t": 10.5761, "event": {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "tu_3", "name": "Bash", "input": {"command": "python -m unittest"}}]}}}
+{"t": 10.6801, "event": {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "tu_3", "content": "OK"}]}}}
+{"t": 13.0424, "event": {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "tu_4", "name": "Bash", "input": {"command": "python -m unittest"}}]}}}
+{"t": 13.1352, "event": {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "tu_4", "content": "OK"}]}}}
+{"t": 18.6579, "event": {"type": "assistant", "message": {"content": [{"type": "text", "text": "Done."}]}}}
+{"t": 18.6616, "event": {"type": "result", "subtype": "success", "is_error": false, "duration_ms": 18020, "duration_api_ms": 18393, "num_turns": 5, "usage": {"input_tokens": 10, "cache_creation_input_tokens": 836, "cache_read_input_tokens": 83000, "output_tokens": 1141}}}

@@ -32,3 +32,6 @@ benchmarks/_census/ranking_evidence/raw/
 benchmarks/_curation/state/
 benchmarks/_curation/reports/
 benchmarks/_curation/drafts/
+
+# MODEL-60 raw CLI streams are never committed
+benchmarks/_latency/raw/
