@@ -1,4 +1,4 @@
-"""MODEL-10 part 1: curation watcher, classifier, drafter and PR gate. No network, no git, no gh."""
+"""MODEL-10 parts 1 and 2: curation watcher, classifier, drafter and PR gate. No network, no git, no gh."""
 from __future__ import annotations
 
 import json
@@ -263,19 +263,208 @@ def test_draft_adding_unrelated_url_rejected(bench, tmp_path):
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "curation-benchmarks.yml"
 
 
-def test_workflow_has_no_secrets_and_no_pr_step():
-    text = WORKFLOW.read_text()
-    wf = yaml.safe_load(text)
-    triggers = wf[True] if True in wf else wf["on"]  # PyYAML reads `on` as True
-    assert "schedule" in triggers and "workflow_dispatch" in triggers
+def _wf():
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    return wf, (wf[True] if True in wf else wf["on"])  # PyYAML reads `on` as True
+
+
+def _steps_with(wf, needle):
+    return [(j, s) for j, job in wf["jobs"].items() for s in job["steps"] if needle in json.dumps(s)]
+
+
+def test_workflow_triggers_and_jobs():
+    wf, triggers = _wf()
+    assert set(triggers) == {"schedule", "workflow_dispatch"}  # never pull_request
     assert {"axis", "pages", "immediate_brief"} <= set(triggers["workflow_dispatch"]["inputs"])
     assert wf["permissions"] == {"contents": "read"}
-    assert "secrets." not in text and "FIRECRAWL_API_KEY" not in text
-    runs = "\n".join(s.get("run", "") for j in wf["jobs"].values() for s in j["steps"])
-    for banned in ("gh pr", "propose.py", "draft.py", "git push", "claude"):
-        assert banned not in runs
-    assert "--firecrawl-credit-cap 0" in runs
-    assert "daily-research" not in text
+    assert wf["concurrency"]["cancel-in-progress"] is False
+    assert {"gate", "watch", "draft", "issues"} <= set(wf["jobs"])
+    d = wf["jobs"]["draft"]
+    assert "pull_request" not in d["if"] and "github.event_name == 'schedule'" in d["if"]
+    assert "workflow_dispatch" in d["if"] and "has_work" in d["if"]
+    assert d["permissions"] == {"contents": "read"}
+    assert "daily-research" not in WORKFLOW.read_text()
+
+
+def test_oauth_token_only_in_drafter_step():
+    wf, _ = _wf()
+    hits = _steps_with(wf, "CLAUDE_CODE_OAUTH_TOKEN")
+    assert len(hits) == 1
+    job, step = hits[0]
+    assert job == "draft" and step["env"]["CLAUDE_CODE_OAUTH_TOKEN"] == "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+    assert "--drafter claude" in step["run"]
+    install = next(s for s in wf["jobs"]["draft"]["steps"] if "claude-code" in s.get("run", ""))
+    import re as _re
+    assert _re.search(r"@anthropic-ai/claude-code@\d+\.\d+\.\d+\b", install["run"])
+
+
+def test_pr_creation_uses_research_pr_token():
+    wf, _ = _wf()
+    hits = _steps_with(wf, "RESEARCH_PR_TOKEN")
+    assert len(hits) == 1
+    job, step = hits[0]
+    assert job == "draft" and step["env"]["GH_TOKEN"] == "${{ secrets.RESEARCH_PR_TOKEN }}"
+    assert "propose.py" in step["run"] and "--open-prs" in step["run"]
+    assert "::add-mask::" in step["run"]
+    for s in wf["jobs"]["draft"]["steps"]:
+        if s.get("uses", "").startswith("actions/checkout"):
+            assert s["with"]["persist-credentials"] is False
+
+
+def test_issues_job_uses_github_token():
+    wf, _ = _wf()
+    job = wf["jobs"]["issues"]
+    assert job["permissions"]["issues"] == "write" and "has_dead" in job["if"]
+    env = json.dumps([s.get("env", {}) for s in job["steps"]])
+    assert "secrets.GITHUB_TOKEN" in env and "RESEARCH_PR_TOKEN" not in env
+    assert "issues" not in json.dumps(wf["jobs"]["draft"].get("permissions"))
+
+
+def test_firecrawl_cap_ten_with_env_fallback():
+    wf, _ = _wf()
+    hits = _steps_with(wf, "FIRECRAWL_API_KEY")
+    assert len(hits) == 1 and hits[0][0] == "watch"
+    run = hits[0][1]["run"]
+    assert run.count("--firecrawl-credit-cap 10") == 2 and run.count("--firecrawl-key-from-env") == 2
+    assert watch.effective_firecrawl_cap(10, True, {"FIRECRAWL_API_KEY": ""})[0] == 0
+    cap, note = watch.effective_firecrawl_cap(10, True, {})
+    assert cap == 0 and "plain HTTP only" in note
+    assert watch.effective_firecrawl_cap(10, True, {"FIRECRAWL_API_KEY": "fc-x"}) == (10, "")
+
+
+def test_empty_firecrawl_key_never_calls_firecrawl(monkeypatch, tmp_path, bench):
+    from scripts.benchmarks import fetch as fc
+    monkeypatch.setattr(fc, "scrape", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no firecrawl")))
+    monkeypatch.delenv("FIRECRAWL_API_KEY", raising=False)
+    monkeypatch.setattr(watch, "http_fetch", fake_fetcher({}))
+    monkeypatch.setattr(watch, "load_scrape_allow", lambda: {"artificialanalysis.ai"})
+    rep = tmp_path / "rep"
+    assert watch.main(["--pages", PAGE_ID, "--state-dir", str(tmp_path / "s"), "--report-dir", str(rep),
+                       "--firecrawl-credit-cap", "10", "--firecrawl-key-from-env"]) == 0
+    r = json.loads((rep / "change_report.json").read_text())
+    assert r["firecrawl"]["cap"] == 0 and r["firecrawl"]["calls"] == 0 and r["firecrawl"]["requested_cap"] == 10
+    assert "plain HTTP only" in (rep / "change_report.md").read_text()
+
+
+def test_daily_trial_guard():
+    from datetime import date
+    from scripts.curation import ci
+    wf, triggers = _wf()
+    crons = [c["cron"] for c in triggers["schedule"]]
+    assert ci.DAILY_CRON in crons and ci.WEEKLY_CRON in crons
+    assert "REVERT TO WEEKLY AFTER 7 RUNS" in WORKFLOW.read_text()
+    assert wf["jobs"]["watch"]["needs"] == "gate" and "needs.gate.outputs.run" in wf["jobs"]["watch"]["if"]
+    daily = [d for d in (date(2026, 9, 1 + i) for i in range(29)) if ci.gate("schedule", ci.DAILY_CRON, d)[0]]
+    assert len(daily) == 8 and daily[0] == date(2026, 9, 16) and daily[-1] == date(2026, 9, 23)
+    assert not ci.gate("schedule", ci.WEEKLY_CRON, date(2026, 9, 21))[0]  # a Monday inside the trial
+    assert ci.gate("schedule", ci.WEEKLY_CRON, date(2026, 9, 28))[0]
+    assert ci.gate("workflow_dispatch", "", date(2026, 12, 1))[0]
+
+
+def test_drafter_env_allowlist():
+    assert "CLAUDE_CODE_OAUTH_TOKEN" in draft.DRAFTER_ENV_KEYS
+    for banned in ("FIRECRAWL_API_KEY", "RESEARCH_PR_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
+        assert banned not in draft.DRAFTER_ENV_KEYS
+
+
+def test_census_leads_appended_in_census_format_and_deduped(tmp_path):
+    from scripts.curation import ci
+    c = tmp_path / "_census"
+    c.mkdir()
+    real = (REPO_ROOT / "benchmarks/_census/candidates.jsonl").read_text().splitlines()[-1]
+    (c / "candidates.jsonl").write_text(real + "\n")
+    (c / "queue_p3.json").write_text(json.dumps([{"slug": "old", "name": "old", "urls": ["https://seen.org/x"]}]))
+    (c / "queue_p2.json").write_text("[]")
+    urls = ["https://example.org/boards/NewBench-2", "https://example.org/boards/NewBench-2",
+            "https://seen.org/x", json.loads(real)["url"]]
+    assert ci.append_census_leads(urls, c, "2026-09-16") == ["https://example.org/boards/NewBench-2"]
+    assert ci.append_census_leads(urls, c, "2026-09-17") == []  # rerun adds nothing
+    lines = (c / "candidates.jsonl").read_text().splitlines()
+    assert len(lines) == 2 and lines[0] == real
+    lead = json.loads(lines[1])
+    assert list(lead) == list(json.loads(real))  # same keys, same order as census.py writes
+    assert lead["slug"] == "newbench_2" and lead["kind"] == "lead"
+    q3 = json.loads((c / "queue_p3.json").read_text())
+    real_q3 = json.loads((REPO_ROOT / "benchmarks/_census/queue_p3.json").read_text())[-1]
+    assert len(q3) == 2 and list(q3[1]) == list(real_q3)
+
+
+def _dead_report():
+    return {"run_at": "2026-09-16T06:47:00+00:00", "census_leads": [],
+            "changes": [{"url": "https://a.org", "pages": [{"page": "hle", "role": "source"}],
+                         "kinds": [{"kind": "new_version", "evidence": "v2"}]}],
+            "failures": [{"url": LB, "pages": [{"page": PAGE_ID, "role": "leaderboard"}], "status": 404,
+                          "kinds": [{"kind": "leaderboard_dead", "evidence": "HTTP 404"}]}]}
+
+
+def test_dead_leaderboard_issue_not_draft(bench, tmp_path):
+    from scripts.curation import ci
+    rep = _dead_report()
+    rep["changes"].append({"url": LB, "pages": [{"page": PAGE_ID, "role": "leaderboard"}],
+                           "kinds": [{"kind": "leaderboard_dead", "evidence": "HTTP 410"}]})
+    assert ci.plan(rep) == {"has_changes": True, "has_work": True, "has_dead": True}
+    assert all(PAGE_ID not in json.dumps(c["pages"]) for c in ci.draftable(rep))
+    payloads = ci.issue_payloads(rep)
+    assert [p["page"] for p in payloads] == [PAGE_ID]
+    assert ci.marker(PAGE_ID) in payloads[0]["body"] and "HTTP 404" in payloads[0]["body"]
+
+    class Fake:
+        def __init__(self, existing):
+            self.existing, self.created, self.comments = existing, [], []
+
+        def open_issues(self):
+            return list(self.existing)
+
+        def create(self, title, body):
+            self.created.append(title)
+
+        def comment(self, number, body):
+            self.comments.append(number)
+
+    fresh = Fake([{"number": 3, "body": "unrelated"}])
+    assert ci.file_issues(payloads, fresh) == [(PAGE_ID, "created")] and not fresh.comments
+    dup = Fake([{"number": 7, "body": ci.marker(PAGE_ID) + "\nold"}])
+    assert ci.file_issues(payloads + payloads, dup) == [(PAGE_ID, "commented #7")] * 2
+    assert not dup.created and dup.comments == [7, 7]
+
+
+def test_ci_draft_uses_source_text_and_skips_dead(bench, tmp_path):
+    from scripts.curation import ci
+    rep = {"changes": [{"url": LB, "pages": [{"page": PAGE_ID, "role": "leaderboard"}],
+                        "kinds": [{"kind": "leaderboard_movement", "evidence": "3"}], "source_text": "sources/a.txt"}],
+           "failures": [], "census_leads": []}
+    (tmp_path / "sources").mkdir()
+    (tmp_path / "sources/a.txt").write_text("text")
+    m = ci.draft_all(rep, tmp_path, "fake", bench_dir=bench, out_dir=tmp_path / "d", today="2026-09-16")
+    assert len(m) == 1 and m[0]["accepted"] and m[0]["page"] == PAGE_ID
+
+
+def test_ci_draft_cli_defaults_to_fake(monkeypatch, tmp_path):
+    from scripts.curation import ci
+    monkeypatch.setattr(draft.ClaudeDrafter, "__call__", lambda *a: (_ for _ in ()).throw(AssertionError))
+    rp = tmp_path / "change_report.json"
+    rp.write_text(json.dumps({"changes": [], "failures": []}))
+    assert ci.main(["draft", "--report", str(rp)]) == 0
+    assert ci.main(["issues", "--report", str(rp)]) == 0  # dry run: no gh
+
+
+def test_open_pr_dedupe_by_page_prefix():
+    heads = {"curation/benchmarks/hle-2026-09-16"}
+    assert propose.page_has_open_pr("hle", heads) and not propose.page_has_open_pr("hl", heads)
+
+
+def test_curation_prs_cannot_auto_merge():
+    """Curation PRs are opened as drafts; automerge.yml's job never runs for a draft PR."""
+    sys.path.insert(0, str(REPO_ROOT / "tests"))
+    import test_automerge_workflow as am
+    cond = am._enable_job(am._workflow())["if"]
+    ctx = am._pr_context(propose.branch_name("hle", "2026-09-16"))
+    ctx["github"]["event"]["pull_request"]["draft"] = True
+    assert am._job_runs(cond, ctx) is False
+    src = Path(propose.__file__).read_text()
+    create = src[src.index('["gh", "pr", "create"'):]
+    assert '"--draft"' in create.split("check=True")[0]
+    assert "gh pr merge" not in src and "--auto" not in src and "gh pr ready" not in src
 
 
 def test_pilot_is_deterministic_and_recorded():
