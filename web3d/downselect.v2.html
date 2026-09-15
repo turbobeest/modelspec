@@ -252,7 +252,13 @@ the server engine: filter, score, rank, explain.</p>
 
     pool = pool.filter(function (c) {
       if (s.open && !c.open_weights) { dropped.open++; return false; }
-      if (s.hardware && !(c.fits && c.fits[s.hardware])) { dropped.hardware++; return false; }
+      // c.fits[id] is present (possibly null) for every model whose weights
+      // fit on that device; a truthy check on the value would also drop a
+      // non-token model whose decode speed is null even though it fits
+      // (MODEL-53). Key presence, not value truthiness, is "fits".
+      if (s.hardware && !(c.fits && Object.prototype.hasOwnProperty.call(c.fits, s.hardware))) {
+        dropped.hardware++; return false;
+      }
       if (s.context && !(c.context_window >= Number(s.context))) { dropped.context++; return false; }
       if (s.cost !== "" && !(c.cost_input !== null && c.cost_input <= Number(s.cost))) {
         dropped.cost++; return false;
@@ -321,8 +327,11 @@ the server engine: filter, score, rank, explain.</p>
         "</span> · coverage " + Math.round(r.coverage * 100) + "%</div>";
 
       var speed = "";
-      if (state.hardware && c.fits && c.fits[state.hardware]) {
-        speed = '<span class="pill">~' + Math.round(c.fits[state.hardware]) + ' tok/s predicted</span>';
+      if (state.hardware && c.fits && Object.prototype.hasOwnProperty.call(c.fits, state.hardware)) {
+        var tps = c.fits[state.hardware];
+        speed = tps === null
+          ? '<span class="pill">fits · no decode estimate</span>'
+          : '<span class="pill">~' + Math.round(tps) + ' tok/s predicted</span>';
       }
       var openPill = c.open_weights ? '<span class="pill">open weights</span>' : "";
       var stale = c.scores_as_of ? '<span class="pill">scores ' + c.scores_as_of + "</span>" : "";

@@ -182,6 +182,19 @@ def test_wizard_discloses_per_result_evidence_basis() -> None:
     assert "<!-- catalogue-freshness -->" in src
 
 
+def test_wizard_hardware_filter_checks_key_presence_not_truthiness() -> None:
+    """MODEL-53: c.fits[id] can be `null` for a non-token model that fits.
+
+    `!(c.fits && c.fits[s.hardware])` would treat that the same as "does not
+    fit" and silently drop it from a hardware-filtered wizard search. The
+    filter must check whether the key is present, not whether its value is
+    truthy.
+    """
+    src = (REPO_ROOT / "web3d/downselect.v2.html").read_text(encoding="utf-8")
+    assert "hasOwnProperty" in src
+    assert "!(c.fits && c.fits[s.hardware])" not in src
+
+
 def test_landing_injects_catalogue_freshness() -> None:
     html = builder.wire_landing(
         '<nav><a href="https://github.com/turbobeest/modelspec">GitHub</a></nav>'

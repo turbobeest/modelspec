@@ -200,6 +200,52 @@ TOKEN_GENERATING_PIPELINE_TAGS: frozenset[str] = frozenset({
     "table-question-answering",
 })
 
+#: HF `library_name` values that unambiguously imply a non-token model, used
+#: only when `pipeline_tag` itself is empty. An empty pipeline_tag is HF
+#: telling us nothing, not evidence of a chat model — but a card whose HF
+#: repo actually carries a stated `pipeline_tag` is stronger evidence than
+#: this library-level guess, so this is never consulted otherwise. See
+#: MODEL-53 review: granite-timeseries-tspulse-r1 (library_name
+#: "granite-tsfm") had no pipeline_tag and was defaulting to llm-reasoning.
+NON_TOKEN_LIBRARY_TYPE_MAP: dict[str, ModelType] = {
+    "granite-tsfm": ModelType.TIME_SERIES,
+    "timm": ModelType.VISION_ENCODER,
+    "diffusers": ModelType.IMAGE_GENERATION,
+    "sentence-transformers": ModelType.EMBEDDING_TEXT,
+}
+
+#: Substrings of HF `tags` that unambiguously imply a non-token model. Used
+#: as a second check, after `library_name`, because the common libraries
+#: (`transformers` above all) host both LLMs and non-token encoders — the
+#: library alone does not disambiguate, but a specific architecture tag does.
+#: Order matters: the first match wins.
+NON_TOKEN_TAG_TYPE_MAP: tuple[tuple[str, ModelType], ...] = (
+    ("time-series", ModelType.TIME_SERIES),
+    ("time series", ModelType.TIME_SERIES),
+    ("bert", ModelType.TEXT_ENCODER),
+    ("layoutlmv3", ModelType.TEXT_ENCODER),
+    ("stable-diffusion", ModelType.IMAGE_GENERATION),
+)
+
+
+def _non_token_type_from_evidence(hf_model: dict) -> ModelType | None:
+    """Classify a card with no pipeline_tag from `library_name`/`tags` alone.
+
+    Never reads the model id or display name — that is the guess this
+    function exists to replace. Returns None when neither source has
+    anything unambiguous to say, which keeps a genuine LLM with no
+    pipeline_tag on the LLM_CHAT default rather than being reclassified by
+    a coincidental tag.
+    """
+    library = str(hf_model.get("library_name") or "").lower()
+    if library in NON_TOKEN_LIBRARY_TYPE_MAP:
+        return NON_TOKEN_LIBRARY_TYPE_MAP[library]
+    tags = [str(t).lower() for t in (hf_model.get("tags") or [])]
+    for needle, model_type in NON_TOKEN_TAG_TYPE_MAP:
+        if any(needle in tag for tag in tags):
+            return model_type
+    return None
+
 
 def determine_model_type(hf_model: dict) -> ModelType | None:
     """Determine ModelType from HuggingFace metadata.
@@ -212,6 +258,17 @@ def determine_model_type(hf_model: dict) -> ModelType | None:
     name = (hf_model.get("id", "") + " " + hf_model.get("modelId", "")).lower()
     pipeline = hf_model.get("pipeline_tag", "")
     tags = [t.lower() for t in hf_model.get("tags", [])]
+
+    # An empty pipeline_tag is HF telling us nothing — not evidence that a
+    # card chats. Checked first, ahead of every name-keyword heuristic below:
+    # a name substring like "-r1" must not out-rank library_name/tags evidence
+    # (MODEL-53 review: granite-timeseries-tspulse-r1 has no pipeline_tag and
+    # was being caught by the reasoning keyword "-r1" before it ever reached
+    # a pipeline_tag check).
+    if not pipeline:
+        evidence_type = _non_token_type_from_evidence(hf_model)
+        if evidence_type is not None:
+            return evidence_type
 
     # Safety / guard models
     if any(kw in name for kw in ("guard", "shield", "safeguard", "safety-classifier")):
@@ -295,7 +352,8 @@ def determine_model_type(hf_model: dict) -> ModelType | None:
         )
         return None
 
-    # Default: an empty or genuinely token-generating pipeline_tag.
+    # Default: a genuinely token-generating pipeline_tag, or an empty one
+    # with no library_name/tags evidence of a non-token model (checked above).
     return ModelType.LLM_CHAT
 
 
