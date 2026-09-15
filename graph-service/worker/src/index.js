@@ -1,7 +1,12 @@
 // benchgraph graph Worker (MODEL-9). Read-only router in front of the FalkorDB
 // query container. It is scoped to /graph/* and is NOT the MODEL-3 site/API
 // Worker: the sites stay static on Pages.
-import { Container, getContainer } from "@cloudflare/containers";
+import { Container, ContainerProxy, getContainer } from "@cloudflare/containers";
+import { EXPORT_HOST, serveExport } from "./export.js";
+
+// Required for outbound interception: the container's requests to EXPORT_HOST
+// are served from the EXPORTS R2 binding (see export.js).
+export { ContainerProxy };
 
 // Must match graph-service/service.py ALLOWED (tests/test_benchgraph_graph.py checks).
 const ALLOWED = new Set([
@@ -13,6 +18,7 @@ const ALLOWED = new Set([
 const MAX_QUERY_LENGTH = 512;
 
 export class GraphContainer extends Container {
+  static outboundByHost = { [EXPORT_HOST]: serveExport };
   defaultPort = 8080;
   // Idle containers stop; the next request cold-starts and reloads the export.
   sleepAfter = "15m";
