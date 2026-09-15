@@ -1,0 +1,14 @@
+{
+  "name": "benchgraph-graph-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "0.3.7"
+  },
+  "devDependencies": {
+    "wrangler": "4.94.0"
+  }
+}

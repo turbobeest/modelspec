@@ -1,0 +1,96 @@
+name: Benchgraph graph
+
+# MODEL-9 part 1. Builds the FalkorDB graph export from benchmarks/*.md, proves
+# the round trip and the named queries against a real FalkorDB, smoke-tests the
+# query container, and keeps the export as a workflow artifact.
+# No R2 upload and no deploy here: that is part 2 and needs Jamie's account.
+# This is not a required check; `Run pytest` and `Build both sites` are.
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchgraph-graph-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  graph:
+    name: Benchgraph graph export
+    runs-on: ubuntu-latest
+    services:
+      falkordb:
+        # Keep in step with FALKORDB_IMAGE in pipeline/benchgraph_graph.py
+        # and FROM in graph-service/Dockerfile.
+        image: falkordb/falkordb:v4.20.1
+        env:
+          BROWSER: "0"
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      BENCHGRAPH_FALKORDB_HOST: localhost
+      BENCHGRAPH_FALKORDB_PORT: "6379"
+      # Turn "FalkorDB unreachable" from a skip into a failure.
+      BENCHGRAPH_REQUIRE_FALKORDB: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.5" \
+            "PyYAML==6.0.3" \
+            "FalkorDB==1.7.1" \
+            "pytest==9.1.1"
+
+      - name: Ingest, round-trip and query tests
+        run: python -m pytest -q tests/test_benchgraph_graph.py
+
+      - name: Build and verify the export
+        run: |
+          python -m pipeline.benchgraph_graph export --out dist/benchgraph-graph --verify | tee export-summary.json
+          {
+            echo '### Benchgraph graph export'
+            echo
+            echo '```json'
+            cat export-summary.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke-test the query container
+        run: |
+          docker build -f graph-service/Dockerfile -t benchgraph-graph:ci .
+          docker run -d --name graph -p 8080:8080 \
+            -v "$PWD/dist/benchgraph-graph:/export:ro" -e GRAPH_EXPORT_URL=/export \
+            benchgraph-graph:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/graph/health && break
+            sleep 2
+          done
+          curl -fsS "http://localhost:8080/graph/benchmarks_still_separating?capability=coding&limit=3"
+          test "$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:8080/graph/cypher?q=MATCH')" = 404
+          docker logs graph
+          docker rm -f graph
+
+      - name: Upload the export
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchgraph-graph-${{ github.sha }}
+          path: dist/benchgraph-graph/
+          if-no-files-found: error
+          retention-days: 30
