@@ -394,6 +394,57 @@ def evidence_section(model: Model) -> str:
                                    "Source kind", ""], rows))
 
 
+GUIDE_SECTIONS = (
+    ("prompt_shape", "Prompt shape"),
+    ("system_message", "System message"),
+    ("reasoning_and_tools", "Reasoning and tools"),
+    ("formatting", "Formatting"),
+    ("failure_modes", "Failure modes"),
+    ("retry_advice", "Retry advice"),
+)
+
+
+def authoring_guide_section(front: dict[str, Any]) -> str:
+    """The card's dated, sourced authoring guide, or nothing when it has none.
+
+    Styling reuses existing classes so unguided pages stay byte-identical:
+    ``current`` wears the ``active`` pill, ``stale`` the ``unverified`` pill
+    plus a ``notice``.
+    """
+    guide = front.get("authoring_guide")
+    if not isinstance(guide, dict):
+        return ""
+    applies = guide.get("applies_to") if isinstance(guide.get("applies_to"), dict) else {}
+    status = str(guide.get("status") or "")
+    stale = status == "stale"
+    pill = "unverified" if stale else "active"
+    header = (f'<p><span class="pill {pill}">{esc(status or "unknown")}</span> '
+              f'reviewed {esc(guide.get("as_of"))} &middot; applies to '
+              f'<span class="mono">{esc(applies.get("version"))}</span></p>')
+    if stale:
+        header += ('<div class="notice">This guide was written for an earlier version '
+                   'and needs re-review.</div>')
+    sections = guide.get("sections") if isinstance(guide.get("sections"), dict) else {}
+    parts = []
+    for key, label in GUIDE_SECTIONS:
+        claims = sections.get(key) or []
+        items = []
+        for claim in claims:
+            if not isinstance(claim, dict):
+                continue
+            sources = [
+                f'{_safe_link(s.get("url"), s.get("title"))} '
+                f'<small>{esc(s.get("accessed"))} &middot; {esc(s.get("kind"))}</small>'
+                for s in (claim.get("sources") or []) if isinstance(s, dict)]
+            items.append(f'<li>{esc(claim.get("text"))}'
+                         + (f'<br><small>Sources:</small> {"; ".join(sources)}' if sources else "")
+                         + "</li>")
+        if items:
+            parts.append(f"<h3>{esc(label)}</h3><ul>{''.join(items)}</ul>")
+    return _section("Authoring guide", header + "".join(parts),
+                    "How to prompt this model, per its provider's guidance. Every claim is sourced and dated.")
+
+
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None,
                pages: Collection[str] | None = None) -> str:
@@ -452,7 +503,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <p class="lede">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
 <div class="panel"><table>{id_rows}</table></div>
 {unresearched}
-{sections}
+{sections}{authoring_guide_section(front)}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
 {stale if scores else '<p class="lede">This card reports no benchmark scores yet.</p>'}

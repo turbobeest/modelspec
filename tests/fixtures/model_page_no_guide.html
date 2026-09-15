@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiny — ModelSpec</title>
+<meta name="description" content="Tiny by acme: benchmark scores, lineage, platforms and hardware fit, with the date on every number.">
+<link rel="canonical" href="https://modelspec.dev/m/acme/tiny/">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tiny — ModelSpec">
+<meta property="og:description" content="Tiny by acme: benchmark scores, lineage, platforms and hardware fit, with the date on every number.">
+<meta property="og:url" content="https://modelspec.dev/m/acme/tiny/">
+<meta name="generator" content="modelspec-pipeline abc">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#f3f4f6;--mute:#9aa3b2;--dim:#5b6472;--ground:#000;--panel:#0b0e14;
+--line:#1f2430;--amber:#f5b342;--good:#34d399;--warn:#fbbf24;--off:#6b7280}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--ground);color:var(--ink);
+font-family:"Space Grotesk",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--amber)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 8px;
+border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap;gap:12px}
+nav .brand{font-weight:700;font-size:18px;letter-spacing:-.02em;text-decoration:none}
+nav .links{display:flex;gap:20px;font-size:15px;flex-wrap:wrap}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--ink)}
+h1{font-size:34px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
+h2{font-size:21px;margin:34px 0 10px;letter-spacing:-.01em}
+h3{font-size:17px;margin:22px 0 6px}
+p{margin:0 0 12px}
+.lede{color:var(--mute);font-size:18px;margin-bottom:18px}
+.meta{color:var(--dim);font-size:14px;font-family:"JetBrains Mono",ui-monospace,monospace}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:15px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
+border:1px solid var(--line);color:var(--mute);margin-right:6px;font-family:"JetBrains Mono",ui-monospace,monospace}
+.pill.active{color:var(--good);border-color:#14532d}
+.pill.unverified{color:var(--warn);border-color:#422006}
+.pill.alias{color:var(--mute)}
+.pill.unassessed{color:var(--off)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+.card a{text-decoration:none;font-weight:700}
+.card .sub{color:var(--dim);font-size:13px;margin-top:3px}
+ul.cols{columns:3;column-gap:26px;padding-left:18px}
+@media(max-width:800px){ul.cols{columns:1}h1{font-size:27px}}
+footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
+.notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:14px 0;font-size:15px}
+.notice.ok{border-left-color:var(--good);background:#04120c}
+</style></head>
+<body><div class="wrap">
+<nav><a class="brand" href="/">ModelSpec</a><div class="links"><a href="/downselect/">Downselect</a><a href="/graph/">Graph</a><a href="/models/">Models</a><a href="/providers/">Providers</a><a href="https://benchgraph.dev/benchmarks/">Benchmarks</a><a href="/api/index.json">API</a></div></nav>
+
+<h1>Tiny</h1>
+<p class="lede">acme &middot; <span class="mono">acme/tiny</span></p>
+<div class="panel"><table><tr><th>Provider</th><td>acme</td></tr><tr><th>Family</th><td>tiny</td></tr><tr><th>Type</th><td>llm</td></tr><tr><th>Status</th><td>active</td></tr></table></div>
+
+
+
+<h2>Reported benchmark scores</h2>
+<div class="notice">These scores carry one collection date for the whole card (None) and a source list rather than a source per score, so they cannot be attributed individually. They are shown as reported and are not verified evidence. Benchmark pages carry the reviewed, dated evidence where it exists.</div>
+<div class="scroll"><table>
+<thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
+<tbody><tr><td>mmlu</td><td><span class="pill unassessed">unassessed</span></td><td class="num">80.0</td></tr></tbody></table></div>
+<h2>Data</h2>
+<p><a href="/api/models/acme/tiny.json">This card as JSON</a> &middot;
+<a href="/graph/">See it in the graph</a> &middot;
+<a href="https://github.com/turbobeest/modelspec/blob/main/models/acme/tiny.md">Edit on GitHub</a></p>
+
+<footer>
+<p>Built 2026-09-15T00:00:00Z from commit <span class="mono">abc</span>.
+Eligibility as of 2026-09-15.</p>
+<p><a href="https://github.com/turbobeest/modelspec">Source and data on GitHub</a> &middot;
+Data <span class="mono">CC BY-SA</span>, code <span class="mono">MIT</span>.</p>
+</footer></div></body></html>
