@@ -8,7 +8,7 @@ version: ''
 release_date: '2023-06-21'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: null
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/stabilityai/sdxl-vae (config.json _class_name=AutoencoderKL (diffusion VAE component); no existing ModelType fits); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''

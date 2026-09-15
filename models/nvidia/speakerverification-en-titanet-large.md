@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-07-15'
 last_updated: ''
 status: active
-model_type: llm-chat
+model_type: null
 model_subtypes: []
 tags: []
 pipeline_tag: ''
@@ -642,7 +642,7 @@ availability:
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'model_type from https://huggingface.co/nvidia/speakerverification_en_titanet_large (library_name=nemo, tags speaker-verification/speaker-recognition; no existing ModelType fits); pipeline_tag empty; read 2026-09-14'
   modelscope:
     available: false
     model_id: ''
