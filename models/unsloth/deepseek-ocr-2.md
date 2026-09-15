@@ -43,8 +43,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors
 lineage:
-  base_model: deepseek-ai/DeepSeek-OCR-2
-  base_model_relation: null
+  base_model: deepseek/deepseek-ocr-2
+  base_model_relation: repackaged
   merge_models: []
   adapter_type: ''
   adapter_rank: null

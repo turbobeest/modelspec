@@ -46,8 +46,8 @@ architecture:
   vae_type: ''
   total_parameters_source: model_card_published:property_table
 lineage:
-  base_model: google/gemma-4-26B-A4B-it
-  base_model_relation: null
+  base_model: google/gemma-4-26b-a4b-it
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null

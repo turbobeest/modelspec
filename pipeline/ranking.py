@@ -62,6 +62,10 @@ class Candidate:
     #: the card's undated flat block. A ranking is only as good as the weakest
     #: evidence under it, so this is tracked per benchmark, not per model.
     verified_benchmarks: set[str] = field(default_factory=set)
+    #: Canonical model id when this card re-hosts the same weights
+    #: (`lineage.base_model_relation: repackaged`). Default fit pools and the
+    #: featured rankings leave these out so one weight set has one id (MODEL-54).
+    rehost_of: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -73,7 +77,22 @@ class Candidate:
             "cost_input": self.cost_input, "context_window": self.context_window,
             "open_weights": self.open_weights, "scores_as_of": self.scores_as_of,
             "fits": self.fits, "verified_benchmarks": sorted(self.verified_benchmarks),
+            "rehost_of": self.rehost_of,
         }
+
+
+def rehost_of(card: Any) -> str | None:
+    """The canonical id a repackaged card re-hosts, or None.
+
+    Only `repackaged` counts. A quantised or finetuned derivative has different
+    weights, fits differently, and stays in the pool.
+    """
+    lineage = card.lineage
+    relation = lineage.base_model_relation
+    value = getattr(relation, "value", relation)
+    if value == "repackaged" and lineage.base_model:
+        return lineage.base_model
+    return None
 
 
 def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
@@ -121,6 +140,7 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             open_weights=bool(card.licensing.open_weights),
             scores_as_of=str(card.benchmarks.benchmark_as_of or "") or None,
             fits=fits.get(ident.model_id, {}),
+            rehost_of=rehost_of(card),
         ))
     return out
 
@@ -251,7 +271,8 @@ def rank(candidates: list[Candidate], profile_key: str, limit: int = 25,
 def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
                 open_weights_only: bool = False, hardware_id: str | None = None,
                 cost_weight: float | None = None,
-                min_benchmark_coverage: float | None = None) -> dict[str, Any]:
+                min_benchmark_coverage: float | None = None,
+                include_rehosts: bool = False) -> dict[str, Any]:
     """Rank sufficiently covered models and retain all others as unranked.
 
     `limit` caps the ranked shortlist only. Unranked entries are alphabetical,
@@ -263,6 +284,8 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
         raise ValueError("limit must be nonnegative")
     profile = USE_CASE_PROFILES[profile_key]
     pool = candidates
+    if not include_rehosts:
+        pool = [c for c in pool if not c.rehost_of]
     if open_weights_only:
         pool = [c for c in pool if c.open_weights]
     if hardware_id:

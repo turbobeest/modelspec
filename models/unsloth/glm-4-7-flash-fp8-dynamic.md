@@ -43,8 +43,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors
 lineage:
-  base_model: zai-org/GLM-4.7-Flash
-  base_model_relation: null
+  base_model: zhipu/glm-4-7-flash
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null

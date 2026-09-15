@@ -271,3 +271,12 @@ def test_field_count_is_leaves_not_sections() -> None:
     from schema.card import ModelCard
 
     assert _schema_field_count(ModelCard) > 600
+
+
+def test_the_canonical_page_lists_its_rehosts() -> None:
+    """A rehost is hidden from default fit, not from its canonical model (MODEL-54)."""
+    s = _sink()
+    s.node("Model", "id", "mirror", {"id": "mirror", "display_name": "Mirror Copy"})
+    s.edge("Model", "mirror", "DERIVED_FROM", "Model", "base", {"relation": "repackaged"})
+    html = lineage_section(Relations(s).for_model("base"))
+    assert "repackaged" in html and "Mirror Copy" in html

@@ -147,6 +147,7 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
             open_weights=bool(c.get("open_weights")), scores_as_of=c.get("scores_as_of"),
             fits=c.get("fits") or {},
             verified_benchmarks=set(c.get("verified_benchmarks") or []),
+            rehost_of=c.get("rehost_of"),
         )
         for c in snapshot.data["candidates"]["candidates"]
     ]
@@ -211,6 +212,8 @@ def rank_offline(
         help="0 ignores price; 0.25 weighs it heavily. Profiles ignore price by default."),
     as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
     require_fresh: bool = typer.Option(False, "--require-fresh", help="Fail on a stale snapshot."),
+    include_rehosts: bool = typer.Option(
+        False, "--include-rehosts", help="Keep repackaged copies of another model's weights."),
 ) -> None:
     """Rank models for a use case, entirely offline."""
     if limit < 0:
@@ -245,7 +248,8 @@ def rank_offline(
             pool = [c for c in pool if c.cost_input is not None and c.cost_input <= max_cost]
 
         report = rank_report(pool, use_case, limit=limit, open_weights_only=open_weights,
-                             hardware_id=fits, cost_weight=price_sensitivity or None)
+                             hardware_id=fits, cost_weight=price_sensitivity or None,
+                             include_rehosts=include_rehosts)
     except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
         _emit_error("rank", f"could not rank the snapshot: {exc}", as_json)
         raise typer.Exit(EXIT_ERROR) from exc
@@ -283,6 +287,8 @@ def fit_offline(
     limit: int = typer.Option(20, "--limit", "-n"),
     as_json: bool = typer.Option(False, "--json"),
     require_fresh: bool = typer.Option(False, "--require-fresh"),
+    include_rehosts: bool = typer.Option(
+        False, "--include-rehosts", help="Keep repackaged copies of another model's weights."),
 ) -> None:
     """What can this machine actually run?"""
     if limit < 0:
@@ -312,7 +318,8 @@ def fit_offline(
         raise typer.Exit(EXIT_ERROR)
 
     try:
-        pool = [c for c in _candidates(snapshot) if hardware in c.fits]
+        pool = [c for c in _candidates(snapshot) if hardware in c.fits
+                and (include_rehosts or not c.rehost_of)]
     except Exception as exc:  # noqa: BLE001 - CLI must not leak a traceback to callers
         _emit_error("fit", f"could not read the snapshot: {exc}", as_json)
         raise typer.Exit(EXIT_ERROR) from exc

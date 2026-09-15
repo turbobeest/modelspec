@@ -44,8 +44,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors
 lineage:
-  base_model: mistralai/Mistral-7B-v0.3
-  base_model_relation: null
+  base_model: mistral/mistral-7b-v0-3
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null

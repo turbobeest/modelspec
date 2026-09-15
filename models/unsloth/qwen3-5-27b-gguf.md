@@ -43,8 +43,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors:base_model:Qwen/Qwen3.5-27B
 lineage:
-  base_model: Qwen/Qwen3.5-27B
-  base_model_relation: null
+  base_model: qwen/qwen3-5-27b
+  base_model_relation: quantized
   merge_models: []
   adapter_type: ''
   adapter_rank: null

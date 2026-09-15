@@ -500,3 +500,26 @@ def test_offline_fit_prints_na_for_null_decode(cache: Path) -> None:
     lines = [line for line in result.stdout.splitlines() if "tok/s" in line]
     assert lines[0].endswith("Chat Model")
     assert lines[1].endswith("Vision Encoder")
+
+
+# ── offline fit: rehosts are out of the default pool (MODEL-54) ─────────────
+
+def _write_rehost_fixture(directory: Path) -> None:
+    _write(directory)
+    path = directory / "snapshot.json"
+    payload = json.loads(path.read_text())
+    base = payload["data"]["candidates"]["candidates"][0]
+    canonical = dict(base, model_id="meta/x", display_name="X", fits={"gpu": 40.0})
+    copy = dict(base, model_id="mirror/x", display_name="X", fits={"gpu": 40.0},
+                rehost_of="meta/x")
+    payload["data"]["candidates"]["candidates"] = [canonical, copy]
+    path.write_text(json.dumps(payload))
+
+
+def test_offline_fit_excludes_rehosts_by_default(cache: Path) -> None:
+    _write_rehost_fixture(cache)
+    result = _run(["offline", "fit", "gpu", "--json"], cache)
+    assert result.returncode == offline.EXIT_OK
+    assert [r["model_id"] for r in json.loads(result.stdout)["result"]] == ["meta/x"]
+    result = _run(["offline", "fit", "gpu", "--json", "--include-rehosts"], cache)
+    assert {r["model_id"] for r in json.loads(result.stdout)["result"]} == {"meta/x", "mirror/x"}

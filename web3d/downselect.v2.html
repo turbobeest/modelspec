@@ -251,6 +251,9 @@ the server engine: filter, score, rank, explain.</p>
     var dropped = { open: 0, hardware: 0, context: 0, cost: 0 };
 
     pool = pool.filter(function (c) {
+      // A repackaged copy of another card's weights is the same model under a
+      // second id; its canonical card already stands for it (MODEL-54).
+      if (c.rehost_of) return false;
       if (s.open && !c.open_weights) { dropped.open++; return false; }
       // c.fits[id] is present (possibly null) for every model whose weights
       // fit on that device; a truthy check on the value would also drop a
