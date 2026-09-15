@@ -8,7 +8,7 @@ version: ''
 release_date: '2022-07-15'
 last_updated: ''
 status: active
-model_type: null
+model_type: miscellaneous
 model_subtypes: []
 tags: []
 pipeline_tag: ''

@@ -7,7 +7,7 @@ tok/s from `offline fit`. Each card below was retyped from its Hugging Face
 config.json / library_name / tags (cited in the card's
 availability.huggingface.notes), not from its name.
 
-None means no existing ModelType fits honestly; the type is left for Jamie.
+Cards no specific ModelType fits honestly are typed miscellaneous (MODEL-58).
 """
 
 from __future__ import annotations
@@ -50,11 +50,11 @@ EXPECTED: dict[str, ModelType | None] = {
     "black-forest-labs/flux-1-depth-dev-lora": ModelType.IMAGE_GENERATION,
     "stability/stable-diffusion-x4-upscaler": ModelType.IMAGE_GENERATION,
     "stability/sd-x2-latent-upscaler": ModelType.IMAGE_GENERATION,
-    "stability/sd-vae-ft-ema": None,
-    "stability/sd-vae-ft-mse": None,
-    "stability/sdxl-vae": None,
-    "nvidia/speakerverification-en-titanet-large": None,
-    "zhipu/glm-4-voice-tokenizer": None,
+    "stability/sd-vae-ft-ema": ModelType.MISCELLANEOUS,
+    "stability/sd-vae-ft-mse": ModelType.MISCELLANEOUS,
+    "stability/sdxl-vae": ModelType.MISCELLANEOUS,
+    "nvidia/speakerverification-en-titanet-large": ModelType.MISCELLANEOUS,
+    "zhipu/glm-4-voice-tokenizer": ModelType.MISCELLANEOUS,
 }
 
 

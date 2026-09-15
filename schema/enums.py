@@ -47,6 +47,8 @@ class ModelType(str, Enum):
     #: Masked/token-level text encoder (e.g. BERT-style fill-mask, token
     #: classification). Reads text but does not autoregressively generate it.
     TEXT_ENCODER = "text-encoder"
+    #: For models no specific type describes honestly, such as model components (VAEs), speaker verification and speech tokenizers.
+    MISCELLANEOUS = "miscellaneous"
 
 
 class ModelStatus(str, Enum):
