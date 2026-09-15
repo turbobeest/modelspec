@@ -242,8 +242,17 @@ Created by Jamie on 2026-09-15 (account "Sparks and Sawdust LLC",
 - **Query host** `graph.benchgraph.dev`, zone `benchgraph.dev`.
 
 `graph-service/worker/wrangler.jsonc` holds the account id, the route
-`graph.benchgraph.dev/graph/*` on zone `benchgraph.dev`, and
-`GRAPH_EXPORT_URL=https://graph-exports.benchgraph.dev/benchgraph-graph/latest`.
+`graph.benchgraph.dev/graph/*` on zone `benchgraph.dev`, the R2 binding
+`EXPORTS` → `benchgraph-graph-exports`, and
+`GRAPH_EXPORT_URL=http://graph-export.internal/benchgraph-graph/latest`.
+
+The container does **not** fetch the public custom domain: from inside
+Cloudflare Containers that load never succeeded (health stayed
+`export_not_loaded` even with a named User-Agent). `GraphContainer.outboundByHost`
+intercepts the container's requests to `graph-export.internal` and the Worker
+serves them from the `EXPORTS` binding: GET only, and only
+`benchgraph-graph/latest/{manifest,nodes,edges}.json`. No listing and no writes,
+and nothing new on the public `/graph/*` route.
 
 ### DNS step (Jamie, once)
 

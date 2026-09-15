@@ -24,15 +24,17 @@
       "max_instances": 2
     }
   ],
+  // Read by the Worker only; the container never holds R2 credentials.
+  "r2_buckets": [{ "binding": "EXPORTS", "bucket_name": "benchgraph-graph-exports" }],
   "durable_objects": {
     "bindings": [{ "name": "GRAPH", "class_name": "GraphContainer" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GraphContainer"] }],
   "vars": {
-    // Base URL of the export directory CI uploads to R2 (manifest.json,
-    // nodes.json, edges.json): R2 bucket benchgraph-graph-exports via its
-    // public custom domain.
-    // Local dev overrides this in .dev.vars.
-    "GRAPH_EXPORT_URL": "https://graph-exports.benchgraph.dev/benchgraph-graph/latest"
+    // Base URL of the export CI uploads to R2 (manifest.json, nodes.json,
+    // edges.json). The host is not real: the Worker intercepts the container's
+    // requests to it (GraphContainer.outboundByHost) and serves them from the
+    // EXPORTS R2 binding. Local dev overrides this in .dev.vars.
+    "GRAPH_EXPORT_URL": "http://graph-export.internal/benchgraph-graph/latest"
   }
 }

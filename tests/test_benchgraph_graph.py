@@ -356,8 +356,16 @@ def test_wrangler_config_is_filled_in():
     from urllib.parse import urlparse
 
     url = urlparse(cfg["vars"]["GRAPH_EXPORT_URL"])
-    assert url.scheme == "https" and url.hostname == "graph-exports.benchgraph.dev"
+    # The container loads the export through the Worker's R2 binding, never the
+    # public custom domain (unreachable from the container in production).
+    js = (ROOT / "graph-service/worker/src/index.js").read_text()
+    export_js = (ROOT / "graph-service/worker/src/export.js").read_text()
+    host = re.search(r'EXPORT_HOST = "([^"]+)"', export_js).group(1)
+    assert url.scheme == "http" and url.hostname == host and host.endswith(".internal")
     assert url.path == "/benchgraph-graph/latest"
+    assert cfg["r2_buckets"] == [{"binding": "EXPORTS", "bucket_name": "benchgraph-graph-exports"}]
+    assert "static outboundByHost = { [EXPORT_HOST]: serveExport }" in js
+    assert "export { ContainerProxy }" in js
     assert cfg["routes"] == [
         {"pattern": "graph.benchgraph.dev/graph/*", "zone_name": "benchgraph.dev"}
     ]
@@ -389,3 +397,40 @@ def test_deploy_uploads_manifest_last():
     steps = [s.get("name", "") for s in job["steps"]]
     assert steps.index("Deploy Worker and Container") > steps.index(
         "Upload the export to R2 (manifest last)")
+
+
+def test_worker_export_handler_is_read_only_and_scoped():
+    """serveExport answers GET for the three export files only (run under node)."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    worker = ROOT / "graph-service/worker"
+    js = (worker / "src/export.js").read_text()
+    assert "import " not in js
+    assert ".list(" not in js and ".put(" not in js and ".delete(" not in js
+    if not node:
+        pytest.skip("node not installed")
+    script = r"""
+import { serveExport } from "./src/export.js";
+const store = {"benchgraph-graph/latest/manifest.json": "{}"};
+const env = { EXPORTS: { get: async (k) => k in store ? { body: store[k] } : null } };
+const h = "http://graph-export.internal";
+const r = async (p, m="GET") => (await serveExport(new Request(h + p, {method: m}), env)).status;
+console.log(JSON.stringify([
+  await r("/benchgraph-graph/latest/manifest.json"),
+  await r("/benchgraph-graph/latest/nodes.json"),
+  await r("/benchgraph-graph/latest/manifest.json", "PUT"),
+  await r("/benchgraph-graph/latest/"),
+  await r("/benchgraph-graph/abc/manifest.json"),
+  await r("/benchgraph-graph/latest/../latest/manifest.json"),
+]));
+"""
+    stub = worker / "_serve_export_check.mjs"
+    stub.write_text(script)
+    try:
+        out = subprocess.run([node, stub.name], cwd=worker, capture_output=True, text=True, timeout=60)
+    finally:
+        stub.unlink()
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout.strip().splitlines()[-1]) == [200, 404, 405, 404, 404, 200]
