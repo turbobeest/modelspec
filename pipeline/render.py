@@ -669,6 +669,26 @@ def _inline(text: str) -> str:
     return "".join(out)
 
 
+def _norm_heading(text: str) -> str:
+    """Case-insensitive, whitespace-collapsed, trailing punctuation stripped."""
+    return re.sub(r"\s+", " ", text).strip().rstrip(".:;,!?").strip().lower()
+
+
+def _body_headings(text: str) -> set[str]:
+    """Normalised headings in a body, ignoring lines inside fenced code."""
+    out: set[str] = set()
+    fenced = False
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+            continue
+        m = None if fenced else _HEADING.match(stripped)
+        if m and m.group(2):
+            out.add(_norm_heading(m.group(2)))
+    return out
+
+
 def render_markdown_body(text: str) -> str:
     """A minimal, escape-everything Markdown renderer for benchmark page bodies.
 
@@ -850,6 +870,11 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                if bench.aliases else "")
 
     prose = render_markdown_body(bench.body)
+    body_headings = _body_headings(bench.body) if prose else set()
+    if _norm_heading("What it measures") in body_headings:
+        measures = ""
+    if _norm_heading("Task format") in body_headings:
+        task = ""
 
     body = f"""
 <h1>{esc(bench.name)}</h1>

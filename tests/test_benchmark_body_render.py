@@ -98,3 +98,29 @@ def test_real_aa_response_time_page_shows_window() -> None:
     html = _real("artificial_analysis_end_to_end_response_time")
     assert "72 hours" in html and "14-day" in html
     assert "blob/main/docs/agentic-latency-benchmark.md" in html
+
+
+def test_real_page_has_single_what_it_measures_heading() -> None:
+    html = _real("swe_bench_steps_to_completion")
+    assert html.count("What it measures</h2>") == 1
+
+
+def test_front_matter_measures_kept_without_body_heading() -> None:
+    html = _html({"measures": "Front text."}, "## Reading the numbers\n\nBody.")
+    assert "<h2>What it measures</h2><p>Front text.</p>" in html
+
+
+def test_front_matter_measures_skipped_on_normalised_match() -> None:
+    html = _html({"measures": "Front text."}, "##   what IT  measures:\n\nBody text.")
+    assert "Front text." not in html.split('class="prose"')[0].split("</table>")[-1]
+    assert html.count("<h2>What it measures</h2>") == 0 and "Body text." in html
+
+
+def test_front_matter_task_format_kept_without_body_heading() -> None:
+    html = _html({"task_format": "Multiple choice."}, "## How it is scored\n\nBody.")
+    assert "<h2>Task format</h2><p>Multiple choice.</p>" in html
+
+
+def test_front_matter_task_format_skipped_when_body_has_heading() -> None:
+    html = _html({"task_format": "Multiple choice."}, "## Task format\n\nBody detail.")
+    assert html.count("Task format</h2>") == 1 and "Multiple choice." not in html
