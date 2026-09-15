@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import html
 import math
+import posixpath
+import re
 from collections.abc import Collection, Iterable
 from datetime import date
 from pathlib import Path
@@ -612,6 +614,146 @@ def _safe_link(url: Any, label: Any) -> str:
     return esc(text)
 
 
+GITHUB_BLOB = "https://github.com/turbobeest/modelspec/blob/main/"
+_SIBLING_PAGE = re.compile(r"^([a-z0-9][a-z0-9_]{1,80})\.md$")
+_SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
+_INLINE = re.compile(r"`([^`]+)`|\[([^\]]+)\]\(([^)\s]*)\)")
+_STRONG = re.compile(r"\*\*(\S(?:.*?\S)?)\*\*")
+_EM = re.compile(r"(?<![\w*])\*(\S(?:.*?\S)?)\*(?![\w*])|(?<![\w])_(\S(?:.*?\S)?)_(?![\w])")
+_HEADING = re.compile(r"^(#{1,6})(?:\s+(.*?)\s*#*)?\s*$")
+_BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
+_NUMBERED = re.compile(r"^\s*\d+[.)]\s+(.*)$")
+
+
+def _body_href(url: str) -> str | None:
+    """Resolve a body link to an absolute http(s) URL, or None to render plain text.
+
+    Absolute http(s) passes through. A sibling benchmark page (`mmlu.md`) links to
+    its benchgraph page. Any other repo-relative path resolves against benchmarks/
+    to the file on GitHub, the same base as "Edit on GitHub". Other schemes,
+    protocol-relative URLs, bare fragments and paths escaping the repo do not link.
+    """
+    u = url.strip()
+    if u.lower().startswith(("http://", "https://")):
+        return u
+    if not u or u.startswith(("#", "/", "\\")) or _SCHEME.match(u):
+        return None
+    path, _, frag = u.partition("#")
+    sibling = _SIBLING_PAGE.match(path)
+    if sibling:
+        return f"https://benchgraph.dev/b/{sibling.group(1)}/"
+    resolved = posixpath.normpath(posixpath.join("benchmarks", path))
+    if not path or resolved.startswith("..") or "\\" in resolved:
+        return None
+    return GITHUB_BLOB + resolved + (f"#{frag}" if frag else "")
+
+
+def _emphasis(escaped: str) -> str:
+    escaped = _STRONG.sub(r"<strong>\1</strong>", escaped)
+    return _EM.sub(lambda m: f"<em>{m.group(1) or m.group(2)}</em>", escaped)
+
+
+def _inline(text: str) -> str:
+    """Escape one run of Markdown text, allowing only code spans, links and emphasis."""
+    out: list[str] = []
+    pos = 0
+    for m in _INLINE.finditer(text):
+        out.append(_emphasis(esc(text[pos:m.start()])))
+        if m.group(1) is not None:
+            out.append(f"<code>{esc(m.group(1))}</code>")
+        else:
+            href = _body_href(m.group(3))
+            out.append(_safe_link(href, m.group(2)) if href else esc(m.group(2)))
+        pos = m.end()
+    out.append(_emphasis(esc(text[pos:])))
+    return "".join(out)
+
+
+def _norm_heading(text: str) -> str:
+    """Case-insensitive, whitespace-collapsed, trailing punctuation stripped."""
+    return re.sub(r"\s+", " ", text).strip().rstrip(".:;,!?").strip().lower()
+
+
+def _body_headings(text: str) -> set[str]:
+    """Normalised headings in a body, ignoring lines inside fenced code."""
+    out: set[str] = set()
+    fenced = False
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+            continue
+        m = None if fenced else _HEADING.match(stripped)
+        if m and m.group(2):
+            out.add(_norm_heading(m.group(2)))
+    return out
+
+
+def render_markdown_body(text: str) -> str:
+    """A minimal, escape-everything Markdown renderer for benchmark page bodies.
+
+    Supports headings, paragraphs, bullet and numbered lists, fenced code, inline
+    code, emphasis and links. Authored HTML is always escaped, never passed through.
+    Page headings start at h2 because the page title is the h1.
+    """
+    blocks: list[str] = []
+    para: list[str] = []
+    items: list[str] = []
+    kind = ""
+    lines = (text or "").splitlines()
+
+    def flush() -> None:
+        nonlocal kind
+        if para:
+            blocks.append(f"<p>{_inline(' '.join(para))}</p>")
+            para.clear()
+        if items:
+            tag = "ol" if kind == "ol" else "ul"
+            blocks.append(f"<{tag}>" + "".join(f"<li>{_inline(i)}</li>" for i in items) + f"</{tag}>")
+            items.clear()
+        kind = ""
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            flush()
+            code: list[str] = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                code.append(lines[i])
+                i += 1
+            blocks.append(f"<pre><code>{esc(chr(10).join(code))}</code></pre>")
+            i += 1
+            continue
+        heading = _HEADING.match(stripped)
+        bullet = _BULLET.match(line)
+        numbered = None if bullet else _NUMBERED.match(line)
+        if not stripped:
+            flush()
+        elif heading:
+            flush()
+            if heading.group(2):
+                level = 2 if len(heading.group(1)) <= 2 else 3
+                blocks.append(f"<h{level}>{_inline(heading.group(2))}</h{level}>")
+        elif bullet or numbered:
+            want = "ul" if bullet else "ol"
+            if para or (items and kind != want):
+                flush()
+            kind = want
+            items.append((bullet or numbered).group(1))
+        elif items and line[:1] in (" ", "\t"):
+            items[-1] += " " + stripped
+        else:
+            if items:
+                flush()
+            para.append(stripped)
+        i += 1
+    flush()
+    return "".join(blocks)
+
+
 def benchmark_links_section(front: dict[str, Any]) -> str:
     """Leaderboard, paper, repo and dated sources for a benchmark page.
 
@@ -707,20 +849,32 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
     metric = front.get("metric")
     if isinstance(metric, dict):
         facts += [("Metric", metric.get("name")), ("Direction", metric.get("direction")),
-                  ("Unit", metric.get("unit"))]
+                  ("Unit", metric.get("unit")), ("Baseline note", metric.get("baseline_note"))]
     dataset = front.get("dataset")
     if isinstance(dataset, dict):
-        facts += [("Dataset size", dataset.get("size")), ("Dataset licence", dataset.get("license"))]
+        facts += [("Dataset size", dataset.get("size")), ("Dataset size note", dataset.get("size_note")),
+                  ("Dataset licence", dataset.get("license"))]
+    for key, label in (("saturation", "Saturation note"), ("contamination", "Contamination note")):
+        block = front.get(key)
+        if isinstance(block, dict):
+            facts.append((label, block.get("note")))
     publisher = front.get("publisher")
     if isinstance(publisher, dict):
         facts.append(("Publisher", publisher.get("org")))
     fact_rows = "".join(f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>"
-                        for k, v in facts if v not in (None, "", []))
+                        for k, v in facts if v is not None and str(v).strip() not in ("", "[]"))
 
     measures = str(front.get("measures") or "").strip()
     task = str(front.get("task_format") or "").strip()
     aliases = (f'<p class="meta">Also known as: {esc(", ".join(bench.aliases))}</p>'
                if bench.aliases else "")
+
+    prose = render_markdown_body(bench.body)
+    body_headings = _body_headings(bench.body) if prose else set()
+    if _norm_heading("What it measures") in body_headings:
+        measures = ""
+    if _norm_heading("Task format") in body_headings:
+        task = ""
 
     body = f"""
 <h1>{esc(bench.name)}</h1>
@@ -731,6 +885,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 <div class="panel"><table>{fact_rows}</table></div>
 {f'<h2>What it measures</h2><p>{esc(measures)}</p>' if measures else ''}
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
+{f'<div class="prose">{prose}</div>' if prose else ''}
 {verified}
 {benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>
