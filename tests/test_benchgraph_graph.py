@@ -121,6 +121,39 @@ def test_export_files_and_manifest(tmp_path):
         bg.read_export(str(tmp_path))
 
 
+def test_read_export_http_sends_user_agent(tmp_path, monkeypatch):
+    doc = bg.build_document(pages=FIXTURE_PAGES, evidence=FIXTURE_EVIDENCE)
+    bg.write_export(doc, tmp_path)
+    seen = []
+
+    class _Resp:
+        def __init__(self, data):
+            self._data = data
+
+        def read(self):
+            return self._data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        assert isinstance(req, urllib.request.Request)
+        seen.append(req)
+        return _Resp((tmp_path / req.full_url.rsplit("/", 1)[1]).read_bytes())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    manifest, loaded = bg.read_export("https://graph-exports.example/benchgraph-graph/latest/")
+    assert loaded["nodes"] == json.loads(json.dumps(doc["nodes"]))
+    assert [r.full_url.rsplit("/", 1)[1] for r in seen] == ["manifest.json", "nodes.json", "edges.json"]
+    for req in seen:
+        ua = req.get_header("User-agent")
+        assert ua and not ua.startswith("Python-urllib")
+        assert ua == bg.EXPORT_USER_AGENT
+
+
 def test_param_validation():
     ok = bg.validate_params("benchmarks_still_separating", {"capability": "long-context"})
     assert ok["top_n"] == 5 and ok["include_watch"] is False

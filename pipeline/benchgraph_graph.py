@@ -314,6 +314,9 @@ def write_export(doc: dict[str, Any], out: Path, root: Path | None = None) -> di
     return manifest
 
 
+EXPORT_USER_AGENT = "modelspec-graph-service/1.0 (+https://benchgraph.dev)"
+
+
 def read_export(source: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """Read an export from a directory path, file:// URL or http(s):// base URL.
 
@@ -323,7 +326,9 @@ def read_export(source: str) -> tuple[dict[str, Any], dict[str, Any]]:
         if source.startswith(("http://", "https://")):
             import urllib.request
             url = source.rstrip("/") + "/" + name
-            with urllib.request.urlopen(url, timeout=60) as r:  # noqa: S310 - scheme checked
+            # Cloudflare answers the default Python-urllib User-Agent with 403.
+            req = urllib.request.Request(url, headers={"User-Agent": EXPORT_USER_AGENT})
+            with urllib.request.urlopen(req, timeout=60) as r:  # noqa: S310 - scheme checked
                 return r.read()
         path = source[len("file://"):] if source.startswith("file://") else source
         return (Path(path) / name).read_bytes()
