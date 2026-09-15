@@ -1,0 +1,75 @@
+name: Curation watcher
+
+# MODEL-10 part 1: watcher and classifier only. No drafter call, no PR creation,
+# no secrets, Firecrawl cap 0. The axis input is where MODEL-5 (models) joins later;
+# see docs/curation-loop.md.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # weekly, Monday 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      axis:
+        description: 'benchmarks (models is reserved for MODEL-5)'
+        type: choice
+        options: [benchmarks]
+        default: benchmarks
+      pages:
+        description: 'pilot | all | comma-separated page ids'
+        type: string
+        default: pilot
+      immediate_brief:
+        description: 'optional page id or URL to watch right now (overrides pages)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curation-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Watch sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+      PAGES: ${{ inputs.pages || 'pilot' }}
+      BRIEF: ${{ inputs.immediate_brief || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+
+      - name: Restore watcher state
+        uses: actions/cache@v4
+        with:
+          path: benchmarks/_curation/state
+          key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
+          restore-keys: curation-state-${{ env.AXIS }}-
+
+      - name: Run watcher and classifier (plain HTTP, Firecrawl cap 0)
+        run: |
+          if [ -n "$BRIEF" ]; then
+            python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 0
+          else
+            python scripts/curation/watch.py --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 0
+          fi
+          cat benchmarks/_curation/reports/change_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload change report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: benchmarks/_curation/reports/
