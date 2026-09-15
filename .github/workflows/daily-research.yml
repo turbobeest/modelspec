@@ -102,10 +102,12 @@ jobs:
         id: stale
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
         run: |
+          # Random per-run delimiter: notice text comes from models.dev data.
+          delim="STALE_$(openssl rand -hex 16)"
           {
-            echo "notices<<STALE_GUIDES_EOF"
+            echo "notices<<${delim}"
             if [ -f stale-guides.md ]; then cat stale-guides.md; fi
-            echo "STALE_GUIDES_EOF"
+            echo "${delim}"
           } >> "$GITHUB_OUTPUT"
           rm -f stale-guides.md
 

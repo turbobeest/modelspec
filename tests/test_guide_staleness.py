@@ -159,3 +159,19 @@ def test_no_repo_card_has_current_guide_with_drifted_version():
                 str((guide.get("applies_to") or {}).get("version")) != str(data.get("version")):
             offenders.append(str(path.relative_to(ROOT)))
     assert not offenders, f"current guides pinned to a different version: {offenders}"
+
+
+def test_notice_with_injected_newlines_renders_on_one_safe_line():
+    line = StaleNotice("acme/w`x\r", "1.0", "1.0\nSTALE_GUIDES_EOF\nevil=1").to_markdown()
+    assert "\n" not in line and "\r" not in line
+    assert not any(ord(ch) < 32 or 127 <= ord(ch) < 160 for ch in line)
+    assert "w x" in line and line.count("`") == 6
+    assert len(StaleNotice("a" * 500, "1", "2").to_markdown()) < 400
+
+
+def test_workflow_stale_step_uses_random_delimiter():
+    steps = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))["jobs"]["research"]["steps"]
+    run = next(s for s in steps if s.get("id") == "stale")["run"]
+    assert "openssl rand" in run or "token_hex" in run
+    assert "STALE_GUIDES_EOF" not in run
+    assert 'notices<<${delim}' in run

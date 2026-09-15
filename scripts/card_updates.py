@@ -11,12 +11,20 @@ one, it should call this helper too.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from schema.card import ModelCard
 
 STALE_NOTICES_FILE = "stale-guides.md"
+MAX_FIELD_LEN = 200
+_UNSAFE = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029`]")
+
+
+def _clean(value: object) -> str:
+    """One line, no control characters or backticks, at most MAX_FIELD_LEN chars."""
+    return _UNSAFE.sub(" ", str(value))[:MAX_FIELD_LEN]
 
 
 @dataclass(frozen=True)
@@ -27,8 +35,8 @@ class StaleNotice:
 
     def to_markdown(self) -> str:
         return (
-            f"- authoring guide for `{self.model_id}` is now stale "
-            f"(version `{self.old_version}` → `{self.new_version}`): "
+            f"- authoring guide for `{_clean(self.model_id)}` is now stale "
+            f"(version `{_clean(self.old_version)}` → `{_clean(self.new_version)}`): "
             "re-review against current provider guidance"
         )
 
