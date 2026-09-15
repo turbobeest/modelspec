@@ -204,3 +204,43 @@ def test_landing_injects_catalogue_freshness() -> None:
     )
     assert "2026-09-01" in html
     assert html.index("2026-09-01") < html.index("<footer>")
+
+
+def _bench_html(front: dict) -> str:
+    from pipeline.export import Build
+    from pipeline.load import Benchmark
+    from pipeline.render import benchmark_page
+
+    bench = Benchmark("demo", Path("benchmarks/demo.md"), {"name": "Demo", **front}, "")
+    build = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9, 15))
+    return benchmark_page(bench, build, Catalogue(as_of=date(2026, 9, 15)), [])
+
+
+def test_benchmark_page_renders_sources_and_links() -> None:
+    html = _bench_html({
+        "leaderboard_url": "https://lb.example/",
+        "paper": {"title": "Demo <paper>", "url": "", "arxiv": "2401.00001"},
+        "repo_url": "https://github.com/x/demo",
+        "sources": [{"url": "https://src.example/a", "title": "Source A", "accessed": "2026-09-14"},
+                    {"url": "https://src.example/b", "title": "", "accessed": "2026-09-13"}],
+    })
+    assert "<h2>Sources</h2>" in html and "<h2>Links</h2>" in html
+    assert '<a href="https://src.example/a" rel="nofollow noopener">Source A</a>' in html
+    assert ">https://src.example/b</a>" in html and "read 2026-09-14" in html
+    assert 'href="https://lb.example/"' in html
+    assert 'href="https://arxiv.org/abs/2401.00001"' in html and "Demo &lt;paper&gt;" in html
+    assert 'href="https://github.com/x/demo"' in html
+
+
+def test_benchmark_page_omits_empty_links_and_sources() -> None:
+    html = _bench_html({"leaderboard_url": "", "paper": {"title": "", "url": "", "arxiv": ""},
+                        "repo_url": "", "sources": []})
+    assert "<h2>Sources</h2>" not in html and "<h2>Links</h2>" not in html
+    assert 'href=""' not in html
+
+
+def test_benchmark_page_does_not_link_non_http_urls() -> None:
+    html = _bench_html({"leaderboard_url": "javascript:alert(1)",
+                        "sources": [{"url": "ftp://x/y", "title": "FTP", "accessed": "2026-09-14"}]})
+    assert 'href="javascript:' not in html and 'href="ftp:' not in html
+    assert "javascript:alert(1)" in html and "FTP" in html
