@@ -64,6 +64,10 @@ best marketing asset for data already worth little. 90 days is the balance.
 
 **2.5 The clock starts at determination, not at model release.**
 
+**2.6** These rules govern the data the project *publishes*. What the hosted
+service is allowed to *receive* is a separate constraint: it does not take raw
+customer prompts. See [§10](#10-the-recommenders-architectural-constraints).
+
 ## 3. Publication and access tiers
 
 | Tier | What it gets | Limit |
@@ -111,7 +115,9 @@ deferred revenue that can be reported.
 **4.5 Never charge the subjects of a recommendation.** No referral fees, no paid
 placement, no provider-paid visibility, permanently. Charging the consumer of a
 recommendation is compatible with being an honest broker; charging its subjects
-is a different product.
+is a different product. The sourcing half of the same commitment — neutral all
+the way through, not merely unpaid — is
+[§10.3](#10-the-recommenders-architectural-constraints).
 
 ## 5. What stays public, and what does not
 
@@ -178,6 +184,12 @@ in the same pass that starts the work. `docs/agent-commerce-assessment.md`'s
 evidence bar is answered by 2.2: what is sold is the compliance determination,
 not a ranking built on 14%-complete cards.
 
+> *Note added later on 2026-09-16.* **MODEL-6 was cancelled** and superseded by
+> MODEL-68, MODEL-69, MODEL-73 and MODEL-75. The sequencing above — the endpoint
+> first, the payment rail after it — is unaffected; only the ticket number
+> changed. Three architectural rules that MODEL-6 carried and no successor
+> ticket picked up are recorded in [§10](#10-the-recommenders-architectural-constraints).
+
 ## 8. Still open
 
 - Exact enterprise pricing and plan boundaries.
@@ -195,3 +207,82 @@ not a ranking built on 14%-complete cards.
    "undetermined".
 5. **x402 credits.**
 6. **Harness pitches**, with DPF as the live reference integration.
+
+---
+
+## 10. The recommender's architectural constraints
+
+**Stated by the operator on 2026-09-07**, and **rescued on 2026-09-16 from
+Linear MODEL-6** ("The recommender: credentials, metering, the agent payment
+rail and the free tier"), which was cancelled that day and superseded by
+MODEL-68, MODEL-69, MODEL-73 and MODEL-75. The credentials, metering and
+payment-rail scope moved to those tickets. These three rules moved to none of
+them, so they are recorded here before the ticket closes over them. They are
+older than the 2026-09-16 decisions above and are not contradicted by any of
+them; they extend §2 (what the project holds), §4.5 (never charge the subjects
+of a recommendation) and §5.1 (the published method).
+
+The operator's words, verbatim:
+
+> recommend and hand off, never proxy tokens, so ModelSpec carries no router
+> operating burden; profiles over raw prompts, so the service holds no customer
+> prompts; source-neutral advice all the way.
+
+What that commits the architecture to:
+
+**10.1 ModelSpec never proxies inference tokens.** It returns a recommendation
+and hands off; the caller's inference traffic goes to the provider, gateway or
+local runtime directly and never through ModelSpec. This is a scope boundary,
+not an implementation preference. Proxying would make ModelSpec a router, and a
+router carries three things this project has decided not to carry: an operating
+burden on somebody else's capacity (uptime, quota, incident response for
+inference it does not run), a margin that grows with token volume, and
+therefore the steering incentive that §4.5 and §5 exist to refuse. It also
+bounds cost: the revenue in §4 is priced per *decision*, and a decision does not
+scale with the customer's token spend.
+
+**10.2 A request carries a profile, not a prompt.** The service is designed so
+that it does not hold customer prompts. A `recommend` call carries a
+**locally computed profile** — genre, difficulty, length, modality, tool use,
+sensitivity — derived on the caller's side by the CLI or harness. The prompt
+itself never leaves the customer's environment, which is why the claim is
+architectural rather than a promise about retention: there is nothing to retain.
+Three consequences, all of which bind work already scheduled:
+
+- The profile fields are the API surface. Widening them toward prompt text is
+  not a feature request; it is a breach of this constraint, and any change to
+  them is a contract change under MODEL-59.
+- **Outcome logging** (`BUSINESS_CONTEXT.md` §9, `REV-9` in the backlog) must
+  log the profile, the recommendation and the outcome. It must not become a
+  prompt store by the back door.
+- The enrichment layer in 7.3 inherits this: whatever runs on Cloudflare stores
+  determinations and usage, never customer prompts.
+
+It also sits alongside the existing rule that the CLI reads *which* provider API
+keys are present and never their values (`BUSINESS_CONTEXT.md` §6). Both say the
+same thing: the sensitive material stays on the caller's machine.
+
+**10.3 Source-neutral advice all the way.** Neutrality extends past money to
+sourcing. No provider, gateway, hosting route or inference vendor is privileged
+at any stage of the recommendation — not in the ranking, not in tie-breaks, not
+in a default hosting suggestion, and not by a commercial relationship of the
+operator's. §4.5 refuses payment from the subjects of a recommendation; 10.3
+refuses the softer version, where nobody pays but the advice leans anyway.
+"All the way" is the operative phrase: it applies to the ranking method, the
+`route` advice, and anything the site or CLI suggests after the ranking.
+
+**10.4 Why these three are one decision.** Each is checkable, and together they
+are the machine-checkable form of the "unbiased" positioning in
+`BUSINESS_CONTEXT.md` §5: a service that cannot earn on routed tokens, cannot
+read the customer's prompts, and takes nothing from the models it ranks. It is
+the positioning stated as a set of things the system is unable to do rather than
+things it promises not to do. This matters more, not less, now that a payment
+rail has agreed to acquire a model router — see the 2026-09-16 note in
+[`BUSINESS_CONTEXT.md`](BUSINESS_CONTEXT.md) §5.
+
+**10.5 This section is an input to MODEL-70** (terms of service and the privacy
+statement). 10.2 is the privacy statement's core claim and must be written in
+words the architecture can actually keep — "profiles, not prompts", with the
+profile fields listed. 10.1 and 10.3 belong in the terms and in the public
+neutrality statement, alongside §4.5's permanent refusal. MODEL-70 should not
+restate these from memory; it should cite this section.
