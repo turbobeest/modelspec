@@ -47,7 +47,7 @@ FalkorDB is optional local graph exploration only. It is not required to rank, f
 
 ## Contribute
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Sign off commits (`git commit -s`) to agree to the [`CLA.md`](CLA.md). Every fact carries a source and the date it was read; unknown means an empty field.
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Sign off commits (`git commit -s`) to certify the [`DCO`](DCO) — not a copyright assignment. Every fact carries a source and the date it was read; unknown means an empty field.
 
 Cards live in `models/{provider}/{model-slug}.md`. Edit and open a PR.
 
