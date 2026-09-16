@@ -17,7 +17,7 @@ git commit -s -m "your message"
 | Part | Licence |
 | --- | --- |
 | Code | MIT |
-| Data (`models/`, `benchmarks/`) | CC BY-SA 4.0 |
+| Data (`models/`, `benchmarks/`, `hardware/`, `hosts/`) | CC BY-SA 4.0 |
 
 If you redistribute the corpus or something derived from it, credit ModelSpec and publish yours under
 the same terms. Full text in [LICENSE](LICENSE) and [LICENSE-DATA](LICENSE-DATA).

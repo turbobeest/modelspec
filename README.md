@@ -58,7 +58,7 @@ Two licences, because the code and the corpus want different things.
 | Part | Licence |
 | --- | --- |
 | Code (everything outside the data directories) | MIT |
-| Data (`models/`, `benchmarks/`) | CC BY-SA 4.0 |
+| Data (`models/`, `benchmarks/`, `hardware/`, `hosts/`) | CC BY-SA 4.0 |
 
 The corpus is share-alike: build on it, including commercially, but if you redistribute it or a derivative, credit ModelSpec and publish yours under the same terms. The code is permissive so the CLI can go anywhere. Full text in [`LICENSE`](LICENSE) and [`LICENSE-DATA`](LICENSE-DATA).
 
