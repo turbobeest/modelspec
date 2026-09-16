@@ -31,7 +31,8 @@ FalkorDB ── optional local exploration (`modelspec stats|search|info`).
 ```
 
 Pin identity for a snapshot: `build.commit` plus `build.export_schema_version`
-(`pipeline/export.py`, currently `"1.0"`). That is not the CLI `--json`
+(`pipeline/export.py`, currently `"2.0"` — MODEL-77 reshaped the published
+policy fields). That is not the CLI `--json`
 envelope (`cli.modelspec.offline.SCHEMA_VERSION`, also `"1.0"`) and not
 `rankings.json` (`schema_version` `"2.0"`).
 

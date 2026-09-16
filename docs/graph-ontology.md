@@ -231,7 +231,7 @@ Properties:
   name                  String    REQUIRED
   spdx_id               String                         # SPDX license identifier
   url                   String
-  commercial_ok         Boolean   INDEXED
+  commercial_ok         String    INDEXED   # UsePermission since MODEL-77, not a bool
   modification_ok       Boolean
   distribution_ok       Boolean
   patent_grant          Boolean

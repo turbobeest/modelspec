@@ -145,7 +145,40 @@ class UsePermission(str, Enum):
     ALLOWED = "allowed"
     RESTRICTED = "restricted"
     PROHIBITED = "prohibited"
+    #: Nothing has been determined. The honest empty state.
     UNSPECIFIED = "unspecified"
+    #: Determined, and deliberately not published here (MODEL-77).
+    #:
+    #: This value exists because the alternative lies. Once a determination is
+    #: made and held back as enrichment, publishing `unspecified` would assert
+    #: "not yet researched" on cards where it is false — at corpus scale, in
+    #: the one place the catalogue's reputation lives. `withheld` says what is
+    #: true: the answer exists, it is not in this file.
+    #:
+    #: It carries no `*_source` and no conditions. The determination itself
+    #: lives in a private `schema.enrichment.EnrichmentRecord`.
+    WITHHELD = "withheld"
+
+
+class DisclosureState(str, Enum):
+    """Why a *collection-valued* policy field is empty, when it is empty.
+
+    `UsePermission` carries its own empty states in-band, so a consumer that
+    reads only the value cannot misread it. A list cannot do that: `[]` means
+    "no regions" and "nobody looked" equally well, which is how
+    `data_residency` came to be `[]` on all 1,339 cards while being researched
+    on none of them. So the state moves to a companion field, and the list is
+    `null` whenever it is not a published determination.
+    """
+
+    #: Nobody has looked. The value must be `null`.
+    UNRESEARCHED = "unresearched"
+    #: Determined and published here. The value is the determination — an
+    #: empty list means "the provider commits to no residency", which is an
+    #: answer, not an absence.
+    PUBLISHED = "published"
+    #: Determined, not published here. The value must be `null`.
+    WITHHELD = "withheld"
 
 
 class OrgType(str, Enum):

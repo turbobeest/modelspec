@@ -167,7 +167,9 @@ def ingest_model_card(graph, card) -> dict[str, int]:
         sink.node("License", "id", license_id, {
             "id": license_id,
             "name": license_id,
-            "commercial_ok": lic.commercial_use,
+            # A UsePermission since MODEL-77, not a bool: "restricted"
+            # is the answer for 169 cards and had nowhere to go before.
+            "commercial_ok": lic.commercial_use.value,
             "defense_ok": lic.defense_use.value,
             "government_ok": lic.government_use.value,
         })

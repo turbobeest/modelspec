@@ -144,6 +144,64 @@ error instead of crashing a client that assumed the old range.
 The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
 shipped without a bump; that is the case the rule exists to prevent.
 
+### Policy fields, and the one major bump they cost (MODEL-77)
+
+`build.export_schema_version` is **2.0**. `/api/models/<id>.json` publishes a
+card's frontmatter verbatim, so reshaping the policy fields reshapes that tree.
+Two widenings ship as one bump because they are one decision:
+
+* `licensing.commercial_use` was `true | false | null`. It is now a string:
+  `allowed`, `restricted`, `prohibited`, `unspecified` or `withheld` — the same
+  `UsePermission` its four siblings (`defense_use`, `government_use`,
+  `medical_use`, `academic_use`) already used. A boolean could not say
+  "allowed up to 700M monthly active users", which is the actual answer for the
+  169 llama-community, gemma and deepseek cards in the catalogue.
+* `availability.primary_provider.data_residency` was a list that defaulted to
+  `[]` on every card, so "no residency guarantees" and "nobody has looked" were
+  the same value. It is now `list | null`, beside
+  `data_residency_disclosure` (`unresearched` | `published` | `withheld`).
+
+Both are range-widening under the rule above, so under MODEL-59 each would bump
+the major on its own. Doing them in one pass costs one bump instead of two.
+A 1.x snapshot is refused by a 2.x CLI with the usual message, and a snapshot
+carrying no `export_schema_version` at all is a pre-2.0 tree and is refused the
+same way.
+
+**How to treat `withheld` versus `unspecified`/`null`.** They are not
+interchangeable and a consumer must not collapse them:
+
+| value | what it means | what a caller should do |
+| --- | --- | --- |
+| `unspecified` (`commercial_use`), `unresearched` (`data_residency`) | Nobody has determined this. The catalogue is not asserting anything about the licence. | Treat as unknown. Do not infer permission or prohibition. Do not ask again: there is nothing to fetch. |
+| `withheld` | The determination exists and is deliberately not published in this tree. | Treat as unknown **for the purposes of the public data**, but as *obtainable* — the answer exists and is not on this card. Never render it as "not researched". |
+| `allowed` / `restricted` / `prohibited` | A determination, with its citation. | Use it, and carry the citation. For `restricted`, read `commercial_use_conditions` — the value alone is not actionable. |
+
+`withheld` exists because the alternative is a lie at scale. Once
+determinations are made and held back, a public `commercial_use: null` would
+assert "not yet researched" on roughly 1,300 cards where it is false, in the
+one place this catalogue's reputation lives. The marker is carried **in the
+value itself**, not in a companion "available elsewhere" flag, so that a
+consumer reading only `commercial_use` cannot miss it.
+
+**Sources are not optional.** A determination carries
+`commercial_use_source` / `data_residency_source`: the document it was read
+from (`kind`, `url`) and the day it was read (`read_on`, ISO), plus an optional
+short `quote` of the operative clause. Licence terms are rewritten without
+notice, so an undated reading is not evidence. A value without a source fails
+card validation; a card that is `unspecified` or `withheld` carries no source
+at all, so an empty answer can never look cited.
+
+Eight cards carry `kind: legacy-import` with no URL and no date. Those are the
+eight `commercial_use: true` values that existed before this shape, kept rather
+than discarded and kept honest rather than dressed up — the same admission
+`evidence_basis: unverified-legacy` makes about a benchmark score. A test
+freezes that kind to exactly those eight cards.
+
+**Not served yet.** These fields are on the cards and in
+`/api/models/<id>.json`. The CLI `--json` envelope does not carry them, so its
+`schema_version` stays `"1.0"`; `rank` and `fit` are unchanged. The
+`policy-check` endpoint is MODEL-80.
+
 ### Deprecated: CLIs older than MODEL-53
 
 CLIs older than #56 (MODEL-53, merge `1d8dd53`) are unsupported. They raise
