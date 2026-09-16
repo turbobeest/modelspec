@@ -245,7 +245,7 @@ Part 2 turns on drafting, PRs and issues in CI. Jamie's decisions of 2026-09-15:
 ### 7-day trial and revert
 
 - Day 0: dispatch `pages=pilot` to baseline (or let 2026-09-16 be the baseline).
-- The daily cron `47 6 * * *` runs 2026-09-16..2026-09-23 inclusive: 8 runs, baseline plus 7.
+- The daily cron `47 6 * * *` runs 2026-09-16..2026-09-24 inclusive. The 2026-09-16 run was lost to the gate crash fixed in this PR, so the window was extended one day (Jamie, 2026-09-16) to keep baseline plus 7 usable runs.
   During the window the weekly cron is skipped, so Monday 09-21 does not run twice.
 - **Guard: a date window in `scripts/curation/ci.py gate`**, not a run counter. An Actions
   cache counter can be evicted (7 days unused, 10 GB limit) or raced, and a failed run would

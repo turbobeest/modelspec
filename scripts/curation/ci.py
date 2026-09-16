@@ -35,7 +35,7 @@ REPORT = ROOT / "benchmarks" / "_curation" / "reports" / "change_report.json"
 WEEKLY_CRON = "17 6 * * 1"
 DAILY_CRON = "47 6 * * *"
 #: Baseline plus 7 daily runs = 8 scheduled daily runs, one per date in this window (inclusive).
-TRIAL_START, TRIAL_END = date(2026, 9, 16), date(2026, 9, 23)
+TRIAL_START, TRIAL_END = date(2026, 9, 16), date(2026, 9, 24)
 DEAD = "leaderboard_dead"
 
 

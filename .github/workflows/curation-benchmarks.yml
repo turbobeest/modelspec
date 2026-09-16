@@ -15,7 +15,7 @@ on:
   schedule:
     - cron: '17 6 * * 1'   # weekly, Monday 06:17 UTC (skipped by the gate during the daily trial)
     # 7-DAY TRIAL (decision D): daily run. The gate in scripts/curation/ci.py runs it only
-    # 2026-09-16..2026-09-23 (8 runs) and skips it afterwards. REVERT TO WEEKLY AFTER 7 RUNS:
+    # 2026-09-16..2026-09-24 (9 runs) and skips it afterwards. REVERT TO WEEKLY AFTER 7 RUNS:
     # delete this cron line and the DAILY_CRON window in ci.py.
     - cron: '47 6 * * *'
   workflow_dispatch:

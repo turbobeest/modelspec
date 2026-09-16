@@ -355,7 +355,9 @@ def test_daily_trial_guard():
     assert "REVERT TO WEEKLY AFTER 7 RUNS" in WORKFLOW.read_text()
     assert wf["jobs"]["watch"]["needs"] == "gate" and "needs.gate.outputs.run" in wf["jobs"]["watch"]["if"]
     daily = [d for d in (date(2026, 9, 1 + i) for i in range(29)) if ci.gate("schedule", ci.DAILY_CRON, d)[0]]
-    assert len(daily) == 8 and daily[0] == date(2026, 9, 16) and daily[-1] == date(2026, 9, 23)
+    # 9 runs: the 2026-09-16 run was lost to the gate crash fixed here, so the window
+    # was extended one day (Jamie, 2026-09-16) to keep baseline plus 7 usable runs.
+    assert len(daily) == 9 and daily[0] == date(2026, 9, 16) and daily[-1] == date(2026, 9, 24)
     assert not ci.gate("schedule", ci.WEEKLY_CRON, date(2026, 9, 21))[0]  # a Monday inside the trial
     assert ci.gate("schedule", ci.WEEKLY_CRON, date(2026, 9, 28))[0]
     assert ci.gate("workflow_dispatch", "", date(2026, 12, 1))[0]
