@@ -8,9 +8,12 @@ This module defines the complete ontology and provides functions to:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+
+from .enums import DeviceClass
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -75,6 +78,9 @@ INDEXES = [
     "CREATE INDEX ON :Capability(category)",
     "CREATE INDEX ON :Hardware(id)",
     "CREATE INDEX ON :Hardware(memory_gb)",
+    # "which models fit datacentre hardware" is a class filter before it is a
+    # traversal, so the class is indexed like any other node grouping key.
+    "CREATE INDEX ON :Hardware(device_class)",
     "CREATE INDEX ON :Host(id)",
     "CREATE INDEX ON :Benchmark(id)",
     "CREATE INDEX ON :Benchmark(category)",
@@ -100,9 +106,37 @@ def create_indexes(graph) -> None:
 # Ingestion: ModelCard → Graph nodes + edges
 # ═══════════════════════════════════════════════════════════════
 
-def ingest_model_card(graph, card) -> dict[str, int]:
+def device_class_of(hw_id: str, device_classes: Mapping[str, str] | None) -> str | None:
+    """The class of the device `hw_id` names, or None when nothing knows it.
+
+    `hardware/*.yaml` is the only source of a device class, and this module is
+    below the loader that reads it, so the caller passes the mapping in. A card
+    may key a hardware profile on anything, including the four legacy ids the
+    card schema still defaults to (`nvidia_5090_32gb` and friends), which name
+    no device record. Those get no class rather than a guessed one: a Hardware
+    node wrongly labelled `datacentre` is worse than one a class filter skips.
+
+    A value outside `DeviceClass` is a typo in a record, not a new class, and
+    is refused here so it cannot reach the export and split a group in two.
+    """
+    if not device_classes:
+        return None
+    value = device_classes.get(hw_id)
+    if value is None:
+        return None
+    return DeviceClass(value).value
+
+
+def ingest_model_card(graph, card, *,
+                      device_classes: Mapping[str, str] | None = None) -> dict[str, int]:
     """Ingest a ModelCard into FalkorDB, creating/merging all nodes and edges.
-    
+
+    `device_classes` maps a device id to its `DeviceClass` value (from
+    `pipeline.hardware.device_classes`). It is optional so the FalkorDB ingest
+    and the ranking CLI keep working without the hardware records; when it is
+    given, the Hardware nodes this derives carry `device_class` and can be
+    grouped by it.
+
     Returns a dict with counts: {"nodes_created": N, "edges_created": M}
     """
     from .card import ModelCard
@@ -218,7 +252,11 @@ def ingest_model_card(graph, card) -> dict[str, int]:
     # ── 7. Hardware profiles → :FITS_ON edges ──────────────
     for hw_id, profile in card.deployment.hardware_profiles.items():
         if profile.fits:
-            sink.node("Hardware", "id", hw_id, {"id": hw_id, "display_name": hw_id})
+            hw_props = {"id": hw_id, "display_name": hw_id}
+            hw_class = device_class_of(hw_id, device_classes)
+            if hw_class is not None:
+                hw_props["device_class"] = hw_class
+            sink.node("Hardware", "id", hw_id, hw_props)
             edge_props = {k: v for k, v in {
                 "quantization": profile.best_quant,
                 "vram_usage_gb": profile.vram_usage_gb or profile.ram_usage_gb,
@@ -330,11 +368,14 @@ class CollectingSink:
         })
 
 
-def derive_graph(cards) -> CollectingSink:
-    """Derive the whole graph from model cards, without touching a database."""
+def derive_graph(cards, device_classes: Mapping[str, str] | None = None) -> CollectingSink:
+    """Derive the whole graph from model cards, without touching a database.
+
+    `device_classes` is passed straight to `ingest_model_card`; see there.
+    """
     sink = CollectingSink()
     for card in cards:
-        ingest_model_card(sink, card)
+        ingest_model_card(sink, card, device_classes=device_classes)
     return sink
 
 

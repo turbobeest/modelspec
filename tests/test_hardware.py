@@ -25,14 +25,15 @@ sys.path.insert(0, str(REPO_ROOT))
 from pipeline.graph import CLOUDFLARE_PAGES_MAX_FILE_BYTES, write  # noqa: E402
 from pipeline.hardware import (  # noqa: E402
     BANDWIDTH_EFFICIENCY, KV_BYTES_PER_ELEMENT, QUANT_BYTES, WORKING_ALLOWANCE,
-    Device, best_quant, compute, fitting_quants, kv_bytes_per_token,
-    load_devices, predicted_decode_tps, predicted_max_context, weights_gb,
+    Device, best_quant, compute, device_classes, fitting_quants,
+    kv_bytes_per_token, load_devices, predicted_decode_tps,
+    predicted_max_context, weights_gb,
 )
 from pipeline.render import format_weight_size, hardware_section  # noqa: E402
 from schema.card import (  # noqa: E402
     Architecture, Identity, Licensing, Modalities, ModelCard, TextDetail,
 )
-from schema.enums import ModelType  # noqa: E402
+from schema.enums import DeviceClass, ModelType  # noqa: E402
 from schema.graph import CollectingSink, derive_graph  # noqa: E402
 
 
@@ -828,3 +829,54 @@ def test_sub_mb_weight_never_renders_as_zero_mb() -> None:
     assert format_weight_size(0.616032) == "616 MB"
     assert format_weight_size(0.009996) == "10.0 MB"
     assert format_weight_size(None) == ""
+
+
+# ── device class (MODEL-76) ──────────────────────────────────────────────────
+
+def test_a_device_class_outside_the_vocabulary_is_rejected(tmp_path: Path) -> None:
+    """`datacenter` is not a near miss; it is a class no query would find."""
+    (tmp_path / "hardware").mkdir()
+    (tmp_path / "hardware/bad.yaml").write_text(
+        "id: bad\ndisplay_name: Bad\nvendor: x\ndevice_class: datacenter\n"
+        "memory:\n  capacity_gb: 80\n  bandwidth_gb_s: 3350\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="device_class"):
+        load_devices(tmp_path)
+
+
+def test_every_device_record_declares_a_known_class() -> None:
+    assert _devices()
+    known = {c.value for c in DeviceClass}
+    for device in _devices():
+        assert device.device_class in known, f"{device.id}: {device.device_class}"
+
+
+def test_device_classes_maps_every_device() -> None:
+    mapping = device_classes(_devices())
+    assert mapping == {d.id: d.device_class for d in _devices()}
+    assert set(mapping.values()) <= {c.value for c in DeviceClass}
+
+
+def test_every_published_hardware_node_carries_a_known_class(tmp_path: Path) -> None:
+    """The acceptance for MODEL-76, wired exactly as `pipeline.build` wires it.
+
+    A Hardware node with no class is invisible to "which models fit datacentre
+    hardware", so a card profile keyed on an id that names no device record
+    must fail here and be given one, not shipped classless.
+    """
+    files = [f for f in sorted(glob.glob(str(REPO_ROOT / "models/**/*.md"), recursive=True))
+             if not f.endswith("LICENSE.md")]
+    cards = [ModelCard.from_yaml_file(f) for f in files]
+    devices = _devices()
+    sink = derive_graph(cards, device_classes(devices))
+    compute(sink, cards, devices)
+
+    write(tmp_path, sink, {"commit": "test"})
+    nodes = json.loads((tmp_path / "nodes.json").read_text(encoding="utf-8"))["nodes"]
+    hardware_nodes = [n for n in nodes if n["label"] == "Hardware"]
+    assert len(hardware_nodes) == len(devices)
+    known = {c.value for c in DeviceClass}
+    unclassed = [n["id"] for n in hardware_nodes if n.get("device_class") not in known]
+    assert unclassed == [], f"Hardware nodes with no device class: {unclassed}"
+    # Every class in the vocabulary is represented, so a grouped view is not
+    # quietly one bucket.
+    assert {n["device_class"] for n in hardware_nodes} == known
