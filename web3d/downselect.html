@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!--
+  Not on the published site. pipeline/build.py never reads this file, so an edit
+  here changes nothing on modelspec.dev. The live wizard is
+  web3d/downselect.v2.html, built to /downselect/, and it is a ground-up rewrite
+  that scores in the browser rather than a descendant of this page.
+
+  The only reader is api/main.py's serve_downselect, which serves this at /downselect on the
+  local FastAPI app. That app calls /api/v1/* against FalkorDB and is not
+  deployed by any workflow, so the page renders empty without a local graph.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

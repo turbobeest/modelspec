@@ -14,12 +14,18 @@ loaded from a CDN so the page cannot break when someone else's host does.
 `index.html`, `downselect.html`, `contribute.html` — the original explorer,
 downselect wizard and contribute flow. These call a live FastAPI backed by
 FalkorDB (`/api/v1/graph`, `/api/v1/rank`, `/api/v1/search`, …), which is no
-longer on the serving path, so they render nothing when published.
+longer on the serving path, so they render nothing when published. Their only
+reader is `api/main.py`, which serves them at `/graph`, `/downselect` and
+`/contribute`; no workflow deploys that app. Each file now carries a header
+comment saying so, because the page source alone does not reveal that editing it
+ships nothing.
 
 `../web/` — a React and Vite explorer against the same API, with the same
 problem.
 
-Both are prototypes, not dead code: `downselect.html` is the starting point for
-MODEL-21 (the wizard, client-side) and the React `DetailPanel` is the reference
-for MODEL-20 (model pages with their relationships). Do not delete them without
-reading those tickets first.
+MODEL-21 has since shipped as `downselect.v2.html`, a ground-up rewrite that
+scores in the browser, so `downselect.html` is no longer its starting point. The
+React `DetailPanel` in `../web/src` remains the reference for MODEL-20 (model
+pages with their relationships). Read MODEL-20 before deleting `../web/`, and
+retire the three pages above together with the `api/main.py` routes that serve
+them rather than on their own.

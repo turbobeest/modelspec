@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!--
+  Not on the published site. pipeline/build.py never reads this file, so an edit
+  here changes nothing on modelspec.dev. The live graph explorer is
+  web3d/explorer.html, built to /graph/.
+
+  The only reader is api/main.py's serve_3d_graph, which serves this at /graph on the local
+  FastAPI app. That app calls /api/v1/* against FalkorDB and is not deployed by
+  any workflow, so the page renders empty without a local graph running.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  Not on the published site. pipeline/build.py never reads this file, so an edit
+  here changes nothing on modelspec.dev, and no built page replaces it.
+
+  The only reader is api/main.py's serve_contribute, which serves this at /contribute on the
+  local FastAPI app. That app calls /api/v1/* against FalkorDB and is not
+  deployed by any workflow, so the page renders empty without a local graph.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
