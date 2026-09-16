@@ -95,7 +95,8 @@ def test_javascript_source_url_is_not_a_link():
 
 
 def test_card_without_guide_is_byte_identical_to_main():
-    # Fixture rendered from origin/main (e02237f) before this change.
+    # Fixture pinned at the MODEL-24 redesign. It no longer matches main before
+    # that change; it is here to catch drift the redesign did not intend.
     assert _render() == FIXTURE.read_text(encoding="utf-8")
 
 

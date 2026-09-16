@@ -126,6 +126,10 @@ margin:22px 0 30px}
 .stats .val{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
 font-size:20px;font-weight:700;letter-spacing:-.03em;overflow-wrap:break-word}
 .stats .val.long{font-size:16px;font-weight:500}
+.basis-verified{color:var(--good)}
+.basis-unverified-legacy{color:var(--warn)}
+.basis-mixed,.basis-partial-verified{color:var(--accent)}
+.basis-none{color:var(--mute)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px}
 .chain{display:flex;align-items:stretch;border:1px solid var(--line);background:var(--surface);
 padding:18px 0;margin:0 0 24px}
@@ -764,21 +768,23 @@ def stat_strip(model: Model) -> str:
     front = model.front
     parameters = _dig(front, "architecture", "total_parameters")
     open_weights = _dig(front, "licensing", "open_weights")
+    basis = _card_evidence_basis(model)
     cells = [
-        ("Parameters", human_count(parameters) if parameters else None),
-        ("Type", front.get("model_type")),
-        ("Released", front.get("release_date")),
-        ("Open weights", None if open_weights is None else ("yes" if open_weights else "no")),
-        ("Evidence basis", _card_evidence_basis(model)),
+        ("Parameters", human_count(parameters) if parameters else None, ""),
+        ("Type", front.get("model_type"), ""),
+        ("Released", front.get("release_date"), ""),
+        ("Open weights", None if open_weights is None else ("yes" if open_weights else "no"), ""),
+        ("Evidence basis", basis, f" basis-{basis}" if basis else ""),
     ]
-    rendered = [(label, str(value)) for label, value in cells
+    rendered = [(label, str(value), extra) for label, value, extra in cells
                 if value not in (None, "", [])]
     if not rendered:
         return ""
     body = "".join(
         f'<div class="cell"><span class="lab">{esc(label)}</span>'
-        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}">{esc(value)}</div></div>'
-        for label, value in rendered)
+        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
+        f"{esc(value)}</div></div>"
+        for label, value, extra in rendered)
     return (f'<div class="stats" style="grid-template-columns:repeat({len(rendered)},'
             f'minmax(0,1fr))">{body}</div>')
 

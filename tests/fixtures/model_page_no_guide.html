@@ -1,71 +1,175 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-site="modelspec"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tiny — ModelSpec</title>
 <meta name="description" content="Tiny by acme: benchmark scores, lineage, platforms and hardware fit, with the date on every number.">
 <link rel="canonical" href="https://modelspec.dev/m/acme/tiny/">
 <meta name="robots" content="index, follow">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#07080a">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Tiny — ModelSpec">
 <meta property="og:description" content="Tiny by acme: benchmark scores, lineage, platforms and hardware fit, with the date on every number.">
 <meta property="og:url" content="https://modelspec.dev/m/acme/tiny/">
 <meta name="generator" content="modelspec-pipeline abc">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#f3f4f6;--mute:#9aa3b2;--dim:#5b6472;--ground:#000;--panel:#0b0e14;
---line:#1f2430;--amber:#f5b342;--good:#34d399;--warn:#fbbf24;--off:#6b7280}
+:root{--ground:#07080a;--surface:#0d1014;--raise:#13171d;--line:#1a1f26;--rule:#13171d;
+--ink:#e6eaf0;--body:#c3cad4;--mute:#9aa4b2;--dim:#767f8d;
+--good:#4ade80;--warn:#f5b342;--bad:#f87171;--off:#767f8d;--alias:#a78bfa;
+--accent:#f5b342;--gutter:46px}
+[data-site="benchgraph"]{--accent:#38bdf8}
 *{box-sizing:border-box}
 html{color-scheme:dark}
 body{margin:0;background:var(--ground);color:var(--ink);
-font-family:"Space Grotesk",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
-font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
-a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:3px}
-a:hover{text-decoration-color:var(--amber)}
-:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
-.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 8px;
-border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap;gap:12px}
-nav .brand{font-weight:700;font-size:18px;letter-spacing:-.02em;text-decoration:none}
-nav .links{display:flex;gap:20px;font-size:15px;flex-wrap:wrap}
-nav .links a{color:var(--mute);text-decoration:none}
-nav .links a:hover{color:var(--ink)}
-h1{font-size:34px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
-h2{font-size:21px;margin:34px 0 10px;letter-spacing:-.01em}
-h3{font-size:17px;margin:22px 0 6px}
-p{margin:0 0 12px}
-.lede{color:var(--mute);font-size:18px;margin-bottom:18px}
-.meta{color:var(--dim);font-size:14px;font-family:"JetBrains Mono",ui-monospace,monospace}
-code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
-table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:15px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--mute);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
+a:hover{border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;
+border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap;gap:12px}
+nav .brand{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:16px;
+letter-spacing:-.02em;color:var(--ink);border-bottom:0}
+nav .brand:hover{color:var(--accent)}
+nav .links{display:flex;gap:20px;font-size:12px;letter-spacing:.06em;flex-wrap:wrap}
+nav .links a{color:var(--dim);border-bottom:0;text-transform:uppercase}
+nav .links a:hover{color:var(--accent)}
+.sans,.card,.prose{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
+h1{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+font-size:46px;line-height:1.05;letter-spacing:-.035em;margin:0 0 12px;overflow-wrap:break-word}
+h2{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:500;
+font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--mute);
+border-bottom:1px solid var(--line);padding-bottom:8px;margin:38px 0 14px;
+position:relative;counter-increment:sec}
+h2::before{content:counter(sec,decimal-leading-zero);position:absolute;
+left:calc(-1 * var(--gutter));top:2px;width:var(--gutter);
+font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+color:var(--dim);text-transform:uppercase}
+h3{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+font-size:16px;letter-spacing:-.01em;margin:22px 0 6px}
+p{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
+line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px}
+li{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
+line-height:1.65;color:var(--body)}
+.page{counter-reset:sec;padding-left:var(--gutter)}
+.lab{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+color:var(--dim);text-transform:uppercase}
+.lede{color:var(--body);font-size:16px}
+.meta{color:var(--dim);font-size:12px;font-family:"JetBrains Mono",ui-monospace,monospace;
+max-width:none}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:400;font-size:10px;
+letter-spacing:.14em;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--line)}
 td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace}
+td.grouphead{background:var(--surface);border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
-.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
-border:1px solid var(--line);color:var(--mute);margin-right:6px;font-family:"JetBrains Mono",ui-monospace,monospace}
-.pill.active{color:var(--good);border-color:#14532d}
-.pill.unverified{color:var(--warn);border-color:#422006}
-.pill.alias{color:var(--mute)}
-.pill.unassessed{color:var(--off)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
-.card a{text-decoration:none;font-weight:700}
-.card .sub{color:var(--dim);font-size:13px;margin-top:3px}
+.panel{background:var(--surface);border:1px solid var(--line);padding:14px 16px;margin:14px 0}
+.panel table{margin:0}
+.pill{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;
+letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--line);
+color:var(--mute);margin-right:6px}
+.pill::before{margin-right:6px}
+.pill.active{color:var(--good);border:1px solid var(--good);background:#102a1c}
+.pill.active::before{content:"✓"}
+.pill.unverified{color:var(--warn);border:1px solid var(--warn);background:none}
+.pill.unverified::before{content:"!"}
+.pill.alias{color:var(--alias);border:1px dashed var(--alias);background:none}
+.pill.alias::before{content:"→"}
+.pill.unassessed{color:var(--off);border:1px dotted var(--off);background:none}
+.pill.unassessed::before{content:"?"}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);padding:13px 15px}
+.card a{border-bottom:0;font-weight:700;font-size:16px;color:var(--ink)}
+.card a:hover{color:var(--accent)}
+.card .sub{color:var(--dim);font-size:12px;margin-top:3px;
+font-family:"JetBrains Mono",ui-monospace,monospace}
 ul.cols{columns:3;column-gap:26px;padding-left:18px}
-@media(max-width:800px){ul.cols{columns:1}h1{font-size:27px}}
-footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
-.notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:14px 0;font-size:15px}
-.notice.ok{border-left-color:var(--good);background:#04120c}
+ul.cols li{font-size:14px}
+footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line)}
+footer p{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--dim);
+max-width:none;margin:0 0 6px}
+.notice{border-left:3px solid var(--warn);padding:11px 15px;background:var(--surface);
+margin:14px 0;font-size:15px;color:var(--body);max-width:68ch;
+font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
+.notice.ok{border-left-color:var(--good)}
+.notice.derived{border-left-color:var(--warn)}
+.notice.derived::before{content:"Derived";font-family:"JetBrains Mono",ui-monospace,monospace;
+font-size:10px;letter-spacing:.14em;color:var(--warn);text-transform:uppercase;margin-right:12px}
+.stats{display:grid;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+margin:22px 0 30px}
+.stats .cell{padding:16px 18px;min-width:0}
+.stats .cell+.cell{border-left:1px solid var(--line)}
+.stats .lab{display:block;margin-bottom:7px}
+.stats .val{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+font-size:20px;font-weight:700;letter-spacing:-.03em;overflow-wrap:break-word}
+.stats .val.long{font-size:16px;font-weight:500}
+.basis-verified{color:var(--good)}
+.basis-unverified-legacy{color:var(--warn)}
+.basis-mixed,.basis-partial-verified{color:var(--accent)}
+.basis-none{color:var(--mute)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px}
+.chain{display:flex;align-items:stretch;border:1px solid var(--line);background:var(--surface);
+padding:18px 0;margin:0 0 24px}
+.chain-col{flex:1 1 0;min-width:0;padding:0 18px;display:flex;flex-direction:column;gap:8px}
+.chain-col+.chain-col{border-left:1px solid var(--line)}
+.chain-col.self{justify-content:center}
+.chain-card{border:1px solid var(--line);padding:10px 13px}
+.chain-card.self{border-color:var(--accent)}
+.chain-card a{border-bottom:0;color:var(--ink);
+font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px}
+.chain-card a:hover{color:var(--accent)}
+.chain-card .lab{display:block;margin-top:4px;color:var(--accent)}
+.chain-card.self .lab{color:var(--dim)}
+.chain-name{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px;font-weight:700}
+.bar{display:flex;align-items:center;gap:10px}
+.bar .track{flex:0 0 150px;width:150px;height:8px;background:var(--raise)}
+.bar .fill{display:block;height:8px;background:var(--accent)}
+.bar .val{flex:0 0 auto;min-width:52px;text-align:right;
+font-family:"JetBrains Mono",ui-monospace,monospace}
+.bar.flex .track{flex:1 1 auto;width:auto}
+.hw{display:flex;flex-direction:column}
+.hw>.scroll{order:-1}
+.showall{margin-top:12px}
+.showall summary{display:inline-block;cursor:pointer;list-style:none;
+font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.1em;
+text-transform:uppercase;color:var(--accent);border:1px solid var(--line);padding:7px 14px}
+.showall summary::-webkit-details-marker{display:none}
+.showall summary:hover{border-color:var(--accent)}
+.showall .when-open{display:none}
+.showall[open] .when-open{display:inline}
+.showall[open] .when-closed{display:none}
+.showall+.scroll tr.more{display:none}
+.showall[open]+.scroll tr.more{display:table-row}
+.gaps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.gap{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+text-transform:uppercase;border:1px dashed var(--line);color:var(--mute);padding:4px 11px}
+.complete{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:68ch}
+.complete .track{flex:1 1 auto;height:6px;background:var(--raise)}
+.complete .fill{display:block;height:6px;background:var(--accent)}
+@media(max-width:800px){
+.page{padding-left:0}
+h2::before{position:static;display:block;width:auto;margin-bottom:6px}
+h1{font-size:30px}
+ul.cols{columns:1}
+.grid{grid-template-columns:1fr}
+.stats{grid-template-columns:1fr!important}
+.stats .cell+.cell{border-left:0;border-top:1px solid var(--line)}
+.chain{flex-direction:column;gap:16px}
+.chain-col+.chain-col{border-left:0;border-top:1px solid var(--line);padding-top:16px}
+.bar .track{flex:0 0 90px;width:90px}
+}
 </style></head>
 <body><div class="wrap">
 <nav><a class="brand" href="/">ModelSpec</a><div class="links"><a href="/downselect/">Downselect</a><a href="/graph/">Graph</a><a href="/models/">Models</a><a href="/providers/">Providers</a><a href="https://benchgraph.dev/benchmarks/">Benchmarks</a><a href="/api/index.json">API</a></div></nav>
+<main class="page">
 
 <h1>Tiny</h1>
-<p class="lede">acme &middot; <span class="mono">acme/tiny</span></p>
-<div class="panel"><table><tr><th>Provider</th><td>acme</td></tr><tr><th>Family</th><td>tiny</td></tr><tr><th>Type</th><td>llm</td></tr><tr><th>Status</th><td>active</td></tr></table></div>
+<p class="meta">acme &middot; <span class="mono">acme/tiny</span></p>
 
+<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="cell"><span class="lab">Type</span><div class="val">llm</div></div><div class="cell"><span class="lab">Evidence basis</span><div class="val long basis-unverified-legacy">unverified-legacy</div></div></div>
 
 
 <h2>Reported benchmark scores</h2>
@@ -73,11 +177,13 @@ footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);colo
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody><tr><td>mmlu</td><td><span class="pill unassessed">unassessed</span></td><td class="num">80.0</td></tr></tbody></table></div>
+<h2>Not yet researched</h2><p class="lede">A section with nothing to say does not render at all, so this is the one place the page names its gaps. Remember that null in this schema means nobody has looked, not that the model lacks the property.</p><div class="complete"><span class="lab">3 of the 15 facts this page can show</span><span class="track"><span class="fill" style="width:20.0%"></span></span></div><div class="gaps"><span class="gap">Parameters</span><span class="gap">Release date</span><span class="gap">Last updated</span><span class="gap">Open weights</span><span class="gap">Licence</span><span class="gap">Context window</span><span class="gap">Pricing</span><span class="gap">Training cutoff</span><span class="gap">Lineage</span><span class="gap">Capabilities</span><span class="gap">Platform availability</span><span class="gap">Hardware fit</span></div>
 <h2>Data</h2>
 <p><a href="/api/models/acme/tiny.json">This card as JSON</a> &middot;
 <a href="/graph/">See it in the graph</a> &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/models/acme/tiny.md">Edit on GitHub</a></p>
 
+</main>
 <footer>
 <p>Built 2026-09-15T00:00:00Z from commit <span class="mono">abc</span>.
 Eligibility as of 2026-09-15.</p>
