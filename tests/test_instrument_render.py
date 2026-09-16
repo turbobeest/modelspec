@@ -21,7 +21,7 @@ from pipeline.export import Build  # noqa: E402
 from pipeline.hardware import Device  # noqa: E402
 from pipeline.load import Catalogue, Model  # noqa: E402
 from pipeline.render import (  # noqa: E402
-    CSS, hardware_section, lineage_section, model_page, stat_strip,
+    CSS, FONTS, hardware_section, lineage_section, model_page, stat_strip,
     unresearched_section,
 )
 
@@ -336,3 +336,30 @@ def test_capabilities_render_as_header_chips_not_a_section() -> None:
     assert "<h2>Capabilities</h2>" not in html
     assert '<span class="pill">tool use &middot; T3</span>' in html
     assert html.index('class="chips"') < html.index('class="stats"')
+
+
+# ── Self-hosted Archivo (MODEL-24: "no runtime CDN dependency beyond the fonts
+#    already loaded"; MODEL-19: "no runtime dependency on a third-party CDN") ──
+
+def test_archivo_is_not_requested_from_a_cdn() -> None:
+    assert "Archivo" not in FONTS
+    assert "fonts.googleapis.com" in FONTS  # JetBrains Mono was already loaded
+
+
+def test_archivo_faces_are_declared_against_repo_paths() -> None:
+    assert "/fonts/archivo-latin.woff2" in CSS
+    assert "/fonts/archivo-latin-ext.woff2" in CSS
+    assert CSS.count("@font-face") == 2
+
+
+def test_archivo_is_preloaded_so_the_heading_face_is_not_a_late_swap() -> None:
+    assert 'rel="preload"' in FONTS
+    assert '/fonts/archivo-latin.woff2' in FONTS
+
+
+def test_the_font_files_and_their_licence_ship_in_the_repo() -> None:
+    fonts = Path(__file__).resolve().parent.parent / "site" / "fonts"
+    assert (fonts / "archivo-latin.woff2").is_file()
+    assert (fonts / "archivo-latin-ext.woff2").is_file()
+    # The OFL requires the licence to travel with the font.
+    assert "SIL Open Font License" in (fonts / "Archivo-OFL.txt").read_text(encoding="utf-8")
