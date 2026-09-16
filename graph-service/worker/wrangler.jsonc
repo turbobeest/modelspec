@@ -35,6 +35,12 @@
     // edges.json). The host is not real: the Worker intercepts the container's
     // requests to it (GraphContainer.outboundByHost) and serves them from the
     // EXPORTS R2 binding. Local dev overrides this in .dev.vars.
-    "GRAPH_EXPORT_URL": "http://graph-export.internal/benchgraph-graph/latest"
+    "GRAPH_EXPORT_URL": "http://graph-export.internal/benchgraph-graph/latest",
+    // The deployed version. CI overrides it per deploy with
+    // `wrangler deploy --var BUILD_COMMIT:$GITHUB_SHA` (CLI vars are merged over
+    // the config vars, so GRAPH_EXPORT_URL survives). The Durable Object rolls
+    // the container whenever this changes, and the container reports it back as
+    // `service_commit`. "dev" is the local-dev placeholder.
+    "BUILD_COMMIT": "dev"
   }
 }

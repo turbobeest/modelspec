@@ -339,6 +339,7 @@ def test_load_failure_is_not_exposed(capsys):
                 # so a container that never loads is diagnosable from outside.
                 assert json.loads(body) == {
                     "build_commit": None, "format_version": None, "status": "error",
+                    "service_commit": None,
                     "error": "export_not_loaded", "attempts": 2,
                     "last_error": {"exception": "OSError",
                                    "message": "urlopen error for <url> at <host>"}}
@@ -382,7 +383,7 @@ def test_wrangler_config_is_filled_in():
     assert url.scheme == "http" and url.hostname == host and host.endswith(".internal")
     assert url.path == "/benchgraph-graph/latest"
     assert cfg["r2_buckets"] == [{"binding": "EXPORTS", "bucket_name": "benchgraph-graph-exports"}]
-    assert "static outboundByHost = { [EXPORT_HOST]: serveExport }" in js
+    assert "GraphContainer.outboundByHost = { [EXPORT_HOST]: serveExport };" in js
     assert "export { ContainerProxy }" in js
     assert cfg["routes"] == [
         {"pattern": "graph.benchgraph.dev/graph/*", "zone_name": "benchgraph.dev"}
@@ -419,20 +420,19 @@ def test_deploy_uploads_manifest_last():
 
 def test_worker_export_handler_is_read_only_and_scoped():
     """serveExport answers GET for the three export files only (run under node)."""
-    import shutil
-    import subprocess
-
-    node = shutil.which("node")
-    worker = ROOT / "graph-service/worker"
-    js = (worker / "src/export.js").read_text()
+    js = (ROOT / "graph-service/worker/src/export.js").read_text()
     assert "import " not in js
     assert ".list(" not in js and ".put(" not in js and ".delete(" not in js
-    if not node:
-        pytest.skip("node not installed")
     script = r"""
 import { serveExport } from "./src/export.js";
 const store = {"benchgraph-graph/latest/manifest.json": "{}"};
-const env = { EXPORTS: { get: async (k) => k in store ? { body: store[k] } : null } };
+const env = { EXPORTS: { get: async (k) => k in store ? object(store[k]) : null } };
+// `body` is the R2 stream serveExport must NOT hand back: reading it fails the
+// test, which is what pins the buffered response in place.
+function object(text) {
+  return { arrayBuffer: async () => new TextEncoder().encode(text).buffer,
+           get body() { throw new Error("streamed the R2 body"); } };
+}
 const h = "http://graph-export.internal";
 const r = async (p, m="GET") => (await serveExport(new Request(h + p, {method: m}), env)).status;
 console.log(JSON.stringify([
@@ -444,14 +444,7 @@ console.log(JSON.stringify([
   await r("/benchgraph-graph/latest/../latest/manifest.json"),
 ]));
 """
-    stub = worker / "_serve_export_check.mjs"
-    stub.write_text(script)
-    try:
-        out = subprocess.run([node, stub.name], cwd=worker, capture_output=True, text=True, timeout=60)
-    finally:
-        stub.unlink()
-    assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout.strip().splitlines()[-1]) == [200, 404, 405, 404, 404, 200]
+    assert _run_node(script, "_serve_export_check.mjs") == [200, 404, 405, 404, 404, 200]
 
 
 def test_container_failures_are_visible_in_worker_logs():
@@ -466,7 +459,324 @@ def test_container_failures_are_visible_in_worker_logs():
     assert "onError(error)" in index_js and "console.error(" in index_js
     assert "onStart()" in index_js and "onStop(" in index_js
     # No log line for a route means the container never asked for the export,
-    # which is what distinguishes a broken interception from a broken load.
-    assert "console.log(`export ${request.method} ${url.pathname} -> ${response.status}`)" \
-        in export_js
+    # which is what distinguishes a broken interception from a broken load. The
+    # byte count distinguishes "answered" from "answered with nothing".
+    assert "console.log(`export ${request.method} ${url.pathname} -> " \
+        "${result.status} ${bytes.byteLength}B`)" in export_js
     assert _jsonc(WRANGLER.read_text())["observability"] == {"enabled": True}
+
+
+# --- MODEL-9 part 2: the deploy must roll the container -------------------
+# A `wrangler deploy` leaves a running container alone, and the deploy's own
+# smoke test keeps it awake past `sleepAfter`, so the just-deployed image was
+# never exercised (#77, #78 and #79 all shipped that way). BUILD_COMMIT is the
+# deployed version: the Durable Object destroys an instance left over from an
+# earlier one, and the container reports the value it was started with back as
+# `service_commit`.
+
+ROLLOUT_JS = ROOT / "graph-service/worker/src/rollout.js"
+
+
+def test_service_reports_the_version_it_was_started_for(monkeypatch, tmp_path):
+    """`service_commit` identifies the running image; `build_commit` the export."""
+    monkeypatch.setenv("BUILD_COMMIT", "deadbeef")
+    svc = _service_module()
+    assert svc.SERVICE_COMMIT == "deadbeef"
+    bg.write_export(bg.build_document(pages=FIXTURE_PAGES, evidence=[]), tmp_path)
+    manifest, _ = bg.read_export(str(tmp_path))
+    # Loaded: both markers present and independent of each other.
+    svc.STATE.update(manifest=manifest, graph=None, error=None, status="ok")
+    assert svc.Handler._base(svc.Handler) == {
+        "build_commit": manifest["build"]["commit"],
+        "format_version": manifest["format_version"],
+        "service_commit": "deadbeef"}
+    # Not loaded: the image still says which version it is, so "wrong version"
+    # and "right version, failed to load" stay apart.
+    svc.STATE.update(manifest=None, graph=None, status="error")
+    assert svc.Handler._base(svc.Handler)["service_commit"] == "deadbeef"
+
+    monkeypatch.delenv("BUILD_COMMIT")
+    assert _service_module().SERVICE_COMMIT is None
+
+
+def _run_node(script: str, name: str):
+    """Run an ES module in graph-service/worker and return its parsed last line."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not installed")
+    worker = ROOT / "graph-service/worker"
+    stub = worker / name
+    stub.write_text(script)
+    try:
+        out = subprocess.run([node, stub.name], cwd=worker, capture_output=True,
+                             text=True, timeout=60)
+    finally:
+        stub.unlink()
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout.strip().splitlines()[-1])
+
+
+def test_rollout_module_has_no_imports():
+    """Runnable under plain node: the test job never installs the worker deps."""
+    assert "import " not in ROLLOUT_JS.read_text()
+
+
+def test_container_rolls_once_per_deployed_version():
+    """Mismatch rolls exactly once; a matching version never rolls."""
+    script = r"""
+import { rollStaleContainer, staleHealth, ROLLED_KEY } from "./src/rollout.js";
+
+function fake(running) {
+  const store = new Map();
+  const c = { running, destroys: 0, throws: false,
+              async destroy() { this.destroys++; if (this.throws) throw new Error("boom");
+                                this.running = false; } };
+  return { kv: { get: (k) => store.get(k), put: (k, v) => store.set(k, v) }, container: c,
+           store };
+}
+const roll = (f, want) => rollStaleContainer({ kv: f.kv, container: f.container, want });
+const out = {};
+
+// A container left from an earlier version is destroyed once, and the marker
+// survives into the next request (and the next DO incarnation).
+const stale = fake(true);
+out.stale = [await roll(stale, "v2"), await roll(stale, "v2"), await roll(stale, "v2")];
+out.staleDestroys = stale.container.destroys;
+out.marker = stale.store.get(ROLLED_KEY);
+
+// Already rolled for this version and still running: a container that keeps
+// failing to load its export must not be killed on every request.
+const current = fake(true);
+current.kv.put(ROLLED_KEY, "v2");
+out.current = [await roll(current, "v2"), await roll(current, "v2")];
+out.currentDestroys = current.container.destroys;
+
+// Nothing running yet (first ever request, or after sleepAfter): nothing to kill.
+const cold = fake(false);
+out.cold = await roll(cold, "v2");
+out.coldDestroys = cold.container.destroys;
+out.coldMarker = cold.store.get(ROLLED_KEY);
+
+// No BUILD_COMMIT (local `wrangler dev` without the var): never roll.
+const dev = fake(true);
+out.dev = await roll(dev, "");
+out.devDestroys = dev.container.destroys;
+out.devMarker = dev.store.get(ROLLED_KEY) ?? null;
+
+// A destroy that throws is still only attempted once: marker written first.
+const broken = fake(true);
+broken.container.throws = true;
+out.brokenThrew = await roll(broken, "v3").then(() => false, () => true);
+out.broken = await roll(broken, "v3");
+out.brokenDestroys = broken.container.destroys;
+
+// A newer version rolls again, exactly once.
+out.next = [await roll(current, "v3"), await roll(current, "v3")];
+out.nextDestroys = current.container.destroys;
+
+// health gating: wrong version vs right version that failed to load.
+out.match = staleHealth({ service_commit: "v2", status: "ok" }, "v2");
+out.failedLoad = staleHealth({ service_commit: "v2", error: "export_not_loaded" }, "v2");
+out.mismatch = staleHealth({ service_commit: "v1", status: "ok" }, "v2");
+out.absent = staleHealth({ status: "ok" }, "v2");
+out.unparseable = staleHealth(null, "v2");
+out.unversioned = staleHealth({ service_commit: "v1" }, "");
+console.log(JSON.stringify(out));
+"""
+    out = _run_node(script, "_rollout_check.mjs")
+    # One roll per version, no restart loop.
+    assert out["stale"] == ["rolled", "current", "current"] and out["staleDestroys"] == 1
+    assert out["marker"] == "v2"
+    assert out["current"] == ["current", "current"] and out["currentDestroys"] == 0
+    assert out["cold"] == "fresh" and out["coldDestroys"] == 0 and out["coldMarker"] == "v2"
+    assert out["dev"] == "unversioned" and out["devDestroys"] == 0 and out["devMarker"] is None
+    # The marker is written before destroy(), so a failing destroy cannot loop.
+    assert out["brokenThrew"] is True
+    assert out["broken"] == "current" and out["brokenDestroys"] == 1
+    # The next deployed version rolls again, once.
+    assert out["next"] == ["rolled", "current"] and out["nextDestroys"] == 1
+    # "right version, failed to load" passes through; "wrong version" does not.
+    assert out["match"] is None and out["failedLoad"] is None and out["unversioned"] is None
+    for key in ("mismatch", "absent", "unparseable"):
+        assert out[key]["error"] == "version_rolling", key
+        assert out[key]["expected_service_commit"] == "v2", key
+    assert out["mismatch"]["service_commit"] == "v1"
+    assert out["absent"]["service_commit"] is None
+
+
+def test_worker_rolls_the_container_and_gates_health():
+    """The Durable Object rolls before proxying, and health is version-gated.
+
+    index.js imports @cloudflare/containers, which the test job does not
+    install, so this asserts the wiring in the source.
+    """
+    js = (ROOT / "graph-service/worker/src/index.js").read_text()
+    assert 'import { rollStaleContainer, staleHealth } from "./rollout.js"' in js
+    # The container is started with the deployed version, so it can report it.
+    assert 'BUILD_COMMIT: env.BUILD_COMMIT ?? ""' in js
+    assert "GRAPH_EXPORT_URL: env.GRAPH_EXPORT_URL" in js
+    # The roll runs inside the Durable Object's fetch, before super.fetch, so
+    # every route gets a fresh instance and not just /graph/health.
+    roll = re.search(r"async fetch\(request\) \{(.*?)\n  \}", js, re.S).group(1)
+    assert "rollStaleContainer({" in roll
+    assert "kv: this.ctx.storage.kv" in roll and "container: this.ctx.container" in roll
+    assert "want: this.env.BUILD_COMMIT" in roll
+    assert roll.index("rollStaleContainer") < roll.index("super.fetch(request)")
+    # The gate turns a stale answer into a loud 503 instead of a 200.
+    gate = re.search(r"async function gateHealth\(.*?\n\}", js, re.S).group(0)
+    assert "staleHealth(body, want)" in gate and "503" in gate
+    assert "gateHealth(response, env.BUILD_COMMIT" in js
+    # Public surface unchanged: still GET/HEAD only, still the same allowlist.
+    assert 'request.method !== "GET" && request.method !== "HEAD"' in js
+    assert ".put(" not in js and ".delete(" not in js and ".list(" not in js
+
+
+def test_deploy_injects_the_version_and_smoke_asserts_a_fresh_instance():
+    _, job = _deploy_job()
+    steps = {s.get("name", ""): s.get("run", "") for s in job["steps"]}
+    deploy = steps["Deploy Worker and Container"]
+    assert 'wrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"' in deploy
+    smoke = steps["Smoke-test graph.benchgraph.dev"]
+    # Both markers, and the loop only breaks when both equal the pushed sha.
+    assert "service=$(field service_commit)" in smoke
+    assert "commit=$(field build_commit)" in smoke
+    assert '[ "$service" = "${GITHUB_SHA}" ] && [ "$commit" = "${GITHUB_SHA}" ]' in smoke
+    # A version that never rolls fails loudly, and says so specifically.
+    assert '::error::the container never rolled onto ${GITHUB_SHA}' in smoke
+    assert 'if [ "$service" != "${GITHUB_SHA}" ]; then' in smoke
+    assert smoke.count("exit 1") == 3
+    # The PR-reachable container smoke proves the image echoes BUILD_COMMIT back.
+    ci = next(s["run"] for s in _deploy_job()[0]["jobs"]["graph"]["steps"]
+              if s.get("name") == "Smoke-test the query container")
+    assert '-e "BUILD_COMMIT=${GITHUB_SHA}"' in ci and "service_commit" in ci
+    # Local dev still has a value, so a `wrangler dev` container is not rolled
+    # on every request.
+    assert _jsonc(WRANGLER.read_text())["vars"]["BUILD_COMMIT"] == "dev"
+
+
+# --- MODEL-9 part 2: the intercepted export fetch must deliver bytes ------
+# A fresh container on post-#79 code logged Worker events with outcome Ok for
+# every intercepted GET, while the loader saw `HTTPError: HTTP Error 530:` with
+# an empty body on all 21 attempts. Both surviving explanations end here: the
+# response is buffered with a content-length instead of handing back an R2
+# stream the handler has already returned from, and a request that matches no
+# handler is refused and named instead of falling through to a public fetch of a
+# hostname that does not resolve (which the runtime answers with an empty 530
+# while the Worker event still reads Ok).
+
+
+def test_intercepted_export_delivers_buffered_bytes():
+    script = r"""
+import { serveExport, blockOutbound } from "./src/export.js";
+const payload = JSON.stringify({ format: "benchgraph-export", n: "x".repeat(4096) });
+const env = { EXPORTS: { get: async (k) =>
+  k === "benchgraph-graph/latest/manifest.json"
+    ? { arrayBuffer: async () => new TextEncoder().encode(payload).buffer,
+        get body() { throw new Error("streamed the R2 body"); } }
+    : k === "benchgraph-graph/latest/nodes.json"
+      ? { arrayBuffer: async () => { throw new Error("r2 exploded"); } }
+      : null } };
+const h = "http://graph-export.internal";
+const get = (p) => serveExport(new Request(h + p, { method: "GET" }), env);
+const out = {};
+
+const ok = await get("/benchgraph-graph/latest/manifest.json");
+out.status = ok.status;
+out.length = ok.headers.get("content-length");
+out.type = ok.headers.get("content-type");
+out.text = await ok.text();
+out.delivered = out.text.length === payload.length && out.text === payload;
+
+// A throw inside the handler becomes a readable 502, not an opaque failure.
+const boom = await get("/benchgraph-graph/latest/nodes.json");
+out.boom = [boom.status, await boom.text()];
+
+// Any other host is refused and logged, never fetched.
+const blocked = await blockOutbound(new Request("http://example.com/x", { method: "GET" }));
+out.blocked = [blocked.status, await blocked.text()];
+console.log(JSON.stringify(out));
+"""
+    out = _run_node(script, "_export_delivery_check.mjs")
+    # Buffered: reading the R2 stream would have thrown, and the bytes arrive.
+    assert out["status"] == 200 and out["delivered"] is True
+    assert out["length"] == str(len(out["text"].encode())) and out["length"] != "0"
+    assert out["type"] == "application/json"
+    assert out["boom"][0] == 502 and "unavailable" in out["boom"][1]
+    assert out["blocked"][0] == 502
+
+
+def test_container_egress_has_no_silent_fallthrough():
+    """An unmatched host must be named and refused, not fetched from the Worker."""
+    index_js = (ROOT / "graph-service/worker/src/index.js").read_text()
+    export_js = (ROOT / "graph-service/worker/src/export.js").read_text()
+    code = re.sub(r"^\s*//.*$", "", export_js, flags=re.M)
+    # The catch-all is what promotes the library out of per-host mode, where an
+    # unmatched host reaches `fetch(request)`.
+    assert "GraphContainer.outbound = blockOutbound;" in index_js
+    assert "fetch(" not in code
+    assert "console.error(`outbound blocked:" in code
+    # enableInternet stays default: 0.3.7 still notes DNS does not work with it off.
+    assert "enableInternet" not in re.sub(r"^\s*//.*$", "", index_js, flags=re.M)
+    # Every intercepted answer is buffered and framed.
+    assert "await object.arrayBuffer()" in code
+    assert '"content-length": String(bytes.byteLength)' in code
+    assert "object.body" not in code
+
+
+CONTAINERS_LIB = (ROOT / "graph-service/worker/node_modules/@cloudflare/containers"
+                  / "dist/lib/container.js")
+
+
+def test_outbound_handlers_are_assigned_not_declared_as_static_fields():
+    """The proven cause of the container's 530 (cloudflare/containers#247).
+
+    `Container` declares `outboundByHost` and `outbound` as static *accessor
+    pairs* whose setters are the only writers of the registries `ContainerProxy`
+    reads. A native `static` field defines an own property on the subclass
+    instead of invoking the inherited setter, so the registry stays empty while
+    the class still reads back the shadowing object: interception is armed (the
+    host is registered from `ctor.outboundByHost`), `ContainerProxy` finds no
+    handler, and falls through to `return fetch(request)` — a real subrequest for
+    a hostname that does not resolve, which answers 530 with an empty body while
+    the Worker event's outcome is still Ok. Assignment invokes the setter.
+    """
+    index_js = (ROOT / "graph-service/worker/src/index.js").read_text()
+    body = index_js[index_js.index("export class GraphContainer"):]
+    body = body[:body.index("\n}\n")]
+    assert "static outboundByHost" not in body and "static outbound" not in body
+    assert "GraphContainer.outboundByHost = " in index_js
+    assert "GraphContainer.outbound = " in index_js
+
+    if CONTAINERS_LIB.exists():
+        # The premise: still accessor pairs backed by module-level registries.
+        lib = CONTAINERS_LIB.read_text()
+        for name in ("outboundByHost", "outbound"):
+            assert f"static get {name}()" in lib and f"static set {name}(" in lib
+        assert "const outboundByHostRegistry = new Map();" in lib
+        # And the fall-through that turns a registry miss into a public fetch.
+        assert "if (allowedHosts || enableInternet) {\n                return fetch(request);" in lib
+
+    # And the semantics themselves, against the same accessor-pair shape.
+    script = r"""
+const registry = new Map();
+class Base {
+  static get outboundByHost() { return registry.get(this.name); }
+  static set outboundByHost(h) { registry.set(this.name, h); }
+}
+class Field extends Base { static outboundByHost = { host: "handler" }; }
+class Assigned extends Base {}
+Assigned.outboundByHost = { host: "handler" };
+console.log(JSON.stringify({
+  // The shape the Worker used to have: reads back fine, registers nothing.
+  fieldRegistered: registry.has("Field"),
+  fieldReadsBack: Field.outboundByHost !== undefined,
+  assignedRegistered: registry.has("Assigned"),
+  assignedHandler: registry.get("Assigned")?.host ?? null,
+}));
+"""
+    out = _run_node(script, "_static_field_shadowing_check.mjs")
+    assert out == {"fieldRegistered": False, "fieldReadsBack": True,
+                   "assignedRegistered": True, "assignedHandler": "handler"}

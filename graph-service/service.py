@@ -4,7 +4,7 @@ Runs inside the container next to FalkorDB. On start it loads the export named
 by GRAPH_EXPORT_URL (a directory path, file:// or https:// base URL; R2 in
 production) into the local FalkorDB, then serves:
 
-    GET /graph/health                         liveness + loaded build commit
+    GET /graph/health                         liveness, running image, loaded export
     GET /graph/manifest                       the export manifest
     GET /graph/<name>?<params>                one named query from QUERIES
 
@@ -26,6 +26,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from pipeline import benchgraph_graph as bg
+
+#: The deployed version this image was started for. The Worker injects it as a
+#: container env var (`GraphContainer.envVars.BUILD_COMMIT`) at *start*, so it
+#: identifies the running image, not the export: every response reports it as
+#: `service_commit` and that is what proves a deploy actually rolled the
+#: container. `build_commit` only says which export was loaded.
+SERVICE_COMMIT = os.environ.get("BUILD_COMMIT") or None
 
 #: Routes that are not graph queries.
 META_ROUTES = ("health", "manifest")
@@ -104,7 +111,8 @@ class Handler(BaseHTTPRequestHandler):
     def _base(self) -> dict:
         m = STATE["manifest"] or {}
         return {"build_commit": (m.get("build") or {}).get("commit"),
-                "format_version": m.get("format_version")}
+                "format_version": m.get("format_version"),
+                "service_commit": SERVICE_COMMIT}
 
     def do_HEAD(self) -> None:  # noqa: N802
         self.do_GET()

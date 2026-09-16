@@ -218,7 +218,8 @@ The FalkorDB tests skip when no server is reachable; CI sets
 `.github/workflows/benchgraph-graph.yml`, job **Benchgraph graph export**, on
 every PR and push to main. It starts `falkordb/falkordb:v4.20.1` as a service
 container, runs `tests/test_benchgraph_graph.py`, builds and verifies the export,
-builds the container and smoke-tests `/graph/health`, one query and a 404 for a
+builds the container and smoke-tests `/graph/health` (including that the image
+echoes its `BUILD_COMMIT` back as `service_commit`), one query and a 404 for a
 non-allowlisted route, then uploads `dist/benchgraph-graph/` as the workflow
 artifact `benchgraph-graph-<sha>`. No R2 upload. It is not a required check;
 `Run pytest` and `Build both sites` are unchanged.
@@ -254,7 +255,7 @@ serves them from the `EXPORTS` binding: GET only, and only
 `benchgraph-graph/latest/{manifest,nodes,edges}.json`. No listing and no writes,
 and nothing new on the public `/graph/*` route.
 
-### Why the interception wiring is correct
+### Why the interception approach is correct
 
 Checked against `@cloudflare/containers` 0.3.7 (`dist/lib/container.js`) and
 Cloudflare's [outbound traffic
@@ -271,17 +272,92 @@ docs](https://developers.cloudflare.com/containers/guides/outbound-traffic/):
 - Only **HTTPS** interception needs `interceptHttps = true` plus the ephemeral CA
   at `/etc/cloudflare/certs/cloudflare-containers-ca.crt`. `GRAPH_EXPORT_URL` is
   `http://`, so neither is needed.
-- We take the library's **per-host** path (a static `outboundByHost` with no
-  `outbound` catch-all and no `allowedHosts`/`deniedHosts`), so only
-  `graph-export.internal` is intercepted and everything else keeps the default
-  network behaviour. `allowedHosts` is deliberately unset: it is a deny-by-default
-  gate that would have to list the host as well.
-- `enableInternet` is irrelevant here: the per-host interception is registered
-  either way, and `applyOutboundInterception()` runs immediately before
-  `container.start()`, so it is in place before the container's loader runs.
+- `graph-export.internal` is matched by `outboundByHost` and everything else by
+  the `outbound` catch-all, which refuses it. `allowedHosts` stays unset: it is a
+  deny-by-default gate that would have to list the export host as well, and
+  `blockOutbound` already denies by default while *naming* what it denied.
+- `applyOutboundInterception()` runs immediately before `container.start()`, so
+  interception is in place before the container's loader runs.
+- `enableInternet` is **not** irrelevant, which is what the first three attempts
+  at this got wrong: with it true, a request that matches no handler is fetched
+  for real. That is the 530, and it is why the catch-all exists.
 
-So the wiring can work as written; the load failure is elsewhere, which is why
-the diagnostics below exist.
+So the *approach* is right, and each bullet above still holds. What was wrong
+was the registration, one line below all of it — see the next section.
+
+### The 530 the container saw: `static outboundByHost` never registered
+
+A container woken fresh on post-#79 code reported, on all 21 loader attempts:
+
+```json
+{"attempts": 21, "status": "loading",
+ "last_error": {"exception": "HTTPError", "message": "HTTP Error 530:"}}
+```
+
+while `wrangler tail` logged one Worker event per attempt,
+`GET http://graph-export.internal/benchgraph-graph/latest/manifest.json - Ok`.
+The request reached the Worker, the Worker did not throw, and the container
+still got an empty-bodied 530.
+
+Cause, proven: **the handler was never registered.** `Container` declares
+`outboundByHost` and `outbound` as static *accessor pairs*
+(`@cloudflare/containers` 0.3.7, `dist/lib/container.js:272-296`) whose setters
+are the only writers of the module-level registries `ContainerProxy` reads
+(`outboundByHostRegistry`, `outboundHandlersRegistry`). The Worker declared
+
+```js
+static outboundByHost = { [EXPORT_HOST]: serveExport };   // inside the class body
+```
+
+and a native `static` class field **defines an own property on the subclass**
+rather than invoking the inherited setter — [cloudflare/containers#247][247].
+So:
+
+- `ctor.outboundByHost` still read back the shadowing object, so
+  `getHostsToIntercept()` registered `graph-export.internal` and interception
+  was armed. That is the tail event;
+- `outboundByHostRegistry.get(className)` in `ContainerProxy.fetch` was
+  `undefined`, so no handler matched;
+- per-host mode ends with `if (allowedHosts || enableInternet) return
+  fetch(request);` and `enableInternet` defaults to true, so the Worker made a
+  **real subrequest** for `graph-export.internal`. That name does not resolve
+  publicly — by design — and Workers answers an unresolvable origin with
+  [530 / error 1016][530], empty body. `Ok` in tail tracks uncaught exceptions,
+  not status, so the event still read `Ok`.
+
+`tests/test_benchgraph_graph.py::test_outbound_handlers_are_assigned_not_declared_as_static_fields`
+pins all of it: the file must assign, the library must still be accessor pairs
+over a registry, and the shadowing itself is demonstrated under node.
+
+The fix is the assignment form, after the class body:
+
+```js
+GraphContainer.outboundByHost = { [EXPORT_HOST]: serveExport };
+GraphContainer.outbound = blockOutbound;
+```
+
+Two hardening changes ride along, neither of them the cause:
+
+- `blockOutbound` refuses and **names** every other HTTP host (502 plus an
+  `outbound blocked:` log) instead of letting it fall through to the public
+  internet. It also promotes the container to intercept-all HTTP
+  (`needsCatchAllInterception`), so if the registration ever breaks again the
+  symptom is that log line, not another unexplained 530. The container makes no
+  other HTTP calls: FalkorDB is on loopback and the browser UI is off.
+- `serveExport` buffers (`await object.arrayBuffer()`) and sets an explicit
+  `content-length` instead of returning the R2 stream. Streaming a `Response`
+  body across the boundary is supported, but a body with no `content-length` is
+  re-framed as connection-close-delimited for the container
+  ([cloudflare/containers#220][220]); the largest file is a few MB, so buffering
+  costs nothing and removes the question.
+
+`enableInternet` stays at its default. 0.3.7 still carries `// TODO: hopefully,
+enableInternet can be false in a future where we enable DNS and TLS paths` beside
+the start config, and the container has to resolve `EXPORT_HOST`.
+
+[247]: https://github.com/cloudflare/containers/issues/247
+[220]: https://github.com/cloudflare/containers/issues/220
+[530]: https://developers.cloudflare.com/workers/platform/known-issues/
 
 ### Diagnosing a container that never loads
 
@@ -292,20 +368,25 @@ page, which needs `observability.enabled` on the Worker (already set). Per the
 that is the only switch; the library exposes no stdout-forwarding option. So two
 Worker-side channels carry the diagnosis instead:
 
-1. **`/graph/health`** reports the last loader failure when the export is not
+1. **`/graph/health`** reports `service_commit` (the version the running image
+   was started for) always, and the last loader failure when the export is not
    loaded — `attempts` plus `last_error: {exception, message}`. The message is
    redacted by `redact_diagnostic()`: every URL becomes `<url>` and every
    hostname, IP and port becomes `<host>`, capped at 200 characters. No stack
    trace, no environment. The `error` code stays `export_not_loaded`.
-2. **`serveExport` logs every intercepted request** (`export GET /path -> status`)
-   and `GraphContainer` logs `onStart`/`onStop`/`onError`. Both appear in
-   `wrangler tail`. This splits the two failure modes apart:
+2. **`serveExport` logs every intercepted request** with its status *and byte
+   count* (`export GET /path -> 200 4512B`), `blockOutbound` logs every other
+   host it refuses, and `GraphContainer` logs `onStart`/`onStop`/`onError`. All
+   appear in `wrangler tail`. This splits the failure modes apart:
 
 | `wrangler tail` shows | Meaning |
 |---|---|
-| no `export …` line | the container never requested the export: interception or the loader never ran |
-| `export GET … -> 404` | interception works; the object is missing in R2 |
-| `export GET … -> 200`, health still failing | the export loaded but FalkorDB ingest failed — read `last_error` |
+| no `export …` line at all | the container never requested the export: interception or the loader never ran |
+| `outbound blocked: GET …` | the request was intercepted but matched no handler — the host in that line is what to fix |
+| `export GET … -> 404 9B` | interception works; the object is missing in R2 |
+| `export GET … -> 200 0B` | the object exists but produced no bytes |
+| `export GET … failed:` | the handler threw; the line carries the exception |
+| `export GET … -> 200 <n>B`, health still failing | the bytes were delivered but FalkorDB ingest failed — read `last_error` |
 
 ### DNS step (Jamie, once)
 
@@ -332,21 +413,64 @@ cancelled). It:
    `benchgraph-graph/<sha>/` and then `benchgraph-graph/latest/` with
    `wrangler r2 object put --remote` (manifest last, so a reader never sees a
    manifest pointing at missing files);
-3. runs `npx wrangler deploy` in `graph-service/worker` (builds and pushes the
-   container image);
+3. runs `npx wrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"` in
+   `graph-service/worker` (builds and pushes the container image, and records
+   the deployed version — see "Rolling the container" below);
 4. polls `https://graph.benchgraph.dev/graph/health` for up to 5 minutes until
-   `build_commit` equals the pushed sha, then calls
+   **both** `service_commit` (the running image) and `build_commit` (the loaded
+   export) equal the pushed sha, then calls
    `benchmarks_still_separating?capability=coding&limit=3`. It fails with a
-   DNS/route hint instead of hanging.
+   DNS/route hint instead of hanging, and names the case — unreachable, never
+   rolled, or rolled but the export did not load — in the `::error::` line.
 
-Open: a running container picks up `latest` only on its next cold start (after
-`sleepAfter`, 15 min idle), so the health check may need a redeployed container
-to report the new commit.
+### Rolling the container onto the deployed version
+
+`wrangler deploy` replaces the Worker and the Durable Object code, but a
+container instance that is already running survives and keeps serving the
+previous image. `sleepAfter` is 15 min and the deploy's own smoke test polls
+every 10 s, so the instance never goes idle either: #77, #78 and #79 all shipped
+without their container-side change ever being exercised, and the old smoke test
+could not see it. `build_commit` does not catch this — it comes from the export
+the container loaded, so any restart makes it current while the code stays old.
+
+`BUILD_COMMIT` is the deployed version:
+
+- the deploy injects it (`wrangler deploy --var`, merged over the config vars, so
+  `GRAPH_EXPORT_URL` is unaffected; `wrangler.jsonc` keeps `"dev"` for local dev);
+- `GraphContainer.envVars` passes it to the container **at start**, so a
+  container left from an earlier deploy still reports the earlier value;
+- `graph-service/service.py` echoes it back as `service_commit` on every
+  response. That is the only field that identifies the running image;
+- `GraphContainer.fetch` (`graph-service/worker/src/rollout.js`) compares it with
+  the Durable Object storage key `ROLLED_FOR_BUILD` and, on a mismatch, calls
+  `ctx.container.destroy()` — `destroy(): Promise<void>` in
+  `@cloudflare/containers` 0.3.7 (`dist/lib/container.js`: `async destroy() {
+  await this.container.destroy(); }`), a SIGKILL that triggers `onStop`. The
+  `super.fetch` that follows starts a fresh instance on the deployed image.
+  `stop()` is the graceful twin; `destroy()` is used because the point here is to
+  be decisive.
+
+The marker is written **before** the destroy, so there is at most one roll per
+`BUILD_COMMIT`. A container that starts and then fails to load its export is
+never killed again on the next request — no restart loop — and the failure stays
+visible as `export_not_loaded` with `attempts` and `last_error`.
+
+The Worker also gates `/graph/health` on `service_commit`: an answer from an
+older image becomes a 503 `version_rolling` instead of a 200, which keeps the two
+failures apart.
+
+| `/graph/health` says | Meaning |
+|---|---|
+| 503 `version_rolling` | an old image is still answering: the roll did not take |
+| 503 `export_not_loaded` | the deployed image is running but its load failed — read `last_error` |
+| 200, both commits equal to the sha | the deploy is live and was actually exercised |
 
 ## Not built
 
 - No site or CLI caller of `/graph/*` yet.
-- No reload of a running container when a new export lands.
+- No reload of a running container when a new export lands *without* a deploy:
+  the roll is keyed on `BUILD_COMMIT`, so an export-only change still waits for
+  `sleepAfter`. Every export published today rides a deploy.
 - No auth or rate limiting on the Worker beyond the allowlist and parameter bounds.
 - `sources`, `freshness`, the Markdown body and the unverified `benchmarks.scores`
   dict are not in the graph.
