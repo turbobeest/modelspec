@@ -245,12 +245,19 @@ Part 2 turns on drafting, PRs and issues in CI. Jamie's decisions of 2026-09-15:
 ### 7-day trial and revert
 
 - Day 0: dispatch `pages=pilot` to baseline (or let 2026-09-16 be the baseline).
-- The daily cron `47 6 * * *` runs 2026-09-16..2026-09-23 inclusive: 8 runs, baseline plus 7.
+- The daily cron `47 6 * * *` runs 2026-09-16..2026-09-24 inclusive. The 2026-09-16 run was lost to the gate crash fixed in this PR, so the window was extended one day (Jamie, 2026-09-16) to keep baseline plus 7 usable runs.
   During the window the weekly cron is skipped, so Monday 09-21 does not run twice.
 - **Guard: a date window in `scripts/curation/ci.py gate`**, not a run counter. An Actions
   cache counter can be evicted (7 days unused, 10 GB limit) or raced, and a failed run would
   shift the end. The window is deterministic, needs no state, and is unit-tested. After
   09-23 the daily cron fires but the gate job skips everything in seconds.
+- **2026-09-16 was lost.** Run 35066344154 reported `Trial gate=success` and skipped every
+  downstream job: the gate job installed no dependencies, so `ci.py` died on `import pydantic`,
+  and `| tee -a "$GITHUB_OUTPUT"` returned tee's status instead of the gate's. Both are fixed
+  (the gate now installs the same deps as the other jobs, every `$GITHUB_OUTPUT` pipe sets
+  `pipefail`, and a gate with no `run=` fails with `::error::`). The baseline therefore moves
+  to 2026-09-17, which leaves only 6 comparison runs before 09-23: **Jamie decides whether to
+  push `TRIAL_END` to 2026-09-24** to keep baseline plus 7.
 - **Revert to weekly after 7 runs:** delete the `47 6 * * *` cron line and the
   `DAILY_CRON`/`TRIAL_*` window in `ci.py` (and its test), then widen to `pages=all`.
 - Pass: 7 consecutive green runs, no-change pages produce no PR, and at least one real change
