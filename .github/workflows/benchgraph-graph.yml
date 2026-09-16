@@ -79,11 +79,16 @@ jobs:
           docker build -f graph-service/Dockerfile -t benchgraph-graph:ci .
           docker run -d --name graph -p 8080:8080 \
             -v "$PWD/dist/benchgraph-graph:/export:ro" -e GRAPH_EXPORT_URL=/export \
+            -e "BUILD_COMMIT=${GITHUB_SHA}" \
             benchgraph-graph:ci
           for i in $(seq 1 60); do
             curl -fsS http://localhost:8080/graph/health && break
             sleep 2
           done
+          # The image must echo back the version it was started for; the
+          # deploy's roll check is worthless without it.
+          curl -fsS http://localhost:8080/graph/health -o health.json
+          python3 -c "import json,os,sys; got=json.load(open('health.json')).get('service_commit'); sys.exit(0 if got==os.environ['GITHUB_SHA'] else 'service_commit=%r' % (got,))"
           curl -fsS "http://localhost:8080/graph/benchmarks_still_separating?capability=coding&limit=3"
           test "$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:8080/graph/cypher?q=MATCH')" = 404
           docker logs graph
@@ -143,33 +148,53 @@ jobs:
 
       - name: Deploy Worker and Container
         working-directory: graph-service/worker
-        run: npx wrangler deploy
+        # BUILD_COMMIT is what makes the deploy roll the container: the Durable
+        # Object destroys an instance left over from an earlier BUILD_COMMIT, and
+        # the fresh one reports this value back as `service_commit`. CLI vars are
+        # merged over the config vars, so GRAPH_EXPORT_URL is unaffected.
+        run: npx wrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
 
       - name: Smoke-test graph.benchgraph.dev
         run: |
           set -uo pipefail
           url="https://${GRAPH_HOST}/graph"
           deadline=$((SECONDS + 300))
-          status=""; body=""
+          status=""; commit=""; service=""
+          # Nothing is masked here: an unreadable body must stay
+          # visible. An empty file reads as {}; anything else that fails to parse
+          # prints its traceback and leaves the field empty, which the loop
+          # already treats as "not the version we deployed".
+          field() {
+            python3 -c "import json,sys; raw=open('health.json').read().strip(); print((json.loads(raw) if raw else {}).get(sys.argv[1]) or '')" "$1"
+          }
           while [ "$SECONDS" -lt "$deadline" ]; do
+            : > health.json
             status=$(curl -sS -o health.json -w '%{http_code}' --max-time 20 "${url}/health" || echo 000)
-            if [ "$status" = 200 ]; then
-              commit=$(python3 -c 'import json,sys
-          try: print(json.load(open("health.json")).get("build_commit") or "")
-          except Exception as e: print(f"unparseable health body: {e}", file=sys.stderr)')
-              [ "$commit" = "${GITHUB_SHA}" ] && break
-              echo "health 200 but build_commit=${commit:-none}, want ${GITHUB_SHA}; retrying"
-            else
-              echo "health HTTP ${status}; retrying"
+            # service_commit is the container's own BUILD_COMMIT, fixed when that
+            # instance started: it can only match if this deploy rolled it.
+            # build_commit is the export that instance loaded. Both must be this
+            # sha, or whatever answered is not what we just deployed.
+            service=$(field service_commit)
+            commit=$(field build_commit)
+            if [ "$status" = 200 ] && [ "$service" = "${GITHUB_SHA}" ] && [ "$commit" = "${GITHUB_SHA}" ]; then
+              echo "fresh instance on ${GITHUB_SHA}: service_commit and build_commit both match"
+              break
             fi
+            echo "health HTTP ${status} service_commit=${service:-none} build_commit=${commit:-none}; want ${GITHUB_SHA}; retrying"
             sleep 10
           done
           if [ "$status" = 000 ]; then
             echo "::error::${GRAPH_HOST} unreachable after 5 min. Check the proxied DNS record for ${GRAPH_HOST} (see docs/benchgraph-graph.md)."
             exit 1
           fi
-          if [ "$status" != 200 ] || [ "${commit:-}" != "${GITHUB_SHA}" ]; then
-            echo "::error::${url}/health did not report build_commit ${GITHUB_SHA} within 5 min (last HTTP ${status}). A 404/522 usually means the route or DNS record is missing."
+          if [ "$service" != "${GITHUB_SHA}" ]; then
+            echo "::error::the container never rolled onto ${GITHUB_SHA}: /graph/health reports service_commit=${service:-none} after 5 min (last HTTP ${status}). An older image is still answering, so nothing in this deploy was exercised. A 404/522 usually means the route or DNS record is missing; error=version_rolling means the Durable Object did not destroy the old instance."
+            cat health.json; echo
+            exit 1
+          fi
+          if [ "$status" != 200 ] || [ "$commit" != "${GITHUB_SHA}" ]; then
+            echo "::error::${url}/health is on the new image but did not load export ${GITHUB_SHA} within 5 min (last HTTP ${status}, build_commit=${commit:-none}). Read last_error in the body below."
+            cat health.json; echo
             exit 1
           fi
           curl -fsS --max-time 60 "${url}/benchmarks_still_separating?capability=coding&limit=3"
