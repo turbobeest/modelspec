@@ -1,0 +1,74 @@
+id: nvidia_b300
+display_name: NVIDIA B300 (Blackwell Ultra)
+vendor: nvidia
+family: NVIDIA Blackwell Ultra
+device_class: datacentre
+released: 2025
+memory:
+  capacity_gb: 288
+  bandwidth_gb_s: 8000
+  type: HBM3E
+  bus_bits: 8192
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA Blackwell Ultra architecture blog, "Bandwidth 8 TB/s per
+    GPU"; transcribed. The same page publishes the inputs - "Eight 12-Hi stacks, 16 x
+    512-bit controllers (8,192-bit total width)" - and 8,192/8 x 8 Gbps HBM3E = 8,192
+    GB/s, which agrees with the transcribed 8 TB/s to within rounding.
+compute:
+- precision: fp4
+  tflops: 20000
+  tops: null
+  sparsity: 2:4-structured
+  note: NVFP4 sparse; GB300 NVL72 rack row 1,440 PFLOPS over 72 GPUs
+- precision: fp4
+  tflops: 15000
+  tops: null
+  sparsity: dense
+  note: NVFP4 dense; GB300 NVL72 rack row 1,080 PFLOPS ("Without sparsity") over 72 GPUs
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 6
+  link: nvlink
+  link_gb_s: 1800
+power:
+  tdp_w: 1400
+  sustained_differs_from_boost: false
+sources:
+- https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/
+- https://www.nvidia.com/en-us/data-center/gb300-nvl72/
+figures_are: vendor-specification
+verified_at: 2026-09-16
+notes: 'Blackwell Ultra, the shipping part that Rubin is compared against. Added so
+  the catalogue has the current-generation datacentre row next to nvidia_rubin_gpu
+  rather than only the 2024 Blackwell rows.
+
+  From NVIDIA''s Blackwell Ultra architecture blog: 288 GB HBM3E at 8 TB/s, two dies
+  joined by NV-HBI at 10 TB/s presented as one CUDA device, 208 billion transistors
+  on TSMC 4NP, up to 160 SMs, NVLink 5 at 1.8 TB/s bidirectional (18 links x 100 GB/s),
+  PCIe Gen6 x16 at 256 GB/s bidirectional, NVLink-C2C to Grace at 900 GB/s, and max
+  TGP "Up to 1,400W".
+
+  CAPACITY BINS. The same blog notes "Available SM count and HBM capacity varies by
+  SKU", and its generation table lists Blackwell at 192 GB / 8 TB/s against Blackwell
+  Ultra at 288 GB / 8 TB/s. Those are architectural maxima. The shipping HGX B200 bin
+  in nvidia_b200 is 180 GB / 7.7 TB/s from the Blackwell datasheet, and DGX B200 publishes
+  1,440 GB across 8 GPUs, which is the same 180 GB bin. A reader comparing 180, 192
+  and 288 GB is looking at bins, not at contradictory sources.
+
+  COMPUTE. The FP4 entries are the GB300 NVL72 rack rows divided by the published 72
+  GPUs: 1,440 PFLOPS sparse and 1,080 PFLOPS dense. That division is this record''s
+  arithmetic, not a per-GPU figure NVIDIA prints in that table, though it agrees with
+  the per-GPU NVFP4 figures in the architecture blog. FP8/FP6 and FP16/BF16 are published
+  only at rack level on that page and are not transcribed here rather than derived
+  under an ambiguous sparsity footnote.
+
+  GB300 NVL72 rack, for reference and not stored as a device: 72 Blackwell Ultra GPUs,
+  36 Grace CPUs, 20 TB GPU memory at up to 576 TB/s aggregate, 37 TB fast memory, 17
+  TB LPDDR5X at 14 TB/s, 2,592 Arm Neoverse V2 cores, 130 TB/s NVLink. GB200 NVL72
+  publishes the same 576 TB/s aggregate over 13.4 TB of HBM3E.'

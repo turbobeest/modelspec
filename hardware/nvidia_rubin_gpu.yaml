@@ -1,0 +1,97 @@
+id: nvidia_rubin_gpu
+display_name: NVIDIA Rubin GPU
+vendor: nvidia
+family: NVIDIA Rubin
+device_class: datacentre
+released: 2026
+memory:
+  capacity_gb: 288
+  bandwidth_gb_s: 19200
+  type: HBM4
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA Vera Rubin NVL72 spec table, "Rubin GPU" column, "GPU Memory
+    | Bandwidth 288 GB HBM4 | 19.2 TB/s"; transcribed, not bus-derived. NVIDIA's Rubin
+    architecture blog separately says "up to 22 TB/s" - see notes, the two figures are
+    not reconciled by NVIDIA.
+compute:
+- precision: fp4
+  tflops: 50000
+  tops: null
+  sparsity: 2:4-structured
+  note: NVIDIA "NVFP4 Inference" row; spec-table footnote 2 says "Sparse specification"
+- precision: fp4
+  tflops: 35000
+  tops: null
+  sparsity: dense
+  note: NVIDIA "NVFP4 Training" row; spec-table footnote 3 says "Dense specification"
+- precision: fp8
+  tflops: 17500
+  tops: null
+  sparsity: dense
+  note: NVIDIA "FP8/FP6 Training" row, dense
+- precision: bf16
+  tflops: 4000
+  tops: null
+  sparsity: dense
+  note: NVIDIA "FP16/BF16" row, dense
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 6
+  link: nvlink
+  link_gb_s: 3000
+power:
+  tdp_w: null
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/
+- https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/
+- https://nvidianews.nvidia.com/news/vera-rubin-full-production-agentic-ai-factory
+figures_are: vendor-specification
+verified_at: 2026-09-16
+notes: 'One Rubin GPU package. NVIDIA''s architecture blog states the package carries
+  two compute dies joined by NV-HBI and presented as one CUDA device, 336 billion
+  transistors, 224 SMs and 896 Tensor Cores, so this row is one package, not one die.
+
+  TWO NVIDIA SOURCES DISAGREE ON MEMORY BANDWIDTH, and both were read on 2026-09-16.
+  The Vera Rubin NVL72 product spec table gives "288 GB HBM4 | 19.2 TB/s" per Rubin
+  GPU. The Rubin architecture blog says HBM4 delivers "up to 22 TB/s of peak bandwidth"
+  and calls it "a 2.8x increase over Blackwell and Blackwell Ultra". This record stores
+  19.2 TB/s because that is the figure in the shipping SKU''s spec table and it is
+  the only one that reconciles with the rest of that table: 72 x 288 GB = 20.7 TB and
+  72 x 19.2 TB/s = 1,382 TB/s against the published rack rows of 20.7 TB and 1,400
+  TB/s, and the Superchip row of 576 GB | 38.5 TB/s is two of these. The blog''s 22
+  TB/s is consistent with its own "2.8x" claim against Blackwell''s 8 TB/s (22/8 =
+  2.75), while 19.2/8 = 2.4x. The most likely reading is that 22 TB/s is the architectural
+  ceiling and 19.2 TB/s is the NVL72 bin, the same capacity/bandwidth binning NVIDIA
+  states explicitly for Blackwell Ultra ("Available SM count and HBM capacity varies
+  by SKU"), but NVIDIA does not say so and this is not recorded as fact.
+
+  NVLINK BANDWIDTH ALSO DISAGREES. The spec table gives 3 TB/s per GPU and 216 TB/s
+  per rack; the Rubin platform press release and the Vera Rubin POD blog give 3.6 TB/s
+  per GPU and 260 TB/s per rack. Both are internally consistent (72 x 3 = 216; 72 x
+  3.6 = 259). link_gb_s stores the spec-table figure, 3,000 GB/s.
+
+  Bus width is not published for Rubin. The architecture blog says only that HBM4 "doubles
+  interface width" relative to HBM3E, which on the published Blackwell Ultra figure
+  of 8,192 bits would imply 16,384 bits; that is a derivation NVIDIA has not printed,
+  so bus_bits is null.
+
+  NOT PUBLISHED, and deliberately left null rather than estimated: GPU TDP, rack power,
+  and per-GPU FP8 sparse. NVIDIA''s "up to 10x more agentic throughput per unit of energy
+  than Blackwell" is a multiplier with no absolute behind it.
+
+  RELEASE STATUS. As of the verified_at date this part is announced and ramping but
+  not confirmed shipped. NVIDIA''s 2026-05-31 release says the platform "is ramping
+  into full production" with "production shipments ... set to begin starting this fall";
+  earlier releases say partner availability in the second half of 2026. released is
+  recorded as the year only, because NVIDIA has not published a month. The spec table
+  itself is not marked preliminary - the "projected performance subject to change"
+  disclaimers on that page attach to the LLM inference throughput charts, not to the
+  specification rows.'

@@ -1,0 +1,87 @@
+id: nvidia_vera_rubin_superchip
+display_name: NVIDIA Vera Rubin Superchip
+vendor: nvidia
+family: NVIDIA Vera Rubin
+device_class: datacentre
+released: 2026
+memory:
+  capacity_gb: 576
+  bandwidth_gb_s: 38500
+  type: HBM4
+  bus_bits: null
+  unified_with_host: false
+  bandwidth_derivation: NVIDIA Vera Rubin NVL72 spec table, "Vera Rubin Superchip" column,
+    "576 GB HBM4 | 38.5 TB/s"; transcribed, not bus-derived. Equivalently two Rubin GPUs
+    at 288 GB and 19.2 TB/s each (2 x 19.2 = 38.4, published as 38.5).
+compute:
+- precision: fp4
+  tflops: 100000
+  tops: null
+  sparsity: 2:4-structured
+  note: NVIDIA "NVFP4 Inference" row, Superchip column; footnote 2 "Sparse specification"
+- precision: fp4
+  tflops: 70000
+  tops: null
+  sparsity: dense
+  note: NVIDIA "NVFP4 Training" row, Superchip column; footnote 3 "Dense specification"
+- precision: fp8
+  tflops: 35000
+  tops: null
+  sparsity: dense
+  note: NVIDIA "FP8/FP6 Training" row, dense
+precisions_native:
+- fp16
+- bf16
+- fp8
+- fp4
+- int8
+- int4
+interconnect:
+  pcie_gen: 6
+  link: nvlink
+  link_gb_s: 6000
+power:
+  tdp_w: null
+  sustained_differs_from_boost: false
+sources:
+- https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/
+- https://www.nvidia.com/en-us/data-center/vera-cpu/
+- https://developer.nvidia.com/blog/inside-the-nvidia-rubin-platform-six-new-chips-one-ai-supercomputer/
+figures_are: vendor-specification
+verified_at: 2026-09-16
+single_device_fit: false
+single_device_fit_reason: two Rubin GPU packages plus a Vera CPU, not one accelerator;
+  576 GB is the sum of two 288 GB packages and no single device holds it
+notes: 'The package-level row NVIDIA tabulates between the single Rubin GPU and the
+  Vera Rubin NVL72 rack: "2 NVIDIA Rubin GPUs | 1 NVIDIA Vera CPU". Per-GPU figures
+  are in nvidia_rubin_gpu.
+
+  single_device_fit is false because the memory is two separate 288 GB HBM4 pools on
+  two packages. A FITS_ON answer against 576 GB would be a two-GPU claim dressed as
+  one device. This is the same caution nvidia_gb200_superchip states in prose; here
+  it is enforced by the field, so no FITS_ON edge or decode prediction is emitted.
+
+  THE VERA CPU, from NVIDIA''s Vera CPU page and the NVL72 spec table: 88 custom NVIDIA
+  Olympus cores, 176 threads, up to 1.5 TB LPDDR5X at up to 1.2 TB/s, and 1.8 TB/s
+  coherent NVLink-C2C to the GPUs. NVIDIA''s 2026-01-05 release states "full Armv9.2
+  compatibility"; the Vera CPU page says only "full Arm compatibility". Vera CPU TDP
+  is not published. There is no separate hardware row for Vera: this catalogue records
+  accelerators, and Grace has no row either.
+
+  RACK CONTEXT, for reference, not stored as a device: Vera Rubin NVL72 is 72 Rubin
+  GPUs and 36 Vera CPUs, 20.7 TB HBM4 at 1,400 TB/s aggregate, 216 TB/s NVLink, 65
+  TB/s NVLink-C2C, up to 54 TB LPDDR5X, 3,168 Olympus cores, 32.4 TB/s bi-directional
+  scale-out networking, and 3,600 PFLOPS NVFP4 sparse inference. NVIDIA also publishes
+  ConnectX-9 SuperNICs at 1.6 Tb/s per GPU and Spectrum-6 switching. Rack power is
+  not published.
+
+  NAMING. NVIDIA announced this rack at GTC 2025 as "Vera Rubin NVL144" and now names
+  it "Vera Rubin NVL72" on the product page and in the 2026 releases. The rack''s GPU
+  count did not change; the published explanation for the rename is that NVL144 counted
+  the two compute dies per package and NVL72 counts packages, which is the GB200/GB300
+  convention. NVIDIA itself does not explain the change anywhere this catalogue could
+  find, so that explanation is analyst commentary and is not recorded as vendor fact.
+  "NVL144" survives in NVIDIA material only for the separate Vera Rubin NVL144 CPX rack.
+
+  SEE ALSO nvidia_rubin_gpu for the bandwidth and NVLink figures on which NVIDIA sources
+  disagree (19.2 vs 22 TB/s; 3 vs 3.6 TB/s per GPU), and for release status.'

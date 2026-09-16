@@ -28,6 +28,7 @@ power:
 sources:
 - https://dam-cdn.nvd.orangelogic.com/AssetLink/y441155802qub41q118b2852i557jem5.pdf
 - https://www.nvidia.com/en-us/data-center/hgx/
+- https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/
 figures_are: vendor-specification
 verified_at: 2026-09-09
 notes: 'Per-SKU record for the HGX B200 Blackwell GPU, not the GB200 Superchip GPU.
@@ -35,4 +36,10 @@ notes: 'Per-SKU record for the HGX B200 Blackwell GPU, not the GB200 Superchip G
   NVLink 1.8 TB/s, PCIe Gen5 128 GB/s, and TDP configurable up to 1,000 W. HGX B200
   system totals on the HGX product page (8 GPUs, 1.4 TB) are consistent with 180 GB
   per GPU. Distinct from the GB200 Superchip Blackwell GPU (186 GB HBM3E, 8 TB/s, up
-  to 1,200 W). Bus width is not published, so bandwidth is the transcribed 7.7 TB/s.'
+  to 1,200 W). Bus width is not published, so bandwidth is the transcribed 7.7 TB/s.
+  Checked again 2026-09-16 against NVIDIA''s Blackwell Ultra architecture blog, whose
+  generation table lists Blackwell at 192 GB HBM3E / 8 TB/s. That is the architectural
+  maximum, not this SKU: the same page says "Available SM count and HBM capacity varies
+  by SKU", and DGX B200 publishes 1,440 GB across 8 GPUs, which is this 180 GB bin.
+  The 180 GB / 7.7 TB/s figures here are unchanged and remain the HGX B200 row. See
+  nvidia_b300 for Blackwell Ultra at 288 GB / 8 TB/s.'
