@@ -16,7 +16,7 @@ import html
 import math
 import posixpath
 import re
-from collections.abc import Collection, Iterable
+from collections.abc import Callable, Collection, Iterable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -697,7 +697,9 @@ def _has_token_price(front: Any) -> bool:
 #: claim is that the list is complete and the same one every page is measured
 #: against. `open_weights` is false-is-present: a card that says "closed" has
 #: been researched.
-PAGE_FACTS: tuple[tuple[str, Any], ...] = (
+PageFact = Callable[[dict[str, Any], Any, Any], bool]
+
+PAGE_FACTS: tuple[tuple[str, PageFact], ...] = (
     ("Parameters", lambda f, r, m: _dig(f, "architecture", "total_parameters") is not None),
     ("Release date", lambda f, r, m: bool(f.get("release_date"))),
     ("Last updated", lambda f, r, m: bool(f.get("last_updated"))),
@@ -776,7 +778,7 @@ def stat_strip(model: Model) -> str:
         ("Type", front.get("model_type"), ""),
         ("Released", front.get("release_date"), ""),
         ("Open weights", None if open_weights is None else ("yes" if open_weights else "no"), ""),
-        ("Evidence basis", basis, f" basis-{basis}" if basis else ""),
+        ("Evidence basis", basis, f" basis-{esc(basis)}" if basis else ""),
     ]
     rendered = [(label, str(value), extra) for label, value, extra in cells
                 if value not in (None, "", [])]
