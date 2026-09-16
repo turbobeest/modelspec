@@ -20,7 +20,7 @@ recorded. Where something could not be verified, it says so.
 | | |
 | --- | --- |
 | **Commit mechanic** | Developer Certificate of Origin 1.1, verbatim, in [`DCO`](../../DCO) |
-| **Enforcement** | `.github/workflows/dco.yml`, skipping the repository owner's own commits |
+| **Enforcement** | `.github/workflows/dco.yml`, skipping the operator's own commits |
 | **Contributor agreement** | Harmony Individual Contributor License Agreement v1.0, Option Five, in [`CLA.md`](../../CLA.md). Asked for only on substantial or ongoing contributions |
 | **Contracting party** | Sparks & Sawdust LLC |
 | **Governing law** | State of Rhode Island, USA (HA-CLA-I §6.1) |
@@ -70,6 +70,13 @@ Tooling was checked directly against the GitHub API on 2026-09-16:
 The DCO tooling is alive; the CLA bot ecosystem is archived or stale. A self-contained
 workflow was written rather than depending on either, so the check has no third-party action
 in its supply chain.
+
+The workflow exempts the operator's own commits, as the DCO GitHub App does by default
+(`require: members: false`). It matches on the GitHub author login **and** on an explicit list
+of the operator's commit addresses, because a commit whose author email is not linked to a
+GitHub account reports a null login — which is the case for `j@terbeest.com` on this
+repository, and was caught by the check failing on its own introducing pull request. Everyone
+else signs off.
 
 ### Harmony HA-CLA-I v1.0, Option Five — adopted for substantial contributions
 <https://www.harmonyagreements.org/docs/ha-cla-i-v1.pdf>, read 2026-09-16. Version 1.0,
