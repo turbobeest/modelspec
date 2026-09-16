@@ -214,7 +214,9 @@ def main(argv: list[str] | None = None) -> int:
     cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
     derived = derive_graph(cards)
     competition_counts = competition.compute(derived, today)
-    hardware_counts = hardware.compute(derived, cards, hardware.load_devices(root))
+    devices = hardware.load_devices(root)
+    hardware_counts = hardware.compute(derived, cards, devices)
+    device_by_id = {d.id: d for d in devices}
     card_ids = {c.identity.model_id for c in cards}
     graph_export.resolve_card_ids(
         derived, card_ids=card_ids,
@@ -250,7 +252,8 @@ def main(argv: list[str] | None = None) -> int:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
         (ms / "m" / model.model_id / "index.html").write_text(
             r.model_page(model, build, bench_by_id, catalogue,
-                         relations.for_model(model.model_id), pages=pages),
+                         relations.for_model(model.model_id), pages=pages,
+                         devices=device_by_id),
             encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
     # The graph explorer: a full-viewport canvas app, so it is copied rather

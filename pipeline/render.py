@@ -22,7 +22,11 @@ from pathlib import Path
 from typing import Any
 
 from pipeline.export import Build
+from pipeline.hardware import Device
 from pipeline.load import Benchmark, Catalogue, Model
+#: The evidence-basis vocabulary lives in the ranking engine. A page that spelled
+#: its own labels out would drift from the CLI on the first edit.
+from pipeline.ranking import _basis
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" '
          'href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/'
@@ -352,20 +356,36 @@ def model_anchor(model_id: str, name: str, pages: Collection[str] | None = None)
     return label
 
 
-def lineage_section(relations: Any, pages: Collection[str] | None = None) -> str:
-    rows = []
-    for entry in relations.ancestors:
+def lineage_section(relations: Any, pages: Collection[str] | None = None,
+                    display_name: str = "") -> str:
+    """This model between what it came from and what came from it.
+
+    The relation word is written lowercase and uppercased by `.lab`, so the
+    markup keeps the word the graph actually stored.
+    """
+    if not (relations.ancestors or relations.descendants):
+        return ""
+
+    def card(entry: dict[str, Any], suffix: str) -> str:
         relation = str(entry.get("relation") or "").strip()
-        phrase = f"Is a <strong>{esc(relation)}</strong> of" if relation else "Derived from"
-        rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
-    for entry in relations.descendants:
-        relation = str(entry.get("relation") or "").strip()
-        phrase = (f"Is the base of this <strong>{esc(relation)}</strong>"
-                  if relation else "Is the base of")
-        rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
-    return _section("Lineage", _table(["Relationship", "Model"], rows))
+        label = (f'<span class="lab">{esc(relation)}{suffix}</span>' if relation else "")
+        return ('<div class="chain-card">'
+                + model_anchor(str(entry["id"]), str(entry["name"]), pages)
+                + label + "</div>")
+
+    columns = []
+    if relations.ancestors:
+        columns.append('<div class="chain-col"><span class="lab">Descended from</span>'
+                       + "".join(card(e, " of") for e in relations.ancestors) + "</div>")
+    columns.append(
+        '<div class="chain-col self"><div class="chain-card self">'
+        + (f'<span class="chain-name">{esc(display_name)}</span>' if display_name else "")
+        + '<span class="lab">This model</span></div></div>')
+    if relations.descendants:
+        columns.append('<div class="chain-col"><span class="lab">Is the base of</span>'
+                       + "".join(card(e, "") for e in relations.descendants) + "</div>")
+
+    return _section("Lineage", '<div class="chain">' + "".join(columns) + "</div>")
 
 
 def platforms_section(relations: Any) -> str:
@@ -411,63 +431,161 @@ def _decode_cell(value: Any) -> str:
     return f"~{esc(value)}"
 
 
-def hardware_section(relations: Any) -> str:
-    rows = []
-    for entry in relations.hardware:
-        device = entry.get("device") or {}
-        bandwidth = device.get("memory_bandwidth_gb_s")
-        rows.append(
-            f'<tr><td>{esc(entry["name"])}</td>'
-            f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>'
-            f'<td class="num">{esc(bandwidth)} GB/s</td>'
-            f'<td>{esc(entry.get("quantization"))}</td>'
-            f'<td class="num">{esc(format_weight_size(entry.get("weights_gb")))}</td>'
-            f'<td class="num">{_decode_cell(entry.get("predicted_decode_tps"))}</td>'
-            f'<td class="num">{_decode_cell(entry.get("fastest_predicted_decode_tps"))} '
-            f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')
-    if not rows:
+#: Biggest iron first. A class this pipeline has not seen sorts after all of
+#: these rather than silently taking a position among them.
+DEVICE_CLASS_ORDER = ("datacentre", "workstation", "consumer", "edge", "integrated")
+
+#: Enough rows to see the shape of the curve. The rest are one click away.
+HARDWARE_ROWS_SHOWN = 8
+
+
+def _uniform(rows: list[dict[str, Any]], key: str) -> tuple[bool, Any]:
+    """Whether every row carries the same value for `key`, and what that value is."""
+    values = [r.get(key) for r in rows]
+    first = values[0] if values else None
+    return all(v == first for v in values), first
+
+
+def _decode_bar(value: Any, peak: float) -> str:
+    """The decode rate as a bar against the fastest device on this page."""
+    width = 0.0
+    if value is not None and peak > 0:
+        width = max(0.0, min(100.0, float(value) / peak * 100.0))
+    return ('<div class="bar"><span class="track">'
+            f'<span class="fill" style="width:{width:.1f}%"></span></span>'
+            f'<span class="val">{_decode_cell(value)}</span></div>')
+
+
+def _hardware_groups(entries: list[dict[str, Any]],
+                     devices: dict[str, Device] | None) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Rows by device class, or one unnamed group when any row cannot be placed.
+
+    A partial grouping would have to invent a class for the rows it could not
+    look up, so one unknown id drops the whole table back to flat.
+    """
+    if devices is None or not all(e.get("id") in devices for e in entries):
+        return [("", entries)]
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for entry in entries:
+        buckets.setdefault(devices[entry["id"]].device_class, []).append(entry)
+    rank = {name: i for i, name in enumerate(DEVICE_CLASS_ORDER)}
+    return [(name, buckets[name])
+            for name in sorted(buckets, key=lambda c: (rank.get(c, len(rank)), c))]
+
+
+def hardware_section(relations: Any, devices: dict[str, Device] | None = None) -> str:
+    entries = list(relations.hardware)
+    if not entries:
         return ""
+
+    # A value identical on every row is a fact about the model, not about the
+    # devices, so it belongs in the sentence rather than repeated down a column.
+    same_quant, quant = _uniform(entries, "quantization")
+    same_weights, weights = _uniform(entries, "weights_gb")
+    same_fastest_quant, fastest_quant = _uniform(entries, "fastest_quantization")
+
+    hoisted = []
+    if same_quant and quant is not None:
+        hoisted.append(f'Every device here runs it at <span class="mono">{esc(quant)}</span>.')
+    if same_weights and weights is not None:
+        hoisted.append('The weights are <span class="mono">'
+                       f'{esc(format_weight_size(weights))}</span> on all of them.')
+    if same_fastest_quant and fastest_quant is not None:
+        hoisted.append('The fastest quantisation that fits is <span class="mono">'
+                       f'{esc(fastest_quant)}</span> everywhere.')
+    lede = ("Ordered by predicted speed. Bandwidth sets decode rate; memory decides whether "
+            "it runs at all." + ("" if not hoisted else " " + " ".join(hoisted)))
+
+    headers = ["Device", "Memory", "Bandwidth"]
+    if not same_quant:
+        headers.append("Best quality")
+    if not same_weights:
+        headers.append("Weights")
+    headers += ["tok/s", "Fastest"]
+    if not same_fastest_quant:
+        headers.append("Fastest at")
+
+    peak = max((float(e["predicted_decode_tps"]) for e in entries
+                if e.get("predicted_decode_tps") is not None), default=0.0)
+
+    rows: list[str] = []
+    shown = 0
+    for name, group in _hardware_groups(entries, devices):
+        if name:
+            more = ' class="more"' if shown >= HARDWARE_ROWS_SHOWN else ""
+            plural = "s" if len(group) != 1 else ""
+            rows.append(f'<tr{more}><td class="grouphead" colspan="{len(headers)}">'
+                        f'<span class="lab">{esc(name)} &middot; {len(group)} '
+                        f'device{plural}</span></td></tr>')
+        for entry in group:
+            device = entry.get("device") or {}
+            cells = [f'<td>{esc(entry["name"])}</td>',
+                     f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>',
+                     f'<td class="num">{esc(device.get("memory_bandwidth_gb_s"))} GB/s</td>']
+            if not same_quant:
+                cells.append(f'<td class="mono">{esc(entry.get("quantization") or "")}</td>')
+            if not same_weights:
+                cells.append('<td class="num">'
+                             f'{esc(format_weight_size(entry.get("weights_gb")))}</td>')
+            cells.append(f'<td>{_decode_bar(entry.get("predicted_decode_tps"), peak)}</td>')
+            cells.append('<td class="num">'
+                         f'{_decode_cell(entry.get("fastest_predicted_decode_tps"))}</td>')
+            if not same_fastest_quant:
+                cells.append('<td class="mono">'
+                             f'{esc(entry.get("fastest_quantization") or "")}</td>')
+            more = ' class="more"' if shown >= HARDWARE_ROWS_SHOWN else ""
+            rows.append(f"<tr{more}>" + "".join(cells) + "</tr>")
+            shown += 1
+
+    control = ""
+    if shown > HARDWARE_ROWS_SHOWN:
+        control = ('<details class="showall"><summary>'
+                   f'<span class="when-closed">Show all {shown} devices</span>'
+                   '<span class="when-open">Show fewer</span></summary></details>')
+
     moe = any(e.get("moe_prediction_is_conservative") for e in relations.hardware)
     caveat = (" This is a mixture-of-experts model and no card carries active-parameter "
               "counts, so these predictions use total parameters and understate the real "
               "speed." if moe else "")
-    note = ('<div class="notice">Every figure here is <strong>computed</strong>, not measured. '
+    note = ('<div class="notice derived">Every figure here is <strong>computed</strong>, not measured. '
             'Fit is weights at each quantisation against device memory, with a 25% allowance '
             'for the KV cache, activations and the OS. Decode rate is the memory-bandwidth '
             'roofline at 70% efficiency. Nobody has run this model on these devices.'
             + esc(caveat) + '</div>')
-    return _section(
-        "What it fits on",
-        note + _table(["Device", "Memory", "Bandwidth", "Best quality",
-                       "Weights", "tok/s", "Fastest"], rows),
-        "Ordered by predicted speed. Bandwidth sets decode rate; memory decides whether it runs at all.")
+    # `.showall + .scroll` can only reach rows that follow the control, so the
+    # control is emitted first and flex `order` puts it back under the table.
+    return _section("What it fits on",
+                    note + f'<div class="hw">{control}{_table(headers, rows)}</div>', lede)
 
 
-def capabilities_section(relations: Any) -> str:
-    if not relations.capabilities:
-        return ""
-    pills = " ".join(
+def capability_chips(relations: Any) -> str:
+    """The capability pills alone, for the page header."""
+    return " ".join(
         f'<span class="pill">{esc(str(e["name"]))}'
         + (f' &middot; {esc(e["tier"])}' if e.get("tier") else "") + "</span>"
         for e in relations.capabilities)
-    return _section("Capabilities", f"<p>{pills}</p>")
 
 
 def competitors_section(relations: Any, pages: Collection[str] | None = None) -> str:
-    rows = []
-    for entry in relations.competitors[:12]:
-        rows.append(
-            f'<tr><td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td>'
-            f'<td class="num">{esc(entry.get("overlap_score"))}</td>'
-            f'<td>{esc(entry.get("computed_date"))}</td></tr>')
-    if not rows:
+    entries = relations.competitors[:12]
+    if not entries:
         return ""
-    note = ('<div class="notice">Derived, not authored. Two models compete if they share a '
+    cards = []
+    for entry in entries:
+        score = entry.get("overlap_score")
+        width = 0.0 if score is None else max(0.0, min(100.0, float(score) * 100.0))
+        cards.append(
+            '<div class="card">'
+            + model_anchor(str(entry["id"]), str(entry["name"]), pages)
+            + '<div class="bar flex"><span class="track"><span class="fill" '
+            f'style="width:{width:.1f}%"></span></span>'
+            f'<span class="val">{esc("" if score is None else score)}</span></div></div>')
+    note = ('<div class="notice derived">Derived, not authored. Two models compete if they share a '
             'type, sit within 3x on parameters, and report at least one benchmark in common; '
             'the score is the overlap of their capability sets. The shared-benchmark test '
             'rests on card scores that carry one date per card and no per-score source.</div>')
     return _section("What competes with it",
-                    note + _table(["Model", "Capability overlap", "Derived"], rows))
+                    note + f'<div class="grid">{"".join(cards)}</div>')
 
 
 def evidence_section(model: Model) -> str:
@@ -546,9 +664,129 @@ def authoring_guide_section(front: dict[str, Any]) -> str:
                     "How to prompt this model, per its provider's guidance. Every claim is sourced and dated.")
 
 
+def _dig(front: Any, *keys: str) -> Any:
+    """Nested lookup that survives a missing or non-dict intermediate."""
+    node = front
+    for key in keys:
+        if not isinstance(node, dict):
+            return None
+        node = node.get(key)
+    return node
+
+
+#: Per-token prices only. The per-million and per-hour fields answer a different
+#: question and their presence would not mean this model's tokens are priced.
+COST_PER_TOKEN_FIELDS = ("input", "output", "reasoning", "cache_read", "cache_write",
+                         "batch_input", "batch_output")
+
+
+def _has_token_price(front: Any) -> bool:
+    cost = _dig(front, "cost")
+    return isinstance(cost, dict) and any(
+        cost.get(field) is not None for field in COST_PER_TOKEN_FIELDS)
+
+
+#: Every fact this page knows how to show, and how to tell whether the card has
+#: it. A registry rather than a run of conditionals, because the footer's whole
+#: claim is that the list is complete and the same one every page is measured
+#: against. `open_weights` is false-is-present: a card that says "closed" has
+#: been researched.
+PAGE_FACTS: tuple[tuple[str, Any], ...] = (
+    ("Parameters", lambda f, r, m: _dig(f, "architecture", "total_parameters") is not None),
+    ("Release date", lambda f, r, m: bool(f.get("release_date"))),
+    ("Last updated", lambda f, r, m: bool(f.get("last_updated"))),
+    ("Family", lambda f, r, m: bool(f.get("family"))),
+    ("Status", lambda f, r, m: bool(f.get("status"))),
+    ("Open weights", lambda f, r, m: _dig(f, "licensing", "open_weights") is not None),
+    ("Licence", lambda f, r, m: bool(_dig(f, "licensing", "license_type"))),
+    ("Context window", lambda f, r, m: _dig(f, "modalities", "text", "context_window") is not None),
+    ("Pricing", lambda f, r, m: _has_token_price(f)),
+    ("Training cutoff", lambda f, r, m: bool(_dig(f, "lineage", "training_data_cutoff"))),
+    ("Lineage", lambda f, r, m: r is not None and bool(r.ancestors or r.descendants)),
+    ("Capabilities", lambda f, r, m: r is not None and bool(r.capabilities)),
+    ("Platform availability", lambda f, r, m: r is not None and bool(r.platforms)),
+    ("Hardware fit", lambda f, r, m: r is not None and bool(r.hardware)),
+    ("Benchmark scores", lambda f, r, m: bool(m)),
+)
+
+
+def unresearched_section(front: dict[str, Any], relations: Any, scores: Any) -> str:
+    """Name the gaps once, with the page's own denominator.
+
+    `ModelCard.card_completeness` is not used here. Measured across all 1,339
+    cards it spans 10.0%-21.3%, so it separates nothing, and it costs 20s per
+    build. What a reader wants is which of the things this page could show are
+    missing.
+    """
+    absent = [label for label, present in PAGE_FACTS
+              if not present(front if isinstance(front, dict) else {}, relations, scores)]
+    if not absent:
+        return ""
+    have, total = len(PAGE_FACTS) - len(absent), len(PAGE_FACTS)
+    bar = (f'<div class="complete"><span class="lab">{have} of the {total} facts this page '
+           'can show</span><span class="track"><span class="fill" '
+           f'style="width:{have / total * 100:.1f}%"></span></span></div>')
+    chips = "".join(f'<span class="gap">{esc(label)}</span>' for label in absent)
+    return _section(
+        "Not yet researched", bar + f'<div class="gaps">{chips}</div>',
+        "A section with nothing to say does not render at all, so this is the one place the "
+        "page names its gaps. Remember that null in this schema means nobody has looked, not "
+        "that the model lacks the property.")
+
+
+#: Past this many characters a value reads as a phrase rather than a figure, and
+#: the display size that flatters "34.4B" breaks "partial-verified" across lines.
+STAT_LONG_VALUE = 10
+
+
+def _card_evidence_basis(model: Model) -> str | None:
+    """Provenance of this card's own scores, in the ranking engine's vocabulary.
+
+    A card with no scores has nothing to characterise, and "none" would read as
+    a verdict on the model rather than on an empty input set.
+    """
+    contributing = len(model.scores)
+    if not contributing:
+        return None
+    records = _dig(model.front, "benchmarks", "evidence")
+    verified_ids = {str(r.get("benchmark_id")) for r in records
+                    if isinstance(r, dict)} if isinstance(records, list) else set()
+    verified = sum(1 for key in model.scores if str(key) in verified_ids)
+    return _basis(contributing, verified, verified / contributing)
+
+
+def stat_strip(model: Model) -> str:
+    """The card's headline figures, only the ones it actually carries.
+
+    The column count follows the cells that survive, so a thin card gets a
+    short strip rather than a row of blanks asserting we looked.
+    """
+    front = model.front
+    parameters = _dig(front, "architecture", "total_parameters")
+    open_weights = _dig(front, "licensing", "open_weights")
+    cells = [
+        ("Parameters", human_count(parameters) if parameters else None),
+        ("Type", front.get("model_type")),
+        ("Released", front.get("release_date")),
+        ("Open weights", None if open_weights is None else ("yes" if open_weights else "no")),
+        ("Evidence basis", _card_evidence_basis(model)),
+    ]
+    rendered = [(label, str(value)) for label, value in cells
+                if value not in (None, "", [])]
+    if not rendered:
+        return ""
+    body = "".join(
+        f'<div class="cell"><span class="lab">{esc(label)}</span>'
+        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}">{esc(value)}</div></div>'
+        for label, value in rendered)
+    return (f'<div class="stats" style="grid-template-columns:repeat({len(rendered)},'
+            f'minmax(0,1fr))">{body}</div>')
+
+
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None,
-               pages: Collection[str] | None = None) -> str:
+               pages: Collection[str] | None = None,
+               devices: dict[str, Device] | None = None) -> str:
     front = model.front
     scores = model.scores
     as_of = model.scores_as_of
@@ -568,42 +806,21 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
              'attributed individually. They are shown as reported and are not verified evidence. '
              'Benchmark pages carry the reviewed, dated evidence where it exists.</div>') if scores else ""
 
-    identity = [
-        ("Provider", model.provider_display),
-        ("Family", front.get("family")),
-        ("Type", front.get("model_type")),
-        ("Status", front.get("status")),
-        ("Released", front.get("release_date")),
-        ("Updated", front.get("last_updated")),
-        ("Parameters", human_count(front["architecture"]["total_parameters"])
-         if isinstance(front.get("architecture"), dict)
-         and front["architecture"].get("total_parameters") else None),
-        ("Open weights", ("yes" if front["licensing"].get("open_weights") else None)
-         if isinstance(front.get("licensing"), dict) else None),
-    ]
-    id_rows = "".join(
-        f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>" for k, v in identity if v not in (None, "", [])
-    )
-
     rel = relations
+    chips = ""
     sections = ""
     if rel is not None:
-        sections = (lineage_section(rel, pages) + capabilities_section(rel)
-                    + hardware_section(rel) + platforms_section(rel)
+        pills = capability_chips(rel)
+        chips = f'<div class="chips">{pills}</div>' if pills else ""
+        sections = (lineage_section(rel, pages, model.display_name)
+                    + hardware_section(rel, devices) + platforms_section(rel)
                     + competitors_section(rel, pages))
-
-    unresearched = ""
-    if rel is not None and rel.is_empty:
-        unresearched = ('<div class="notice">Nothing beyond the card\'s own fields has been '
-                        'researched for this model yet — no lineage, platforms, capabilities or '
-                        'hardware fit. That is a gap in the data, not a statement about the '
-                        'model.</div>')
 
     body = f"""
 <h1>{esc(model.display_name)}</h1>
-<p class="lede">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
-<div class="panel"><table>{id_rows}</table></div>
-{unresearched}
+<p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
+{chips}
+{stat_strip(model)}
 {sections}{authoring_guide_section(front)}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
@@ -611,6 +828,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
+{unresearched_section(front, rel, scores)}
 <h2>Data</h2>
 <p><a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a> &middot;
 <a href="/graph/">See it in the graph</a> &middot;
