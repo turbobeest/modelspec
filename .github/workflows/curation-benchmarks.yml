@@ -48,18 +48,49 @@ jobs:
     timeout-minutes: 5
     outputs:
       run: ${{ steps.gate.outputs.run }}
+      reason: ${{ steps.gate.outputs.reason }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      # ci.py imports scripts.curation.draft -> scripts.benchmarks.validate ->
+      # schema.benchmark, which imports pydantic. Without this the gate crashed,
+      # tee swallowed the exit status, and every downstream job "skipped".
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+
       - name: Decide whether this run proceeds
         id: gate
         env:
           EVENT: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
         run: |
+          set -euo pipefail
           python3 scripts/curation/ci.py gate --event "$EVENT" --schedule "$SCHEDULE" | tee -a "$GITHUB_OUTPUT"
+
+      # A gate that reaches no decision must fail loudly: `run` missing or empty
+      # makes every `needs.gate.outputs.run == 'true'` false, which is
+      # indistinguishable from a deliberate skip.
+      - name: Record the gate decision
+        env:
+          RUN: ${{ steps.gate.outputs.run }}
+          REASON: ${{ steps.gate.outputs.reason }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RUN:-}" ]; then
+            echo "::error::The trial gate produced no run= decision. Failing the workflow instead of silently skipping every downstream job."
+            exit 1
+          fi
+          echo "### Trial gate: run=${RUN}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Reason: ${REASON:-(none reported)}" >> "$GITHUB_STEP_SUMMARY"
 
   watch:
     name: Watch sources
@@ -100,6 +131,7 @@ jobs:
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
+          set -euo pipefail
           if [ -n "$BRIEF" ]; then
             python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 10 --firecrawl-key-from-env
           else
@@ -109,7 +141,9 @@ jobs:
 
       - name: Plan follow-up jobs
         id: plan
-        run: python scripts/curation/ci.py plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          python scripts/curation/ci.py plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
 
       - name: Upload change report
         if: always()
@@ -163,6 +197,7 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
+          set -euo pipefail
           if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
             echo "::error::CLAUDE_CODE_OAUTH_TOKEN is empty; run claude setup-token and store it as a repo secret."
             exit 1
@@ -174,6 +209,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::RESEARCH_PR_TOKEN is empty."
             exit 1

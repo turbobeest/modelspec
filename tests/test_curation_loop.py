@@ -471,3 +471,130 @@ def test_pilot_is_deterministic_and_recorded():
     recorded = [ln for ln in (REPO_ROOT / "benchmarks/_curation/pilot.txt").read_text().splitlines()
                 if ln and not ln.startswith("#")]
     assert recorded == watch.select_pilot() and len(recorded) == 25
+
+
+# ---------- the gate must not fail silently (MODEL-10 follow-up) ----------
+# Run 35066344154 (2026-09-16) reported "Trial gate=success" and skipped every
+# downstream job: the gate job installed no dependencies, ci.py died on
+# `import pydantic`, and `| tee -a "$GITHUB_OUTPUT"` returned tee's exit status.
+
+
+def _run_of(job: str, needle: str) -> str:
+    wf, _ = _wf()
+    return next(s["run"] for s in wf["jobs"][job]["steps"] if needle in s.get("run", ""))
+
+
+def test_ci_py_really_needs_pydantic_and_pyyaml():
+    """The gate's dependency is not theoretical: importing ci.py pulls pydantic in."""
+    probe = ("import sys; import scripts.curation.ci; "
+             "print(','.join(m for m in ('pydantic', 'yaml') if m in sys.modules))")
+    out = subprocess.run([sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True,
+                         text=True, check=True).stdout.strip()
+    assert out == "pydantic,yaml"
+    # ci.py -> scripts.curation.draft -> scripts.benchmarks.validate -> schema.benchmark -> pydantic
+    assert "from scripts.curation import draft" in (REPO_ROOT / "scripts/curation/ci.py").read_text()
+    assert "from pydantic import" in (REPO_ROOT / "schema/benchmark.py").read_text()
+
+
+def test_every_job_running_python_installs_the_same_deps():
+    wf, _ = _wf()
+    for job, spec in wf["jobs"].items():
+        runs = " ".join(s.get("run", "") for s in spec["steps"])
+        if "scripts/curation/" not in runs:
+            continue
+        uses = [s.get("uses", "") for s in spec["steps"]]
+        assert any(u.startswith("actions/setup-python") for u in uses), f"{job} has no setup-python"
+        install = next(s["run"] for s in spec["steps"] if s.get("run", "").startswith("pip install"))
+        assert "pydantic" in install and "pyyaml" in install, f"{job} does not install the deps it needs"
+
+
+def test_every_github_output_pipe_sets_pipefail():
+    wf, _ = _wf()
+    piped = 0
+    for job, spec in wf["jobs"].items():
+        for step in spec["steps"]:
+            run = step.get("run", "")
+            lines = [ln for ln in run.splitlines() if "GITHUB_OUTPUT" in ln and "|" in ln]
+            if not lines:
+                continue
+            piped += len(lines)
+            assert "pipefail" in run, f"{job}/{step.get('name')} pipes into $GITHUB_OUTPUT without pipefail"
+            assert "set -e" in run, f"{job}/{step.get('name')} pipes into $GITHUB_OUTPUT without set -e"
+    assert piped == 2  # the gate step and the watch job's plan step
+
+
+def test_pipefail_is_what_turns_a_crashed_gate_into_a_failed_job(tmp_path):
+    """Without pipefail, tee's exit status hides the crash. This is the 2026-09-16 defect."""
+    out = tmp_path / "out"
+    masked = subprocess.run(["bash", "-c", f'false | tee -a "{out}"'])
+    caught = subprocess.run(["bash", "-c", f'set -euo pipefail; false | tee -a "{out}"'])
+    assert masked.returncode == 0 and caught.returncode != 0
+
+
+def _gate_script() -> str:
+    # `python3` on PATH is not the interpreter running the tests; the script is otherwise verbatim.
+    return _run_of("gate", "ci.py gate").replace("python3 ", f"{sys.executable} ")
+
+
+def test_gate_step_fails_and_writes_no_decision_when_an_import_is_missing(tmp_path):
+    stub = tmp_path / "stub"
+    stub.mkdir()
+    (stub / "pydantic.py").write_text("raise ModuleNotFoundError(\"No module named 'pydantic'\")\n")
+    out = tmp_path / "github_output"
+    out.touch()
+    res = subprocess.run(["bash", "-c", _gate_script()], cwd=REPO_ROOT, capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(stub), "EVENT": "schedule",
+                              "SCHEDULE": "47 6 * * *", "GITHUB_OUTPUT": str(out)})
+    assert res.returncode != 0, "a crashed gate must fail its job, not report success"
+    assert "run=" not in out.read_text()
+
+
+def test_gate_step_writes_run_and_reason_when_it_works(tmp_path):
+    out = tmp_path / "github_output"
+    out.touch()
+    res = subprocess.run(["bash", "-c", _gate_script()], cwd=REPO_ROOT, capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin", "EVENT": "schedule", "SCHEDULE": "47 6 * * *",
+                              "GITHUB_OUTPUT": str(out)})
+    assert res.returncode == 0
+    written = dict(ln.split("=", 1) for ln in out.read_text().splitlines() if "=" in ln)
+    assert written["run"] in {"true", "false"} and written["reason"]
+
+
+def _decision_script() -> str:
+    return _run_of("gate", "::error::")
+
+
+@pytest.mark.parametrize("run_value", ["", None])
+def test_missing_gate_decision_fails_loudly(tmp_path, run_value):
+    """`run` missing or empty makes every `needs.gate.outputs.run == 'true'` false --
+    indistinguishable from a deliberate skip unless the workflow fails."""
+    env = {"PATH": "/usr/bin:/bin", "REASON": "", "GITHUB_STEP_SUMMARY": str(tmp_path / "summary")}
+    if run_value is not None:
+        env["RUN"] = run_value
+    res = subprocess.run(["bash", "-c", _decision_script()], capture_output=True, text=True, env=env)
+    assert res.returncode == 1
+    assert "::error::" in res.stdout
+
+
+@pytest.mark.parametrize("run_value", ["true", "false"])
+def test_gate_decision_and_reason_reach_the_step_summary(tmp_path, run_value):
+    summary = tmp_path / "summary"
+    res = subprocess.run(["bash", "-c", _decision_script()], capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin", "RUN": run_value, "REASON": "daily trial run",
+                              "GITHUB_STEP_SUMMARY": str(summary)})
+    assert res.returncode == 0 and "::error::" not in res.stdout
+    text = summary.read_text()
+    assert f"run={run_value}" in text and "daily trial run" in text
+
+
+def test_gate_reason_is_exported_and_never_empty():
+    wf, _ = _wf()
+    assert wf["jobs"]["gate"]["outputs"]["reason"] == "${{ steps.gate.outputs.reason }}"
+    from datetime import date
+    import scripts.curation.ci as ci
+    cases = [("schedule", ci.DAILY_CRON), ("schedule", ci.WEEKLY_CRON), ("schedule", "0 0 * * *"),
+             ("workflow_dispatch", ""), ("schedule", "")]
+    for event, sched in cases:
+        for day in (date(2026, 9, 16), date(2026, 12, 1)):
+            decided, why = ci.gate(event, sched, day)
+            assert isinstance(decided, bool) and why.strip()
