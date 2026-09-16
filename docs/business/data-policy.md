@@ -1,6 +1,11 @@
 # What has to be published, and how fresh
 
-**Open question, 2026-09-16. Not decided.** Jamie asked:
+> **Resolved 2026-09-16.** The decision is
+> [`decision-record.md`](decision-record.md) — a variant of option B below,
+> split by field type rather than by a single delay. This file is kept as the
+> reasoning that produced it.
+
+**The original question.** Jamie asked:
 
 > For this open source repo to stay open source, do we have to keep it real time
 > and recent? Or can we delay the publicized results by a month or later? Or do
@@ -168,4 +173,4 @@ changed without Jamie.
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-09-16 | *(open)* publication tiering: A, B or C | this file |
+| 2026-09-16 | **B, refined.** 90-day delayed public export; the split is by field type, not one global clock; policy determinations never publish | [`decision-record.md`](decision-record.md) §2 |
