@@ -31,6 +31,11 @@ something, then the paid surface. Not the other way round.
 
 ## Gate 0 — decisions before any of this is built
 
+> **DEC-1 and DEC-2 were decided on 2026-09-16.**
+> See [`decision-record.md`](decision-record.md): the endpoint ships (§7.5) and
+> publication tiering is settled (§2, §3). DEC-3 is still open. The two entries
+> below are kept for the reasoning; the recommendations in them were taken.
+
 ### DEC-1 — Resolve `recommend` against the MODEL-3/MODEL-6 hold
 
 **Jamie only. Blocks REV-6 (hosted), REV-8 (priced) and anything with a price.**
