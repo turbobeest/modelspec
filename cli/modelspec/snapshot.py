@@ -51,7 +51,16 @@ STALE_AFTER_DAYS = 30
 #: Major.minor of `build.export_schema_version` this CLI will consume.
 #: Must match `pipeline.export.EXPORT_SCHEMA_VERSION`. A different major is
 #: refused so a breaking export cannot be ranked as if it were the old shape.
-EXPORT_SCHEMA_VERSION = "1.0"
+#: 2.0 since MODEL-77 reshaped the policy fields on the published cards.
+EXPORT_SCHEMA_VERSION = "2.0"
+
+#: What a snapshot with no `export_schema_version` at all actually is: an
+#: export from before the field was added, which is the 1.x tree. It is named
+#: rather than defaulted to the current version, because "the field is missing"
+#: and "the field says whatever this CLI happens to be" stopped being the same
+#: statement the moment the current version left 1.x — and assuming the latter
+#: would read a pre-MODEL-77 card as if `commercial_use` were still a bool.
+PRE_VERSIONED_EXPORT_SCHEMA_VERSION = "1.0"
 
 
 def cache_dir() -> Path:
@@ -115,16 +124,18 @@ def _export_schema_major(version: str) -> int:
 def _declared_export_schema_version(data: dict[str, Any]) -> str:
     """Read the tree version from index.build.
 
-    Exports from before this field existed are the current 1.x shape, so a
-    missing value is 1.0 rather than an error.
+    A missing value is not "whatever this CLI is". It is the tree as it stood
+    before the field existed, which is 1.0 — so once this CLI moved past 1.x,
+    such a snapshot is refused like any other incompatible major instead of
+    being parsed as the current shape.
     """
     index = data.get("index")
     build = index.get("build") if isinstance(index, dict) else None
     if not isinstance(build, dict):
-        return EXPORT_SCHEMA_VERSION
+        return PRE_VERSIONED_EXPORT_SCHEMA_VERSION
     raw = build.get("export_schema_version")
     if raw is None:
-        return EXPORT_SCHEMA_VERSION
+        return PRE_VERSIONED_EXPORT_SCHEMA_VERSION
     return str(raw)
 
 

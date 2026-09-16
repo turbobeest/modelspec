@@ -20,7 +20,7 @@ Source locators:
 
 | Fact | Where |
 |---|---|
-| Export shape / `export_schema_version` `"1.0"` | `pipeline/export.py` (`EXPORT_SCHEMA_VERSION`) |
+| Export shape / `export_schema_version` `"2.0"` | `pipeline/export.py` (`EXPORT_SCHEMA_VERSION`) |
 | Snapshot fetch, pin, refuse other major | `cli/modelspec/snapshot.py` (`DEFAULT_ORIGIN`, `PARTS`, `EXPORT_SCHEMA_VERSION`) |
 | CLI `--json` envelope `schema_version` `"1.0"` and exit codes 0–4 | `cli/modelspec/offline.py`; contract: [`../cli-contract.md`](../cli-contract.md) |
 | Site + CLI consume one export | `pipeline/export.py` module docstring; `pipeline/build.py` |
