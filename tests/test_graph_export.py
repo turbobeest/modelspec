@@ -21,8 +21,10 @@ from pipeline.graph import (  # noqa: E402
     CLOUDFLARE_PAGES_MAX_FILE_BYTES, LEGIBLE_EDGE_LIMIT, VIEWS,
     node_key, prefer_card, resolve_card_ids, write,
 )
-from schema.card import ModelCard  # noqa: E402
-from schema.graph import CollectingSink, CypherSink, derive_graph, ingest_model_card  # noqa: E402
+from schema.card import HardwareProfile, ModelCard  # noqa: E402
+from schema.graph import (  # noqa: E402
+    INDEXES, CollectingSink, CypherSink, derive_graph, ingest_model_card,
+)
 
 
 @functools.lru_cache(maxsize=1)
@@ -252,3 +254,85 @@ def test_dangling_edges_fail_the_build(tmp_path: Path) -> None:
     sink.edge("Model", "m1", "DERIVED_FROM", "Model", "ghost")
     with pytest.raises(ValueError, match="unknown nodes"):
         write(tmp_path, sink, {"commit": "test"})
+
+
+# ── Hardware nodes carry their device class (MODEL-76) ───────────────────────
+
+def _fitting_card(hw_id: str) -> ModelCard:
+    """A card whose deployment profile says it fits on `hw_id`.
+
+    No card in the corpus sets `fits: true` today, so the Hardware branch of
+    the derivation has to be exercised with one built here.
+    """
+    card = ModelCard.from_yaml_file(str(REPO_ROOT / "models/anthropic/claude-haiku-4-5.md"))
+    card.deployment.hardware_profiles = {hw_id: HardwareProfile(fits=True, best_quant="q4")}
+    return card
+
+
+def test_a_derived_hardware_node_carries_its_device_class() -> None:
+    """Without the class the node cannot be grouped or filtered by it."""
+    sink = derive_graph([_fitting_card("nvidia_rtx_5090")],
+                        {"nvidia_rtx_5090": "consumer"})
+    assert sink.nodes[("Hardware", "nvidia_rtx_5090")]["device_class"] == "consumer"
+
+
+def test_a_hardware_node_round_trips_its_class_through_the_export(tmp_path: Path) -> None:
+    """The published node, not just the sink, is what a consumer groups on."""
+    sink = derive_graph([_fitting_card("nvidia_h100_sxm")],
+                        {"nvidia_h100_sxm": "datacentre"})
+    write(tmp_path, sink, {"commit": "test"})
+    nodes = {n["key"]: n for n in json.loads((tmp_path / "nodes.json").read_text())["nodes"]}
+    assert nodes["Hardware:nvidia_h100_sxm"]["device_class"] == "datacentre"
+
+    view = json.loads((tmp_path / "views" / "hardware.json").read_text())
+    published = {n["key"]: n for n in view["nodes"]}
+    assert published["Hardware:nvidia_h100_sxm"]["device_class"] == "datacentre"
+
+
+def test_an_unknown_hardware_id_gets_no_class_rather_than_a_guess() -> None:
+    """`nvidia_5090_32gb` is a legacy profile key, not a device record.
+
+    Labelling it by resemblance would put a made-up class in the export, which
+    is worse than a class filter skipping the node.
+    """
+    sink = derive_graph([_fitting_card("nvidia_5090_32gb")],
+                        {"nvidia_rtx_5090": "consumer"})
+    assert "device_class" not in sink.nodes[("Hardware", "nvidia_5090_32gb")]
+
+
+def test_the_derivation_still_works_with_no_device_records() -> None:
+    """scripts/ingest_all.py and the ranking CLI derive without the mapping."""
+    sink = derive_graph([_fitting_card("nvidia_rtx_5090")])
+    assert ("Hardware", "nvidia_rtx_5090") in sink.nodes
+    assert "device_class" not in sink.nodes[("Hardware", "nvidia_rtx_5090")]
+
+
+def test_a_class_outside_the_vocabulary_is_refused() -> None:
+    """A sixth class would split a group in two and be found by nobody."""
+    with pytest.raises(ValueError):
+        derive_graph([_fitting_card("nvidia_rtx_5090")],
+                     {"nvidia_rtx_5090": "datacenter"})
+
+
+def test_both_sinks_agree_on_a_classed_hardware_node() -> None:
+    """The FalkorDB ingest and the JSON export must derive the same node."""
+    class FakeGraph:
+        def __init__(self) -> None:
+            self.params: list[dict] = []
+
+        def query(self, q: str, params: dict | None = None) -> None:
+            self.params.append(params or {})
+
+    card = _fitting_card("nvidia_rtx_5090")
+    classes = {"nvidia_rtx_5090": "consumer"}
+    fake = FakeGraph()
+    ingest_model_card(CypherSink(fake), card, device_classes=classes)
+    collected = CollectingSink()
+    ingest_model_card(collected, card, device_classes=classes)
+    assert len(fake.params) == len(collected.nodes) + len(collected.edges)
+    assert any(p.get("device_class") == "consumer" for p in fake.params)
+
+
+def test_the_device_class_index_exists() -> None:
+    """Filtering the whole corpus by class without an index is a full scan."""
+    assert "CREATE INDEX ON :Hardware(device_class)" in INDEXES

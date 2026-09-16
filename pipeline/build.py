@@ -212,9 +212,12 @@ def main(argv: list[str] | None = None) -> int:
     from schema.graph import derive_graph
     from pipeline import competition, hardware
     cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
-    derived = derive_graph(cards)
+    devices = hardware.load_devices(root)
+    # The device records are the only source of a device class, so they are
+    # loaded before the derivation rather than after it (MODEL-76).
+    derived = derive_graph(cards, hardware.device_classes(devices))
     competition_counts = competition.compute(derived, today)
-    hardware_counts = hardware.compute(derived, cards, hardware.load_devices(root))
+    hardware_counts = hardware.compute(derived, cards, devices)
     card_ids = {c.identity.model_id for c in cards}
     graph_export.resolve_card_ids(
         derived, card_ids=card_ids,

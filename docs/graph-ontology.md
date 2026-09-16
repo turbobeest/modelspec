@@ -151,9 +151,13 @@ A specific compute device that can run models locally.
 
 ```
 Properties:
-  id                    String    REQUIRED  INDEXED  # e.g. "nvidia_5090_32gb"
+  id                    String    REQUIRED  INDEXED  # e.g. "nvidia_rtx_5090"
   display_name          String    REQUIRED
+  device_class          String              INDEXED  # consumer | workstation | datacentre | edge | integrated
+  vendor                String                         # nvidia | amd | apple | intel | qualcomm | google | cerebras
   memory_gb             Integer   REQUIRED  INDEXED
+  memory_options_gb     String                         # comma-separated chip options, e.g. "36,48,64"
+  memory_bandwidth_gb_s Float                          # the number that sets decode speed
   memory_type           String                         # GDDR7 | HBM3 | unified | DDR5
   unified_memory        Boolean                        # Apple Silicon style
   compute_type          String                         # gpu | unified | cpu
@@ -170,6 +174,36 @@ Properties:
   release_date          Date
   form_factor           String                         # desktop-gpu | workstation | laptop | server | edge
 ```
+
+**`device_class`** (MODEL-76) is the vocabulary `hardware/*.yaml` has always
+carried, promoted to `schema.enums.DeviceClass` so the graph can group and
+filter by it — "which models fit datacentre hardware" is a class filter before
+it is a traversal, which is why it is indexed. It describes the *part*, not who
+bought it: a datacentre GPU under a desk is still `datacentre`. A value outside
+the five is rejected at load (`pipeline.hardware.load_devices`) rather than
+published, because a stray `datacenter` would be a sixth class that every query
+for the real one silently skips.
+
+Two producers write Hardware nodes, and both now set the class from the same
+source:
+
+* `pipeline.hardware.compute` — one node per `hardware/*.yaml` record, with the
+  memory and bandwidth properties above. Every published Hardware node comes
+  from here today.
+* `schema.graph.ingest_model_card` — a node per `deployment.hardware_profiles`
+  entry a card marks `fits: true`, which is also the FalkorDB ingest path. It
+  takes the class through the `device_classes` mapping
+  (`pipeline.hardware.device_classes`), because `schema/` sits below the loader
+  that reads the records.
+
+`device_class` is therefore **absent, never guessed**, when a card keys a
+profile on an id that names no device record — including the four legacy ids the
+card schema still defaults to (`nvidia_5090_32gb`, `dgx_spark_128gb`,
+`macbook_m4_pro_64gb`, `macbook_air_m4_24gb`). No card marks one of those
+`fits: true` today, so every Hardware node in the export carries a class; a
+consumer must still treat the property as optional and skip a node that lacks
+one rather than inventing a class for it. Adding the property is additive under
+the MODEL-59 rule and does not bump `build.export_schema_version`.
 
 ### :Host
 The machine around an accelerator (`hosts/*.yaml`, MODEL-26). **Unified hosts
@@ -664,6 +698,21 @@ WHERE m.model_type = 'embedding-text' AND m.status = 'active'
 RETURN m.display_name, s.value AS mteb_score, m.embedding_dimensions
 ORDER BY s.value DESC
 LIMIT 10
+```
+
+### 11. "Which models fit datacentre hardware?" (MODEL-76)
+```cypher
+MATCH (m:Model)-[:FITS_ON]->(h:Hardware)
+WHERE h.device_class = 'datacentre' AND m.status = 'active'
+RETURN m.display_name, collect(DISTINCT h.display_name) AS devices
+ORDER BY m.total_parameters DESC
+```
+Grouping the same edges by class, which is what a model page's ~60 hardware
+rows need:
+```cypher
+MATCH (:Model {id: $model})-[:FITS_ON]->(h:Hardware)
+RETURN h.device_class AS class, count(h) AS devices
+ORDER BY devices DESC
 ```
 
 ---

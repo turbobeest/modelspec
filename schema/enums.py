@@ -287,3 +287,26 @@ class EUAIActRisk(str, Enum):
     LIMITED = "limited"
     MINIMAL = "minimal"
     NA = "n/a"
+
+
+class DeviceClass(str, Enum):
+    """What kind of machine a `hardware/*.yaml` device is (MODEL-76).
+
+    The vocabulary the hardware records have always used, promoted to an enum
+    so the graph can group and filter Hardware nodes by it. A typo in a record
+    would otherwise flow into the export as a sixth class nobody queries for.
+
+    This is a property of the *part*, not of who bought it: a datacentre GPU
+    under a desk is still `datacentre`.
+    """
+
+    #: Sold to individuals; gaming and prosumer boards.
+    CONSUMER = "consumer"
+    #: Professional desk-side parts (RTX A/Ada workstation lines).
+    WORKSTATION = "workstation"
+    #: Rack parts and accelerators — H100/H200, MI300X, TPUs, Gaudi.
+    DATACENTRE = "datacentre"
+    #: Embedded and robotics modules (Jetson).
+    EDGE = "edge"
+    #: Memory unified with the host SoC — Apple silicon, Ryzen AI Max, X Elite.
+    INTEGRATED = "integrated"
