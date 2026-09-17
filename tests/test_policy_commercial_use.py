@@ -6,7 +6,7 @@ Two things are pinned here, and the second is the one that matters.
    says, carries a URL and a read date, and is the *kind* of answer that
    licence gives. A licence with no entry produces no value.
 2. `licence_of_record` refuses to answer when its two pieces of evidence
-   disagree. The corpus contains 27 cards typed `apache-2.0` or `mit` whose
+   disagree. The corpus contains 17 cards typed `apache-2.0` or `mit` whose
    distribution repository declares a NonCommercial licence. A mapping keyed on
    `license_type` alone would sell "commercial use allowed" for every one of
    them.
@@ -191,7 +191,7 @@ def test_card_type_answers_when_nothing_contradicts_it():
 
 def test_an_unread_declaration_silences_a_known_card_type():
     """The repository named a licence nobody has read. It might be permissive;
-    27 cards in this corpus show it might equally be NonCommercial."""
+    17 cards in this corpus show it might equally be NonCommercial."""
     r = licence_of_record(
         "apache-2.0", declared_licence="other", declared_licence_name="some-vendor-eula"
     )
