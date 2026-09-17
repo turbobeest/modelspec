@@ -232,8 +232,13 @@ def test_agreement_on_outcome_between_two_permissive_licences_is_answered():
 
 
 def test_a_noncommercial_declaration_beats_a_permissive_card_type_by_refusing():
-    """The 27-card case. `apache-2.0` on the card, NonCommercial at the point of
-    distribution: the answer is that there is no answer."""
+    """The 17-card case. `apache-2.0` on the card, NonCommercial at the point of
+    distribution: the answer is that there is no answer.
+
+    It was 27 until 2026-09-17, when 10 of those cards were retyped to the
+    NonCommercial licence their distributor's model card states in prose. The
+    17 that remain conflict on the Hub's frontmatter tag alone.
+    """
     for declared in ("cc-by-nc-4.0", "cc-by-nc-sa-4.0"):
         r = licence_of_record("apache-2.0", declared_licence=declared)
         assert r.licence_key is None
