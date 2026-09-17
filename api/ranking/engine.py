@@ -1030,6 +1030,89 @@ WIZARD_BENCHMARK_COVERAGE = 0.25
 MIN_BENCHMARK_COUNT = 2
 
 
+# ── the neutrality commitment (MODEL-70) ─────────────────────────────────────
+#
+# A floor is checkable because it is published as a number next to the answer it
+# shaped. The neutrality claim was only ever prose, which means a caller had to
+# trust it. It ships here, beside the floors, for the same reason the floors
+# ship: so an agent can read the commitment out of the same object that carries
+# the policy it acted on, rather than believe a page it never fetched.
+#
+# This constant is the single source. `ranking_policy()` carries it into
+# `/api/rank/profiles.json`, into every `rank_report()` and therefore into
+# `rankings.json`, and into the `policy` block of every `POST /v1/rank`
+# response. `pipeline/legal.py` renders the published pages from the same
+# values, so the prose and the JSON cannot drift apart.
+#
+# Source of the rule: `docs/agent-commerce-assessment.md` §3, which requires it
+# to be written into the terms before any money moves.
+
+#: Verbatim. Quoted in `docs/legal/terms-of-service.md` and rendered on
+#: https://modelspec.dev/legal/terms/ — three copies of one string, checked by
+#: `tests/test_legal.py`. Editing it here is editing the published terms.
+HONEST_BROKER_RULE = (
+    "Charging the consumer of a recommendation is compatible with being an "
+    "honest broker. Charging the subjects of one is not."
+)
+
+#: Verbatim, and the word "permanently" is load-bearing: it is the difference
+#: between a current price list and a commitment.
+NEUTRALITY_PLEDGE = (
+    "No referral fees, no paid placement, no provider-paid visibility, "
+    "permanently."
+)
+
+#: Where a machine reads the long forms. Static Pages, no key, no account.
+LEGAL_BASE_URL = "https://modelspec.dev/legal"
+
+
+def neutrality_commitment() -> dict[str, Any]:
+    """What ModelSpec will not take money for, in a shape an agent can check.
+
+    Every `assertion` is negative on purpose. The positioning is a set of things
+    the service is structurally unable to do, not a set of things it promises
+    not to do, so each one is either contradicted by an observable fact or it
+    holds. A new assertion is additive; flipping one of these `false` values to
+    `true` is not a version bump, it is a different product.
+    """
+    return {
+        "version": "neutrality-v1",
+        "operator": "Sparks & Sawdust LLC",
+        "rule": HONEST_BROKER_RULE,
+        "pledge": NEUTRALITY_PLEDGE,
+        "permanent": True,
+        "assertions": {
+            # §4.5: never charge the subjects of a recommendation.
+            "accepts_referral_fees": False,
+            "accepts_paid_placement": False,
+            "accepts_provider_paid_visibility": False,
+            # §10.1: recommend and hand off. A router earns on token volume,
+            # and margin that grows with volume is a steering incentive.
+            "proxies_inference_tokens": False,
+            # §10.2: a request carries a profile, not a prompt. There is
+            # nothing to retain, which is why this is architecture and not a
+            # retention promise.
+            "stores_customer_prompts": False,
+        },
+        #: §10.3: neutrality past money, into sourcing. Naming the stages is the
+        #: point — "neutral ranking" would leave the tie-break and the hosting
+        #: suggestion unclaimed, and those are where a lean is cheapest to hide.
+        "source_neutral_at": [
+            "ranking",
+            "tie_breaks",
+            "hosting_suggestions",
+            "route_advice",
+        ],
+        "charges": "the consumer of a recommendation, never its subjects",
+        "method_source": (
+            "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py"
+        ),
+        "terms_url": f"{LEGAL_BASE_URL}/terms/",
+        "neutrality_url": f"{LEGAL_BASE_URL}/neutrality/",
+        "privacy_url": f"{LEGAL_BASE_URL}/privacy/",
+    }
+
+
 def ranking_policy(*, min_benchmark_coverage: float | None = None) -> dict[str, Any]:
     """Policy for one ranking surface. Default is the CLI floor."""
     coverage = MIN_BENCHMARK_COVERAGE if min_benchmark_coverage is None else min_benchmark_coverage
@@ -1042,6 +1125,9 @@ def ranking_policy(*, min_benchmark_coverage: float | None = None) -> dict[str, 
         "min_benchmark_count": MIN_BENCHMARK_COUNT,
         "limit_applies_to": "ranked_only",
         "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+        # Additive under the contract's own rule (docs/cli-contract.md: "New
+        # fields may be added to any object"). No existing field widens.
+        "neutrality": neutrality_commitment(),
     }
 
 
