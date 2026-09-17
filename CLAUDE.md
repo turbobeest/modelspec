@@ -7,8 +7,15 @@ Codex/AGENTS parity: [`AGENTS.md`](AGENTS.md).
 Contract versioning (MODEL-59): a change that widens a contract field's range (nullable, new enum value, may be absent) bumps that contract's major version. See [`docs/cli-contract.md`](docs/cli-contract.md).
 
 This file used to describe Phase 1 and a FalkorDB-served architecture. That is
-historical. MODEL-2 closed on a **static Pages export**. There is no R2/D1 on
-the serving path.
+historical. MODEL-2 closed on a **static Pages export**: no R2 and no D1 on the
+**static** serving path, which is the path that answers `modelspec.dev` and
+feeds `modelspec snapshot fetch`. That rule describes that path and binds it.
+
+It does not forbid a keyed layer beside it. MODEL-68 added one: a Cloudflare
+Worker on `api.modelspec.dev` serving `POST /v1/rank`. It holds no store of its
+own — no KV, no D1, no R2 — and computes each answer from the same static export
+by running the repository's own `pipeline/ranking.py`. See
+[`docs/rank-api.md`](docs/rank-api.md).
 
 ## What is this?
 
@@ -23,8 +30,11 @@ calls the CLI.
 models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Pages
                                       (modelspec.dev /api/*.json)
                                             │
-CLI `snapshot fetch` ───────────────────────┘
+CLI `snapshot fetch` ───────────────────────┤
 Wizard / 3D graph read the same JSON in the browser.
+                                            │
+Worker `POST api.modelspec.dev/v1/rank` ────┘  MODEL-68; stateless, same JSON,
+                                               same scorer, no store of its own.
 
 FalkorDB ── optional local exploration (`modelspec stats|search|info`).
             Not required to rank, fit, or render the sites.
@@ -100,7 +110,11 @@ Optional FalkorDB for graph commands: `docker compose up -d`, browser
 
 ## Do not start
 
-MODEL-3 (Worker), MODEL-6 (payment rail). Do not auto-merge `research/*`.
+MODEL-3 (the one Worker that would serve site + API + snapshot + MCP together).
+MODEL-6 is **cancelled**, superseded by MODEL-68/69/73/75. MODEL-68 (the rank
+Worker) is built — see [`docs/rank-api.md`](docs/rank-api.md); do not start
+MODEL-69 (keys, limits, sandbox) or the billing tickets from here.
+Do not auto-merge `research/*`.
 MODEL-5 daily PRs are opened with `GITHUB_TOKEN`, so required checks never
 run; Jamie must install a PAT or GitHub App token.
 

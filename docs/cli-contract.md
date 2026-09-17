@@ -338,3 +338,26 @@ and the candidate parameter counts are new, optional data. So
 `fit_state` is a new field, not a widening of `fits`. A later change that emits
 a new `fit_state` value (for example `cpu_only`) does widen it and needs a major
 bump under the rule above.
+
+## The live rank API (MODEL-68)
+
+`POST https://api.modelspec.dev/v1/rank` answers the same question this CLI
+answers, from the current export rather than from a local snapshot. Its rows are
+**the same rows**: the endpoint runs `pipeline/ranking.py`, vendored into the
+Worker verbatim, and `tests/test_rank_worker.py` holds it to bytes identical to
+`modelspec offline rank --json` for the same input against the same build.
+
+Nothing in this document changes. The CLI keeps working with no account, no
+credential and no network after the first `snapshot fetch`, which is the point of
+it. The endpoint is for callers that want today's export without carrying one.
+
+Its status codes map onto the exit codes above:
+
+| Endpoint | CLI |
+|---|---|
+| `200` a ranking | `0` |
+| `400` refused (bad request, unknown use case, unknown device) | `1` |
+| `422` no match — carries the eliminating constraint, never a bare empty list | `2` |
+| `502` the published export could not be read | — |
+
+Full contract: [`rank-api.md`](rank-api.md).

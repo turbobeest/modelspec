@@ -12,9 +12,22 @@ Working-tree bytes are the source; the commit is context until this lands.
 
 YAML cards export to versioned JSON on Cloudflare Pages. The CLI downloads that
 export (`modelspec snapshot fetch`, default origin `https://modelspec.dev`) and
-answers from the cache. **No database is on the serving path.** MODEL-2 closed
-on that basis: static Pages JSON plus `export_schema_version`, refuse an
+answers from the cache. **No database is on the static serving path.** MODEL-2
+closed on that basis: static Pages JSON plus `export_schema_version`, refuse an
 incompatible major. Not R2, not D1.
+
+That sentence describes the **static** path — the one that answers a page view
+and a `snapshot fetch`. It is not a prohibition on a keyed layer beside it, and
+should not be quoted as one. MODEL-68 built the first such layer:
+
+**`POST https://api.modelspec.dev/v1/rank`**, a Cloudflare Worker
+(`api/worker/`, deployed by `.github/workflows/rank-api.yml` on push to main
+only). It is stateless — no KV, no D1, no R2 — fetches the same static export,
+and ranks by running the repository's own `pipeline/ranking.py`, vendored into
+the bundle verbatim rather than reimplemented. Its answers are byte-identical to
+`modelspec offline rank --json` for the same input against the same build, held
+there by `tests/test_rank_worker.py`. Contract, status codes and the deploy
+scars: [`../rank-api.md`](../rank-api.md).
 
 Source locators:
 
@@ -25,9 +38,11 @@ Source locators:
 | CLI `--json` envelope `schema_version` `"1.0"` and exit codes 0–4 | `cli/modelspec/offline.py`; contract: [`../cli-contract.md`](../cli-contract.md) |
 | Site + CLI consume one export | `pipeline/export.py` module docstring; `pipeline/build.py` |
 | Pages 25 MiB file cap | `pipeline/graph.py` (`CLOUDFLARE_PAGES_MAX_FILE_BYTES`) |
-| Rank implementation | `pipeline/ranking.py` (`rank`, `rank_report`, `_basis`) |
+| Rank implementation | `pipeline/ranking.py` (`rank`, `rank_report`, `_basis`) — one implementation, shared by the CLI, the sites and the rank Worker |
+| Rank API (MODEL-68) | `api/worker/` (`src/rank_service.py`, `vendor.py`); contract [`../rank-api.md`](../rank-api.md) |
 | Shared floors and policy | `api/ranking/engine.py` (`MIN_BENCHMARK_COVERAGE`, `WIZARD_BENCHMARK_COVERAGE`, `MIN_BENCHMARK_COUNT`, `ranking_policy`) |
 | Tests: envelope, pin, floors, provenance | `tests/test_cli_snapshot.py`, `tests/test_ranking.py`, `tests/test_incomplete_evidence_ranking.py`, `tests/test_export.py` |
+| Tests: rank API byte-identity, no-match, deploy gate | `tests/test_rank_worker.py`, `tests/test_ci_workflows.py` |
 
 Live check 2026-09-14, cache-busted `GET https://modelspec.dev/api/rank/profiles.json`:
 `cli_min_benchmark_coverage` 0.5, `wizard_min_benchmark_coverage` 0.25,
@@ -67,14 +82,20 @@ The 2026-09-12 hold is **lifted**. The record is kept at
   **Build both sites** (GitHub Actions app 15368). Fix: a PAT or GitHub App
   token as the workflow `token`. **Jamie has to create that credential.** Do
   not auto-merge `research/*`.
-- **MODEL-3 / MODEL-6:** do not start. Assessment:
+- **MODEL-3:** do not start (one Worker serving site + API + snapshot + MCP).
+  **MODEL-6 is cancelled**, superseded by MODEL-68, MODEL-69, MODEL-73 and
+  MODEL-75. MODEL-68 is built (above). **MODEL-69** (keys, rate limits,
+  sandbox) and the billing tickets are the next pieces and are not started.
+  Older assessment, now partly superseded:
   [`../agent-commerce-assessment.md`](../agent-commerce-assessment.md).
 - **MODEL-39:** still Todo (graph export size / required site build). Re-measure
   the 25 MiB cap on a full main build; do not bypass the guard.
 
 ## Ranking floors (do not re-ask)
 
-CLI/API **0.50**, wizard **0.25**, count floor **2**. Cost default
+CLI/API **0.50**, wizard **0.25**, count floor **2**. The rank Worker reads them
+from `api/ranking/engine.py` and writes none of them down; a floor literal in
+`api/worker/` fails the suite. Cost default
 `cost_weight: 0`. `speech_to_text` hidden from featured profiles until it
 produces a ranking. `image_generation` not featured until `clip_score` range is
 sourced.

@@ -1,0 +1,282 @@
+# The rank API (MODEL-68)
+
+`POST https://api.modelspec.dev/v1/rank` returns a ranked shortlist for a
+supplied environment, use case and constraints, computed per request from the
+current published export.
+
+This is the first piece of the enrichment layer: the origin that later carries
+keys, limits and billing (MODEL-69, MODEL-73, MODEL-75). None of that is here.
+Today it serves exactly the data the public export already has.
+
+## It is not a second ranker
+
+The endpoint imports `pipeline.ranking.rank_report` — the function
+`modelspec offline rank --json` calls. `api/worker/vendor.py` copies that file
+and `api/ranking/engine.py` into the Worker bundle byte for byte at build time;
+neither copy is committed, so there is no second file to drift.
+
+That is why the Worker is written in Python rather than JavaScript, which was
+the obvious choice for a Worker and is the wrong one here. The acceptance
+criterion is a ranking **byte-identical** to the CLI's, and a port cannot keep
+that promise:
+
+```
+>>> math.log10(0.5714285714285715)   CPython  bfcf1bdeeb6548ff
+                                     V8       bfcf1bdeeb6548fe
+```
+
+Four of the 121 `log10` inputs that occur in today's catalogue differ by one ULP
+between the two runtimes. The composite is rounded to two decimals only *after*
+those terms are summed, so a one-ULP difference can move a published score. Four
+today is four too many, and nothing stops the count from growing with the next
+card. A port would have had to reimplement `log10` and `round`-half-to-even
+bit-exactly — which is a fork with extra steps, and a fork that looks correct.
+
+So: same source, same arithmetic, no test vectors needed to bridge two
+implementations. `tests/test_rank_worker.py` runs twelve request/argv pairs
+through both the endpoint and the real CLI over the whole catalogue and compares
+the serialised bytes of `result`. What it is actually testing is the *adapter* —
+whether a request maps onto the scorer's arguments the way the CLI does
+(`--max-cost` applied before `rank_report`, `cost_weight=price_sensitivity or
+None`, `include_rehosts`, `limit`), which is where a hand-written endpoint goes
+wrong.
+
+## Architecture
+
+```
+models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Pages
+                                      modelspec.dev/api/rank/{candidates,hardware}.json
+                                            │  fetched per isolate, 5 min TTL
+                                            ▼
+                          Worker  modelspec-rank  (Python, Pyodide)
+                            api/worker/src/entry.py       transport only
+                            api/worker/src/rank_service.py  the answer
+                            python_modules/pipeline/ranking.py   ← vendored verbatim
+                            python_modules/api/ranking/engine.py ← vendored verbatim
+                                            ▲
+                                  POST api.modelspec.dev/v1/rank
+```
+
+The Worker holds no data. It has no KV namespace, no D1 database and no R2
+bucket; it reads the same public JSON the sites and the CLI read. A request
+carries a **profile** — use case, environment, constraints — and never a prompt.
+Widening these fields toward prompt text is a contract change under MODEL-59,
+not a feature request.
+
+## Request
+
+```http
+POST /v1/rank
+content-type: application/json
+
+{
+  "use_case": "coding",
+  "environment": {
+    "hardware": "apple_m3_ultra",
+    "hosting":  "local",
+    "runtime":  "ollama"
+  },
+  "constraints": {
+    "open_weights": true,
+    "max_cost_per_million_input_tokens": 2.0,
+    "price_sensitivity": 0.25,
+    "include_rehosts": false
+  },
+  "limit": 10
+}
+```
+
+Only `use_case` is required. Any unknown field is refused rather than ignored,
+so a caller never believes a constraint was applied when it was not.
+
+| Field | Maps onto | Notes |
+|---|---|---|
+| `use_case` | the profile | one of `api/ranking/engine.py`'s 51 |
+| `environment.hardware` | `--fits` | a device id from `/api/rank/hardware.json` |
+| `environment.hosting` | `--open-weights` | `local` and `self_hosted` require downloadable weights; `managed_api` narrows nothing |
+| `environment.runtime` | `--open-weights` | a local runtime implies downloadable weights; anything else is recorded and reported as **unbound** |
+| `constraints.open_weights` | `--open-weights` | |
+| `constraints.max_cost_per_million_input_tokens` | `--max-cost` | applied before the scorer, as the CLI applies it |
+| `constraints.price_sensitivity` | `--price-sensitivity` | 0–1; every shipped profile weights cost at 0 |
+| `constraints.include_rehosts` | `--include-rehosts` | |
+| `limit` | `--limit` | caps the **ranked** shortlist only; 0–100 |
+
+`applied.unbound` is the honest half of this table. The published export carries
+no runtime-level evidence, so `environment.runtime: "together_ai"` is echoed back
+with the reason it filtered nothing instead of being quietly turned into a guess.
+A null beats a guess here as everywhere else.
+
+## Response
+
+Every response — success or failure — carries `build.commit` and
+`build.export_schema_version` (`"2.0"`, `pipeline/export.py`), plus
+`service_commit`, the sha of the deployed Worker.
+
+```jsonc
+{
+  "schema_version": "1.0",
+  "endpoint": "rank",
+  "build": { "commit": "b1cb67d…", "built_at": "…", "export_schema_version": "2.0" },
+  "service_commit": "…",
+  "export_origin": "https://modelspec.dev",
+  "request": { … as received, normalised … },
+  "applied": { "open_weights_only": true, "open_weights_required_by": "environment.hosting",
+               "hardware_id": "apple_m3_ultra", "cost_weight": 0.25, "unbound": [ … ] },
+  "policy":  { "min_benchmark_coverage": 0.5, "min_benchmark_count": 2, … },
+  "ranking_status": "partial",
+  "ranked_count": 126, "unranked_count": 1213, "candidates_considered": 1339,
+  "result": [ { "model_id": …, "score": …, "cost_input": …, "evidence_basis": "mixed", … } ]
+}
+```
+
+`result` rows are `pipeline.ranking.score` rows, unchanged. `evidence_basis` is
+`pipeline/ranking.py::_basis` — `none`, `unverified-legacy`, `mixed`,
+`partial-verified` or `verified`. It describes the provenance of the benchmark
+inputs. It is **not** a quality verdict on the composite, and `verified` is not a
+certificate.
+
+`policy` comes from `api.ranking.engine.ranking_policy()`. The floors —
+`MIN_BENCHMARK_COVERAGE = 0.50`, `MIN_BENCHMARK_COUNT = 2` — are not written
+down anywhere in `api/worker/`; `tests/test_rank_worker.py` fails the build if
+they ever are. Changing one is Jamie's call.
+
+### Status codes
+
+| Code | Meaning | CLI equivalent |
+|---|---|---|
+| `200` | a ranking. `result` is never empty | exit 0 |
+| `400` | refused: `invalid_request`, `unknown_use_case`, `unknown_hardware`, `unknown_hosting`, `unknown_runtime` | exit 1 |
+| `404` | no such endpoint | — |
+| `405` | `/v1/rank` takes POST | — |
+| `413` | body over 16 KiB | — |
+| `422` | **no match** — see below | exit 2 |
+| `502` | the published export could not be read | — |
+
+### A no-match is an answer
+
+A request that eliminates every candidate returns `422` with the constraint that
+did it. It never returns `200` with an empty list, because a caller cannot act on
+that.
+
+```jsonc
+{
+  "ranking_status": "empty",
+  "error": {
+    "code": "no_match",
+    "message": "no model survives constraints.max_cost_per_million_input_tokens=0.0: it took the pool from 1339 to 0.",
+    "eliminated_by": { "constraint": "constraints.max_cost_per_million_input_tokens",
+                       "value": 0.0, "survivors_before": 1339, "survivors_after": 0 },
+    "elimination_trace": [ … every filter, in the order the scorer applies them … ],
+    "relax": "constraints.max_cost_per_million_input_tokens"
+  },
+  "result": []
+}
+```
+
+Two codes, because they send a caller in opposite directions:
+
+* **`no_match`** — a filter emptied the pool. Relax the named constraint.
+* **`insufficient_evidence`** — everything survived the filters and still nothing
+  could be ordered honestly. `eliminated_by.constraint` is
+  `policy.min_benchmark_coverage`. Loosening the constraints will not help; the
+  catalogue does not have the benchmark coverage for that use case yet. Telling
+  a caller "no match" here would send them off adjusting things that were never
+  the problem.
+
+An unknown device id is a `400`, not "nothing fits your GPU" — the same call
+`modelspec offline rank --fits` makes, and for the same reason: those are
+different answers.
+
+## Deploying
+
+`.github/workflows/rank-api.yml`. Deploys on push to `main` only; pull-request
+runs never reach the `deploy` job or its secrets. **No hand deploys** — the
+smoke test is the only thing that proves a deploy landed.
+
+The `bundle` job runs on every pull request and is the cheap half of the safety
+net: it vendors the scorer, imports the bundle in isolation (a new third-party
+import in `pipeline/ranking.py` would break the Worker, and this catches it on
+the PR), runs the byte-identity suite, and builds the bundle with
+`wrangler deploy --dry-run`, which needs no credential.
+
+The `deploy` job uses `CLOUDFLARE_API_MODELSPEC_TOKEN` — Workers Scripts:Edit,
+Workers KV Storage:Edit and Workers Routes:Edit on the `modelspec.dev` zone, and
+nothing else. It is **not** `CLOUDFLARE_API_TOKEN` (Pages) or
+`CLOUDFLARE_GRAPH_API_TOKEN` (benchgraph).
+
+Wrangler is pinned at `4.134.0`. The `4.94.0` that `graph-service` uses ships a
+workerd older than this Worker's `compatibility_date` and refuses to start it.
+
+### The MODEL-9 lesson, applied
+
+MODEL-9 shipped three changes whose container-side code never ran, because the
+smoke test could not tell a fresh deployment from an old instance still
+answering. A Worker has no container to go stale, but a smoke test that only
+checks "something answered 200" has the same blind spot.
+
+So the deploy injects `--var BUILD_COMMIT:$GITHUB_SHA`, the Worker echoes it as
+`service_commit` on `/v1/health` and on every response, and the smoke test polls
+for up to five minutes and **fails** unless the value it reads is the sha it just
+pushed. Then it exercises the contract against the live host:
+
+1. `service_commit == $GITHUB_SHA`, and `export_loaded` is true.
+2. `POST /v1/rank` → 200, non-empty, `build.commit` and `export_schema_version`
+   present, `evidence_basis` on every row from the documented set, and the served
+   floors still 0.50 / 2.
+3. a no-match vector → 422 naming the eliminating constraint.
+4. an unknown use case → 400.
+
+Each failure has its own `::error::` line saying which case it is, and prints the
+body it rejected. `.github/scripts/check_rank_response.py` holds (2) and (3) so
+the assertions are reviewable and are themselves unit-tested in
+`tests/test_ci_workflows.py`.
+
+### DNS (Jamie, already done 2026-09-17)
+
+The Worker uses a **route**, not a Custom Domain: a Custom Domain creates its own
+DNS record and the CI token has no DNS permission. Zone `modelspec.dev`:
+
+| Type | Name | Content | Proxy |
+|---|---|---|---|
+| `AAAA` | `api` | `100::` | Proxied |
+
+`100::` is the discard prefix. The route intercepts `/v1/*`; any other path on
+that host has no origin. A `522` from `api.modelspec.dev` means the route is not
+bound — that is what the host returned before this Worker existed.
+
+## Local development
+
+```bash
+python api/worker/vendor.py --check      # assemble python_modules/, prove it imports
+cd api/worker && npx wrangler@4.134.0 dev --local --var BUILD_COMMIT:dev
+curl -s localhost:8787/v1/health
+curl -s -X POST localhost:8787/v1/rank -H 'content-type: application/json' \
+  -d '{"use_case":"coding","limit":3}'
+```
+
+`dev --local` reads the live export from `modelspec.dev`. `python_modules/` is
+generated and git-ignored; rerun `vendor.py` after touching `pipeline/ranking.py`
+or `api/ranking/engine.py`.
+
+No `uv` or `pywrangler` is needed. Those exist to vendor third-party Python
+packages, and this Worker has none: `compatibility_flags` carries
+`disable_python_external_sdk`, which serves the `workers` SDK from the runtime
+itself.
+
+## Known limits
+
+* One isolate holds the whole 2.2 MB catalogue in memory after parsing it. At
+  1,339 models that is comfortable; it is not free, and it is the first thing to
+  look at if the Worker starts hitting its memory ceiling as the catalogue grows.
+* The export is cached per isolate for five minutes, so a site deploy takes up to
+  that long to reach every caller. `build.commit` in the response always names
+  the export actually used.
+* An export from before this ticket has no `/api/rank/hardware.json`. The
+  endpoint still ranks; `environment.hardware` is refused rather than answered
+  wrongly, and `/v1/health` still reports the build.
+
+## Not built (deliberately)
+
+Keys, rate limits and the sandbox are MODEL-69. Billing is MODEL-73 and
+MODEL-75. Enrichment fields — determinations withheld from the cards — are not
+here: this endpoint serves the public export and nothing else.
