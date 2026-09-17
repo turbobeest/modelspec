@@ -5,14 +5,21 @@ licence to read for a given model, and being willing to answer "we do not
 know".
 
 `license_type` on a card looked like the answer, and the ticket was scoped on
-that assumption. Measured against the corpus it does not hold. Of the 683 cards
-typed `apache-2.0` or `mit`, 27 are declared `cc-by-nc-4.0` or
+that assumption. Measured against the corpus it does not hold. Of the 673 cards
+typed `apache-2.0` or `mit`, 17 are declared `cc-by-nc-4.0` or
 `cc-by-nc-sa-4.0` at the point the weights are actually distributed. A
 deterministic map from `license_type` would have published "commercial use
-allowed" for 27 models whose distributor says NonCommercial — into the paid
+allowed" for 17 models whose distributor says NonCommercial — into the paid
 compliance answer, which is the one place this project cannot afford to be
 wrong. Standing rule 2 exists because that failure mode has already happened
 here once, at a scale of 1,589 rows.
+
+The count was 27 until 2026-09-17. None of those 27 repositories ships a
+LICENSE file, so the model card is the only licence document at the
+distribution point, and 10 of them name a NonCommercial licence in their own
+prose rather than only in the frontmatter tag. Those 10 cards were retyped to
+say what their distributor says; the other 17 disagree on the tag alone, and a
+tag is not a document.
 
 So the licence of record is established from two pieces of evidence, and
 disagreement is fatal rather than resolved:
