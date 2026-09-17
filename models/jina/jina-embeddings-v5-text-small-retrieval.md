@@ -63,7 +63,7 @@ lineage:
   library_name: llama.cpp
 licensing:
   open_weights: true
-  license_type: apache-2.0
+  license_type: cc-by-nc-4.0
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
