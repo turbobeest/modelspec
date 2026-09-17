@@ -158,8 +158,13 @@ def test_the_smoke_test_fails_loudly_rather_than_passing_silently() -> None:
         "too few named failure cases; a smoke test that can only fail one way "
         "hides the others")
     assert "exit 1" in workflow
-    assert "check_rank_response.py ranked" in workflow
-    assert "check_rank_response.py no-match" in workflow
+    # The script is invoked through `$checker`, so what is pinned is that each
+    # shape of answer is still checked by the reviewable file rather than by an
+    # assertion buried in the shell.
+    assert 'checker=".github/scripts/check_rank_response.py"' in workflow
+    for mode in ("ranked", "no-match", "not-found"):
+        assert f'python3 "$checker" {mode} body.json' in workflow, \
+            f"the {mode} response is no longer checked"
 
 
 def test_the_smoke_test_checks_the_documented_no_match_code() -> None:
@@ -193,3 +198,194 @@ def test_the_response_checker_rejects_an_empty_ranking() -> None:
         {**good, "result": [{**good["result"][0], "evidence_basis": "excellent"}]}), \
         "an invented evidence_basis passed"
     assert checker.check_no_match({**good, "result": []}), "a 422 with no reason passed"
+
+
+# ── the smoke test must survive a body it cannot parse ───────────────────────
+#
+# MODEL-68's deploy of e0265a5 went red on a Worker that was live and correct.
+# The workflow read every response with an inline `json.loads`, the first thing
+# it read was Cloudflare's `error code: 522` page — the route had been published
+# 100 ms earlier and had not reached the edge — and the traceback under GitHub's
+# default `bash -e` killed the step before the retry loop got a second turn. A
+# gate that goes red on a healthy deploy is spent the same way a gate that
+# cannot go red at all is: nobody reads the next one.
+
+CHECKER = REPO_ROOT / ".github" / "scripts" / "check_rank_response.py"
+
+#: What Cloudflare serves for a proxied host whose request matched no route.
+CLOUDFLARE_522 = b"error code: 522"
+
+
+def _checker():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("check_rank_response", CHECKER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("body", [
+    CLOUDFLARE_522,
+    b"",
+    b"   \n",
+    b"<!DOCTYPE html><html><head><title>522</title></head></html>",
+    b'{"service_commit": "abc"',          # truncated mid-document
+    b"\xff\xfe not utf-8 at all",
+    b'"a bare string"',
+    b"[1, 2, 3]",
+])
+def test_no_response_body_can_make_the_smoke_test_raise(body: bytes, tmp_path: Path) -> None:
+    """Every one of these is a thing a live host really answers."""
+    checker = _checker()
+    path = tmp_path / "body.json"
+    path.write_bytes(body)
+
+    parsed, raw, problem = checker.read_body(str(path))
+    assert raw == body
+    # A line for the run log, whatever it read, with no newline to truncate it.
+    line = checker.describe("/v1/health", "522", raw, problem)
+    assert "\n" not in line
+    assert "HTTP 522" in line and "path /v1/health" in line
+
+
+def test_a_missing_body_file_is_described_rather_than_raised(tmp_path: Path) -> None:
+    checker = _checker()
+    _, raw, problem = checker.read_body(str(tmp_path / "never-written.json"))
+    assert problem and raw == b""
+    assert "\n" not in checker.describe("/", "000", raw, problem)
+
+
+def test_reading_a_field_from_an_unparseable_body_exits_zero(tmp_path: Path) -> None:
+    """The poll loop reads this inside `x=$(...)`, where non-zero aborts the step."""
+    import subprocess
+    import sys
+
+    path = tmp_path / "body.json"
+    path.write_bytes(CLOUDFLARE_522)
+    done = subprocess.run(
+        [sys.executable, str(CHECKER), "field", "service_commit", str(path)],
+        capture_output=True, text=True, check=False)
+    assert done.returncode == 0, "an unreadable body aborted the field read"
+    assert done.stdout.strip() == "", "a 522 page yielded a service_commit"
+    assert "522" in done.stderr, "the run log is not told why the field is empty"
+
+
+def test_an_unreadable_checked_response_is_annotated_not_traced(tmp_path: Path) -> None:
+    import subprocess
+    import sys
+
+    path = tmp_path / "body.json"
+    path.write_bytes(CLOUDFLARE_522)
+    done = subprocess.run(
+        [sys.executable, str(CHECKER), "ranked", str(path), "/v1/rank", "522"],
+        capture_output=True, text=True, check=False)
+    assert done.returncode == 1
+    assert "Traceback" not in done.stdout + done.stderr
+    assert done.stdout.startswith("::error::")
+    # Status, requested path and the first bytes: enough to diagnose without
+    # opening Cloudflare, and no full URL that could carry a query string.
+    assert "HTTP 522" in done.stdout
+    assert "path /v1/rank" in done.stdout
+    assert "error code: 522" in done.stdout
+    assert "https://" not in done.stdout
+
+
+def test_a_failing_assertion_says_which_one_and_what_it_got(tmp_path: Path) -> None:
+    import subprocess
+    import sys
+
+    path = tmp_path / "body.json"
+    path.write_text('{"build": {"commit": "abc", "export_schema_version": "2.0"},'
+                    ' "service_commit": "def", "result": [],'
+                    ' "policy": {"min_benchmark_coverage": 0.5,'
+                    ' "min_benchmark_count": 2}}', encoding="utf-8")
+    done = subprocess.run(
+        [sys.executable, str(CHECKER), "ranked", str(path), "/v1/rank", "200"],
+        capture_output=True, text=True, check=False)
+    assert done.returncode == 1
+    assert "no rows" in done.stdout, "the failing assertion is not named"
+    assert "HTTP 200" in done.stdout and "path /v1/rank" in done.stdout
+
+
+def test_the_smoke_test_parses_no_response_body_of_its_own() -> None:
+    """The parse lives in the reviewable, unit-tested script or nowhere."""
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert "json.loads" not in workflow, "a body is parsed inline again"
+    assert "python3 -c" not in workflow, "a body is parsed inline again"
+    assert 'python3 "$checker"' in workflow
+
+
+def test_every_path_the_smoke_test_probes_is_one_the_route_serves() -> None:
+    """A check aimed outside the route tests Cloudflare, not the Worker."""
+    import re
+
+    workflow = RANK_API.read_text(encoding="utf-8")
+    probed = set(re.findall(r"^\s*probe (\S+)", workflow, re.MULTILINE))
+    assert probed >= {"/", "/v1/health", "/v1/rank"}, f"too few paths probed: {probed}"
+
+    pattern = _route_pattern()
+    prefix = pattern.split("*", 1)[0].split("/", 1)[1] if "/" in pattern else ""
+    for path in probed:
+        assert path.lstrip("/").startswith(prefix), (
+            f"the smoke test probes {path}, which the route {pattern!r} does not serve")
+
+
+# ── the bare root answers, rather than 522-ing like an outage ────────────────
+
+WRANGLER = REPO_ROOT / "api" / "worker" / "wrangler.jsonc"
+WORKER_ENTRY = REPO_ROOT / "api" / "worker" / "src" / "entry.py"
+
+
+def _route_pattern() -> str:
+    import re
+
+    match = re.search(r'"pattern"\s*:\s*"([^"]+)"', WRANGLER.read_text(encoding="utf-8"))
+    assert match, "the Worker declares no route"
+    return match.group(1)
+
+
+def test_the_route_covers_the_whole_host_including_the_bare_root() -> None:
+    """`api.modelspec.dev/` has no origin behind it; only the Worker can answer it."""
+    assert _route_pattern() == "api.modelspec.dev/*", (
+        "a narrower route leaves every path outside it answering 522, which is "
+        "indistinguishable from the endpoint being down")
+
+
+def test_the_worker_answers_an_unknown_path_itself() -> None:
+    source = WORKER_ENTRY.read_text(encoding="utf-8")
+    assert "HTTP_NOT_FOUND" in source, "unknown paths are not answered here"
+    assert 'ACCEPTED_ENDPOINTS = ("POST /v1/rank", "GET /v1/health")' in source, (
+        "a 404 that does not name the versioned paths is a dead end")
+
+
+def test_the_worker_refuses_a_verb_on_every_endpoint_it_serves() -> None:
+    """`/v1/health` answered PUT and DELETE with a 200 until this was pinned."""
+    source = WORKER_ENTRY.read_text(encoding="utf-8")
+    assert 'method not in ("GET", "HEAD")' in source, "/v1/health takes any verb"
+    assert 'if method != "POST":' in source, "/v1/rank takes any verb"
+    assert source.count("_method_not_allowed(") >= 3, (
+        "not every endpoint routes its refusal through the shared 405")
+
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert '[ "$status" != 405 ]' in workflow, "no verb is refused live"
+
+
+def test_the_smoke_test_exercises_the_documented_root() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert '[ "$status" != 404 ]' in workflow, "the root is not exercised live"
+    assert 'python3 "$checker" not-found body.json' in workflow
+
+
+def test_the_not_found_check_demands_the_versioned_paths() -> None:
+    checker = _checker()
+    good = {"service_commit": "abc", "result": [],
+            "error": {"code": "not_found", "message": "no endpoint at /",
+                      "accepted": ["POST /v1/rank", "GET /v1/health"]}}
+    assert checker.check_not_found(good) == []
+    assert checker.check_not_found({**good, "error": {**good["error"], "accepted": []}}), \
+        "a 404 naming no endpoint passed"
+    assert checker.check_not_found({**good, "service_commit": ""}), \
+        "a 404 that does not say which version answered passed"
+    assert checker.check_not_found({**good, "result": [{"model_id": "m"}]}), \
+        "a 404 carrying rows passed"

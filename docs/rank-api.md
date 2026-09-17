@@ -146,8 +146,8 @@ they ever are. Changing one is Jamie's call.
 |---|---|---|
 | `200` | a ranking. `result` is never empty | exit 0 |
 | `400` | refused: `invalid_request`, `unknown_use_case`, `unknown_hardware`, `unknown_hosting`, `unknown_runtime` | exit 1 |
-| `404` | no such endpoint | — |
-| `405` | `/v1/rank` takes POST | — |
+| `404` | no such endpoint, the bare root included. Names `/v1/health` and `/v1/rank` | — |
+| `405` | `/v1/rank` takes POST; `/v1/health` takes GET | — |
 | `413` | body over 16 KiB | — |
 | `422` | **no match** — see below | exit 2 |
 | `502` | the published export could not be read | — |
@@ -220,16 +220,40 @@ for up to five minutes and **fails** unless the value it reads is the sha it jus
 pushed. Then it exercises the contract against the live host:
 
 1. `service_commit == $GITHUB_SHA`, and `export_loaded` is true.
-2. `POST /v1/rank` → 200, non-empty, `build.commit` and `export_schema_version`
+2. `GET /` → 404 naming `POST /v1/rank` and `GET /v1/health`.
+3. `POST /v1/rank` → 200, non-empty, `build.commit` and `export_schema_version`
    present, `evidence_basis` on every row from the documented set, and the served
    floors still 0.50 / 2.
-3. a no-match vector → 422 naming the eliminating constraint.
-4. an unknown use case → 400.
+4. a no-match vector → 422 naming the eliminating constraint.
+5. an unknown use case → 400.
+6. `DELETE` on either endpoint → 405.
 
-Each failure has its own `::error::` line saying which case it is, and prints the
-body it rejected. `.github/scripts/check_rank_response.py` holds (2) and (3) so
-the assertions are reviewable and are themselves unit-tested in
+Each failure has its own `::error::` line saying which case it is, and appends a
+digest of what it actually read: the status, the **path** that was requested —
+not the URL, so a query string added by a future check cannot reach a public run
+log — and the first 200 bytes of the body.
+`.github/scripts/check_rank_response.py` holds (2), (3) and (4) so the
+assertions are reviewable and are themselves unit-tested in
 `tests/test_ci_workflows.py`.
+
+### The second scar: a red gate on a healthy deploy
+
+MODEL-68's own deploy of `e0265a5` failed while the Worker it had just published
+was live and correct. The workflow read each response with an inline
+`json.loads`; the first thing it read was Cloudflare's `error code: 522` page,
+because the route had been published 100 ms earlier and had not yet reached the
+edge. The `JSONDecodeError` traceback, under GitHub's default `bash -e`, ended
+the step before the five-minute retry loop got a second turn — the loop existed
+precisely for that wait and never ran.
+
+Two things follow, and both are pinned by tests:
+
+* **The workflow parses nothing.** Every read of a body goes through
+  `check_rank_response.py`, which describes an unreadable response (status, path,
+  first bytes) instead of raising on it. `field` exits 0 whatever it read, so a
+  body the poll loop cannot parse means *retry*, never *abort*.
+* **Every check targets a path the route serves.** The route now covers the whole
+  host, so this is no longer a way to test Cloudflare by accident.
 
 ### DNS (Jamie, already done 2026-09-17)
 
@@ -240,9 +264,19 @@ DNS record and the CI token has no DNS permission. Zone `modelspec.dev`:
 |---|---|---|---|
 | `AAAA` | `api` | `100::` | Proxied |
 
-`100::` is the discard prefix. The route intercepts `/v1/*`; any other path on
-that host has no origin. A `522` from `api.modelspec.dev` means the route is not
-bound — that is what the host returned before this Worker existed.
+`100::` is the discard prefix: nothing listens there, and a request Cloudflare
+cannot match to a Worker route is proxied to it and answered `522`.
+
+The route is therefore `api.modelspec.dev/*`, the whole host, and **not**
+`/v1/*`. A narrower route would leave the bare root — and every typo, crawler and
+health checker — reading a `522` that is indistinguishable from the endpoint
+being down. The Worker answers those itself: a documented 404 in the same
+envelope as the other errors, naming `/v1/health` and `/v1/rank`. It costs one
+isolate invocation and no subrequest, because a 404 never touches the export.
+
+A `522` from `api.modelspec.dev` now means one thing only: the route is not
+bound. That is what the host returned before this Worker existed, and for a few
+seconds after each deploy while the new route propagates.
 
 ## Local development
 

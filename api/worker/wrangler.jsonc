@@ -23,8 +23,16 @@
   // modelspec.dev zone and no DNS permission at all. The route needs a proxied
   // DNS record for api.modelspec.dev, which is already in place
   // (AAAA api -> 100::, proxied). See docs/rank-api.md.
+  //
+  // The whole host, not just `/v1/*`. A path outside the route has no origin —
+  // `100::` is the discard prefix — so Cloudflare answers 522, which is
+  // indistinguishable from the endpoint being down. The Worker already 404s
+  // every path it does not serve, naming `/v1/health` and `/v1/rank`; widening
+  // the route is what lets that honest answer reach the bare root. It also
+  // removes a 522 the deploy's own smoke test hit and could not read
+  // (MODEL-68 follow-up).
   "routes": [
-    { "pattern": "api.modelspec.dev/v1/*", "zone_name": "modelspec.dev" }
+    { "pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev" }
   ],
   "observability": { "enabled": true },
   "vars": {
