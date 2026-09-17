@@ -37,6 +37,11 @@ import rank_service as service
 CANDIDATES_PATH = "/api/rank/candidates.json"
 HARDWARE_PATH = "/api/rank/hardware.json"
 
+#: Everything this Worker serves. Named back to the caller by every 404, so an
+#: unrouted path — the bare root included — is a usable answer rather than a
+#: dead end. `.github/scripts/check_rank_response.py` asserts both are named.
+ACCEPTED_ENDPOINTS = ("POST /v1/rank", "GET /v1/health")
+
 #: How long a fetched export is reused inside one isolate. Short enough that a
 #: site deploy reaches callers quickly, long enough that a burst of requests
 #: does not re-fetch 2 MB each time.
@@ -105,23 +110,23 @@ class Default(WorkerEntrypoint):
         method = str(request.method).upper()
 
         if path == "/v1/health":
+            if method not in ("GET", "HEAD"):
+                return self._method_not_allowed(service_commit, path, "GET", method)
             return await self._health(service_commit, origin)
         if path != "/v1/rank":
+            # Including the bare root: the route covers the whole host, so an
+            # unknown path is answered here rather than left to Cloudflare's
+            # 522, which reads like an outage. No export fetch — a crawler
+            # asking for /favicon.ico must not cost a subrequest.
             return _json_response(service.HTTP_NOT_FOUND, {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": ["POST /v1/rank", "GET /v1/health"]},
+                          "accepted": list(ACCEPTED_ENDPOINTS)},
                 "result": [],
             })
         if method != "POST":
-            return _json_response(service.HTTP_METHOD_NOT_ALLOWED, {
-                "schema_version": service.SCHEMA_VERSION,
-                "service_commit": service_commit,
-                "error": {"code": "method_not_allowed",
-                          "message": f"/v1/rank takes POST, not {method}"},
-                "result": [],
-            })
+            return self._method_not_allowed(service_commit, path, "POST", method)
 
         raw = await request.text()
         if len(raw.encode("utf-8")) > service.MAX_BODY_BYTES:
@@ -158,6 +163,22 @@ class Default(WorkerEntrypoint):
         except service.RequestError as exc:
             status, body = service.error_response(exc, candidates, service_commit, origin)
         return _json_response(status, body)
+
+    def _method_not_allowed(self, service_commit: str, path: str,
+                            takes: str, method: str) -> Response:
+        """One 405, so every endpoint refuses a verb the same way.
+
+        `/v1/health` used to answer any method, including PUT and DELETE. It
+        never mattered while the route stopped everything outside `/v1/*` at a
+        522; with the whole host routed here it is the Worker's own answer.
+        """
+        return _json_response(service.HTTP_METHOD_NOT_ALLOWED, {
+            "schema_version": service.SCHEMA_VERSION,
+            "service_commit": service_commit,
+            "error": {"code": "method_not_allowed",
+                      "message": f"{path} takes {takes}, not {method}"},
+            "result": [],
+        })
 
     async def _health(self, service_commit: str, origin: str) -> Response:
         """What version is running, and can it read the catalogue.
