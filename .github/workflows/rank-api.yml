@@ -77,6 +77,15 @@ jobs:
         # and never will be (docs/policy-check-api.md, the trust boundary).
         run: python -m pytest -q tests/test_policy_check.py
 
+      - name: The OpenAPI spec still describes the implementation
+        # MODEL-72. openapi.yaml is generated from rank_service, entry.py and the
+        # scorer; --check fails if it was edited by hand or left stale after a
+        # change to any of them. tests/test_api_docs.py holds the other half:
+        # every error code the Worker can emit has a fix in docs/api.md.
+        run: |
+          python api/worker/openapi.py --check
+          python -m pytest -q tests/test_api_docs.py
+
       - name: Build the Worker bundle
         working-directory: api/worker
         # --dry-run needs no credential, so the bundle is proven to build on
@@ -124,6 +133,11 @@ jobs:
 
       - name: Vendor the scorer into the Worker bundle
         run: python api/worker/vendor.py
+
+      - name: PyYAML, for the post-deploy spec probe
+        # The only dependency `api/worker/openapi.py --probe` has. Everything
+        # else it touches is the standard library, by design.
+        run: python -m pip install "PyYAML==6.0.3"
 
       - name: Deploy
         working-directory: api/worker
@@ -263,5 +277,13 @@ jobs:
           probe /v1/policy-check -X POST \
             -H 'content-type: application/json' -d '{"policy":{}}'
           if [ "$status" != 400 ]; then fail "an empty policy returned HTTP ${status}, not 400"; fi
+
+          # 10. MODEL-72: the published spec has to be usable on its own. This
+          #    builds requests from api/worker/openapi.yaml with no knowledge of
+          #    the implementation, sends them, and validates each answer against
+          #    the spec's own schemas. A spec that describes a service nobody can
+          #    call from it is worse than no spec.
+          python3 api/worker/openapi.py --probe "https://${RANK_HOST}" \
+            || fail "a request built only from api/worker/openapi.yaml does not work against ${RANK_HOST}"
 
           echo "api.modelspec.dev is live on ${GITHUB_SHA}"
