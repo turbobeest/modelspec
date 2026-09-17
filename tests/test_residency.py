@@ -643,9 +643,9 @@ def _committed_residency_values(text: str) -> list[str]:
 def test_no_residency_determination_is_committed_to_this_repository():
     """Acceptance: the determinations are the product and are not in this repo.
 
-    `docs/business/decision-record.md` §2.2 puts policy determinations in the
-    enrichment layer permanently. This is that rule, enforced against the tree
-    rather than trusted to a reviewer noticing a diff of 1,339 cards.
+    The private business decision record, §2.2, puts policy determinations in
+    the enrichment layer permanently. This is that rule, enforced against the
+    tree rather than trusted to a reviewer noticing a diff of 1,339 cards.
     """
     tracked = subprocess.run(
         ["git", "ls-files", "models"],
