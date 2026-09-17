@@ -17,6 +17,13 @@ own — no KV, no D1, no R2 — and computes each answer from the same static ex
 by running the repository's own `pipeline/ranking.py`. See
 [`docs/rank-api.md`](docs/rank-api.md).
 
+MODEL-80 added `POST /v1/policy-check` on that same Worker, and it **does** read
+a store: **Workers KV**, holding the policy determinations, which are private
+and are never in this repository. That is the enrichment path, not the static
+one, and the MODEL-2 rule does not bind it — do not quote that rule against the
+KV binding in `api/worker/wrangler.jsonc`. Trust boundary and the reasoning:
+[`docs/policy-check-api.md`](docs/policy-check-api.md).
+
 ## What is this?
 
 ModelSpec catalogs AI models (LLMs, embeddings, image, speech, safety
@@ -35,6 +42,11 @@ Wizard / 3D graph read the same JSON in the browser.
                                             │
 Worker `POST api.modelspec.dev/v1/rank` ────┘  MODEL-68; stateless, same JSON,
                                                same scorer, no store of its own.
+
+Worker `POST api.modelspec.dev/v1/policy-check`  MODEL-80; the same static JSON
+   │                                             (`/api/policy/catalogue.json`)
+   └── Workers KV ── the policy determinations, private, loaded from outside
+                     this repository. See docs/policy-check-api.md.
 
 FalkorDB ── optional local exploration (`modelspec stats|search|info`).
             Not required to rank, fit, or render the sites.

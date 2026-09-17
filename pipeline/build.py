@@ -242,6 +242,14 @@ def main(argv: list[str] | None = None) -> int:
     from pipeline import ranking
     ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
 
+    # The public half of the compliance answer (MODEL-80): licence, origin,
+    # commercial-use grant and per-platform availability, reshaped so
+    # `POST /v1/policy-check` can read the whole catalogue in one fetch. Adds
+    # no information — it republishes card fields, empty states included.
+    from pipeline import policy_export
+    graph_counts["policy"] = policy_export.write_export(
+        ms / "api", cards, build.to_json())
+
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)
 

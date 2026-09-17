@@ -46,7 +46,7 @@ MIN_BENCHMARK_COVERAGE = 0.50
 MIN_BENCHMARK_COUNT = 2
 
 #: The versioned endpoints a 404 has to name. Same list as `api/worker/src/entry.py`.
-ACCEPTED_ENDPOINTS = ("POST /v1/rank", "GET /v1/health")
+ACCEPTED_ENDPOINTS = ("POST /v1/rank", "POST /v1/policy-check", "GET /v1/health")
 
 #: How much of a body to quote. Enough to recognise a Cloudflare error page, an
 #: HTML redirect or a truncated JSON document; short enough for one `::error::`

@@ -29,6 +29,16 @@ the bundle verbatim rather than reimplemented. Its answers are byte-identical to
 there by `tests/test_rank_worker.py`. Contract, status codes and the deploy
 scars: [`../rank-api.md`](../rank-api.md).
 
+**`POST https://api.modelspec.dev/v1/policy-check`** (MODEL-80) rides the same
+Worker and answers a caller's policy document per model **and per platform**,
+with `pass` / `fail` / `undetermined`. It is the first thing here that reads a
+store: **Workers KV**, holding the policy determinations, which live outside
+this repository permanently and are loaded by a step run from the private
+checkout — never by this repository's CI. The public half it reads is
+`/api/policy/catalogue.json`, written by `pipeline/policy_export.py`. Contract,
+trust boundary and what still needs Jamie:
+[`../policy-check-api.md`](../policy-check-api.md).
+
 Source locators:
 
 | Fact | Where |
@@ -40,6 +50,7 @@ Source locators:
 | Pages 25 MiB file cap | `pipeline/graph.py` (`CLOUDFLARE_PAGES_MAX_FILE_BYTES`) |
 | Rank implementation | `pipeline/ranking.py` (`rank`, `rank_report`, `_basis`) — one implementation, shared by the CLI, the sites and the rank Worker |
 | Rank API (MODEL-68) | `api/worker/` (`src/rank_service.py`, `vendor.py`); contract [`../rank-api.md`](../rank-api.md) |
+| Policy-check API (MODEL-80) | `api/worker/src/policy_service.py`, `load_determinations.py`, `pipeline/policy_export.py`; contract [`../policy-check-api.md`](../policy-check-api.md) |
 | Shared floors and policy | `api/ranking/engine.py` (`MIN_BENCHMARK_COVERAGE`, `WIZARD_BENCHMARK_COVERAGE`, `MIN_BENCHMARK_COUNT`, `ranking_policy`) |
 | Tests: envelope, pin, floors, provenance | `tests/test_cli_snapshot.py`, `tests/test_ranking.py`, `tests/test_incomplete_evidence_ranking.py`, `tests/test_export.py` |
 | Tests: rank API byte-identity, no-match, deploy gate | `tests/test_rank_worker.py`, `tests/test_ci_workflows.py` |

@@ -22,6 +22,13 @@ Worker: stateless, no KV/D1/R2, reading the same static export and running the
 same `pipeline/ranking.py`. The MODEL-2 rule is not a prohibition on that layer.
 Contract: [`docs/rank-api.md`](docs/rank-api.md).
 
+MODEL-80 added `POST /v1/policy-check` to that Worker: a caller's policy
+document answered per model **and per platform**, `pass` / `fail` /
+`undetermined`. It reads **Workers KV**, holding the policy determinations —
+private, never in this repository, loaded from the private checkout and not by
+this repository's CI. The MODEL-2 rule does not bind that path either. Contract
+and trust boundary: [`docs/policy-check-api.md`](docs/policy-check-api.md).
+
 The JSON envelope and exit codes for `modelspec snapshot` / `modelspec offline`
 are the contract. Read the file; do not reconstruct it from memory.
 

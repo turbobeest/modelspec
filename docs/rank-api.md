@@ -146,8 +146,8 @@ they ever are. Changing one is Jamie's call.
 |---|---|---|
 | `200` | a ranking. `result` is never empty | exit 0 |
 | `400` | refused: `invalid_request`, `unknown_use_case`, `unknown_hardware`, `unknown_hosting`, `unknown_runtime` | exit 1 |
-| `404` | no such endpoint, the bare root included. Names `/v1/health` and `/v1/rank` | — |
-| `405` | `/v1/rank` takes POST; `/v1/health` takes GET | — |
+| `404` | no such endpoint, the bare root included. Names `/v1/health`, `/v1/rank` and `/v1/policy-check` | — |
+| `405` | `/v1/rank` and `/v1/policy-check` take POST; `/v1/health` takes GET | — |
 | `413` | body over 16 KiB | — |
 | `422` | **no match** — see below | exit 2 |
 | `502` | the published export could not be read | — |
@@ -220,13 +220,17 @@ for up to five minutes and **fails** unless the value it reads is the sha it jus
 pushed. Then it exercises the contract against the live host:
 
 1. `service_commit == $GITHUB_SHA`, and `export_loaded` is true.
-2. `GET /` → 404 naming `POST /v1/rank` and `GET /v1/health`.
+2. `GET /` → 404 naming `POST /v1/rank`, `POST /v1/policy-check` and
+   `GET /v1/health`.
 3. `POST /v1/rank` → 200, non-empty, `build.commit` and `export_schema_version`
    present, `evidence_basis` on every row from the documented set, and the served
    floors still 0.50 / 2.
 4. a no-match vector → 422 naming the eliminating constraint.
 5. an unknown use case → 400.
-6. `DELETE` on either endpoint → 405.
+6. `DELETE` on any of the three endpoints → 405.
+7. `POST /v1/policy-check` → 200 with a per-platform verdict on every row,
+   422 for `require_no_undetermined`, 400 for an empty policy
+   (`docs/policy-check-api.md`).
 
 Each failure has its own `::error::` line saying which case it is, and appends a
 digest of what it actually read: the status, the **path** that was requested —
@@ -271,7 +275,8 @@ The route is therefore `api.modelspec.dev/*`, the whole host, and **not**
 `/v1/*`. A narrower route would leave the bare root — and every typo, crawler and
 health checker — reading a `522` that is indistinguishable from the endpoint
 being down. The Worker answers those itself: a documented 404 in the same
-envelope as the other errors, naming `/v1/health` and `/v1/rank`. It costs one
+envelope as the other errors, naming `/v1/health`, `/v1/rank` and
+`/v1/policy-check`. It costs one
 isolate invocation and no subrequest, because a 404 never touches the export.
 
 A `522` from `api.modelspec.dev` now means one thing only: the route is not
