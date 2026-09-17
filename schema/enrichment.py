@@ -17,11 +17,11 @@ untrue. So the record is defined here, next to the card, and
 so a divergence is a test failure rather than a support ticket.
 
 **Where the records live.** Not here. This repository is public and the
-determinations are the paid product (`docs/business/decision-record.md` §3,
-§5). The store is a JSON Lines file outside the repo — one `EnrichmentRecord`
-per line, serialised with `model_dump_json()`. This module is the schema for
-those lines and nothing else: it reads no file, names no path, and holds no
-data. Serving them is MODEL-80.
+determinations are the paid product (the private business decision record, §3
+and §5). The store is a JSON Lines file outside the repo — one
+`EnrichmentRecord` per line, serialised with `model_dump_json()`. This module
+is the schema for those lines and nothing else: it reads no file, names no
+path, and holds no data. Serving them is MODEL-80.
 
 **What a public card shows.** A determination that is withheld publishes
 `commercial_use: withheld` — not `unspecified`, which would claim nobody had
