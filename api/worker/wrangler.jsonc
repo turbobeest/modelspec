@@ -1,0 +1,41 @@
+// The ModelSpec rank Worker (MODEL-68): POST /v1/rank on api.modelspec.dev.
+//
+// A Python Worker, because the acceptance criterion is a ranking byte-identical
+// to `modelspec offline rank --json`. A port into another language cannot meet
+// that: CPython and V8 already disagree by one ULP on `log10` for values in this
+// catalogue, and the composite is rounded to two decimals after those terms are
+// summed. So the Worker runs the repository's own `pipeline/ranking.py`, copied
+// into `python_modules/` verbatim by `api/worker/vendor.py` at build time and
+// never committed. See docs/rank-api.md.
+//
+// Deployed by .github/workflows/rank-api.yml (job `deploy`) on push to main
+// only. No hand deploys: the smoke test is what proves a deploy landed.
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "modelspec-rank",
+  "main": "src/entry.py",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["python_workers", "disable_python_external_sdk"],
+  "account_id": "43840d11c8c4586acdba8b048414900a",
+  "workers_dev": false,
+  // A Workers route, not a Custom Domain: the CI token
+  // (CLOUDFLARE_API_MODELSPEC_TOKEN) has Workers Routes:Edit on the
+  // modelspec.dev zone and no DNS permission at all. The route needs a proxied
+  // DNS record for api.modelspec.dev, which is already in place
+  // (AAAA api -> 100::, proxied). See docs/rank-api.md.
+  "routes": [
+    { "pattern": "api.modelspec.dev/v1/*", "zone_name": "modelspec.dev" }
+  ],
+  "observability": { "enabled": true },
+  "vars": {
+    // Where the published static export is read from. The Worker holds no data
+    // of its own; it ranks the same JSON the sites and the CLI read.
+    "EXPORT_ORIGIN": "https://modelspec.dev",
+    // The deployed version, echoed back as `service_commit`. CI overrides it
+    // per deploy with `wrangler deploy --var BUILD_COMMIT:$GITHUB_SHA` (CLI
+    // vars are merged over the config vars, so EXPORT_ORIGIN survives), and the
+    // smoke test refuses to pass until /v1/health reports the sha it pushed.
+    // "dev" is the local-development placeholder.
+    "BUILD_COMMIT": "dev"
+  }
+}
