@@ -175,7 +175,7 @@ def licence_of_record(
         if declared_anything:
             # The repository named a licence, and it is not one that has been
             # read. It may well be permissive; it may be the NonCommercial
-            # licence 27 cards in this corpus turned out to carry. Unread is
+            # licence 17 cards in this corpus turned out to carry. Unread is
             # unread.
             return Resolution(None, "unread-licence")
         return Resolution(from_card, "card-license-type")
