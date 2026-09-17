@@ -560,59 +560,6 @@ def _build_prose(
     return "\n".join(lines)
 
 
-def card_to_yaml_clean(card: ModelCard) -> str:
-    """Serialize a ModelCard to clean YAML frontmatter + markdown prose.
-
-    The from_yaml_string parser expects:
-      - Identity fields FLAT at the top level
-      - Other sections as nested dicts
-      - Card metadata flat at the top level
-
-    Uses model_dump(mode='json') to avoid Python-specific YAML tags for enums.
-    """
-    data = card.model_dump(
-        mode="json",
-        exclude_none=False,
-        exclude={"prose_body", "card_completeness"},
-    )
-
-    # Flatten identity fields to top level (matching from_yaml_string expectations)
-    identity = data.pop("identity", {})
-
-    # Build ordered output: identity fields first, then sections, then metadata
-    from collections import OrderedDict
-
-    out = OrderedDict()
-    for k, v in identity.items():
-        out[k] = v
-
-    # Add all remaining sections
-    section_keys = [
-        "architecture", "lineage", "licensing", "modalities", "capabilities",
-        "cost", "availability", "benchmarks", "deployment", "risk_governance",
-        "inference_performance", "adoption", "downselect", "sources",
-    ]
-    for sk in section_keys:
-        if sk in data:
-            out[sk] = data.pop(sk)
-
-    # Card metadata
-    for mk in ("card_schema_version", "card_author", "card_created", "card_updated"):
-        if mk in data:
-            out[mk] = data.pop(mk)
-    if data.get("authoring_guide") is not None:
-        out["authoring_guide"] = data.pop("authoring_guide")
-
-    yaml_str = yaml.dump(
-        dict(out),
-        default_flow_style=False,
-        sort_keys=False,
-        allow_unicode=True,
-        width=120,
-    )
-    return f"---\n{yaml_str}---\n\n{card.prose_body}"
-
-
 def main() -> None:
     import argparse
 
@@ -714,7 +661,7 @@ def main() -> None:
                 if file_path.exists():
                     existing = ModelCard.from_yaml_file(file_path)
                     notice = carry_guide_forward(existing, card)
-                content = card_to_yaml_clean(card)
+                content = card.to_yaml()
                 loaded = ModelCard.from_yaml_string(content)
                 write_card_atomically(file_path, content)
                 created_ids.append(card.identity.model_id)

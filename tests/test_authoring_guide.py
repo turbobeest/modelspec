@@ -55,10 +55,9 @@ def test_valid_guide_loads_and_round_trips():
     card = _card(GUIDE)
     assert card.authoring_guide.status == "current"
     assert card.authoring_guide.sections.prompt_shape[0].sources[0].kind == "provider-guidance"
-    # to_yaml() uses yaml.dump (enum tags), so compare the dumped guide itself.
-    assert "authoring_guide:" in card.to_yaml()
-    again = _card(card.authoring_guide.model_dump())
+    again = ModelCard.from_yaml_string(card.to_yaml())
     assert again.authoring_guide == card.authoring_guide
+    assert again.authoring_guide.sections.prompt_shape[0].text == "Give the full task up front."
 
 
 def test_claim_without_source_fails():
