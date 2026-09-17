@@ -168,6 +168,11 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
     original = (cache / "snapshot.json").read_text()
 
     class FakeResponse:
+        # `status_code` and `headers` are what MODEL-71 reads before
+        # `raise_for_status` to tell a refusal from a served part.
+        status_code = 200
+        headers: dict[str, str] = {}
+
         def __init__(self, body: dict) -> None:
             self._body = body
 
@@ -212,8 +217,15 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
 def test_exit_codes_are_distinct() -> None:
     """A caller has to tell "no answer" from "no snapshot" from "broken"."""
     codes = {offline.EXIT_OK, offline.EXIT_ERROR, offline.EXIT_NO_MATCH,
-             offline.EXIT_NO_SNAPSHOT, offline.EXIT_STALE}
-    assert len(codes) == 5
+             offline.EXIT_NO_SNAPSHOT, offline.EXIT_STALE,
+             offline.EXIT_KEY_REFUSED, offline.EXIT_RATE_LIMITED}
+    assert len(codes) == 7
+
+
+def test_the_original_exit_codes_keep_their_values() -> None:
+    """MODEL-71 added two codes. It must not have moved any of the five."""
+    assert (offline.EXIT_OK, offline.EXIT_ERROR, offline.EXIT_NO_MATCH,
+            offline.EXIT_NO_SNAPSHOT, offline.EXIT_STALE) == (0, 1, 2, 3, 4)
 
 
 @functools.cache

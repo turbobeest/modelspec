@@ -6,7 +6,8 @@ first among them. This is what they can rely on.
 ## The interface
 
 ```
-modelspec snapshot fetch [--origin URL]   download the published export (the only networked command)
+modelspec snapshot fetch [--origin URL] [--api-key KEY]
+                                          download the published export (the only networked command)
 modelspec snapshot status [--json]        what is cached, how old, which build
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
@@ -21,6 +22,9 @@ Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 (see "Hosts and offload" below). These options
 are additive and do not change the meaning of the commands above. `--origin`
 is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
+`--api-key` is an option on `snapshot fetch` too; it has no default and the
+supported way to supply one is the `MODELSPEC_API_KEY` environment variable
+(see "A keyed origin" below).
 
 ## The JSON envelope
 
@@ -104,10 +108,18 @@ with exit 3 (and `freshness: null`), not a traceback.
 | 2 | no ranked answer: nothing matched the constraints (`empty`), or no matching candidate had enough evidence (`unavailable`) | inspect `ranking_status`; loosen a constraint or obtain more evidence |
 | 3 | no snapshot | run `modelspec snapshot fetch` |
 | 4 | stale snapshot and `--require-fresh` was given | fetch, or drop the flag |
+| 5 | a keyed origin refused the credential (no key, unknown key, revoked key) | supply or replace the key; retrying the same one will not help |
+| 6 | a keyed origin rate-limited the credential | wait for the window named on stderr, then retry |
 
 **2 is not an error.** "Nothing in the catalogue fits your constraints" is a
 truthful result, and conflating it with a failure makes a caller retry something
 that will never succeed.
+
+**5 and 6 belong to `snapshot fetch` against a keyed origin.** They are the
+only codes MODEL-71 added, they are produced by no other command, and no
+unkeyed origin produces them: against `https://modelspec.dev`, `snapshot fetch`
+still exits 0 or 1 and nothing else. Every other exit code means exactly what
+it meant before.
 
 ## What we promise
 
@@ -338,6 +350,73 @@ and the candidate parameter counts are new, optional data. So
 `fit_state` is a new field, not a widening of `fits`. A later change that emits
 a new `fit_state` value (for example `cpu_only`) does widen it and needs a major
 bump under the rule above.
+
+## A keyed origin (MODEL-71)
+
+The published export on `https://modelspec.dev` is delayed. A snapshot of it is
+older than `stale_after_days` the moment it is fetched, so a caller that needs
+a current answer would see `"stale": true` on day zero and could never pass
+`--require-fresh`. `snapshot fetch` can therefore present a credential to an
+origin that serves the current tree to keys entitled to it.
+
+**Nothing else changes.** Same commands, same envelope, same `schema_version`,
+same exit codes on every path that already existed. The one difference a keyed
+fetch makes is that `freshness.fetched_at` is now and `freshness.stale` is
+false. `rank` and `fit` return exactly what they returned before — no new
+field, no enrichment, no marker saying a key was used
+(`tests/test_cli_keyed_origin.py::test_the_rank_and_fit_envelopes_are_unchanged`).
+
+### Supplying the key
+
+```bash
+export MODELSPEC_API_KEY='…'        # supported
+modelspec snapshot fetch --origin https://api.modelspec.dev
+
+modelspec snapshot fetch --api-key '…'   # works, and warns
+```
+
+**Use the environment variable.** `docs/agent-commerce-assessment.md` §4 is the
+reason: a credential in `argv` is visible in process listings to every user on
+the machine, is written to shell history, and is captured by anything that logs
+a command line — CI transcripts and agent traces included. `--api-key` exists
+because some callers cannot set an environment variable, and using it prints a
+warning to stderr saying so. The environment is read when `--api-key` is absent;
+the flag wins when it is given, because a caller who typed a key meant that key.
+
+The key is sent as `Authorization: Bearer <key>`, which is what
+[`api-access.md`](api-access.md) documents and, not incidentally, the one header
+an HTTP client drops when a redirect crosses to another host. **A key is never
+put in a URL**, never written into the cached snapshot, and never printed: it
+is held in a `Credential` whose `repr` and `str` emit a 12-character `key_id`
+(the SHA-256 prefix the origin logs) instead of the secret, and every message
+`snapshot fetch` writes is passed through a redaction backstop on the way out.
+`test_the_key_appears_in_no_output_no_error_and_no_cached_file` drives every
+branch of the command with a known key and searches stdout, stderr, the
+origin's access log and the cached snapshot for it.
+
+### The four failures
+
+| What happened | Exit | On stderr |
+| --- | --- | --- |
+| No key presented, and the origin requires one (`401 missing_api_key`) | 5 | how to set `MODELSPEC_API_KEY`, and the origin's own message |
+| The key is unknown or revoked (`401 invalid_api_key`, `403 key_revoked`) | 5 | which source supplied it, its `key_id`, and the origin's message |
+| A window is spent (`429 rate_limited`) | 6 | the retry delay, and the origin's message naming the limit and its reset |
+| The origin did not answer (DNS, TLS, connection, timeout) | 1 | `error: could not fetch the snapshot: could not reach <origin><route>: …` |
+
+The unreachable case keeps exit 1 and its original sentence on purpose: that
+path existed before this change and callers already branch on it. The refusals
+relay the origin's own `error.message` rather than paraphrasing it, because the
+service already says the useful part — where to get a key, when the window
+resets. None of the four prints a traceback, and none of them replaces a
+snapshot that is already cached.
+
+### Versioning
+
+Additive under the MODEL-59 rule, so no major bump. One new option, one new
+environment variable, and two exit codes that no pre-existing call can receive
+— the same reasoning as the MODEL-26 host fields, which are emitted only when
+`--host` is given. No existing field's range widens, `schema_version` stays
+`"1.0"`, and `build.export_schema_version` is untouched.
 
 ## The live rank API (MODEL-68)
 

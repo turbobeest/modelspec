@@ -8,6 +8,14 @@ database.
 This module downloads the versioned export from modelspec.dev, caches it, and
 answers from the cache. No credential, no account, no network once fetched.
 
+MODEL-71 adds one thing and changes nothing else: `fetch` can present a key to
+an origin that keys its export, so a caller entitled to the current tree gets a
+snapshot whose `fetched_at` is now rather than one built from a 90-day-delayed
+public export. The default origin is unkeyed and the free path is untouched —
+without a credential this module behaves exactly as it did. The credential is
+carried in a `Credential`, which has no printable form of the secret, so a key
+cannot reach a log line by being interpolated into one.
+
 The pin identity is `build.commit` plus `build.export_schema_version`. The
 latter is the published JSON tree, not the CLI `--json` envelope
 (`offline.SCHEMA_VERSION`) and not `rankings.json`'s `schema_version`.
@@ -19,15 +27,33 @@ Callers are told the age and decide for themselves.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 DEFAULT_ORIGIN = "https://modelspec.dev"
+
+#: Where the credential for a keyed origin is read from. The environment is the
+#: supported way to supply it: `docs/agent-commerce-assessment.md` §4 notes that
+#: a credential on the command line lands in process listings, shell history and
+#: logs, and an environment variable lands in fewer of those.
+API_KEY_ENV = "MODELSPEC_API_KEY"
+
+#: How a key identifies itself in a message a human or a log will see. The same
+#: 12 hex characters of SHA-256 the origin calls `key_id` (MODEL-69,
+#: `api/worker/src/access_keys.py`), so a support conversation can name the same
+#: key from both ends without either end quoting the secret.
+KEY_ID_LENGTH = 12
+
+#: What replaces the secret if one ever reaches a string that is about to be
+#: printed. Nothing should get that far; this is the backstop, not the plan.
+REDACTED = "[redacted]"
 
 #: Files that make a usable snapshot. Kept small on purpose — the whole point is
 #: that this works on a laptop tethered to a phone.
@@ -104,12 +130,99 @@ class Snapshot:
         }
 
 
+@dataclass(frozen=True, repr=False)
+class Credential:
+    """A key for a keyed origin, in a shape that cannot be printed by accident.
+
+    The secret is a field with no `repr`, and `__repr__`/`__str__` are replaced
+    by ones that emit the key id instead. That is the same reasoning the origin
+    applies to its key store (`docs/api-access.md`, "Keys are never written
+    down"): make "the secret is never logged" a property of the shape rather
+    than a rule every future caller has to remember.
+    """
+
+    secret: str = field(repr=False)
+    #: `environment` or `flag`. Reported so a message can name where a rejected
+    #: key came from, and so the CLI can warn about the riskier of the two.
+    source: str = "environment"
+
+    @property
+    def key_id(self) -> str:
+        """The short, loggable identifier. It identifies; it cannot authenticate."""
+        return hashlib.sha256(self.secret.encode("utf-8")).hexdigest()[:KEY_ID_LENGTH]
+
+    def headers(self) -> dict[str, str]:
+        """How the key is presented. A header, never a query parameter.
+
+        URLs are written into access logs, proxy caches and referrer headers by
+        everything they pass through. `Authorization` is also the one header
+        httpx drops when a redirect crosses to another host, so a misconfigured
+        redirect cannot carry the key somewhere it was not meant to go.
+        """
+        return {"Authorization": f"Bearer {self.secret}"}
+
+    def redact(self, text: str) -> str:
+        """Backstop: strip the secret out of anything on its way to a stream."""
+        return text.replace(self.secret, REDACTED) if self.secret else text
+
+    def __repr__(self) -> str:
+        return f"Credential(source={self.source!r}, key_id={self.key_id!r})"
+
+    __str__ = __repr__
+
+
+def resolve_credential(flag: str | None = None,
+                       environ: Mapping[str, str] | None = None) -> Credential | None:
+    """The key to present, or `None` for the free, unkeyed path.
+
+    The environment is the preferred source and the flag is the override: a
+    caller who typed `--api-key` meant that key for this invocation. Preferring
+    the environment is a recommendation about how to supply a key, not a rule
+    that silently ignores the one in front of us.
+    """
+    if flag:
+        return Credential(secret=flag, source="flag")
+    from_env = (environ if environ is not None else os.environ).get(API_KEY_ENV)
+    if from_env and from_env.strip():
+        return Credential(secret=from_env.strip(), source="environment")
+    return None
+
+
 class SnapshotMissing(RuntimeError):  # noqa: N818 - public compatibility name
     """No snapshot has been fetched yet."""
 
 
 class SnapshotInvalid(RuntimeError):  # noqa: N818 - follows SnapshotMissing naming
     """A snapshot exists but cannot be read or does not have the export shape."""
+
+
+class FetchError(RuntimeError):
+    """A fetch that failed for a reason the caller can act on.
+
+    The four subclasses are the four things that go wrong against a keyed
+    origin. They exist so the CLI can give each one its own exit code and its
+    own sentence, instead of one `could not fetch` for everything.
+    """
+
+
+class OriginUnreachableError(FetchError):
+    """The origin did not answer: DNS, TLS, connection, timeout."""
+
+
+class KeyRequiredError(FetchError):
+    """The origin wants a key and none was presented."""
+
+
+class KeyRejectedError(FetchError):
+    """The origin knows what a key is and will not accept this one."""
+
+
+class RateLimitedError(FetchError):
+    """The key is good and its window is spent."""
+
+    def __init__(self, message: str, retry_after_seconds: int | None = None) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
 
 
 def _export_schema_major(version: str) -> int:
@@ -188,23 +301,120 @@ def _snapshot_from_raw(path: Path, raw: Any) -> Snapshot:
     )
 
 
-def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None) -> Snapshot:
-    """Download the export. The only command that needs the network."""
+#: Statuses the origin uses to refuse a call it understood (MODEL-69,
+#: `docs/api-access.md`). Anything else stays on the pre-existing path:
+#: `raise_for_status`, wrapped by the CLI as a plain runtime error.
+HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
+HTTP_TOO_MANY_REQUESTS = 429
+
+#: `error.code` values the origin sends. Read to tell "you sent no key" from
+#: "that key is not one of ours", which are different things for the caller.
+MISSING_KEY_CODE = "missing_api_key"
+
+
+def _origin_error(response: Any) -> tuple[str, str]:
+    """The origin's own `(code, message)`, or empty strings if it sent neither.
+
+    The origin's refusals already say the useful thing — where to get a key,
+    when a window resets — so they are relayed rather than paraphrased. A body
+    that is not the documented shape is not trusted to be one.
+    """
+    try:
+        body = response.json()
+    except Exception:  # noqa: BLE001 - a refusal is not required to be JSON
+        return "", ""
+    error = body.get("error") if isinstance(body, dict) else None
+    if not isinstance(error, dict):
+        return "", ""
+    code = error.get("code")
+    message = error.get("message")
+    return (str(code) if code else "", str(message) if message else "")
+
+
+def _retry_after(response: Any) -> int | None:
+    header = str(response.headers.get("retry-after") or "").strip()
+    if header.isdigit():
+        return int(header)
+    try:
+        body = response.json()
+    except Exception:  # noqa: BLE001 - as above
+        return None
+    error = body.get("error") if isinstance(body, dict) else None
+    seconds = error.get("retry_after_seconds") if isinstance(error, dict) else None
+    return int(seconds) if isinstance(seconds, int) else None
+
+
+def _check_refusal(response: Any, origin: str, presented: Credential | None) -> None:
+    """Turn the origin's refusal into the typed error that matches it.
+
+    Nothing here interpolates the key. `key_id` is the short fingerprint, which
+    identifies the key in the origin's logs without being usable against it.
+    """
+    status = response.status_code
+    if status not in (HTTP_UNAUTHORIZED, HTTP_FORBIDDEN, HTTP_TOO_MANY_REQUESTS):
+        return
+    code, said = _origin_error(response)
+    tail = f" The origin said: {said}" if said else ""
+    if status == HTTP_TOO_MANY_REQUESTS:
+        seconds = _retry_after(response)
+        wait = f" Retry after {seconds}s." if seconds is not None else ""
+        raise RateLimitedError(
+            f"{origin} rate-limited this key"
+            f"{f' (key {presented.key_id})' if presented else ''}."
+            f"{wait}{tail}",
+            retry_after_seconds=seconds,
+        )
+    if presented is None or code == MISSING_KEY_CODE:
+        raise KeyRequiredError(
+            f"{origin} requires an API key and none was presented. Set "
+            f"{API_KEY_ENV} in the environment, or pass --api-key (which is "
+            f"visible in shell history and in `ps`)." + tail
+        )
+    raise KeyRejectedError(
+        f"{origin} rejected the API key supplied by the {presented.source} "
+        f"(key {presented.key_id}). The key value is not shown and was not "
+        f"logged.{tail}"
+    )
+
+
+def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
+          credential: Credential | None = None) -> Snapshot:
+    """Download the export. The only command that needs the network.
+
+    With no `credential` this is the call it has always been. With one, the key
+    rides on an `Authorization` header — never in the URL, never in the cached
+    snapshot — and the origin's refusals come back as typed errors.
+    """
     import httpx
 
     directory = target or cache_dir()
     directory.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = {}
-    with httpx.Client(timeout=60.0, follow_redirects=True) as client:
-        for name, route in PARTS.items():
+    headers = credential.headers() if credential is not None else {}
+
+    def get(route: str) -> Any:
+        try:
             response = client.get(origin + route)
-            response.raise_for_status()
-            payload[name] = response.json()
+        except httpx.HTTPError as exc:
+            raise OriginUnreachableError(
+                f"could not reach {origin}{route}: {type(exc).__name__}"
+            ) from None
+        _check_refusal(response, origin, credential)
+        response.raise_for_status()
+        return response
+
+    with httpx.Client(timeout=60.0, follow_redirects=True, headers=headers) as client:
+        for name, route in PARTS.items():
+            payload[name] = get(route).json()
         for name, route in OPTIONAL_PARTS.items():
             try:
-                response = client.get(origin + route)
-                response.raise_for_status()
-                payload[name] = response.json()
+                payload[name] = get(route).json()
+            except (KeyRequiredError, KeyRejectedError, RateLimitedError):
+                # A credential problem is a credential problem on any route, and
+                # saying so beats a snapshot that silently lost `fit --host`.
+                # An unreachable optional route is still skipped, as before.
+                raise
             except Exception:  # noqa: BLE001 - optional; `fit --host` reports its absence
                 continue
 
