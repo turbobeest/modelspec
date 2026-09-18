@@ -47,6 +47,8 @@ def test_instrument_css_is_written_to_both_sites_and_matches_the_inlined_sheet(t
         assert "--accent:#f5b342;" in sheet
         assert '[data-site="benchgraph"]{--accent:#38bdf8}' in sheet
         assert (site / "fonts" / "archivo-latin.woff2").is_file()
+        assert (site / "fonts" / "jetbrains-mono-latin.woff2").is_file()
+        assert (site / "fonts" / "JetBrainsMono-OFL.txt").is_file()
 
 
 def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
@@ -98,14 +100,16 @@ def test_no_static_page_requests_space_grotesk() -> None:
         assert "Space Grotesk" not in _styles(page), name
 
 
-def test_jetbrains_mono_is_the_only_cdn_font() -> None:
+def test_no_static_page_loads_a_font_from_a_cdn() -> None:
     for name, path in STATIC_PAGES.items():
         page = path.read_text(encoding="utf-8")
         remote = [href for pair in _stylesheets(page) for href in pair
                   if href.startswith(("http:", "https:", "//"))]
-        assert remote == ["https://fonts.googleapis.com/css2?family=JetBrains+Mono:"
-                          "wght@400;500;700&display=swap"], (name, remote)
+        assert remote == [], (name, remote)
         assert "@font-face" not in page, name
+        assert "fonts.googleapis.com" not in page, name
+        assert "fonts.gstatic.com" not in page, name
+        assert "/fonts/jetbrains-mono-latin.woff2" in page, name
 
 
 def test_static_page_styles_take_every_colour_and_family_from_a_token() -> None:

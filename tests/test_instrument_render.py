@@ -336,13 +336,21 @@ def test_capabilities_render_as_header_chips_not_a_section() -> None:
 
 def test_archivo_is_not_requested_from_a_cdn() -> None:
     assert "Archivo" not in FONTS
-    assert "fonts.googleapis.com" in FONTS  # JetBrains Mono was already loaded
+
+
+def test_no_face_is_requested_from_a_cdn() -> None:
+    assert "fonts.googleapis.com" not in FONTS
+    assert "fonts.gstatic.com" not in FONTS
+    assert "fonts.googleapis.com" not in CSS
+    assert "fonts.gstatic.com" not in CSS
 
 
 def test_archivo_faces_are_declared_against_repo_paths() -> None:
     assert "/fonts/archivo-latin.woff2" in CSS
     assert "/fonts/archivo-latin-ext.woff2" in CSS
-    assert CSS.count("@font-face") == 2
+    assert "/fonts/jetbrains-mono-latin.woff2" in CSS
+    assert "/fonts/jetbrains-mono-latin-ext.woff2" in CSS
+    assert CSS.count("@font-face") == 4
 
 
 def test_archivo_is_preloaded_so_the_heading_face_is_not_a_late_swap() -> None:
@@ -350,12 +358,22 @@ def test_archivo_is_preloaded_so_the_heading_face_is_not_a_late_swap() -> None:
     assert '/fonts/archivo-latin.woff2' in FONTS
 
 
+def test_jetbrains_mono_latin_is_preloaded_so_body_text_is_not_a_late_swap() -> None:
+    assert '/fonts/jetbrains-mono-latin.woff2' in FONTS
+
+
 def test_the_font_files_and_their_licence_ship_in_the_repo() -> None:
     fonts = Path(__file__).resolve().parent.parent / "site" / "fonts"
     assert (fonts / "archivo-latin.woff2").is_file()
     assert (fonts / "archivo-latin-ext.woff2").is_file()
+    assert (fonts / "jetbrains-mono-latin.woff2").is_file()
+    assert (fonts / "jetbrains-mono-latin-ext.woff2").is_file()
     # The OFL requires the licence to travel with the font.
     assert "SIL Open Font License" in (fonts / "Archivo-OFL.txt").read_text(encoding="utf-8")
+    assert "SIL Open Font License" in (fonts / "JetBrainsMono-OFL.txt").read_text(encoding="utf-8")
+    assert "JetBrains Mono Project Authors" in (
+        fonts / "JetBrainsMono-OFL.txt"
+    ).read_text(encoding="utf-8")
 
 
 # ── competitors on a thin card ───────────────────────────────────────────────

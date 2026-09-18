@@ -397,9 +397,10 @@ def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
 
 
 def test_the_privacy_statement_discloses_the_one_third_party_request() -> None:
-    """The shell loads Google Fonts on every page. That is a disclosure, not a detail."""
+    """Generated pages no longer load Google Fonts (MODEL-92). explorer.html
+    still does until PR #115, and the privacy draft still discloses that."""
     from pipeline import render as r
-    assert "fonts.googleapis.com" in r.FONTS
+    assert "fonts.googleapis.com" not in r.FONTS
     assert "fonts.googleapis.com" in FLAT_PRIVACY
 
 

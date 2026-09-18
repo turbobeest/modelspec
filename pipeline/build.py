@@ -199,9 +199,8 @@ def _ship_instrument(root: Path, *dests: Path) -> None:
         target.mkdir(parents=True, exist_ok=True)
         for item in src.glob("*.woff2"):
             shutil.copy2(item, target / item.name)
-        licence = src / "Archivo-OFL.txt"
-        if licence.is_file():
-            shutil.copy2(licence, target / licence.name)
+        for item in src.glob("*-OFL.txt"):
+            shutil.copy2(item, target / item.name)
 
 
 def _copy_static(src: Path, dest: Path) -> bool:

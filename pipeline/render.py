@@ -27,16 +27,16 @@ from pipeline.load import Benchmark, Catalogue, Model
 #: its own labels out would drift from the CLI on the first edit.
 from pipeline.ranking import _basis
 
-#: Archivo is served from this repo, not from a CDN. MODEL-24 permits only "the
-#: fonts already loaded", which Archivo was not, and MODEL-19 asks flatly for no
-#: runtime third-party dependency. A font that fails to load degrades to a
-#: fallback face, so this is about the constraint, not about breakage.
+#: Archivo and JetBrains Mono are served from this repo, not from a CDN.
+#: MODEL-19 asks flatly for no runtime third-party dependency. A font that
+#: fails to load degrades to a fallback face, so this is about the constraint,
+#: not about breakage. web3d/explorer.html still loads Space Grotesk from
+#: Google Fonts; that file is owned by PR #115.
 FONTS = ('<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>'
-         '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" '
-         'href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/'
-         'css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">')
+         '<link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>')
 
-#: One file per subset covers every weight: Archivo's weight is a variable axis.
+#: One file per subset covers every requested weight: both families are variable
+#: fonts as served by Google Fonts.
 FONT_FACES = """
 @font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;
 src:url(/fonts/archivo-latin.woff2) format("woff2");
@@ -44,6 +44,14 @@ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+
 U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;
 src:url(/fonts/archivo-latin-ext.woff2) format("woff2");
+unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,
+U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400 700;font-display:swap;
+src:url(/fonts/jetbrains-mono-latin.woff2) format("woff2");
+unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,
+U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400 700;font-display:swap;
+src:url(/fonts/jetbrains-mono-latin-ext.woff2) format("woff2");
 unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,
 U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 """
