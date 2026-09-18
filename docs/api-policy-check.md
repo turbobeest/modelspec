@@ -56,17 +56,20 @@ later.
 
 ## Free and paid
 
-**The endpoint is free, and today every answer is the free tier.**
-`determinations.entitlement` is `public_export`: licence and origin are settled
+**The endpoint is free, and without a paid-tier key every answer is the free
+tier.** `determinations.entitlement` is `public_export`: licence and origin are settled
 from public cards. Commercial-use and residency determinations are the paid
 product; without them those checks are `undetermined` with `why: tier` and
 `available_in_tier: paid`, and `determinations.undetermined_for_lack_of_entitlement`
 counts them. A free answer is never a `pass` a paid one would turn into a
 `fail`.
 
-**The paid tier is not live.** Its response shape is specified and tested, but
-no request is granted it until MODEL-69 wires keys into the Worker, so 503
-cannot occur yet.
+**The paid tier is granted to a key whose tier is paid** (MODEL-69; the exempt
+DPF tier is on the same path). `determinations.entitlement` is then
+`determinations`. No such key has been issued yet, so every answer today is the
+free tier. Keys, limits and their refusals (401, 403, 429, 500, 503
+`access_store_not_configured`) are in [`api.md`](api.md#keys-limits-and-the-sandbox);
+a request without a key is not refused while enforcement is off.
 
 ## Worked example
 
@@ -198,4 +201,5 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 413 | `payload_too_large` | body over 262144 bytes | omit `models` and page with `limit` and `offset` |
 | 422 | `undetermined_present` | `require_no_undetermined` and some rows are unknown | narrow with `models` or `platforms`, or drop the flag. `error.examples` holds up to ten rows |
 | 502 | `export_unavailable` | the policy export could not be read | retry; not your request |
-| 503 | `determinations_unavailable` | entitled, and the store could not be read | retry. Never downgraded to the free answer; cannot occur until paid keys exist |
+| 400 | `sandbox_not_available` | a `test_` key: the sandbox answers `/v1/rank` only | call without a key, or with a live key |
+| 503 | `determinations_unavailable` | a paid-tier key, and the store could not be read | retry. Never downgraded to the free answer |

@@ -715,7 +715,7 @@ def test_the_worker_routes_policy_check_and_holds_no_determinations():
     assert "/v1/policy-check" in entry
     assert "policy_service.check(" in entry
     # The entitlement decision is one function, and it is the only place a
-    # request is granted the private store. MODEL-69 replaces its body.
+    # request is granted the private store, by the tier MODEL-69's gate resolved.
     assert "def _entitlement(" in entry
     # The Worker verifies the KV bundle against its manifest rather than
     # trusting whatever is in the namespace.

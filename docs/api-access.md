@@ -3,6 +3,13 @@
 MODEL-69. How a call to the ranking origin is identified, what it is allowed to
 do, and what it is told when it is refused.
 
+**Status: wired, enforcement off, key store bound, no keys issued.** Both POST
+endpoints (`/v1/rank`, `/v1/policy-check`) pass through the gate. A request
+without a key is served exactly as before; a request that presents a key is
+checked. See [The switch](#the-switch-access_enforced) and
+[Morning steps](#turning-it-on). No key has been issued yet (issuance is
+MODEL-73).
+
 The modules are in `api/worker/src/`:
 
 | Module | What it is |
@@ -12,7 +19,8 @@ The modules are in `api/worker/src/`:
 | `access_keys.py` | key format, fingerprinting, issue / lookup / revoke |
 | `access_limits.py` | the daily and burst counters, and their windows |
 | `access_sandbox.py` | the `test_` answer |
-| `access_kv.py` | the key-value interface, a Workers KV adapter, a test double |
+| `access_kv.py` | the key-value interface, a Workers KV adapter, a test double, and `UnboundKV` for a Worker with no store |
+| `kv_value.py` | what "no such key" looks like from Workers KV under Pyodide, shared with the determination store |
 
 None of them import the Workers runtime, so `tests/test_api_access.py` exercises
 all of it under CPython. Only `access_kv.CloudflareKV` knows what a binding is,
@@ -93,6 +101,12 @@ would be swapped behind.
 | 403 | `key_revoked` | a key we know and will not serve. Retrying will not help |
 | 429 | `rate_limited` | a window is spent |
 | 500 | `tier_not_configured` | the key names a tier the table does not carry. Ours, not the caller's |
+| 500 | `access_not_configured` | a key was presented and the deployment has no tier table (`TIER_POLICY` unset). Ours |
+| 503 | `access_store_not_configured` | a live key was presented and no `ACCESS` KV namespace is bound, so it cannot be checked. Refused, never served as anonymous |
+| 400 | `sandbox_not_available` | a `test_` key on `/v1/policy-check`. The sandbox holds no synthetic policy data and touches no live data |
+
+`missing_api_key` only occurs with enforcement on. The table is
+`access.REFUSALS`; the OpenAPI spec is generated from it by running the gate.
 
 A 429 states the limit, the window, and when it resets:
 
@@ -159,43 +173,106 @@ the values in the store for it.
 Logs identify a key by `key_id`: the first 12 hex characters of the
 fingerprint. It identifies, it does not authenticate.
 
-## Wiring this into the Worker
+## Wiring: the gate in `entry.py`
 
-`serve()` takes the two things it deliberately does not know — how to build a
-live answer and how to build a sandbox one:
+`Default.fetch` reads and parses the body, then hands both POST endpoints to
+`access.gate` **before either export is fetched**:
 
 ```python
-policy = access_config.load_policy(self.env)
-envelope = service._envelope({}, service_commit, origin)
-parsed = service.parse_request(payload, frozenset())
-
-outcome = await access.serve(
+outcome = await access.gate(
     api_key=access_keys.extract(lambda name: request.headers.get(name)),
-    kv=access_kv.CloudflareKV(self.env.API_KEYS),
-    policy=policy,
-    envelope=envelope,
-    live=lambda record: self._rank(payload, service_commit, origin),
-    sandbox=lambda: access_sandbox.rank_response(parsed, envelope=envelope),
+    enforced=access.enforcement(getattr(self.env, "ACCESS_ENFORCED", None)),
+    kv=_access_store(self.env),            # CloudflareKV(env.ACCESS), or UnboundKV
+    load_policy=lambda: access_config.load_policy(self.env),
+    anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
 )
-return _json_response(outcome.status, outcome.body, extra_headers=outcome.headers)
+return _json_response(outcome.status, outcome.body, outcome.headers)
 ```
 
-Parsing the request before the split is deliberate: a body the live endpoint
-would refuse is refused in the sandbox too, so an integrator's error handling is
-exercised against the same validation. `access_sandbox.request_from_payload` is
-the tolerant fallback for callers that have not parsed anything.
+`gate` is `serve` behind the switch. `live(record, tier)` answers for a known,
+metered key; for policy-check it passes `_entitlement(tier)`, which grants the
+determinations to a tier whose `paid` flag is set (the paid rows and the exempt
+row alike — the flag, never the name). `anonymous()` is the pre-MODEL-69 answer,
+the free tier. `sandbox()` is the `test_` answer for rank, and
+`sandbox_not_available` for policy-check.
 
-The Worker needs a KV namespace bound (any name — the adapter is handed the
-binding) and, for a limit change without a deploy, a `TIER_POLICY` variable
-carrying `tiers.json`:
+The body is parsed with the live parser before the sandbox answers, so a body
+the live endpoint would refuse is refused in the sandbox too. The one exception
+is `environment.hardware`: the sandbox reads no hardware vocabulary, so it
+accepts any id and filters nothing by it.
+
+The gate is handed no part of the body — only the key, read off the headers.
+`tests/test_legal.py` checks that from the syntax tree.
+
+## The switch: `ACCESS_ENFORCED`
+
+A `vars` entry in `api/worker/wrangler.jsonc`, shipped as `"false"`.
+
+| | no key | `test_…` key | known live key | unknown or revoked key |
+| --- | --- | --- | --- | --- |
+| **off** (shipped) | served as before: free tier, unmetered, nothing written | sandbox | metered, served per tier | 401 / 403 |
+| **on** | 401 `missing_api_key` | sandbox | metered, served per tier | 401 / 403 |
+
+Presenting a bad key is an error in both modes. Silently treating it as
+anonymous would let a caller who believes they hold a paid key run for weeks on
+the free answer without being told.
+
+`"false"`, `"0"`, `"no"`, `"off"` and `""` (and unset) read as off; **anything
+else reads as on**, so a typo made while switching it on cannot leave it off.
+
+It ships off because there is no way to obtain a key yet (no self-serve
+issuance; Stripe is MODEL-73). Enforcing now would refuse every anonymous
+caller. **Flip it once key issuance exists.**
+
+## The key store: the `ACCESS` binding
+
+Key records and counters live in their own KV namespace, bound as `ACCESS` —
+never in `DETERMINATIONS`, which holds our research and is only ever read. The
+namespace was created 2026-09-18 and is bound in `wrangler.jsonc`. Enforcement
+stays off; no key has been issued (issuance is MODEL-73). A presented live key
+is checked against the store; none are issued, so it is unknown.
+
+With no `ACCESS` binding the Worker would hand the gate `access_kv.UnboundKV`,
+which refuses every read. A presented live key is then refused 503
+`access_store_not_configured`; anonymous and `test_` requests are unaffected,
+because neither reads the store. No crash, and no silent pass.
+
+What the store holds, and what it does not, is disclosed in
+`docs/legal/privacy.md`; `tests/test_legal.py` fails if the binding is live or
+staged without that disclosure, or if an access module writes anything but a
+key record or a counter.
+
+### Missing keys and Pyodide's `jsnull`
+
+Workers KV answers a missing key with JS `null`, which Pyodide hands to Python
+as `pyodide.ffi.jsnull` — **not** `None`. `CloudflareKV.get` used to test
+`is None`, so a mistyped key came back as the string `"jsnull"` and was parsed
+as a key record: a crash, not a 401. `CloudflareKV.get` now normalises through
+`kv_value.absent` (the rule #104 wrote for the determination store, moved to a
+shared module), so every caller — lookup, revoke, both counters — sees `None`.
+`tests/test_api_access.py` and `tests/test_access_wiring.py` drive a stub
+binding that returns a `jsnull` stand-in, `""` and `None`, and assert an unknown
+key is a clean 401 under each.
+
+## The tier table in the isolate: `TIER_POLICY`
+
+The deploy (`.github/workflows/rank-api.yml`) passes the table:
 
 ```
-wrangler deploy --var TIER_POLICY:"$(jq -c . api/worker/tiers.json)"
+wrangler deploy --var "BUILD_COMMIT:$GITHUB_SHA" --var "TIER_POLICY:$(jq -c . tiers.json)"
 ```
 
-`TIER_POLICY` is how the isolate gets the table: the disk fallback in
-`load_policy` is for this repository's tests and for local use, and the Worker
-is not expected to reach it. A Worker deployed without the variable refuses to
-serve rather than metering callers against numbers invented in code — a missing
-configuration is an outage, and an outage that announces itself beats a Worker
-quietly serving somebody else's limits.
+The disk fallback in `load_policy` is for this repository's tests; the isolate
+has no copy of `tiers.json`. A Worker without the variable refuses a presented
+key with `access_not_configured` rather than metering it against numbers
+invented in code. Anonymous requests never load the table.
+
+## Turning it on
+
+1. **Done 2026-09-18.** The `ACCESS` namespace
+   (`ef86b7ce138d4891b3eb630cdd2ba4e5`) is bound in
+   `api/worker/wrangler.jsonc`. Enforcement stays off.
+2. Issue keys (`access_keys.issue`, once issuance exists — MODEL-73).
+3. Then, and only then, set `"ACCESS_ENFORCED": "true"`, regenerate the spec
+   (`python api/worker/openapi.py`) and update `docs/api.md`; the doc tests
+   fail until both say a key is required.

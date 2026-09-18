@@ -6,10 +6,9 @@ and policy rules. Returns ranked models with scores, cost and reasons; on
 failure, returns which constraint eliminated every option.
 
 Computed per request from the current public export. No state, no signup, and
-today no key.
+today a key is optional.
 
 * `POST https://api.modelspec.dev/v1/rank` — a shortlist for one profile.
-  Below.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
   against a compliance policy:
   [`api-policy-check.md`](api-policy-check.md).
@@ -21,9 +20,8 @@ today no key.
 
 ## Request
 
-Only `use_case` is required. An unknown field is refused, never ignored, so you
-never mistake an unapplied constraint for an applied one. `null` means "not
-stated". At most 16384 bytes.
+Only `use_case` is required. An unknown field is refused, never ignored. `null`
+means "not stated". At most 16384 bytes.
 
 | Field | Values |
 |---|---|
@@ -41,18 +39,15 @@ stated". At most 16384 bytes.
 
 ## Response
 
-`result` is the shortlist, best first, never empty on a `200`. Read four things
-before acting:
+`result` is the shortlist, best first, never empty on a `200`. Read:
 
-* `applied.unbound` — fields accepted, recorded, and **filtered nothing**, with
-  the reason. The export holds no runtime-level evidence, so
-  `environment.runtime: "together_ai"` narrows nothing and says so.
+* `applied.unbound` — fields accepted and recorded that **filtered nothing**,
+  with the reason (e.g. `environment.runtime: "together_ai"`).
 * `build.commit` — the catalogue answered from; `service_commit` the Worker.
 * `ranking_status` — `complete`, `partial`, `empty`, `unavailable`. `partial` is
   normal: models without enough benchmark evidence are withheld, not ranked low.
 * `evidence_basis` per row — `none`, `unverified-legacy`, `mixed`,
-  `partial-verified`, `verified`. Where the benchmark inputs came from; not a
-  quality verdict, and `verified` is not a certificate.
+  `partial-verified`, `verified`: input provenance, not a quality verdict.
 
 ## Worked example
 
@@ -187,15 +182,22 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 |---|---|---|---|
 | 400 | `invalid_request` | an unaccepted field, or the wrong type | `error.fields` names them, `error.accepted` lists what exists |
 | 400 | `unknown_use_case` | no such profile | pick one from `error.accepted` |
-| 400 | `unknown_hardware` | no such device id | pick one from `error.accepted`. Never means "nothing fits" — that is a 422 |
+| 400 | `unknown_hardware` | no such device id | pick one from `error.accepted` |
 | 400 | `unknown_hosting` | not `local`, `self_hosted` or `managed_api` | pick one from `error.accepted` |
-| 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it: only local runtimes filter |
+| 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it |
+| 401 | `missing_api_key` | no key, while keys are enforced | send one; see `error.how_to_get_a_key` |
+| 401 | `invalid_api_key` | a key we do not know | check it was copied whole |
+| 403 | `key_revoked` | a revoked key | get a new key |
 | 404 | `not_found` | no endpoint there | use a path from `error.accepted`; paths are versioned |
 | 405 | `method_not_allowed` | wrong verb for the path | `POST` to `/v1/rank`, `GET` to `/v1/health` |
 | 413 | `payload_too_large` | body over 16384 bytes | a rank request is a few hundred bytes |
-| 422 | `no_match` | a filter eliminated every candidate | relax `error.relax`. `error.eliminated_by` has the survivor counts, `error.elimination_trace` every filter in order |
+| 422 | `no_match` | a filter eliminated every candidate | relax `error.relax`; `error.elimination_trace` has every filter in order |
 | 422 | `insufficient_evidence` | candidates survived, none has the coverage to be ordered | relaxing constraints will not help; try a broader `use_case` |
+| 429 | `rate_limited` | the key's window is spent | wait until `error.resets_at`; `test_` is unlimited |
+| 500 | `tier_not_configured` | ours | retry later; report it |
+| 500 | `access_not_configured` | ours | retry later; report it |
 | 502 | `export_unavailable` | the published export could not be read | retry; not your request |
+| 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | use a `test_` key, or none |
 | 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | send a real `User-Agent` |
 
 A no-match is an answer, not an empty list:
@@ -215,27 +217,25 @@ A no-match is an answer, not an empty list:
 }
 ```
 
-## Keys, rate limits and the sandbox — **not live yet**
+## Keys, limits and the sandbox
 
-**Today the API takes no key and meters nothing.** It never returns 401,
-403 or 429. Do not build a client that depends on those statuses; do build one
-that tolerates them.
-
-The access layer is implemented (MODEL-69, `docs/api-access.md`) and not yet
-wired into the deployed Worker. When it is, from `api/worker/tiers.json`:
+**A key is optional today.** `ACCESS_ENFORCED` is off: without a key you get
+the free tier, unmetered, never a 401, 403 or 429. A key you present is
+checked, and a bad one is refused, not ignored. The ACCESS store is bound; no
+key is issued yet (MODEL-73), so a presented live key is unknown.
+[`api-access.md`](api-access.md) has the rest.
 
 | Tier | Daily | Burst | Live data |
 |---|---|---|---|
-| sandbox — any key starting `test_` | **unlimited** | unlimited | no; fixed synthetic rows |
+| sandbox — any key starting `test_` | **unlimited** | unlimited | no; synthetic rows, `/v1/rank` only |
 | free | 10 | 5/min | yes |
 | paid | by plan | by plan | yes |
 | dpf | unlimited | unlimited | yes |
 
-Keys go in `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
-The daily window is a UTC calendar day, the burst window a UTC minute; a 429
-will state `limit`, `used`, `resets_at` and `retry_after_seconds`. No pricing
-page exists yet. No request is granted policy-check's paid tier either:
-[`api-policy-check.md`](api-policy-check.md#free-and-paid).
+Send `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
+Windows are the UTC day and minute; a 429 states `limit`, `resets_at` and
+`retry_after_seconds`. A paid-tier key unlocks policy-check's
+[determinations](api-policy-check.md#free-and-paid).
 
 ## Neutrality, and what is not in force
 
@@ -245,14 +245,13 @@ page exists yet. No request is granted policy-check's paid tier either:
   answer. No referral fees, no paid placement, no provider-paid visibility.
 * **No terms of use are in force.** The MODEL-70 terms and privacy pages are
   unadopted drafts, not linked here; they bind nobody yet.
-* **No landing page** — MODEL-24.
 
 ## Stability
 
 `schema_version` (`"1.0"`) versions this envelope; `build.export_schema_version`
-the published catalogue. Widening a field's range — nullable, a new enum value,
-may-be-absent — bumps that contract's major ([`cli-contract.md`](cli-contract.md)).
-Fields may be added within a major: ignore what you do not know.
+the catalogue. Widening a field's range bumps that contract's major
+([`cli-contract.md`](cli-contract.md)). Fields may be added within a major:
+ignore what you do not know.
 
 A request carries a profile, never a prompt — architectural, not missing.
 Design and deployment: [`rank-api.md`](rank-api.md).

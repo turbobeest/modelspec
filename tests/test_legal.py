@@ -207,49 +207,134 @@ def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> N
     assert "Not built" in after
 
 
-def test_the_privacy_statement_marks_keys_as_not_wired() -> None:
-    """MODEL-69 is merged and not wired. `entry.py` is the evidence, so check it."""
+def _wrangler_config() -> str:
+    """`wrangler.jsonc` with its comment lines removed: what Wrangler would bind.
+
+    A binding staged as a `//` comment is configuration waiting for a namespace,
+    not a store, and the statement describes the two differently.
+    """
+    text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
+    return "\n".join(line for line in text.splitlines()
+                     if not line.lstrip().startswith("//"))
+
+
+def _kv_bindings(config: str) -> set[str]:
+    import re
+    block = re.search(r'"kv_namespaces"\s*:\s*\[(.*?)\]', config, flags=re.S)
+    return set(re.findall(r'"binding"\s*:\s*"([A-Z_]+)"', block.group(1))) if block else set()
+
+
+def test_the_privacy_statement_says_keys_are_wired_and_not_enforced() -> None:
+    """MODEL-69 is wired with enforcement off. `entry.py` and `wrangler.jsonc` are
+    the evidence, so check them rather than the prose alone."""
     entry = (REPO_ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
-    wired = "import access" in entry or "access.serve" in entry
-    claims_not_wired = "not wired into the deployed" in FLAT_PRIVACY
-    assert wired != claims_not_wired, (
-        "the Worker's entry point and the privacy statement disagree about whether "
-        "API keys are live; whichever changed, the other has to change with it"
-    )
+    assert "access.gate(" in entry, "the access gate is no longer wired; the statement says it is"
+    assert "not wired into the deployed" not in FLAT_PRIVACY
+    config = _wrangler_config()
+    enforced = '"ACCESS_ENFORCED": "false"' not in config
+    claims_off = "enforcement off" in FLAT_PRIVACY and "no key is required" in FLAT_PRIVACY
+    assert enforced != claims_off, (
+        "wrangler.jsonc and the privacy statement disagree about whether a key is "
+        "required; whichever changed, the other has to change with it")
 
 
 def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
-    """The statement promises nothing of a request is written. Keep that true.
+    """The statement promises nothing of a request's content is written. Keep that true.
 
-    The Worker may bind the DETERMINATIONS KV namespace — that holds our own
-    research, is read-only from the Worker, and is disclosed. Any OTHER store,
-    or any write to this one, makes the statement false.
+    The Worker may bind two KV namespaces and no other store:
+
+    * DETERMINATIONS — our own research, read-only from the Worker, disclosed;
+    * ACCESS (MODEL-69) — key records and per-key counters, only alongside the
+      statement's section saying exactly what it holds, and described as not
+      yet active for as long as the binding is staged as a comment.
+
+    Any other store, any write outside the access modules, or an access module
+    writing anything taken from a request's body, makes the statement false.
     """
     worker = REPO_ROOT / "api" / "worker"
-    config = (worker / "wrangler.jsonc").read_text(encoding="utf-8")
+    raw = (worker / "wrangler.jsonc").read_text(encoding="utf-8")
+    config = _wrangler_config()
     for binding in ("d1_databases", "r2_buckets", "queues",
                     "durable_objects", "hyperdrive", "analytics_engine_datasets"):
         assert binding not in config, (
             f"the Worker now binds {binding}; the privacy statement says nothing "
             "from a request is written anywhere, and that has stopped being true"
         )
-    if "kv_namespaces" in config:
-        assert '"binding": "DETERMINATIONS"' in config, (
-            "a KV namespace other than DETERMINATIONS is bound; the privacy "
-            "statement describes exactly one store and says what is in it"
-        )
+    bound = _kv_bindings(config)
+    assert bound <= {"DETERMINATIONS", "ACCESS"}, (
+        f"a KV namespace other than DETERMINATIONS and ACCESS is bound ({sorted(bound)}); "
+        "the privacy statement describes exactly those stores and says what is in each"
+    )
+    if "DETERMINATIONS" in bound:
         assert "DETERMINATIONS" in FLAT_PRIVACY, (
-            "the Worker binds a store the privacy statement does not disclose"
-        )
-        for src in sorted((worker / "src").glob("*.py")):
-            if src.name.startswith("access"):
-                continue  # MODEL-69's own store, covered by its own tests
-            body = src.read_text(encoding="utf-8")
+            "the Worker binds a store the privacy statement does not disclose")
+        assert "only ever reads from it" in FLAT_PRIVACY
+
+    # ACCESS, staged or bound, must be disclosed with what it holds.
+    access_staged = '"binding": "ACCESS"' in raw
+    if access_staged or "ACCESS" in bound:
+        for claim in ("`ACCESS`", "SHA-256 hash of the key", "never under the key",
+                      "Two counters per key", "no request body", "no IP address"):
+            assert claim in FLAT_PRIVACY, (
+                f"the ACCESS store is configured and the privacy statement does not "
+                f"say {claim!r}")
+    if "ACCESS" in bound:
+        assert "configured, not yet active" not in FLAT_PRIVACY, (
+            "ACCESS is bound now; the statement still calls the key store not yet active")
+    elif access_staged:
+        assert "configured, not yet active" in FLAT_PRIVACY and "commented out" in FLAT_PRIVACY
+
+    # Only the access modules write, and they write only key records and counters.
+    for src in sorted((worker / "src").glob("*.py")):
+        body = src.read_text(encoding="utf-8")
+        if not src.name.startswith("access"):
             assert ".put(" not in body and ".delete(" not in body, (
                 f"{src.name} writes to KV; the privacy statement says the Worker "
-                "only ever reads from DETERMINATIONS"
-            )
-    assert "only ever reads from it" in FLAT_PRIVACY
+                "only ever reads from DETERMINATIONS")
+    _assert_access_writes_only_records_and_counters(worker / "src")
+
+
+def _assert_access_writes_only_records_and_counters(src: Path) -> None:
+    """Every KV write in the access modules names a key record or a counter.
+
+    Read from the syntax tree: each `.put(` call's first argument must be
+    `storage_name(...)` (a key record, named by the key's hash) or a counter
+    name built by `counter_name(...)`, and its value a record's JSON or a count.
+    A write of anything else — a body, a header, a prompt — fails here.
+    """
+    import ast
+
+    allowed_names = {"storage_name", "day_name", "minute_name", "name"}
+    for module in sorted(src.glob("access*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "put" and node.args):
+                continue
+            target = node.args[0]
+            label = (target.func.id if isinstance(target, ast.Call)
+                     and isinstance(target.func, ast.Name) else getattr(target, "id", None))
+            assert label in allowed_names, (
+                f"{module.name}:{node.lineno} writes to KV under {ast.unparse(target)}; "
+                "the privacy statement says the access store holds key records and "
+                "counters only")
+            if len(node.args) > 1:
+                value = ast.unparse(node.args[1])
+                assert ("to_json()" in value or "_used + 1" in value
+                        or value == "value"), (
+                    f"{module.name}:{node.lineno} writes {value} to KV; only a key "
+                    "record's JSON or a count may be written")
+    # And the gate is handed no part of the body: the key comes off the headers,
+    # and the body reaches only the handlers that answer, never the store.
+    entry = ast.parse((src / "entry.py").read_text(encoding="utf-8"))
+    gate = next(node for node in ast.walk(entry) if isinstance(node, ast.Call)
+                and ast.unparse(node.func) == "access.gate")
+    for keyword in gate.keywords:
+        names = {n.id for n in ast.walk(keyword.value) if isinstance(n, ast.Name)}
+        assert not names & {"payload", "raw"}, (
+            f"access.gate({keyword.arg}=...) is handed the request body")
+    assert "access_keys.extract" in ast.unparse(
+        next(k.value for k in gate.keywords if k.arg == "api_key"))
 
 
 def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
