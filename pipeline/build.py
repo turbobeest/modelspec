@@ -177,6 +177,51 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     return html
 
 
+def benchgraph_headline_stats(models, benchmarks, coverage: dict | None = None) -> dict[str, int]:
+    """The four figures the benchgraph landing quotes.
+
+    `scored_benchmarks` is distinct keys with a numeric score on a card, not
+    the number of published pages. Those two used to ship as one number.
+    """
+    if coverage is None:
+        coverage = exporter.models_by_benchmark(models)
+    return {
+        "pages": len(benchmarks),
+        "scored_benchmarks": len(coverage),
+        "scored_models": sum(1 for m in models if m.scores),
+        "scores": sum(len(rows) for rows in coverage.values()),
+    }
+
+
+_TODAY_OPEN = '<p class="today">'
+
+
+def wire_benchgraph_landing(html: str, stats: dict[str, int]) -> str:
+    """Inject live headline counts so they cannot drift from the cards.
+
+    The landing used to bake these in `site/benchgraph/build/build.py`, which
+    also redraws PNGs and is never run in CI. Distinct scored keys then read
+    as the page count. A page without `p.today` fails rather than shipping
+    placeholders or a stale sentence.
+    """
+    start = html.find(_TODAY_OPEN)
+    if start == -1:
+        raise ValueError(
+            "site/benchgraph/index.html has no p.today; headline figures must come from the build"
+        )
+    end = html.find("</p>", start)
+    if end == -1:
+        raise ValueError("site/benchgraph/index.html p.today is unclosed")
+    sentence = (
+        f'{_TODAY_OPEN}Today the graph holds '
+        f'<b>{stats["pages"]:,}</b> benchmark pages and '
+        f'<b>{stats["scored_benchmarks"]:,}</b> benchmarks with reported scores, across '
+        f'<b>{stats["scored_models"]:,}</b> scored models, '
+        f'<b>{stats["scores"]:,}</b> scores in all, each carrying the date it was taken.</p>'
+    )
+    return html[:start] + sentence + html[end + len("</p>"):]
+
+
 def _ship_instrument(root: Path, *dests: Path) -> None:
     """Serve the shared stylesheet and its self-hosted faces from every site.
 
@@ -400,6 +445,10 @@ def main(argv: list[str] | None = None) -> int:
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
     if _copy_static(root / "site/benchgraph", bg):
         landing = bg / "index.html"
+        landing.write_text(wire_benchgraph_landing(
+            landing.read_text(encoding="utf-8"),
+            benchgraph_headline_stats(models, benchmarks, coverage),
+        ), encoding="utf-8")
         landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
                                          r.site_nav("benchgraph", r.BG_NAV),
                                          "site/benchgraph/index.html"), encoding="utf-8")

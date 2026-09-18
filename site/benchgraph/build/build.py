@@ -1,6 +1,5 @@
-import json, math, os, pathlib, random, re, collections
+import json, math, os, pathlib, random, re, collections, sys
 import yaml
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 ROOT = pathlib.Path(os.environ["OUT"])
 BUILD = ROOT / "build"
@@ -63,7 +62,10 @@ for row in swe:
     _seen.add(base); _dedup.append(row)
 swe = _dedup
 by_genre = collections.Counter(genre(k) for k in keys)
-STATS = {"benchmarks": len(keys), "models": models_scored, "scores": entries}
+BENCH_DIR = pathlib.Path(__file__).resolve().parents[3] / "benchmarks"
+_NOT_PAGE = {"LICENSE.md", "README.md", "AUTHORING.md", "CONTRIBUTING.md"}
+n_pages = sum(1 for p in BENCH_DIR.glob("*.md") if p.name not in _NOT_PAGE)
+STATS = {"pages": n_pages, "benchmarks": len(keys), "models": models_scored, "scores": entries}
 print("stats", STATS, "| swe_bench_verified models:", len(swe), "| genres:", dict(by_genre))
 
 # ---------- logo geometry ----------
@@ -135,57 +137,6 @@ def icon_svg():
 LOGO_SVG, LOGO_GEOM = logo_svg(True)
 ICON_SVG, ICON_GEOM = icon_svg()
 
-# ---------- PNG rendering with Pillow ----------
-def render(geom, size, scale, offset=(0, 0), bg=None, text=None, node_r=(9, 12), leg_r=11, edge_w=2, foot_w=5, supersample=3, slab=(128, 112, 944, 124)):
-    S = supersample
-    W, H = size
-    img = Image.new("RGBA", (W * S, H * S), bg or (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    top_nodes, top_edges, L1, E1, F1, L2, E2, F2 = geom
-    def P(p): return ((p[0] * scale + offset[0]) * S, (p[1] * scale + offset[1]) * S)
-    if slab:
-        (sx, sy, sw, sh) = slab
-        d.rounded_rectangle([P((sx, sy)), P((sx + sw, sy + sh))], radius=int(18 * scale * S), fill=(229, 231, 235, 12))
-    for (a, b) in top_edges:
-        d.line([P(a), P(b)], fill=(229, 231, 235, 72), width=int(edge_w * scale * S))
-    for (a, b) in E1 + E2 + F1 + F2:
-        d.line([P(a), P(b)], fill=(229, 231, 235, 140), width=int(foot_w * scale * S))
-    def hexrgb(h): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
-    for (x, y, i, j) in top_nodes:
-        r = (node_r[0] if (i + j) % 4 else node_r[1]) * scale * S
-        cx, cy = P((x, y)); d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=hexrgb(node_color(i, j)) + (255,))
-    for (x, y, i, j) in L1 + L2:
-        r = leg_r * scale * S; cx, cy = P((x, y)); d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(229, 231, 235, 235))
-    if text:
-        s, (tx, ty), size_px, fill = text
-        font = ImageFont.truetype(str(BUILD / "SpaceGrotesk-VF.ttf"), int(size_px * scale * S))
-        try: font.set_variation_by_name("Bold")
-        except Exception: pass
-        d.text(((tx * scale + offset[0]) * S, (ty * scale + offset[1]) * S), s, font=font, fill=fill, anchor="ms")
-    return img.resize((W, H), Image.LANCZOS)
-
-# logo.png (transparent, for social/README)
-logo_png = render(LOGO_GEOM, (1200, 520), 1.0, text=("benchgraph", (600, 380), 96, (243, 244, 246, 255)))
-logo_png.save(ROOT / "logo.png", optimize=True)
-# icon 512 + favicon 64
-icon = render(ICON_GEOM, (512, 512), 1.0, bg=(0, 0, 0, 255), node_r=(22, 28), leg_r=20, edge_w=6, foot_w=9, slab=(80, 160, 352, 92))
-mask = Image.new("L", (512, 512), 0); ImageDraw.Draw(mask).rounded_rectangle([0, 0, 511, 511], radius=96, fill=255)
-icon.putalpha(mask); icon.save(ROOT / "icon-512.png", optimize=True)
-icon.resize((64, 64), Image.LANCZOS).save(ROOT / "favicon-64.png", optimize=True)
-icon.resize((180, 180), Image.LANCZOS).save(ROOT / "apple-touch-icon.png", optimize=True)
-# OG card 1200x630
-og = Image.new("RGBA", (1200, 630), (0, 0, 0, 255))
-lg = render(LOGO_GEOM, (1200, 520), 0.78, offset=(132, 40), text=("benchgraph", (600, 380), 96, (243, 244, 246, 255)))
-og.alpha_composite(lg, (0, 0))
-d = ImageDraw.Draw(og)
-f2 = ImageFont.truetype(str(BUILD / "SpaceGrotesk-VF.ttf"), 34)
-try: f2.set_variation_by_name("Medium")
-except Exception: pass
-d.text((600, 530), "Every AI benchmark, as a graph you can read.", font=f2, fill=(154, 163, 178, 255), anchor="ms")
-d.text((600, 578), "benchgraph.dev", font=f2, fill=(245, 179, 66, 255), anchor="ms")
-og.convert("RGB").save(ROOT / "og-card.png", optimize=True)
-print("assets written")
-
 # ---------- family map SVG ----------
 def family_map():
     W, H = 1100, 430
@@ -220,9 +171,69 @@ def nice(k):
 swe_rows = "\n".join(f'<tr><td>{n}</td><td class="mute">{p}</td><td class="num">{v:.1f}</td><td class="mute">{d or "undated"}</td></tr>' for v, n, p, d in swe[:6])
 tpl = (BUILD / "index.tpl.html").read_text()
 html = (tpl.replace("{{LOGO_SVG}}", LOGO_SVG).replace("{{FAMILY_SVG}}", FAMILY_SVG)
-        .replace("{{N_BENCH}}", f"{STATS['benchmarks']}").replace("{{N_MODELS}}", f"{STATS['models']}").replace("{{N_SCORES}}", f"{STATS['scores']:,}")
         .replace("{{SWE_ROWS}}", swe_rows).replace("{{SWE_COUNT}}", str(len(swe))))
 (ROOT / "index.html").write_text(html)
 (ROOT / "logo.svg").write_text(LOGO_SVG)
 (ROOT / "icon.svg").write_text(ICON_SVG)
 print("html written", len(html), "bytes")
+
+
+def write_png_assets():
+    """Logo/icon/og PNGs. Opt-in: needs Pillow and SpaceGrotesk-VF.ttf in this folder."""
+    from PIL import Image, ImageDraw, ImageFont
+    font_path = BUILD / "SpaceGrotesk-VF.ttf"
+    if not font_path.is_file():
+        raise SystemExit(f"missing {font_path}; fetch the font first (see README)")
+
+    def render(geom, size, scale, offset=(0, 0), bg=None, text=None, node_r=(9, 12), leg_r=11, edge_w=2, foot_w=5, supersample=3, slab=(128, 112, 944, 124)):
+        S = supersample
+        W, H = size
+        img = Image.new("RGBA", (W * S, H * S), bg or (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        top_nodes, top_edges, L1, E1, F1, L2, E2, F2 = geom
+        def P(p): return ((p[0] * scale + offset[0]) * S, (p[1] * scale + offset[1]) * S)
+        if slab:
+            (sx, sy, sw, sh) = slab
+            d.rounded_rectangle([P((sx, sy)), P((sx + sw, sy + sh))], radius=int(18 * scale * S), fill=(229, 231, 235, 12))
+        for (a, b) in top_edges:
+            d.line([P(a), P(b)], fill=(229, 231, 235, 72), width=int(edge_w * scale * S))
+        for (a, b) in E1 + E2 + F1 + F2:
+            d.line([P(a), P(b)], fill=(229, 231, 235, 140), width=int(foot_w * scale * S))
+        def hexrgb(h): return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+        for (x, y, i, j) in top_nodes:
+            r = (node_r[0] if (i + j) % 4 else node_r[1]) * scale * S
+            cx, cy = P((x, y)); d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=hexrgb(node_color(i, j)) + (255,))
+        for (x, y, i, j) in L1 + L2:
+            r = leg_r * scale * S; cx, cy = P((x, y)); d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(229, 231, 235, 235))
+        if text:
+            s, (tx, ty), size_px, fill = text
+            font = ImageFont.truetype(str(font_path), int(size_px * scale * S))
+            try: font.set_variation_by_name("Bold")
+            except Exception: pass
+            d.text(((tx * scale + offset[0]) * S, (ty * scale + offset[1]) * S), s, font=font, fill=fill, anchor="ms")
+        return img.resize((W, H), Image.LANCZOS)
+
+    logo_png = render(LOGO_GEOM, (1200, 520), 1.0, text=("benchgraph", (600, 380), 96, (243, 244, 246, 255)))
+    logo_png.save(ROOT / "logo.png", optimize=True)
+    icon = render(ICON_GEOM, (512, 512), 1.0, bg=(0, 0, 0, 255), node_r=(22, 28), leg_r=20, edge_w=6, foot_w=9, slab=(80, 160, 352, 92))
+    mask = Image.new("L", (512, 512), 0); ImageDraw.Draw(mask).rounded_rectangle([0, 0, 511, 511], radius=96, fill=255)
+    icon.putalpha(mask); icon.save(ROOT / "icon-512.png", optimize=True)
+    icon.resize((64, 64), Image.LANCZOS).save(ROOT / "favicon-64.png", optimize=True)
+    icon.resize((180, 180), Image.LANCZOS).save(ROOT / "apple-touch-icon.png", optimize=True)
+    og = Image.new("RGBA", (1200, 630), (0, 0, 0, 255))
+    lg = render(LOGO_GEOM, (1200, 520), 0.78, offset=(132, 40), text=("benchgraph", (600, 380), 96, (243, 244, 246, 255)))
+    og.alpha_composite(lg, (0, 0))
+    d = ImageDraw.Draw(og)
+    f2 = ImageFont.truetype(str(font_path), 34)
+    try: f2.set_variation_by_name("Medium")
+    except Exception: pass
+    d.text((600, 530), "Every AI benchmark, as a graph you can read.", font=f2, fill=(154, 163, 178, 255), anchor="ms")
+    d.text((600, 578), "benchgraph.dev", font=f2, fill=(245, 179, 66, 255), anchor="ms")
+    og.convert("RGB").save(ROOT / "og-card.png", optimize=True)
+    print("assets written")
+
+
+if "--png" in sys.argv or os.environ.get("BENCHGRAPH_PNG"):
+    write_png_assets()
+else:
+    print("skipping PNG assets (pass --png to redraw logo/icon/og)")

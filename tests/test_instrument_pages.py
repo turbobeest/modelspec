@@ -132,6 +132,55 @@ def test_the_benchgraph_landing_matches_its_template_outside_the_placeholders() 
     assert re.fullmatch(pattern, page, re.S), "index.html has drifted from index.tpl.html"
 
 
+def _today(page: str) -> str:
+    match = re.search(r'<p class="today">.*?</p>', page)
+    assert match, "landing has no p.today"
+    return match.group(0)
+
+
+def test_the_benchgraph_landing_does_not_hardcode_headline_counts() -> None:
+    """Baked 164/549/10,887 read as the page count and went stale in git."""
+    for key in ("benchgraph landing", "benchgraph landing template"):
+        today = _today(STATIC_PAGES[key].read_text(encoding="utf-8"))
+        assert "{{N_PAGES}}" in today and "{{N_BENCH}}" in today, key
+        assert "{{N_MODELS}}" in today and "{{N_SCORES}}" in today, key
+        assert "benchmark pages" in today and "benchmarks with reported scores" in today, key
+        assert re.search(r"\d", today) is None, key
+
+
+def test_benchgraph_landing_statistics_come_from_the_build() -> None:
+    html = builder.wire_benchgraph_landing(
+        '<p class="today">Today the graph holds <b>164</b> benchmarks across '
+        '<b>549</b> scored models, <b>10,887</b> scores in all, each carrying '
+        "the date it was taken.</p>",
+        {"pages": 1200, "scored_benchmarks": 3, "scored_models": 5, "scores": 9000},
+    )
+    assert html == (
+        '<p class="today">Today the graph holds <b>1,200</b> benchmark pages and '
+        '<b>3</b> benchmarks with reported scores, across <b>5</b> scored models, '
+        '<b>9,000</b> scores in all, each carrying the date it was taken.</p>'
+    )
+    assert "164" not in html and "549" not in html and "10,887" not in html
+
+
+def test_a_benchgraph_landing_that_lost_its_today_line_fails_the_build() -> None:
+    try:
+        builder.wire_benchgraph_landing("<body>no figures</body>", {
+            "pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1})
+    except ValueError as err:
+        assert "p.today" in str(err)
+    else:
+        raise AssertionError("a landing without p.today must not build")
+
+
+def test_benchgraph_asset_script_does_not_import_pillow_until_png() -> None:
+    src = (ROOT / "site/benchgraph/build/build.py").read_text(encoding="utf-8")
+    before, sep, _after = src.partition("def write_png_assets")
+    assert sep, "PNG rendering must live in write_png_assets"
+    assert "PIL" not in before
+    assert "from PIL import" in _after
+
+
 # ── the landing's calls to action ────────────────────────────────────────────
 
 LANDING_ANSWER = ('<div class="a">That question, answered from evidence, '
