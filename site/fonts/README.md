@@ -25,9 +25,29 @@ and is not used by either site.
 The OFL requires the licence to travel with the font. `Archivo-OFL.txt` is that
 copy; do not delete it when pruning assets.
 
+## JetBrains Mono
+
+| | |
+|---|---|
+| Family | JetBrains Mono (variable weight axis; files cover 400, 500 and 700) |
+| Files | `jetbrains-mono-latin.woff2` (31,340 bytes), `jetbrains-mono-latin-ext.woff2` (11,596 bytes) |
+| Version | v24, as served by Google Fonts |
+| Retrieved | 2026-09-18, from `https://fonts.gstatic.com/s/jetbrainsmono/v24/` |
+| Licence | SIL Open Font License 1.1 — full text in `JetBrainsMono-OFL.txt` |
+| Licence source | `https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/OFL.txt`, read 2026-09-18 |
+| Copyright | Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono) |
+
+One file per subset covers weights 400, 500 and 700: JetBrains Mono is a variable
+font as served by Google Fonts, so the same file is used for each declared
+weight. Only the `latin` and `latin-ext` subsets are shipped. The `cyrillic`,
+`cyrillic-ext`, `greek` and `vietnamese` subsets are available upstream and are
+not used by either site.
+
+The OFL requires the licence to travel with the font. `JetBrainsMono-OFL.txt` is
+that copy; do not delete it when pruning assets.
+
 ## Still on the CDN
 
-Space Grotesk and JetBrains Mono are still loaded from Google Fonts. They are
-"the fonts already loaded" that MODEL-24 tolerates. Self-hosting them the same
-way would satisfy MODEL-19's flat criterion outright; that is a follow-up, not
-part of this change.
+Space Grotesk is still loaded from Google Fonts in `web3d/explorer.html`. That
+file is owned by PR #115 (MODEL-24). Self-hosting it the same way would finish
+MODEL-19's flat criterion for that page.
