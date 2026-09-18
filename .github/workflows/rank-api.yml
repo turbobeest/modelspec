@@ -1,0 +1,267 @@
+name: Rank API
+
+# MODEL-68, and MODEL-80's `POST /v1/policy-check` on the same Worker. Builds
+# the Python bundle, proves it bundles, and runs the byte-identity suite that
+# holds `POST /v1/rank` to what `modelspec offline rank --json` answers.
+#
+# This workflow never touches the policy determinations. They are the paid
+# product, they live outside this repository, and they reach the Worker only
+# through a KV load run from the private checkout — see
+# docs/policy-check-api.md. Nothing here is given a credential that could read
+# them. On push to main only, the `deploy`
+# job publishes the Worker to api.modelspec.dev and refuses to pass until the
+# version it just pushed is the version answering. PR runs never reach that job
+# or its secrets.
+# This is not a required check; `Run pytest` and `Build both sites` are.
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rank-api-${{ github.ref }}
+  # Cancel superseded PR runs; never cancel a main run mid-deploy.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned. 4.94.0 (the version graph-service uses) ships a workerd that refuses
+  # this Worker's compatibility_date, and a Python Worker is far more sensitive
+  # to the runtime it is bundled against than a JavaScript one.
+  WRANGLER: wrangler@4.134.0
+  RANK_HOST: api.modelspec.dev
+
+jobs:
+  bundle:
+    name: Rank Worker bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.5" \
+            "PyYAML==6.0.3" \
+            "httpx==0.28.1" \
+            "rich==15.0.0" \
+            "typer==0.27.2" \
+            "pytest==9.1.1" \
+            -e .
+
+      - name: Vendor the scorer into the Worker bundle
+        # --check imports the bundle in isolation. A new third-party import in
+        # pipeline/ranking.py or api/ranking/engine.py would break the Worker at
+        # deploy time; this turns that into a failure on the pull request.
+        run: python api/worker/vendor.py --check
+
+      - name: Byte-identity against `modelspec offline rank --json`
+        run: python -m pytest -q tests/test_rank_worker.py
+
+      - name: The policy-check endpoint (MODEL-80)
+        # Runs under CPython against the real catalogue, with no determinations
+        # in reach: the private store is not available to this repository's CI
+        # and never will be (docs/policy-check-api.md, the trust boundary).
+        run: python -m pytest -q tests/test_policy_check.py
+
+      - name: Build the Worker bundle
+        working-directory: api/worker
+        # --dry-run needs no credential, so the bundle is proven to build on
+        # every pull request rather than first on main with a token in scope.
+        run: npx --yes "$WRANGLER" deploy --dry-run --outdir ../../dist/rank-worker
+
+      - name: Summarise
+        run: |
+          {
+            echo '### Rank Worker bundle'
+            echo
+            echo "Bundled files:"
+            echo '```'
+            find dist/rank-worker -type f | sort
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy the rank Worker
+    needs: bundle
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: rank-api-deploy
+      cancel-in-progress: false
+    env:
+      # Scoped to Workers Scripts:Edit, Workers KV Storage:Edit and Workers
+      # Routes:Edit on the modelspec.dev zone. No DNS, no R2, no Containers.
+      # CLOUDFLARE_API_TOKEN (Pages) and CLOUDFLARE_GRAPH_API_TOKEN (benchgraph)
+      # are different credentials and are not used here.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Vendor the scorer into the Worker bundle
+        run: python api/worker/vendor.py
+
+      - name: Deploy
+        working-directory: api/worker
+        # BUILD_COMMIT is what makes the smoke test meaningful: the script
+        # answers with this value as `service_commit`, so an old deployment
+        # cannot pass for the one this run pushed. CLI vars are merged over the
+        # config vars, so EXPORT_ORIGIN is unaffected.
+        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
+
+      - name: Smoke-test api.modelspec.dev
+        run: |
+          set -uo pipefail
+          host="${RANK_HOST}"
+          checker=".github/scripts/check_rank_response.py"
+          probe_path=""; status=""
+
+          # Every request goes through `probe`, so the failure messages below can
+          # always name the path that was asked and the status that came back.
+          # `body.json` is truncated first: a transport failure must never leave
+          # the previous response in place to be read as this one's answer.
+          #
+          # `|| echo 000` keeps a failed curl from killing the step. This step
+          # runs under GitHub's default `bash -e`; `set -uo pipefail` above does
+          # not turn that off, so any unguarded non-zero exit — including one
+          # inside `x=$(...)` — ends the run on the spot with no annotation.
+          probe() {
+            probe_path="$1"; shift
+            : > body.json
+            status=$(curl -sS -o body.json -w '%{http_code}' --max-time 60 \
+              "https://${host}${probe_path}" "$@" || echo 000)
+          }
+
+          # What the last response actually was, on one line: status, the
+          # requested path and the first bytes of the body. The path and not the
+          # full URL, so a future check that appends a query string cannot leak
+          # it into a public run log. Never a traceback.
+          digest() {
+            python3 "$checker" digest "${probe_path}" "${status}" body.json
+          }
+
+          fail() {
+            echo "::error::$1 — $(digest)"
+            exit 1
+          }
+
+          # One top-level field of the last response, empty when the body is not
+          # JSON. Exits 0 whatever it read, so the poll loop below decides what
+          # an unreadable body means instead of `bash -e` deciding for it.
+          field() {
+            python3 "$checker" field "$1" body.json
+          }
+
+          # 1. The version that was deployed must be the version answering.
+          #    MODEL-9 shipped three changes that were never exercised because a
+          #    smoke test could not tell those two apart.
+          #
+          #    The route is published by the step above seconds before this one
+          #    runs and takes a moment to reach every edge. Until it does, the
+          #    proxied AAAA record for this host has no origin and Cloudflare
+          #    answers 522 with an HTML page. That is a state to retry through,
+          #    not a reason to abort: parsing it as JSON is what failed the
+          #    deploy of e0265a5 on a Worker that was already live and correct.
+          deadline=$((SECONDS + 300)); commit=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            probe /v1/health
+            commit=$(field service_commit)
+            if [ "$status" = 200 ] && [ "$commit" = "${GITHUB_SHA}" ]; then break; fi
+            echo "not ready yet: $(digest); service_commit=${commit:-none}, want ${GITHUB_SHA}; retrying"
+            sleep 10
+          done
+          if [ "$status" = 000 ]; then
+            fail "${host} is unreachable after 5 min. A 522 or a refused connection means the Workers route is not bound to the proxied DNS record for ${host} (AAAA -> 100::, proxied). See docs/rank-api.md."
+          fi
+          if [ "$status" != 200 ] || [ "$commit" != "${GITHUB_SHA}" ]; then
+            fail "the rank Worker never rolled onto ${GITHUB_SHA}: GET /v1/health reports service_commit=${commit:-none} after 5 min. An older script is still answering, or the route never bound, so nothing in this deploy was exercised."
+          fi
+          loaded=$(field export_loaded)
+          if [ "$loaded" != "True" ]; then
+            fail "the deployed Worker cannot read the published export (export_loaded=${loaded:-none}). Read last_error in the digest."
+          fi
+          echo "fresh deployment on ${GITHUB_SHA}, export loaded"
+
+          # 2. The bare root answers honestly. It used to 522, which reads like an
+          #    outage; the route now covers the whole host and the Worker 404s
+          #    what it does not serve, naming the versioned paths.
+          probe /
+          if [ "$status" != 404 ]; then fail "GET / returned HTTP ${status}, not the documented 404"; fi
+          python3 "$checker" not-found body.json / "$status" || exit 1
+
+          # 3. A ranking, carrying everything the contract promises per row.
+          probe /v1/rank -X POST \
+            -H 'content-type: application/json' \
+            -d '{"use_case":"coding","environment":{"hosting":"managed_api"},"limit":3}'
+          if [ "$status" != 200 ]; then fail "POST /v1/rank returned HTTP ${status}, not 200"; fi
+          python3 "$checker" ranked body.json "$probe_path" "$status" || exit 1
+
+          # 4. A no-match names the constraint instead of returning an empty list.
+          probe /v1/rank -X POST \
+            -H 'content-type: application/json' \
+            -d '{"use_case":"coding","environment":{"hosting":"local"},"constraints":{"max_cost_per_million_input_tokens":0.0}}'
+          if [ "$status" != 422 ]; then fail "a no-match request returned HTTP ${status}, not the documented 422"; fi
+          python3 "$checker" no-match body.json "$probe_path" "$status" || exit 1
+
+          # 5. A malformed request is refused, not ranked on a guess.
+          probe /v1/rank -X POST \
+            -H 'content-type: application/json' -d '{"use_case":"not_a_use_case"}'
+          if [ "$status" != 400 ]; then fail "an unknown use case returned HTTP ${status}, not 400"; fi
+
+          # 6. A verb the endpoint does not take is refused, not ranked on an
+          #    empty body. The route covers the whole host now, so every method
+          #    reaches the Worker rather than stopping at a 522.
+          probe /v1/rank -X DELETE
+          if [ "$status" != 405 ]; then fail "DELETE /v1/rank returned HTTP ${status}, not the documented 405"; fi
+          probe /v1/health -X DELETE
+          if [ "$status" != 405 ]; then fail "DELETE /v1/health returned HTTP ${status}, not the documented 405"; fi
+          probe /v1/policy-check -X DELETE
+          if [ "$status" != 405 ]; then fail "DELETE /v1/policy-check returned HTTP ${status}, not the documented 405"; fi
+
+          # 7. The policy-check endpoint answers, and says which tier answered.
+          #    A free-tier answer is a complete answer with its limits labelled;
+          #    it must never look like a paid one (MODEL-80).
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' \
+            -d '{"policy":{"origin":{"permitted_countries":["US"]}},"limit":3}'
+          if [ "$status" != 200 ]; then fail "POST /v1/policy-check returned HTTP ${status}, not 200"; fi
+          python3 .github/scripts/check_policy_response.py verdicts body.json "$probe_path" "$status" || exit 1
+
+          # 8. A caller who cannot act on "nobody knows" gets a hard failure,
+          #    not a 200 they have to audit.
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' \
+            -d '{"policy":{"commercial_use":{"required":true}},"require_no_undetermined":true}'
+          if [ "$status" != 422 ]; then fail "require_no_undetermined returned HTTP ${status}, not the documented 422"; fi
+          python3 .github/scripts/check_policy_response.py undetermined body.json "$probe_path" "$status" || exit 1
+
+          # 9. An empty policy is refused rather than passing the catalogue.
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' -d '{"policy":{}}'
+          if [ "$status" != 400 ]; then fail "an empty policy returned HTTP ${status}, not 400"; fi
+
+          echo "api.modelspec.dev is live on ${GITHUB_SHA}"

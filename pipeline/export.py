@@ -31,8 +31,20 @@ from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 #: Distinct from:
 #: * CLI envelope `schema_version` (`cli.modelspec.offline.SCHEMA_VERSION`, "1.0")
 #: * ranking-report `schema_version` (`rankings.json` and `pipeline.ranking` JSON,
-#:   "2.0") — that file is not what the CLI snapshot fetches.
-EXPORT_SCHEMA_VERSION = "1.0"
+#:   "2.0") — that file is not what the CLI snapshot fetches. The two now hold
+#:   the same *string*; they remain different fields in different files, and a
+#:   consumer tells them apart by name, not by value.
+#:
+#: 1.0 -> 2.0 (MODEL-77). `/api/models/<id>.json` publishes the card
+#: frontmatter verbatim, so the policy reshape is a change to this tree:
+#: `licensing.commercial_use` stopped being `true | false | null` and became a
+#: `UsePermission` string that includes two values no 1.x consumer has ever
+#: seen (`restricted`, `withheld`), and
+#: `availability.primary_provider.data_residency` stopped being a list and
+#: became `list | null` beside a new `data_residency_disclosure`. Both are
+#: range-widening under the MODEL-59 rule, and they ship as one bump because
+#: they are one decision. See `docs/cli-contract.md`.
+EXPORT_SCHEMA_VERSION = "2.0"
 
 
 def _commit(root: Path) -> str:

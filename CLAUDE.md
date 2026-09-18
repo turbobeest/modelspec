@@ -7,8 +7,22 @@ Codex/AGENTS parity: [`AGENTS.md`](AGENTS.md).
 Contract versioning (MODEL-59): a change that widens a contract field's range (nullable, new enum value, may be absent) bumps that contract's major version. See [`docs/cli-contract.md`](docs/cli-contract.md).
 
 This file used to describe Phase 1 and a FalkorDB-served architecture. That is
-historical. MODEL-2 closed on a **static Pages export**. There is no R2/D1 on
-the serving path.
+historical. MODEL-2 closed on a **static Pages export**: no R2 and no D1 on the
+**static** serving path, which is the path that answers `modelspec.dev` and
+feeds `modelspec snapshot fetch`. That rule describes that path and binds it.
+
+It does not forbid a keyed layer beside it. MODEL-68 added one: a Cloudflare
+Worker on `api.modelspec.dev` serving `POST /v1/rank`. It holds no store of its
+own — no KV, no D1, no R2 — and computes each answer from the same static export
+by running the repository's own `pipeline/ranking.py`. See
+[`docs/rank-api.md`](docs/rank-api.md).
+
+MODEL-80 added `POST /v1/policy-check` on that same Worker, and it **does** read
+a store: **Workers KV**, holding the policy determinations, which are private
+and are never in this repository. That is the enrichment path, not the static
+one, and the MODEL-2 rule does not bind it — do not quote that rule against the
+KV binding in `api/worker/wrangler.jsonc`. Trust boundary and the reasoning:
+[`docs/policy-check-api.md`](docs/policy-check-api.md).
 
 ## What is this?
 
@@ -23,15 +37,24 @@ calls the CLI.
 models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Pages
                                       (modelspec.dev /api/*.json)
                                             │
-CLI `snapshot fetch` ───────────────────────┘
+CLI `snapshot fetch` ───────────────────────┤
 Wizard / 3D graph read the same JSON in the browser.
+                                            │
+Worker `POST api.modelspec.dev/v1/rank` ────┘  MODEL-68; stateless, same JSON,
+                                               same scorer, no store of its own.
+
+Worker `POST api.modelspec.dev/v1/policy-check`  MODEL-80; the same static JSON
+   │                                             (`/api/policy/catalogue.json`)
+   └── Workers KV ── the policy determinations, private, loaded from outside
+                     this repository. See docs/policy-check-api.md.
 
 FalkorDB ── optional local exploration (`modelspec stats|search|info`).
             Not required to rank, fit, or render the sites.
 ```
 
 Pin identity for a snapshot: `build.commit` plus `build.export_schema_version`
-(`pipeline/export.py`, currently `"1.0"`). That is not the CLI `--json`
+(`pipeline/export.py`, currently `"2.0"` — MODEL-77 reshaped the published
+policy fields). That is not the CLI `--json`
 envelope (`cli.modelspec.offline.SCHEMA_VERSION`, also `"1.0"`) and not
 `rankings.json` (`schema_version` `"2.0"`).
 
@@ -44,6 +67,14 @@ In `api/ranking/engine.py`:
 
 Live `https://modelspec.dev/api/rank/profiles.json` publishes the same policy.
 Do not change a floor without Jamie.
+
+`ranking_policy()` also carries `neutrality` — the honest-broker rule and the
+permanent refusal of referral fees, paid placement and provider-paid visibility,
+published as data beside the floors so an agent can check it rather than trust
+it (MODEL-70). Single source: `neutrality_commitment()` in
+`api/ranking/engine.py`; drafts in `docs/legal/`, still unadopted. Editing those
+strings edits the published terms, and `tests/test_legal.py` fails if the prose
+and the JSON drift. Neither is a routine edit.
 
 ## Provenance
 
@@ -99,7 +130,11 @@ Optional FalkorDB for graph commands: `docker compose up -d`, browser
 
 ## Do not start
 
-MODEL-3 (Worker), MODEL-6 (payment rail). Do not auto-merge `research/*`.
+MODEL-3 (the one Worker that would serve site + API + snapshot + MCP together).
+MODEL-6 is **cancelled**, superseded by MODEL-68/69/73/75. MODEL-68 (the rank
+Worker) is built — see [`docs/rank-api.md`](docs/rank-api.md); do not start
+MODEL-69 (keys, limits, sandbox) or the billing tickets from here.
+Do not auto-merge `research/*`.
 MODEL-5 daily PRs are opened with `GITHUB_TOKEN`, so required checks never
 run; Jamie must install a PAT or GitHub App token.
 

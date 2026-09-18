@@ -68,7 +68,9 @@ licensing:
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
-  commercial_use: null
+  commercial_use: unspecified
+  commercial_use_source: null
+  commercial_use_conditions: ''
   defense_use: unspecified
   government_use: unspecified
   medical_use: unspecified
@@ -262,7 +264,9 @@ availability:
     rate_limit_tpm: null
     sla_uptime: ''
     regions: []
-    data_residency: []
+    data_residency: null
+    data_residency_disclosure: unresearched
+    data_residency_source: null
     hipaa_eligible: false
     fedramp_authorized: false
     soc2_compliant: false

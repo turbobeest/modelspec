@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any
 
 from pipeline.export import Build
-from pipeline.hardware import Device
 from pipeline.load import Benchmark, Catalogue, Model
 #: The evidence-basis vocabulary lives in the ranking engine. A page that spelled
 #: its own labels out would drift from the CLI on the first edit.
@@ -479,24 +478,24 @@ def _decode_bar(value: Any, peak: float) -> str:
             f'<span class="val">{_decode_cell(value)}</span></div>')
 
 
-def _hardware_groups(entries: list[dict[str, Any]],
-                     devices: dict[str, Device] | None) -> list[tuple[str, list[dict[str, Any]]]]:
+def _hardware_groups(entries: list[dict[str, Any]]) -> list[tuple[str, list[dict[str, Any]]]]:
     """Rows by device class, or one unnamed group when any row cannot be placed.
 
     A partial grouping would have to invent a class for the rows it could not
-    look up, so one unknown id drops the whole table back to flat.
+    place, so one row without a class drops the whole table back to flat.
     """
-    if devices is None or not all(e.get("id") in devices for e in entries):
+    classes = [(e.get("device") or {}).get("device_class") for e in entries]
+    if not all(classes):
         return [("", entries)]
     buckets: dict[str, list[dict[str, Any]]] = {}
-    for entry in entries:
-        buckets.setdefault(devices[entry["id"]].device_class, []).append(entry)
+    for entry, device_class in zip(entries, classes):
+        buckets.setdefault(device_class, []).append(entry)
     rank = {name: i for i, name in enumerate(DEVICE_CLASS_ORDER)}
     return [(name, buckets[name])
             for name in sorted(buckets, key=lambda c: (rank.get(c, len(rank)), c))]
 
 
-def hardware_section(relations: Any, devices: dict[str, Device] | None = None) -> str:
+def hardware_section(relations: Any) -> str:
     entries = list(relations.hardware)
     if not entries:
         return ""
@@ -533,7 +532,7 @@ def hardware_section(relations: Any, devices: dict[str, Device] | None = None) -
 
     rows: list[str] = []
     shown = 0
-    for name, group in _hardware_groups(entries, devices):
+    for name, group in _hardware_groups(entries):
         if name:
             more = ' class="more"' if shown >= HARDWARE_ROWS_SHOWN else ""
             plural = "s" if len(group) != 1 else ""
@@ -812,8 +811,7 @@ def stat_strip(model: Model) -> str:
 
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None,
-               pages: Collection[str] | None = None,
-               devices: dict[str, Device] | None = None) -> str:
+               pages: Collection[str] | None = None) -> str:
     front = model.front
     scores = model.scores
     as_of = model.scores_as_of
@@ -840,7 +838,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
         pills = capability_chips(rel)
         chips = f'<div class="chips">{pills}</div>' if pills else ""
         sections = (lineage_section(rel, pages, model.display_name)
-                    + hardware_section(rel, devices) + platforms_section(rel)
+                    + hardware_section(rel) + platforms_section(rel)
                     + competitors_section(rel, pages))
 
     body = f"""

@@ -18,7 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from pipeline.export import Build  # noqa: E402
-from pipeline.hardware import Device  # noqa: E402
 from pipeline.load import Catalogue, Model  # noqa: E402
 from pipeline.render import (  # noqa: E402
     CSS, FONTS, hardware_section, lineage_section, model_page, stat_strip,
@@ -28,8 +27,11 @@ from pipeline.render import (  # noqa: E402
 BUILD = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9, 15))
 
 
-def _row(name: str, **props: object) -> dict:
-    row = {"name": name, "device": {"memory_bandwidth_gb_s": 1000},
+def _row(name: str, device_class: str | None = None, **props: object) -> dict:
+    device = {"memory_bandwidth_gb_s": 1000}
+    if device_class is not None:
+        device["device_class"] = device_class
+    row = {"name": name, "device": device,
            "device_memory_gb": 24, "quantization": "q4", "weights_gb": 4.0,
            "predicted_decode_tps": 100.0, "fastest_predicted_decode_tps": 100.0,
            "fastest_quantization": None}
@@ -46,12 +48,6 @@ def _rel(**kwargs: object) -> SimpleNamespace:
 
 def _tbody(html: str) -> str:
     return html.split("<tbody>")[1].split("</tbody>")[0]
-
-
-def _device(device_id: str, device_class: str) -> Device:
-    return Device(id=device_id, display_name=device_id, vendor="acme",
-                  device_class=device_class, bandwidth_gb_s=1000.0,
-                  capacity_options_gb=(24.0,), precisions_native=("bf16",), unified=False)
 
 
 # ── hoisting constants out of the hardware table ─────────────────────────────
@@ -174,27 +170,25 @@ def test_the_evidence_cell_uses_the_ranking_engine_vocabulary() -> None:
 
 # ── grouping falls back rather than inventing a class ────────────────────────
 
-def test_rows_group_by_device_class_when_every_id_resolves() -> None:
-    devices = {"h100": _device("h100", "datacentre"), "rtx": _device("rtx", "consumer")}
-    html = hardware_section(
-        _rel(hardware=[_row("H100", id="h100"), _row("RTX", id="rtx")]), devices)
+def test_rows_group_by_device_class_when_every_row_carries_one() -> None:
+    html = hardware_section(_rel(hardware=[
+        _row("H100", "datacentre", id="h100"), _row("RTX", "consumer", id="rtx")]))
     body = _tbody(html)
     assert body.index("datacentre") < body.index("consumer")
     assert "1 device<" in body
 
 
-def test_grouping_falls_back_when_devices_are_unknown() -> None:
-    rows = [_row("A", id="h100"), _row("B", id="mystery")]
-    for devices in (None, {"h100": _device("h100", "datacentre")}):
-        html = hardware_section(_rel(hardware=rows), devices)
+def test_grouping_falls_back_when_any_row_lacks_a_class() -> None:
+    for rows in ([_row("A", id="h100"), _row("B", id="mystery")],
+                 [_row("A", "datacentre", id="h100"), _row("B", id="mystery")]):
+        html = hardware_section(_rel(hardware=rows))
         assert "<table>" in html
         assert "grouphead" not in html
 
 
 def test_rows_without_an_id_key_still_render() -> None:
     """The pipeline's own rows carry one; a caller's need not."""
-    html = hardware_section(_rel(hardware=[_row("A")]),
-                            {"h100": _device("h100", "datacentre")})
+    html = hardware_section(_rel(hardware=[_row("A")]))
     assert "<table>" in html and "grouphead" not in html
 
 
@@ -242,11 +236,10 @@ def test_eight_rows_need_no_disclosure() -> None:
 
 
 def test_a_group_starting_past_the_cutoff_hides_its_header_too() -> None:
-    devices = {f"d{i}": _device(f"d{i}", "datacentre" if i < 9 else "edge")
-               for i in range(11)}
-    rows = [_row(f"D{i}", id=f"d{i}", predicted_decode_tps=float(20 - i))
+    rows = [_row(f"D{i}", "datacentre" if i < 9 else "edge", id=f"d{i}",
+                 predicted_decode_tps=float(20 - i))
             for i in range(11)]
-    html = hardware_section(_rel(hardware=rows), devices)
+    html = hardware_section(_rel(hardware=rows))
     edge_header = [line for line in _tbody(html).split("<tr") if "edge" in line][0]
     assert 'class="more"' in edge_header
 

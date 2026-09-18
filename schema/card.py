@@ -26,6 +26,7 @@ from .enums import (
     BaseModelRelation,
     BenchmarkCategory,
     ConfidenceLevel,
+    DisclosureState,
     EUAIActRisk,
     EvalStatus,
     LicenseType,
@@ -152,6 +153,87 @@ class Lineage(BaseModel):
 # Section 4: Licensing
 # ═══════════════════════════════════════════════════════════════
 
+#: Source kinds a policy determination may cite. `legacy-import` is the one
+#: kind that is *not* evidence: see `PolicySource` below.
+PolicySourceKind = Literal[
+    "license",
+    "terms_of_service",
+    "acceptable_use_policy",
+    "provider_documentation",
+    "provider_statement",
+    "legacy-import",
+]
+
+
+class PolicySource(BaseModel):
+    """The document a policy determination was read from, and the day it was read.
+
+    A policy answer is only worth anything if the reader can go and check it,
+    and licences are rewritten without notice — so the date is as load-bearing
+    as the URL. This mirrors `BenchmarkEvidence`: everything needed to recheck
+    the claim, or it is not a claim.
+
+    `legacy-import` is the single exception and it is deliberately ugly. Eight
+    cards carried `commercial_use: true` with no citation from before this
+    shape existed. Discarding those values would lose information; dressing
+    them up with a plausible licence URL would manufacture evidence that was
+    never read. So they keep the value and carry a source that says, in the
+    published JSON, that nobody cited anything — the same thing
+    `evidence_basis: unverified-legacy` says about benchmark scores. It is
+    frozen to those eight by
+    `tests/test_policy_shape.py::test_legacy_import_is_frozen_to_the_migrated_eight`;
+    a ninth card cannot quietly use it.
+    """
+
+    kind: PolicySourceKind
+    url: str = ""
+    #: The day the document at `url` was read. ISO `YYYY-MM-DD`.
+    read_on: str = ""
+    #: Optional. The operative clause, verbatim and short, so a reader can see
+    #: what the determination was made from without refetching the document.
+    quote: str = ""
+
+    @model_validator(mode="after")
+    def _evidence_or_an_admission(self) -> PolicySource:
+        if self.kind == "legacy-import":
+            if self.url or self.read_on or self.quote:
+                raise ValueError(
+                    "a legacy-import source is the admission that nothing was "
+                    "cited; it cannot carry a url, a read date or a quote. "
+                    "If a document was actually read, cite it with a real kind."
+                )
+            return self
+        if not self.url.startswith(("http://", "https://")):
+            raise ValueError(
+                "url must be the document the determination was read from; "
+                "a policy answer without one cannot be rechecked"
+            )
+        try:
+            date.fromisoformat(self.read_on)
+        except ValueError as exc:
+            raise ValueError(
+                f"read_on must be the exact ISO date the document was read, "
+                f"got {self.read_on!r}. Licence terms change; an undated "
+                f"reading cannot be trusted later."
+            ) from exc
+        return self
+
+    @property
+    def is_evidence(self) -> bool:
+        """False for `legacy-import`, which is a value with no citation."""
+        return self.kind != "legacy-import"
+
+
+#: The `commercial_use` values that assert something about the world, and so
+#: require a source. `UNSPECIFIED` and `WITHHELD` assert nothing about the
+#: licence — they describe this file's contents.
+DETERMINED_PERMISSIONS = frozenset({
+    UsePermission.ALLOWED,
+    UsePermission.RESTRICTED,
+    UsePermission.PROHIBITED,
+})
+
+
 class Licensing(BaseModel):
     open_weights: bool = False
     license_type: LicenseType | None = None
@@ -159,7 +241,18 @@ class Licensing(BaseModel):
     tos_url: str = ""
     acceptable_use_policy_url: str = ""
     not_for_all_audiences: bool = False
-    commercial_use: bool | None = None
+    #: Was `bool | None` until MODEL-77, which could not express the answer for
+    #: 169 cards whose licence grants commercial use *up to a threshold*
+    #: (llama-community, gemma, deepseek). That is neither true nor false; it
+    #: is `restricted`, with the threshold in `commercial_use_conditions`.
+    commercial_use: UsePermission = UsePermission.UNSPECIFIED
+    #: Required whenever `commercial_use` is a determination; forbidden when it
+    #: is not, so an empty value can never look sourced.
+    commercial_use_source: PolicySource | None = None
+    #: Where a `restricted` grant's condition lives: one short line stating the
+    #: threshold or carve-out ("free below 700M MAU; a licence is required
+    #: above it"), not prose buried in the card body where no consumer reads it.
+    commercial_use_conditions: str = ""
     defense_use: UsePermission = UsePermission.UNSPECIFIED
     government_use: UsePermission = UsePermission.UNSPECIFIED
     medical_use: UsePermission = UsePermission.UNSPECIFIED
@@ -168,6 +261,58 @@ class Licensing(BaseModel):
     export_control_notes: str = ""
     origin_country: str = ""
     origin_org_type: OrgType | None = None
+
+    @field_validator("commercial_use", mode="before")
+    @classmethod
+    def _reject_the_old_boolean(cls, value: Any) -> Any:
+        """A pre-MODEL-77 card fails loudly rather than being guessed at.
+
+        `True`/`False` are not silently mapped: `False` in particular could
+        have meant "prohibited" or "restricted in a way the author could not
+        express", and picking one would invent a determination.
+        """
+        if isinstance(value, bool):
+            raise ValueError(
+                "commercial_use is a UsePermission since MODEL-77, not a bool. "
+                "true became 'allowed'; false is ambiguous between 'prohibited' "
+                "and 'restricted' and must be re-read from the licence."
+            )
+        if value is None:
+            raise ValueError(
+                "commercial_use is no longer nullable: use 'unspecified' for "
+                "not-yet-researched, or 'withheld' for determined-not-published."
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _a_determination_carries_its_source(self) -> Licensing:
+        determined = self.commercial_use in DETERMINED_PERMISSIONS
+        if determined and self.commercial_use_source is None:
+            raise ValueError(
+                f"commercial_use is {self.commercial_use.value!r} with no "
+                "commercial_use_source. Standing rule 1: an uncited policy "
+                "answer is not an answer."
+            )
+        if not determined and self.commercial_use_source is not None:
+            raise ValueError(
+                f"commercial_use is {self.commercial_use.value!r} but carries a "
+                "commercial_use_source. Nothing has been published to cite; a "
+                "withheld determination keeps its source in the enrichment "
+                "record, not on the public card."
+            )
+        if self.commercial_use is UsePermission.RESTRICTED and not self.commercial_use_conditions.strip():
+            raise ValueError(
+                "commercial_use is 'restricted' with no commercial_use_conditions. "
+                "'Restricted' without the restriction is unusable: it is the "
+                "condition that tells a reader whether they are inside it."
+            )
+        if self.commercial_use is not UsePermission.RESTRICTED and self.commercial_use_conditions.strip():
+            raise ValueError(
+                f"commercial_use is {self.commercial_use.value!r} but carries "
+                "commercial_use_conditions. Conditions belong to a restricted "
+                "grant; anywhere else they contradict the value."
+            )
+        return self
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -426,12 +571,49 @@ class PrimaryProvider(BaseModel):
     rate_limit_tpm: int | None = None
     sla_uptime: str = ""
     regions: list[str] = []
-    data_residency: list[str] = []
+    #: Where the provider commits to processing data. `null` until it is a
+    #: determination — see `data_residency_disclosure`. Was `list[str] = []`
+    #: until MODEL-77, where the default was indistinguishable from an answer
+    #: and sat on all 1,339 cards while being researched on none of them.
+    data_residency: list[str] | None = None
+    data_residency_disclosure: DisclosureState = DisclosureState.UNRESEARCHED
+    #: Required when the disclosure is `published`; forbidden otherwise, for
+    #: the same reason as `commercial_use_source`.
+    data_residency_source: PolicySource | None = None
     hipaa_eligible: bool = False
     fedramp_authorized: bool = False
     soc2_compliant: bool = False
     free_tier: bool = False
     free_tier_details: str = ""
+
+    @model_validator(mode="after")
+    def _residency_states_are_not_interchangeable(self) -> PrimaryProvider:
+        state = self.data_residency_disclosure
+        if state is DisclosureState.PUBLISHED:
+            if self.data_residency is None:
+                raise ValueError(
+                    "data_residency_disclosure is 'published' but data_residency "
+                    "is null. An empty list is a legitimate published answer "
+                    "('no residency commitment'); null is not an answer at all."
+                )
+            if self.data_residency_source is None:
+                raise ValueError(
+                    "data_residency is published with no data_residency_source. "
+                    "Standing rule 1: an uncited policy answer is not an answer."
+                )
+            return self
+        if self.data_residency is not None:
+            raise ValueError(
+                f"data_residency_disclosure is {state.value!r} but data_residency "
+                "carries a value. Only a published determination has one; set "
+                "the disclosure to 'published' and cite it, or clear the value."
+            )
+        if self.data_residency_source is not None:
+            raise ValueError(
+                f"data_residency_disclosure is {state.value!r} but carries a "
+                "data_residency_source. Nothing has been published to cite."
+            )
+        return self
 
 
 class Availability(BaseModel):
