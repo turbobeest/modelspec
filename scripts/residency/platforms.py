@@ -20,6 +20,11 @@ hand-copied list is a list that goes stale silently: someone adds a platform to
 `Availability`, nothing fails, and the new platform is simply never determined.
 `platform_slugs()` derives the namespace from `Availability` itself, so a new
 platform lands in `UNDETERMINED` — visibly unanswered — on the day it is added.
+
+**The second partition, added 2026-09-17.** `UNDETERMINED` turned out to hold
+two findings that are not alike: a platform whose documents were read and
+commit to no region, and a platform that could not be reached at all. See
+`NonDisclosure`; the difference is what a card publishes.
 """
 
 from __future__ import annotations
@@ -59,13 +64,50 @@ class ResidencyScope(str, Enum):
     #: A published region list was read and cited. `regions` is a list, and an
     #: empty one is a determination ("commits to no region"), not an absence.
     DETERMINED = "determined"
-    #: The platform publishes nothing to read. `regions` is `None` and the
-    #: record says which documents were checked. This is a correct answer.
+    #: No region list was read. `regions` is `None` and the record says which
+    #: documents were checked. Whether that is a correct answer or unfinished
+    #: work depends on `NonDisclosure`, which every undetermined record
+    #: carries: a platform whose documents were read and commit to nothing has
+    #: been answered, and a platform nobody could reach has not.
     UNDETERMINED = "undetermined"
     #: Unbounded by construction: the model runs on the operator's own machine,
     #: so residency is wherever that machine is. `regions` is `None`, and no
     #: country list can ever be truthful here.
     UNBOUNDED = "unbounded"
+
+
+class NonDisclosure(str, Enum):
+    """Why an `UNDETERMINED` platform has no region list — the two cases that
+    look identical on a card and are not the same finding at all.
+
+    Jamie's decision of 2026-09-17 on MODEL-79 turns on this split. "No
+    commitment exists" is *the researched answer*, and one we determined: we
+    read the provider's documents and they say nothing about where inference
+    happens. Publishing `unresearched` for that platform would tell a buyer
+    "nobody has looked" when several people did, which is the catalogue lying
+    in the one place its reputation lives. So a read-and-empty platform
+    publishes `withheld`: "we looked, and there is nothing to tell you".
+
+    A platform nobody could reach is the opposite. Nothing was read, no
+    document was opened, and the emptiness is ours rather than the provider's.
+    That platform stays `unresearched`, because it is outstanding work and not
+    a finding. `determination.card_disclosure` is the only place the two are
+    mapped onto the public state, and it maps them differently on purpose.
+
+    A fourth `DisclosureState` was considered for this and rejected: a new enum
+    value widens a published field's range, which is a contract major bump
+    under MODEL-59 and would have been the second this week. The distinction
+    therefore lives here, in the private determination, and reaches the card as
+    the difference between two states it already has.
+    """
+
+    #: The documents were read and they commit to no region — an answer, and a
+    #: poor one for a buyer with a residency requirement. Publishes `withheld`.
+    NO_COMMITMENT = "no-commitment"
+    #: Nothing was retrieved: the platform could not be reached from the
+    #: network the determination was attempted on, so nobody successfully
+    #: looked. Publishes `unresearched`, and is outstanding work.
+    UNREACHED = "unreached"
 
 
 #: Platforms that ship the weights and run them on hardware the operator

@@ -367,6 +367,11 @@ availability:
                                                #   null until determined; [] is a published
                                                #   answer meaning "no residency commitment"
     data_residency_disclosure: "unresearched"  # unresearched | published | withheld
+                                               #   withheld = determined, not on this card —
+                                               #   either a region list, or the finding that
+                                               #   the provider commits to none (MODEL-79).
+                                               #   unresearched = nobody looked, or could not
+                                               #   reach it, or it runs on your own hardware
     data_residency_source: null                # required when published: {kind, url, read_on, quote}
     hipaa_eligible: false
     fedramp_authorized: false
