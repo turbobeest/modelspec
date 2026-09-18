@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Catalogue, Model  # noqa: E402
 from pipeline.render import (  # noqa: E402
-    CSS, FONTS, hardware_section, lineage_section, model_page, stat_strip,
+    CSS, FONTS, competitors_section, hardware_section, lineage_section, model_page, stat_strip,
     unresearched_section,
 )
 
@@ -356,3 +356,23 @@ def test_the_font_files_and_their_licence_ship_in_the_repo() -> None:
     assert (fonts / "archivo-latin-ext.woff2").is_file()
     # The OFL requires the licence to travel with the font.
     assert "SIL Open Font License" in (fonts / "Archivo-OFL.txt").read_text(encoding="utf-8")
+
+
+# ── competitors on a thin card ───────────────────────────────────────────────
+
+def _competitor(name: str, score: object) -> dict:
+    return {"id": name.lower(), "name": name, "overlap_score": score}
+
+
+def test_zero_overlap_draws_no_bar_and_drops_the_scoring_clause() -> None:
+    html = competitors_section(_rel(competitors=[_competitor("A", 0.0), _competitor("B", None)]))
+    assert 'class="bar' not in html
+    assert "the score is the overlap" not in html
+    assert ">A<" in html and ">B<" in html
+
+
+def test_a_positive_score_gets_a_bar_and_a_zero_beside_it_does_not() -> None:
+    html = competitors_section(_rel(competitors=[_competitor("A", 0.5), _competitor("B", 0)]))
+    assert html.count('class="bar') == 1
+    assert 'style="width:50.0%"' in html
+    assert "the score is the overlap" in html

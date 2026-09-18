@@ -592,20 +592,29 @@ def competitors_section(relations: Any, pages: Collection[str] | None = None) ->
     entries = relations.competitors[:12]
     if not entries:
         return ""
+
+    def positive(entry: dict[str, Any]) -> float:
+        try:
+            return max(0.0, float(entry.get("overlap_score") or 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    # A zero usually means neither card records capabilities, not that they share
+    # none. An empty bar would state the second; drawing nothing states neither.
     cards = []
     for entry in entries:
-        score = entry.get("overlap_score")
-        width = 0.0 if score is None else max(0.0, min(100.0, float(score) * 100.0))
-        cards.append(
-            '<div class="card">'
-            + model_anchor(str(entry["id"]), str(entry["name"]), pages)
-            + '<div class="bar flex"><span class="track"><span class="fill" '
-            f'style="width:{width:.1f}%"></span></span>'
-            f'<span class="val">{esc("" if score is None else score)}</span></div></div>')
+        score = positive(entry)
+        bar = ('<div class="bar flex"><span class="track"><span class="fill" '
+               f'style="width:{min(100.0, score * 100.0):.1f}%"></span></span>'
+               f'<span class="val">{esc(entry.get("overlap_score"))}</span></div>') if score else ""
+        cards.append('<div class="card">'
+                     + model_anchor(str(entry["id"]), str(entry["name"]), pages) + bar + "</div>")
+    scored = any(positive(e) for e in entries)
     note = ('<div class="notice derived">Derived, not authored. Two models compete if they share a '
-            'type, sit within 3x on parameters, and report at least one benchmark in common; '
-            'the score is the overlap of their capability sets. The shared-benchmark test '
-            'rests on card scores that carry one date per card and no per-score source.</div>')
+            'type, sit within 3x on parameters, and report at least one benchmark in common'
+            + ('; the score is the overlap of their capability sets' if scored else '')
+            + '. The shared-benchmark test rests on card scores that carry one date per card '
+            'and no per-score source.</div>')
     return _section("What competes with it",
                     note + f'<div class="grid">{"".join(cards)}</div>')
 
