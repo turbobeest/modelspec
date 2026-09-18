@@ -40,11 +40,12 @@ A body is capped at 16 KB and larger ones are refused unread past that point.
 from your request, return it and forget the request: no body, no field of it and
 no answer is written anywhere.
 
-The Worker binds two KV namespaces today (`api/worker/wrangler.jsonc`).
+The Worker binds two KV namespaces today (`api/worker/wrangler.jsonc`), and
+one Durable Object for prepaid credits that is yours in the sense below.
 `DETERMINATIONS` holds **our own research** — the licence and data-residency
 determinations the paid tier serves — and the Worker only ever reads from it.
-There is no code path that writes to it. No database, no object storage, no
-queue and no analytics dataset is bound at all.
+There is no code path that writes to it. No D1 database, R2 bucket, queue or
+analytics dataset is bound.
 
 ### The API-key store
 
@@ -81,6 +82,34 @@ request, no answer, no IP address and no user-agent: our code reads none of
 those into it. A request that presents no key, or a `test_` sandbox key, writes
 nothing to it at all. Card data never reaches this store: Checkout is hosted on
 Stripe.
+
+### The x402 credit ledger: bound, idle until the flag is on
+
+A Durable Object class `CreditsObject`, bound as `CREDITS`
+(`api/worker/wrangler.jsonc`), holds prepaid x402 credits (MODEL-75).
+`X402_ENABLED` ships `"false"`, so today no request is charged and nothing is
+written to it. When the flag is on, it holds exactly two kinds of record
+(`api/worker/src/credits.py`):
+
+- **A balance per holder.** The holder name is `key:` plus the SHA-256 hash of
+  an API key, never the key. The record is two integers: how many successful
+  results remain (`available`) and how many are reserved for an in-flight
+  request (`reserved`). It holds no request body, no prompt, no IP address, no
+  user-agent and no payment signature.
+- **A payment claim per settled payload.** Named by the SHA-256 of the
+  payment's EIP-3009 nonce and signature. The record is which holder was
+  credited, how many units, and the settlement transaction hash, so the same
+  payload cannot credit twice. It holds the transaction hash the facilitator
+  returned, not a wallet private key (there is none in this repository).
+
+It holds no prompt, no request body, no field of a request, no ranking or
+policy answer, no IP address and no user-agent: our code reads none of those
+into it. A request that does not pay, and a request while `X402_ENABLED` is
+off, writes nothing to it.
+
+Workers KV is not this ledger. KV is eventually consistent and has no
+compare-and-set, so it cannot keep a balance non-negative when two requests
+race. The Durable Object is the serial mailbox that can.
 
 The only other thing held between requests is a short-lived copy of our own
 published catalogue, which is public data and contains nothing of yours
@@ -139,15 +168,23 @@ nothing below is read as describing the service today:
   unmetered and with nothing written. The ACCESS store is bound; no key has
   been issued (issuance is MODEL-73). What a key record and its counters hold
   is set out under [What we store](#the-api-key-store).
-- **Payment.** Stripe Checkout and the entitlement webhook are wired
+- **Payment.** Two rails, each behind its own flag, both off. No payment rail
+  is in operation, so no payment is collected.
+  Stripe Checkout and the entitlement webhook are wired
   (`api/worker/src/billing.py`, MODEL-73) with **`BILLING_ENABLED` off**: no
   Checkout Session is created and a valid webhook is refused rather than
-  applied. No payment rail is in operation, so no payment is collected. When
-  the flag flips, Stripe hosts the card form; we never receive card numbers.
-  ACCESS then holds the Stripe event ids and subscription/customer/Price ids
-  described under [What we store](#the-api-key-store). The key is minted when
-  the buyer claims, returned once, and stored only as its SHA-256 hash. The
-  terms Checkout links are still an unadopted draft.
+  applied. When the flag flips, Stripe hosts the card form; we never receive
+  card numbers. ACCESS then holds the Stripe event ids and
+  subscription/customer/Price ids described under [What we
+  store](#the-api-key-store). The key is minted when the buyer claims,
+  returned once, and stored only as its SHA-256 hash. The terms Checkout
+  links are still an unadopted draft. The x402 rail (MODEL-75) is wired
+  behind `X402_ENABLED`, which ships off: no request is charged and the
+  credit ledger described above is not written. Coinbase's x402 facilitator,
+  when the flag is on, receives the signed payment payload in order to verify
+  and settle it; that payload is the caller's, not a store of ours. No private
+  key for receiving funds is in this repository. `X402_PAY_TO` is an on-chain
+  address in configuration, currently empty.
 - **Outcome logging.** Not built. The service does not record what you chose,
   whether a recommendation worked, or anything about the result of acting on
   one. When it is built it will record the profile, the recommendation and the

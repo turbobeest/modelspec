@@ -54,9 +54,12 @@ import access_keys
 import access_kv
 import access_sandbox
 import billing
+import credits
+from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 import kv_value
 import policy_service
 import rank_service as service
+import x402
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -96,6 +99,7 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/policy-check", "GET /v1/health",
+    "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -362,6 +366,10 @@ class Default(WorkerEntrypoint):
             return await self._health(service_commit, origin)
         if path.startswith("/v1/billing/"):
             return await self._billing(request, path, method, service_commit)
+        if path == "/v1/credits":
+            if method not in ("GET", "HEAD"):
+                return self._method_not_allowed(service_commit, path, "GET", method)
+            return await self._credits(request, service_commit, origin)
         if path not in POST_ENDPOINTS:
             # Including the bare root: the route covers the whole host, so an
             # unknown path is answered here rather than left to Cloudflare's
@@ -407,14 +415,15 @@ class Default(WorkerEntrypoint):
         # MODEL-69. Everything above is transport and costs no data; from here
         # on the access gate decides. It runs before either export is fetched,
         # so the sandbox never reaches data and a refused key costs nothing.
+        api_key = access_keys.extract(lambda name: request.headers.get(name))
         if path == "/v1/policy-check":
             envelope = policy_service._envelope({}, service_commit, origin)
 
-            async def anonymous():
+            async def _anonymous():
                 return await self._policy_answer(payload, service_commit, origin,
                                                  _entitlement(None))
 
-            async def live(record, tier):
+            async def _live(record, tier):
                 return await self._policy_answer(payload, service_commit, origin,
                                                  _entitlement(tier))
 
@@ -427,10 +436,10 @@ class Default(WorkerEntrypoint):
         else:
             envelope = service._envelope({}, service_commit, origin)
 
-            async def anonymous():
+            async def _anonymous():
                 return await self._rank(payload, service_commit, origin)
 
-            async def live(record, tier):
+            async def _live(record, tier):
                 return await self._rank(payload, service_commit, origin)
 
             def sandbox():
@@ -441,6 +450,15 @@ class Default(WorkerEntrypoint):
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
 
+        # MODEL-75. One wrap around the live/anonymous producers: x402 verify
+        # and settle run before either of them writes an answer. The sandbox
+        # is not wrapped. X402_ENABLED default off is a no-op.
+        x402_trace = x402.ChargeTrace()
+        anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
+                                    x402_trace, keyed=False)
+        live = self._x402_wrap(_live, request, path, api_key, envelope,
+                               x402_trace, keyed=True)
+
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
             enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
@@ -448,7 +466,44 @@ class Default(WorkerEntrypoint):
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
         )
-        return _json_response(outcome.status, outcome.body, outcome.headers)
+        return _json_response(
+            outcome.status, outcome.body,
+            {**(outcome.headers or {}),
+             **x402.http_headers(outcome.status, outcome.body,
+                                 settlement=x402_trace.settlement)})
+
+    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *, keyed: bool):
+        """MODEL-75 hook. `keyed` uses the presented API key as the credit holder."""
+
+        async def wrapped(*args, **kwargs):
+            cfg = x402.load_config(self.env)
+            holder = x402.holder_from_key(api_key) if keyed else None
+            return await x402.charge(
+                config=cfg,
+                ledger=credits.ledger_from_env(self.env),
+                facilitator=x402.facilitator_from_env(self.env, cfg),
+                get_header=lambda name: request.headers.get(name),
+                holder=holder,
+                resource_url=x402.resource_url(str(request.url), path, envelope.get(
+                    "export_origin") or "https://api.modelspec.dev"),
+                envelope=envelope,
+                produce=lambda: produce(*args, **kwargs),
+                trace=trace,
+            )
+
+        return wrapped
+
+    async def _credits(self, request, service_commit: str, origin: str):
+        """`GET /v1/credits` — the holder's prepaid balance."""
+        envelope = service._envelope({}, service_commit, origin)
+        envelope["endpoint"] = "credits"
+        status, body = await x402.balance_query(
+            config=x402.load_config(self.env),
+            ledger=credits.ledger_from_env(self.env),
+            api_key=access_keys.extract(lambda name: request.headers.get(name)),
+            envelope=envelope,
+        )
+        return _json_response(status, body)
 
     async def _billing(self, request, path: str, method: str, service_commit: str):
         """MODEL-73: Checkout, webhook, claim, rotate. Routing only."""

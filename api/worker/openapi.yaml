@@ -142,6 +142,15 @@ x-modelspec-billing:
   what_is_sold: live rank access at the mapped tier's configured limits. It does not include policy-check
     determinations.
   documented_in: docs/billing.md
+x-modelspec-x402:
+  wired: true
+  enabled: false
+  mainnet: false
+  network: eip155:84532
+  price_atomic: 1000
+  placeholder_price: true
+  facilitator: https://api.cdp.coinbase.com/platform
+  docs: docs/x402.md
 security:
 - {}
 - bearer: []
@@ -150,6 +159,35 @@ servers:
 - url: https://api.modelspec.dev
   description: production
 paths:
+  /v1/credits:
+    get:
+      operationId: credits
+      summary: The prepaid x402 credit balance for the presented API key.
+      responses:
+        '200':
+          description: The holder's available and reserved units.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsBalance'
+        '401':
+          description: 'missing_holder: no API key presented.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '404': &id001
+          description: No endpoint at that path. `error.accepted` names the versioned paths.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/credits takes GET.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
   /v1/health:
     get:
       operationId: health
@@ -167,12 +205,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
-        '404': &id001
-          description: No endpoint at that path. `error.accepted` names the versioned paths.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransportError'
+        '404': *id001
         '405':
           description: /v1/health takes GET.
           content:
@@ -235,6 +268,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). `PAYMENT-REQUIRED` header is the
+            x402 v2 object; the body names price, payTo, network and how to pay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -330,6 +370,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). Same 402 as /v1/rank.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -3420,6 +3466,155 @@ components:
           type: string
         service_commit:
           type: string
+    PaymentRequired:
+      type: object
+      required:
+      - schema_version
+      - error
+      - result
+      properties:
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        error:
+          type: object
+          required:
+          - accepts
+          - code
+          - how_to_pay
+          - message
+          - payTo
+          - price
+          - resource
+          - x402Version
+          properties:
+            accepts:
+              type: array
+              items:
+                type: object
+                required:
+                - amount
+                - asset
+                - description
+                - extra
+                - maxAmountRequired
+                - maxTimeoutSeconds
+                - mimeType
+                - network
+                - payTo
+                - resource
+                - scheme
+                properties:
+                  amount:
+                    type: string
+                  asset:
+                    type: string
+                  description:
+                    type: string
+                  extra:
+                    type: object
+                    required:
+                    - name
+                    - version
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                  maxAmountRequired:
+                    type: string
+                  maxTimeoutSeconds:
+                    type: integer
+                  mimeType:
+                    type: string
+                  network:
+                    type: string
+                  payTo:
+                    type: string
+                  resource:
+                    type: string
+                  scheme:
+                    type: string
+            code:
+              type: string
+            how_to_pay:
+              type: string
+            message:
+              type: string
+            payTo:
+              type: string
+            price:
+              type: object
+              required:
+              - amount
+              - asset
+              - atomic
+              - currency
+              - network
+              - placeholder
+              - placeholder_note
+              - usd
+              properties:
+                amount:
+                  type: string
+                asset:
+                  type: string
+                atomic:
+                  type: integer
+                currency:
+                  type: string
+                network:
+                  type: string
+                placeholder:
+                  type: boolean
+                placeholder_note:
+                  type: string
+                usd:
+                  type: number
+            resource:
+              type: string
+            x402Version:
+              type: integer
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+    CreditsBalance:
+      type: object
+      required:
+      - available
+      - endpoint
+      - holder
+      - reserved
+      - result
+      - schema_version
+      - service_commit
+      - total
+      - unit
+      - x402_enabled
+      properties:
+        available:
+          type: integer
+        endpoint:
+          type: string
+        holder:
+          type: string
+        reserved:
+          type: integer
+        result:
+          type: array
+          items: {}
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        total:
+          type: integer
+        unit:
+          type: string
+        x402_enabled:
+          type: boolean
     TransportError:
       type: object
       required:
