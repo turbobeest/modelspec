@@ -896,6 +896,47 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-4-nano
+    version: gpt-5.4-nano
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Use gpt-5.4-nano only for narrow, well-bounded tasks. Prefer closed outputs: labels, enums,
+        short JSON, or fixed templates.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Avoid multi-step orchestration unless the flow is extremely constrained. Route ambiguous or
+        planning-heavy tasks to a stronger model instead of over-prompting nano.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: reasoning.effort supports none (default), low, medium, high and xhigh. The model page positions
+        nano for classification, extraction, ranking, and sub-agents.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4-nano
+        title: GPT-5.4 nano
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: 'Default prompt pattern from the 5.4 small-model notes: task, critical rule, exact step order,
+        edge cases, output format, one correct example.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes: []
+    retry_advice: []
 ---
 
 

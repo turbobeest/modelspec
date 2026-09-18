@@ -887,6 +887,48 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-3-1-70b-instruct
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Instruct format: begin_of_text, start_header_id/end_header_id around system|user|assistant|ipython,
+        eot_id at each turn. eom_id marks a tool-call stop when Environment: ipython is in the system
+        prompt.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md
+        title: Llama 3.1 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: system sets rules. ipython is the tool role for tool output. Built-in tools (brave_search,
+        wolfram_alpha, code interpreter) are turned on from the system prompt.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md
+        title: Llama 3.1 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: 'python_tag in the assistant output marks a tool call. Environment: ipython alone enables
+        the code interpreter; eom_id (not eot_id) means the model expects the tool result next.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md
+        title: Llama 3.1 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting:
+    - text: Instruction-tuned for multilingual dialogue; 128k context. Supported languages are English,
+        German, French, Italian, Portuguese, Hindi, Spanish, and Thai.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md
+        title: Llama 3.1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

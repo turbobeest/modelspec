@@ -854,6 +854,39 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4-20-0309-reasoning
+    version: grok-4.20-0309-reasoning
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: xAI describes Grok 4.20 as combining a low hallucination rate with strict prompt adherence.
+      sources:
+      - url: https://docs.x.ai/docs/models/grok-4.20
+        title: Grok 4.20
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: This API id (grok-4.20-0309-reasoning; aliases include grok-4.20) is a reasoning model with
+        function calling and structured outputs. Context window is 1,000,000 tokens.
+      sources:
+      - url: https://docs.x.ai/docs/models/grok-4.20
+        title: Grok 4.20
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes:
+    - text: logprobs and top_logprobs are not supported on grok-4.20 and newer; those fields are silently
+        ignored if set.
+      sources:
+      - url: https://docs.x.ai/docs/models
+        title: Models
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 

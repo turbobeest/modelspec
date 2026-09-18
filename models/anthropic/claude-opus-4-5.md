@@ -851,6 +851,48 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-opus-4-5
+    version: claude-opus-4-5
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: Thinking is extended-only. Adaptive thinking is not available and type adaptive returns a
+        400. Keep budget_tokens until you move to a model that supports adaptive thinking.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/models/opus-4-5/overview
+        title: Claude Opus 4.5
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: 'Opus 4.5 is the only extended-thinking-only model that also supports effort: effort shapes
+        the overall response while budget_tokens sets thinking depth; set both. Default effort is high.'
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/models/opus-4-5/overview
+        title: Claude Opus 4.5
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: The interleaved-thinking-2025-05-14 beta header is required for interleaved thinking. Opus
+        4.5 keeps prior turns' thinking blocks in context and bills them as input.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 
