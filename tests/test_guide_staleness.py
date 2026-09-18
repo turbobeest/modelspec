@@ -110,7 +110,7 @@ def test_seeder_overwrite_of_guided_card_writes_stale_notice_file(
     # Existing version "test-model.a" slugs to the same file as models.dev id
     # "test-model-a", so an overwrite changes the version of this card.
     card_path.write_text(
-        seeder.card_to_yaml_clean(_card("openai/test-model-a", "test-model.a")), encoding="utf-8")
+        _card("openai/test-model-a", "test-model.a").to_yaml(), encoding="utf-8")
 
     api = {"openai": {"models": {"test-model-a": {"id": "test-model-a", "name": "Test Model A"}}}}
     notices = tmp_path / "stale-guides.md"

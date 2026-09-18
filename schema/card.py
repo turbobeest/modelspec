@@ -1174,12 +1174,21 @@ class ModelCard(BaseModel):
         return cls(**card_data)
 
     def to_yaml(self) -> str:
-        """Serialize back to YAML frontmatter + Markdown."""
+        """Serialize back to YAML frontmatter + Markdown.
+
+        The inverse of `from_yaml_string`: identity fields flat at the top
+        level, every other section nested, enums as their string values.
+        """
         data = self.model_dump(
+            mode="json",
             exclude_none=False,
             exclude={"prose_body", "card_completeness"},
         )
         if self.authoring_guide is None:
             data.pop("authoring_guide", None)
-        yaml_str = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        out = data.pop("identity")
+        for key in ModelCard.model_fields:
+            if key in data:
+                out[key] = data.pop(key)
+        yaml_str = yaml.dump(out, default_flow_style=False, sort_keys=False, allow_unicode=True)
         return f"---\n{yaml_str}---\n\n{self.prose_body}"
