@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://huggingface.co/zai-org/CogVideoX-5b/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,15 +818,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # CogVideoX 5B
 
 Auto-generated from HuggingFace Hub metadata for [zai-org/CogVideoX-5b](https://huggingface.co/zai-org/CogVideoX-5b).
+
+Licence: other. Creator LICENSE file https://huggingface.co/zai-org/CogVideoX-5b/raw/main/LICENSE (The CogVideoX License) and Hub cardData.license other, read 2026-09-18.
