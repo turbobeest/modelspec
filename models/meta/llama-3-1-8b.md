@@ -354,13 +354,13 @@ availability:
     regions: []
     notes: ''
   cerebras:
-    available: true
+    available: false
     model_id: ''
     url: https://www.cerebras.ai/
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Cerebras served Llama 3.1 8B Instruct, not this base model (https://inference-docs.cerebras.ai/models/llama-31-8b, read 2026-09-18). Recorded on meta/llama-3-1-8b-instruct.'
   sambanova:
     available: true
     model_id: ''
@@ -842,7 +842,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 

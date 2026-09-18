@@ -61,8 +61,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: llama-community
-  license_url: ''
+  license_type: apache-2.0
+  license_url: https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -916,13 +916,13 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-17'
+card_updated: '2026-09-18'
 ---
 
 
@@ -933,6 +933,8 @@ Qwen 3 235B Instruct is a Llm Chat model from Alibaba's Qwen team. Part of the q
 Served by Cerebras's inference API; the host is recorded under availability (MODEL-84).
 
 Creator: Qwen. Cerebras's own model page linked huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507 (https://web.archive.org/web/20260328114647/https://inference-docs.cerebras.ai/models/qwen-3-235b-2507, read 2026-09-18); the repository's author is `Qwen`.
+
+Licence: Apache 2.0. Creator LICENSE file https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507/raw/main/LICENSE (Apache License Version 2.0, January 2004) and Hub cardData.license apache-2.0, read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

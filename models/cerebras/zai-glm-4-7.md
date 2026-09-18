@@ -61,8 +61,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: llama-community
-  license_url: ''
+  license_type: mit
+  license_url: https://huggingface.co/zai-org/GLM-4.7/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -817,13 +817,13 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-17'
+card_updated: '2026-09-18'
 ---
 
 
@@ -834,6 +834,8 @@ Z.AI GLM-4.7 is a Llm Chat model from Zhipu AI (Z.ai).
 This card records Cerebras's hosted offering of the model. It re-hosts `zhipu/glm-4-7` (MODEL-84); see that card for the model itself.
 
 Creator: Zhipu AI (Z.ai). Cerebras's own model page linked huggingface.co/zai-org/GLM-4.7 (https://web.archive.org/web/20260409170547/https://inference-docs.cerebras.ai/models/zai-glm-47, read 2026-09-18); 358,337,791,296 parameters on both this card and the repository. Cerebras deprecated `zai-glm-4.7` on 2026-08-17 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18).
+
+Licence: MIT. Creator README frontmatter `license: mit` (https://huggingface.co/zai-org/GLM-4.7/raw/main/README.md, read 2026-09-18). The repository tree that day had no LICENSE file.
 
 ## Key Features
 - Function calling / tool use
