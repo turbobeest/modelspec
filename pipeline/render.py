@@ -53,6 +53,7 @@ CSS = FONT_FACES + """
 --ink:#e6eaf0;--body:#c3cad4;--mute:#9aa4b2;--dim:#767f8d;
 --good:#4ade80;--warn:#f5b342;--bad:#f87171;--off:#767f8d;--alias:#a78bfa;
 --accent:#f5b342;--gutter:46px;
+--seg-bench:#63c9d9;--seg-cap:#78b5a2;--seg-type:#f5b342;--seg-ctx:#8fa4d4;--seg-cost:#9aa5b6;
 --sans:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
 --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 [data-site="benchgraph"]{--accent:#38bdf8}

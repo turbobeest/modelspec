@@ -236,3 +236,27 @@ def test_a_page_that_lost_its_placeholder_fails_the_build() -> None:
         assert "site/holding/index.html" in str(err)
     else:
         raise AssertionError("a page without the placeholder must not build")
+
+
+# ── the wizard's score bar ───────────────────────────────────────────────────
+
+SEGMENTS = ("bench", "cap", "type", "ctx", "cost")
+
+
+def test_each_score_part_has_its_own_hue_in_the_shared_sheet() -> None:
+    """A restyle once turned the five parts into shades of the accent, which
+    made the bar unreadable at a glance. The operator asked for distinct hues."""
+    values = {}
+    for seg in SEGMENTS:
+        match = re.search(rf"--seg-{seg}:(#[0-9a-fA-F]{{6}});", r.CSS)
+        assert match, f"--seg-{seg} is not a literal colour in the shared sheet"
+        values[seg] = match.group(1).lower()
+    assert values == {"bench": "#63c9d9", "cap": "#78b5a2", "type": "#f5b342",
+                      "ctx": "#8fa4d4", "cost": "#9aa5b6"}
+
+
+def test_the_wizard_draws_every_part_from_the_shared_tokens() -> None:
+    wizard = (ROOT / "web3d/downselect.v2.html").read_text(encoding="utf-8")
+    for seg in SEGMENTS:
+        assert f'"var(--seg-{seg})"' in wizard
+        assert f"--seg-{seg}:" not in wizard  # defined once, in /instrument.css
