@@ -193,7 +193,8 @@ Standing rules 1 and 2. Each of these yields `undetermined`:
 - a `commercial_use` whose only citation is `legacy-import`, which is the card
   schema's own record that no document was read. Eight cards are in this state
   and **none of them passes a commercial-use constraint**;
-- any platform with no residency determination.
+- any platform with no residency determination (the store holds nothing, or
+  the platform was recorded as unreached).
 
 **Regions are matched literally**, exactly as the platform publishes them. The
 endpoint will not map "Germany" onto `eu-central-1`, or a country code onto a
@@ -204,6 +205,13 @@ with the verdict so a caller can see what they have to match against.
 A determined **empty** region list is a `fail`, not an unknown: the platform
 published its terms and commits to no processing region. That distinction is
 exactly what MODEL-77 widened the field to express.
+
+A **no-commitment** finding is also a `fail` on the paid tier, and it is how a
+`withheld` card with no region list is answered. The documents that were read
+come back with the verdict (`documents`: URL and read date; `reason`: what
+they said instead of a region). It is never an empty `not_determined`: a card
+that publishes `withheld` is a promise that the paid tier has something to
+serve. No new `undetermined.why` value; `SCHEMA_VERSION` stays `"1.0"`.
 
 ---
 

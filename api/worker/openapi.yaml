@@ -2030,6 +2030,10 @@ components:
               type: string
             because:
               type: string
+            checked:
+              type: array
+              items:
+                type: string
             commercial_use:
               type: string
             conditions:
@@ -2037,6 +2041,24 @@ components:
             determined_on:
               type: string
               nullable: true
+            documents:
+              description: The documents a no-commitment finding was read from, each with the date it
+                carries. Never an empty withheld answer.
+              type: array
+              items:
+                type: object
+                required:
+                - read_on
+                - url
+                properties:
+                  read_on:
+                    type: string
+                  url:
+                    type: string
+            finding:
+              description: no_commitment when the paid answer is that the provider's documents name no
+                region. Distinct from a determined empty list.
+              type: string
             license_type:
               type: string
             license_url:
@@ -2058,8 +2080,11 @@ components:
               items: {}
             read_on:
               type: string
+            reason:
+              type: string
             source:
               type: object
+              nullable: true
               properties:
                 kind:
                   type: string
@@ -2070,11 +2095,6 @@ components:
                   type: string
                 url:
                   type: string
-              required:
-              - kind
-              - quote
-              - read_on
-              - url
           required:
           - because
       required:

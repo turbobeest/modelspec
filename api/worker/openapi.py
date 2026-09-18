@@ -247,6 +247,14 @@ DESCRIPTIONS: dict[str, str] = {
         "Constraints still unknown on this row. They stay unknown if you relax the one "
         "that eliminated it."
     ),
+    "ViolatedCheck.violated.finding": (
+        "no_commitment when the paid answer is that the provider's documents name no "
+        "region. Distinct from a determined empty list."
+    ),
+    "ViolatedCheck.violated.documents": (
+        "The documents a no-commitment finding was read from, each with the date it "
+        "carries. Never an empty withheld answer."
+    ),
     "PassRow.passed.conditions": (
         "The condition text of every conditional grant. A pass with conditions is not a "
         "bare yes."
@@ -361,20 +369,26 @@ def _policy_export() -> dict[str, Any]:
                                 "license_type": "mit", "origin_country": "CN",
                                  "commercial_use": "allowed",
                                  "commercial_use_source": {"kind": "legacy-import"}},
-             {"huggingface": []}),
+             {"huggingface": [], "poe": []}),
     ]
     return build_catalogue(cards, _export()["build"])
 
 
 def _policy_store() -> dict[str, Any]:
     """A determination store in the shape `entry._load_determinations` returns."""
-    def residency(regions: list[str] | None, scope: str = "determined") -> dict[str, Any]:
+    def residency(regions: list[str] | None, scope: str = "determined",
+                  non_disclosure: str | None = None) -> dict[str, Any]:
+        checked = [] if regions is not None else ["https://example.test/terms"]
+        determined_on = "2026-01-01"
         return {"scope": scope, "regions": regions, "reason": "" if regions is not None
-                else "no region list is published", "checked": [] if regions is not None
-                else ["https://example.test/terms"], "determined_on": "2026-01-01",
+                else "no region list is published", "checked": checked,
+                "documents": ([{"url": u, "read_on": determined_on} for u in checked]
+                              if checked else []),
+                "non_disclosure": non_disclosure,
+                "determined_on": determined_on,
                 "notes": "", "source": ({"kind": "provider_documentation",
                                          "url": "https://example.test/regions",
-                                         "read_on": "2026-01-01", "quote": ""}
+                                         "read_on": determined_on, "quote": ""}
                                         if scope == "determined" else None)}
     grant = {"determined_on": "2026-01-01", "source": _CITED}
     return {
@@ -388,6 +402,7 @@ def _policy_store() -> dict[str, Any]:
             "aws_bedrock": residency(["us-east-1", "eu-west-1"]),
             "groq": residency([]),
             "huggingface": residency(None, scope="undetermined"),
+            "poe": residency(None, scope="undetermined", non_disclosure="no-commitment"),
         },
     }
 

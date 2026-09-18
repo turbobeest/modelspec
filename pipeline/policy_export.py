@@ -28,7 +28,9 @@ able to tell "nobody looked" from "determined and held back" from "the provider
 commits to no region", because those three lead to different actions. The card
 schema went to some trouble to keep them apart (`UsePermission.WITHHELD`,
 `DisclosureState`), and collapsing them here — to a null, or to `false` — would
-undo that at the one point a customer reads.
+undo that at the one point a customer reads. A `withheld` disclosure is a
+promise the paid tier can resolve from the determination store (a region list,
+or the no-commitment finding). This file still does not carry that answer.
 """
 
 from __future__ import annotations

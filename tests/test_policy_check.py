@@ -325,6 +325,65 @@ def test_a_researched_unknown_is_undetermined_and_says_what_was_checked():
     assert body_of["reason"]
 
 
+def test_a_no_commitment_finding_is_a_fail_that_cites_the_documents():
+    """A withheld card with no region list still has a paid answer: the finding."""
+    st = store(residency={"ai21_labs": {
+        "scope": "undetermined", "regions": None, "source": None,
+        "non_disclosure": "no-commitment",
+        "reason": "the trust centre lists subprocessors, not selectable regions",
+        "checked": ["https://trust.ai21.com/"],
+        "documents": [{"url": "https://trust.ai21.com/", "read_on": "2026-09-16"}],
+        "determined_on": "2026-09-16", "notes": ""}})
+    status, body = check(
+        {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
+        [_model("acme/x", platforms=["ai21_labs"])], st,
+        service.ENTITLEMENT_DETERMINATIONS)
+    row = body["result"][0]
+    assert row["verdict"] == "fail"
+    violated = row["failed"]["eliminated_by"]["violated"]
+    assert violated["finding"] == "no_commitment"
+    assert "commit to no processing region" in violated["because"]
+    assert violated["documents"] == [
+        {"url": "https://trust.ai21.com/", "read_on": "2026-09-16"}]
+    assert violated["reason"]
+    assert violated["read_on"] == "2026-09-16"
+    assert "satisfied" not in row["checks"][0]
+    assert body["provenance"]["determination_read_dates"]["residency"] == ["2026-09-16"]
+
+
+def test_no_commitment_resolves_from_checked_urls_when_documents_is_absent():
+    """Older KV blobs have `checked` strings; the endpoint still has to answer."""
+    st = store(residency={"poe": {
+        "scope": "undetermined", "regions": None, "source": None,
+        "non_disclosure": "no-commitment",
+        "reason": "privacy policy names no processing location",
+        "checked": ["https://example.com/privacy"],
+        "determined_on": "2026-09-16", "notes": ""}})
+    status, body = check(
+        {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
+        [_model("acme/x", platforms=["poe"])], st,
+        service.ENTITLEMENT_DETERMINATIONS)
+    violated = body["result"][0]["failed"]["eliminated_by"]["violated"]
+    assert violated["finding"] == "no_commitment"
+    assert violated["documents"] == [
+        {"url": "https://example.com/privacy", "read_on": "2026-09-16"}]
+
+
+def test_a_no_commitment_finding_without_documents_is_not_a_silent_fail():
+    """A withheld claim the store cannot defend is not_determined, never an empty fail."""
+    st = store(residency={"ai21_labs": {
+        "scope": "undetermined", "regions": None, "source": None,
+        "non_disclosure": "no-commitment", "reason": "", "checked": [],
+        "documents": [], "determined_on": "2026-09-16", "notes": ""}})
+    status, body = check(
+        {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
+        [_model("acme/x", platforms=["ai21_labs"])], st,
+        service.ENTITLEMENT_DETERMINATIONS)
+    row = body["result"][0]
+    assert row["verdict"] == "undetermined"
+    assert row["checks"][0]["undetermined"]["why"] == "not_determined"
+
+
 def test_a_local_runtime_is_unbounded_and_is_not_for_sale():
     """No region list can be true of Ollama, at any tier, for any money."""
     status, body = check(
@@ -622,7 +681,8 @@ def test_the_loader_builds_a_manifest_that_verifies_the_blobs(tmp_path):
          "source": {"kind": "provider_documentation", "url": "https://example.test/r",
                     "read_on": "2026-09-16", "quote": ""}},
         {"platform": "ai21_labs", "scope": "undetermined", "regions": None,
-         "source": None, "checked": ["https://trust.ai21.com/"],
+         "source": None, "non_disclosure": "no-commitment",
+         "checked": ["https://trust.ai21.com/"],
          "reason": "no region list", "notes": "", "determined_on": "2026-09-16"}])
 
     blobs = loader.build(commercial, residency, generated_on="2026-09-17")
@@ -640,9 +700,12 @@ def test_the_loader_builds_a_manifest_that_verifies_the_blobs(tmp_path):
     assert cu["acme/x"]["conditions"] == RESTRICTION
     res = json.loads(blobs[loader.KEY_RESIDENCY])["residency"]
     assert res["aws_bedrock"]["regions"] == ["eu-west-1"]
-    # A researched unknown is carried, not dropped: it is an answer.
+    # A no-commitment finding is carried with the documents, not dropped.
     assert res["ai21_labs"]["scope"] == "undetermined"
+    assert res["ai21_labs"]["non_disclosure"] == "no-commitment"
     assert res["ai21_labs"]["checked"] == ["https://trust.ai21.com/"]
+    assert res["ai21_labs"]["documents"] == [
+        {"url": "https://trust.ai21.com/", "read_on": "2026-09-16"}]
 
     # And the blobs feed the service unchanged.
     st = {"bundle_version": manifest["bundle_version"],
@@ -655,12 +718,24 @@ def test_the_loader_builds_a_manifest_that_verifies_the_blobs(tmp_path):
     assert body["result"][0]["verdict"] == "pass"
     assert body["result"][0]["passed"]["conditions"][0]["text"] == RESTRICTION
 
+    status, body = check(
+        {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
+        [_model("acme/x", platforms=["ai21_labs"])], st,
+        service.ENTITLEMENT_DETERMINATIONS)
+    violated = body["result"][0]["failed"]["eliminated_by"]["violated"]
+    assert violated["finding"] == "no_commitment"
+    assert violated["documents"][0]["url"] == "https://trust.ai21.com/"
+    assert violated["documents"][0]["read_on"] == "2026-09-16"
+
 
 @pytest.mark.parametrize("record,fragment", [
     ({"platform": "ollama", "scope": "unbounded", "regions": None},
      "no region list can be true of it"),
     ({"platform": "aws_bedrock", "scope": "determined", "regions": None},
      "null is not an answer"),
+    ({"platform": "poe", "scope": "undetermined", "non_disclosure": "no-commitment",
+      "checked": [], "reason": "", "determined_on": "2026-09-16"},
+     "name the documents"),
 ])
 def test_the_loader_refuses_an_indefensible_residency_record(tmp_path, record, fragment):
     with pytest.raises(loader.LoadError) as exc:

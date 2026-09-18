@@ -13,11 +13,11 @@ keyed by `model_id`, because a licence grant really is per model — two models
 from the same lab can carry different terms. Residency is not: every model
 served from a platform is served from that platform's regions. Keying a
 residency determination by model would mean writing the same answer 1,339 times
-and letting 1,339 copies drift. So the determination is per platform, and
-`PlatformResidency.enrichment_for()` is the *only* way it becomes a per-model
-record. That projection is the seam; everything else about the public/private
-relationship is already settled by `EnrichmentRecord.public_fields()`, which it
-delegates to rather than restating.
+and letting 1,339 copies drift. So the determination is per platform.
+`paid_answer()` is what the paid policy-check serves: a cited region list, or
+the negative finding (documents + what they said). `enrichment_for()` is only
+the list-shaped half of that — a no-commitment finding is not a region list
+and does not fit `EnrichmentRecord`.
 
 **What makes a record legal** is `ResidencyScope` and nothing else. A
 determined list cites the document it was read from and the day it was read. An
@@ -223,15 +223,13 @@ class PlatformResidency(BaseModel):
         )
 
     def enrichment_for(self, model_id: str) -> EnrichmentRecord | None:
-        """This platform's determination, as the per-model record MODEL-80 serves.
+        """This platform's region list, as the per-model record of that list.
 
-        `None` unless the platform is `DETERMINED`: an undetermined platform
-        has nothing to sell and an unbounded one has nothing region-shaped to
-        say. The record is `published=False` because residency is a policy
-        determination and those never age out into git
-        (`schema/enrichment.py`); the public card therefore shows the withheld
-        marker, which `EnrichmentRecord.public_fields()` derives — this method
-        does not restate it.
+        `None` unless the platform is `DETERMINED`. A no-commitment finding is
+        still an answer the paid tier sells, but it is not a region list, so it
+        does not fit `EnrichmentRecord` (which requires `data_residency` to be
+        a list). `paid_answer()` is the projection MODEL-80 serves; this method
+        stays the list-shaped half of that.
         """
         if self.scope is not ResidencyScope.DETERMINED:
             return None
@@ -245,6 +243,49 @@ class PlatformResidency(BaseModel):
             determined_on=self.determined_on,
             published=False,
         )
+
+    def paid_answer(self) -> dict[str, Any] | None:
+        """What the paid policy-check serves for this platform.
+
+        A card that publishes `withheld` is a promise that this is not `None`:
+        either a cited region list, or the negative finding (the documents that
+        were read, and what they said instead of a region). Unreached platforms
+        and local runtimes are not withheld and return `None` here.
+
+        Per-document read dates are not stored; `determined_on` is the date the
+        finding was made from these URLs, and that is the date each document
+        carries. Inventing a different day is forbidden.
+        """
+        if self.scope is ResidencyScope.DETERMINED:
+            assert self.source is not None
+            return {
+                "kind": "regions",
+                "scope": self.scope.value,
+                "regions": list(self.regions or []),
+                "source": {
+                    "kind": self.source.kind,
+                    "url": self.source.url,
+                    "read_on": self.source.read_on,
+                    "quote": self.source.quote,
+                },
+                "determined_on": self.determined_on,
+                "notes": self.notes,
+            }
+        if self.non_disclosure is NonDisclosure.NO_COMMITMENT:
+            return {
+                "kind": "no_commitment",
+                "scope": self.scope.value,
+                "non_disclosure": self.non_disclosure.value,
+                "regions": None,
+                "documents": [
+                    {"url": url, "read_on": self.determined_on}
+                    for url in self.checked
+                ],
+                "reason": self.reason,
+                "determined_on": self.determined_on,
+                "notes": self.notes,
+            }
+        return None
 
 
     def card_disclosure(self) -> DisclosureState:
@@ -405,6 +446,20 @@ def withheld(records: Sequence[PlatformResidency]) -> tuple[str, ...]:
     """
     states = disclosures(records)
     return tuple(s for s in platform_slugs() if states[s] is DisclosureState.WITHHELD)
+
+
+def unresolved_withheld(records: Sequence[PlatformResidency]) -> tuple[str, ...]:
+    """Withheld platforms the paid tier cannot resolve. Must be empty.
+
+    `withheld` on a card is a promise that the paid tier has an answer — a
+    region list, or the documents that were read and what they said instead.
+    A withheld platform whose `paid_answer()` is `None` is that promise broken.
+    """
+    return tuple(
+        r.platform
+        for r in records
+        if r.card_disclosure() is DisclosureState.WITHHELD and r.paid_answer() is None
+    )
 
 
 def unreached(records: Sequence[PlatformResidency]) -> tuple[str, ...]:

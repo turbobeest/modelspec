@@ -19,9 +19,10 @@ Two records that look alike in `counts` â€” read-and-empty, and never reached â€
 land on different sides of it, which is the whole of MODEL-79's 2026-09-17
 decision made visible.
 
-`audit` exits 1 when a platform that needs a determination has no record. That
-is the acceptance condition the ticket states as "none left ambiguous", made
-runnable, so it can be checked rather than asserted.
+`audit` exits 1 when a platform that needs a determination has no record, or
+when a withheld platform has no paid-tier answer. That is the acceptance
+condition the ticket states as "none left ambiguous", made runnable, so it can
+be checked rather than asserted.
 """
 
 from __future__ import annotations
@@ -43,6 +44,7 @@ from scripts.residency.determination import (  # noqa: E402
     disclosures,
     load_store,
     unreached,
+    unresolved_withheld,
     unrecorded,
     withheld,
 )
@@ -138,21 +140,32 @@ def _disclosure(records: list[PlatformResidency]) -> int:
 
 def _audit(records: list[PlatformResidency]) -> int:
     missing = unrecorded(records)
+    broken = unresolved_withheld(records)
     scopes = classify(records)
     for slug in platform_slugs():
         print(f"{slug:<22} {scopes[slug].value}")
-    if not missing:
+    status = 0
+    if missing:
+        print(f"\n{len(missing)} platform(s) have no determination on record:")
+        for slug in missing:
+            print(f"  {slug}")
+        status = 1
+    if broken:
+        print(
+            f"\n{len(broken)} withheld platform(s) have no paid-tier answer "
+            "(a card says withheld; the store has nothing to serve):"
+        )
+        for slug in broken:
+            print(f"  {slug}")
+        status = 1
+    if status == 0:
         print(
             f"\nall {len(requires_determination())} platforms that need a "
             f"determination have one; {len(LOCAL_RUNTIMES)} are unbounded by "
             "construction"
         )
         _recheck_note(records)
-        return 0
-    print(f"\n{len(missing)} platform(s) have no determination on record:")
-    for slug in missing:
-        print(f"  {slug}")
-    return 1
+    return status
 
 
 def _recheck_note(records: list[PlatformResidency]) -> None:

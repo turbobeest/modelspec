@@ -40,10 +40,17 @@ default and never a guess:
 * an origin country the card leaves blank;
 * a `commercial_use` whose only citation is `legacy-import`, which is the
   card schema's own admission that nothing was read (`schema/card.py`);
-* a platform whose residency nobody has published;
+* a platform whose residency nobody has published, or that was recorded as
+  unreached;
 * a local runtime, where residency is a property of the operator's machine and
   no region list can ever be truthful (`scripts/residency/platforms.py`);
 * anything this request's tier is not entitled to read.
+
+A withheld platform is never this third state on the paid tier. It resolves
+to a cited region list, or to a no-commitment finding: the documents that
+were read and what they said instead of a region. That finding is a `fail`
+against a residency requirement — there is no region to match — not an
+empty `not_determined`.
 
 Residency regions are matched **literally** against the list the platform
 itself published. Mapping "Germany" onto `eu-central-1`, or a country code onto
@@ -384,6 +391,38 @@ def _is_cited(source: dict[str, Any] | None) -> bool:
     return bool(source.get("url")) and bool(source.get("read_on"))
 
 
+def _documents(determination: dict[str, Any]) -> list[dict[str, str]]:
+    """Documents a negative finding rests on: each URL with the date it carries.
+
+    Prefers the loader's `documents` objects. Falls back to `checked` URL
+    strings plus `determined_on`, which is the date the store actually has —
+    per-document read dates were not recorded.
+    """
+    determined_on = determination.get("determined_on") or ""
+    raw = determination.get("documents")
+    if isinstance(raw, list) and raw:
+        out = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            url = (item.get("url") or "").strip()
+            if not url:
+                continue
+            read_on = (item.get("read_on") or determined_on or "").strip()
+            out.append({"url": url, "read_on": read_on})
+        return out
+    out = []
+    for item in determination.get("checked") or []:
+        if isinstance(item, str) and item.strip():
+            out.append({"url": item.strip(), "read_on": determined_on})
+        elif isinstance(item, dict) and (item.get("url") or "").strip():
+            out.append({
+                "url": item["url"].strip(),
+                "read_on": (item.get("read_on") or determined_on or "").strip(),
+            })
+    return out
+
+
 # ── the four checks ──────────────────────────────────────────────────────────
 
 def check_licence(row: dict[str, Any], requirement: dict[str, Any]) -> dict[str, Any]:
@@ -495,6 +534,10 @@ def check_residency(platform: str | None, requirement: dict[str, Any],
     normalised: a country name is not mapped onto a cloud region, because that
     mapping is an inference about a vendor's geography and this endpoint does
     not infer. The published vocabulary comes back with the verdict.
+
+    A no-commitment finding (`non_disclosure: no-commitment`) is a fail that
+    cites the documents, not `not_determined`. A withheld card is a promise
+    the paid tier has that answer.
     """
     required = requirement["required_regions"]
     if platform is None:
@@ -507,11 +550,39 @@ def check_residency(platform: str | None, requirement: dict[str, Any],
         why = "tier" if not entitled else "not_determined"
         return _undetermined("residency", requirement, why, platform=platform)
 
+    if determination.get("non_disclosure") == "no-commitment":
+        # A withheld card with no region list. The paid answer is the finding:
+        # the documents that were read, and what they said instead. Against a
+        # residency requirement that is a fail — there is no region to match —
+        # not "the store holds nothing", which is a different `why`.
+        documents = _documents(determination)
+        reason = (determination.get("reason") or "").strip()
+        if not documents or not reason:
+            return _undetermined("residency", requirement, "not_determined",
+                                 platform=platform, store_scope=determination.get("scope"))
+        read_on = documents[0].get("read_on") or determination.get("determined_on")
+        return _violated(
+            "residency", requirement,
+            because=("the provider's documents were read and commit to no "
+                     "processing region"),
+            platform=platform,
+            finding="no_commitment",
+            published_regions=[],
+            documents=documents,
+            reason=reason,
+            checked=[d["url"] for d in documents],
+            determined_on=determination.get("determined_on") or None,
+            read_on=read_on,
+            source=None,
+            matching="literal",
+            missing=required,
+        )
+
     scope = determination.get("scope")
     if scope != "determined":
-        # `undetermined` in the store is a researched answer — the documents
-        # were opened and none of them published a region list — so it carries
-        # what was checked, which is more than "unknown".
+        # Unreached, or an undetermined record that does not claim a
+        # no-commitment finding. Still carries what was checked, which is more
+        # than "unknown", but it is not a withheld answer.
         return _undetermined("residency", requirement, "not_determined", platform=platform,
                              store_scope=scope,
                              reason=determination.get("reason") or None,
@@ -699,9 +770,17 @@ def _read_dates(rows: list[dict[str, Any]]) -> dict[str, list[str]]:
     for row in rows:
         for check in row["checks"]:
             body = check.get("satisfied") or check.get("violated") or {}
-            read_on = (body.get("source") or {}).get("read_on") if body.get("source") else None
-            if read_on:
-                dates.setdefault(check["constraint"], set()).add(read_on)
+            found: set[str] = set()
+            source = body.get("source") or {}
+            if source.get("read_on"):
+                found.add(source["read_on"])
+            if body.get("read_on"):
+                found.add(body["read_on"])
+            for document in body.get("documents") or []:
+                if isinstance(document, dict) and document.get("read_on"):
+                    found.add(document["read_on"])
+            if found:
+                dates.setdefault(check["constraint"], set()).update(found)
     return {k: sorted(v) for k, v in sorted(dates.items())}
 
 
