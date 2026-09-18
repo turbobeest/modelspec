@@ -13,10 +13,6 @@ from pipeline import render as r  # noqa: E402
 
 CDN_HOSTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 
-# PR #115 (MODEL-24 session) owns this file. Delete the name and the
-# allowance when that PR lands.
-EXPLORER_HTML_UNTIL_PR_115 = ROOT / "web3d" / "explorer.html"
-
 _RUNTIME_DIRS = (ROOT / "site", ROOT / "web3d", ROOT / "pipeline")
 _RUNTIME_SUFFIXES = {".html", ".css", ".js", ".py"}
 
@@ -35,7 +31,7 @@ def _scan_tree(root: Path) -> list[Path]:
     return hits
 
 
-def test_google_font_hosts_appear_only_in_explorer_html_until_pr_115(tmp_path) -> None:
+def test_no_runtime_file_or_built_page_names_a_google_font_host(tmp_path) -> None:
     hits: list[Path] = []
     for directory in _RUNTIME_DIRS:
         hits.extend(_scan_tree(directory))
@@ -48,12 +44,6 @@ def test_google_font_hosts_appear_only_in_explorer_html_until_pr_115(tmp_path) -
     for site in (ms, bg):
         hits.extend(_scan_tree(site))
 
-    allowed = {EXPLORER_HTML_UNTIL_PR_115.resolve()}
-    unexpected = sorted({p for p in hits if p not in allowed})
-    assert unexpected == [], [str(p.relative_to(ROOT)) for p in unexpected]
-    assert EXPLORER_HTML_UNTIL_PR_115.resolve() in hits, (
-        "explorer.html no longer names a Google Fonts host; "
-        "delete EXPLORER_HTML_UNTIL_PR_115"
-    )
+    assert sorted(hits) == [], [str(p) for p in sorted(hits)]
     assert not _mentions_cdn(r.FONTS)
     assert not _mentions_cdn(r.CSS)
