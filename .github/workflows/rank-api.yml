@@ -1,8 +1,14 @@
 name: Rank API
 
-# MODEL-68. Builds the rank Worker's Python bundle, proves it bundles, and runs
-# the byte-identity suite that holds `POST /v1/rank` to what
-# `modelspec offline rank --json` answers. On push to main only, the `deploy`
+# MODEL-68, and MODEL-80's `POST /v1/policy-check` on the same Worker. Builds
+# the Python bundle, proves it bundles, and runs the byte-identity suite that
+# holds `POST /v1/rank` to what `modelspec offline rank --json` answers.
+#
+# This workflow never touches the policy determinations. They are the paid
+# product, they live outside this repository, and they reach the Worker only
+# through a KV load run from the private checkout — see
+# docs/policy-check-api.md. Nothing here is given a credential that could read
+# them. On push to main only, the `deploy`
 # job publishes the Worker to api.modelspec.dev and refuses to pass until the
 # version it just pushed is the version answering. PR runs never reach that job
 # or its secrets.
@@ -64,6 +70,12 @@ jobs:
 
       - name: Byte-identity against `modelspec offline rank --json`
         run: python -m pytest -q tests/test_rank_worker.py
+
+      - name: The policy-check endpoint (MODEL-80)
+        # Runs under CPython against the real catalogue, with no determinations
+        # in reach: the private store is not available to this repository's CI
+        # and never will be (docs/policy-check-api.md, the trust boundary).
+        run: python -m pytest -q tests/test_policy_check.py
 
       - name: Build the Worker bundle
         working-directory: api/worker
@@ -227,5 +239,29 @@ jobs:
           if [ "$status" != 405 ]; then fail "DELETE /v1/rank returned HTTP ${status}, not the documented 405"; fi
           probe /v1/health -X DELETE
           if [ "$status" != 405 ]; then fail "DELETE /v1/health returned HTTP ${status}, not the documented 405"; fi
+          probe /v1/policy-check -X DELETE
+          if [ "$status" != 405 ]; then fail "DELETE /v1/policy-check returned HTTP ${status}, not the documented 405"; fi
+
+          # 7. The policy-check endpoint answers, and says which tier answered.
+          #    A free-tier answer is a complete answer with its limits labelled;
+          #    it must never look like a paid one (MODEL-80).
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' \
+            -d '{"policy":{"origin":{"permitted_countries":["US"]}},"limit":3}'
+          if [ "$status" != 200 ]; then fail "POST /v1/policy-check returned HTTP ${status}, not 200"; fi
+          python3 .github/scripts/check_policy_response.py verdicts body.json "$probe_path" "$status" || exit 1
+
+          # 8. A caller who cannot act on "nobody knows" gets a hard failure,
+          #    not a 200 they have to audit.
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' \
+            -d '{"policy":{"commercial_use":{"required":true}},"require_no_undetermined":true}'
+          if [ "$status" != 422 ]; then fail "require_no_undetermined returned HTTP ${status}, not the documented 422"; fi
+          python3 .github/scripts/check_policy_response.py undetermined body.json "$probe_path" "$status" || exit 1
+
+          # 9. An empty policy is refused rather than passing the catalogue.
+          probe /v1/policy-check -X POST \
+            -H 'content-type: application/json' -d '{"policy":{}}'
+          if [ "$status" != 400 ]; then fail "an empty policy returned HTTP ${status}, not 400"; fi
 
           echo "api.modelspec.dev is live on ${GITHUB_SHA}"

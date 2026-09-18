@@ -440,3 +440,44 @@ Its status codes map onto the exit codes above:
 | `502` the published export could not be read | — |
 
 Full contract: [`rank-api.md`](rank-api.md).
+
+## The live policy-check API (MODEL-80)
+
+`POST https://api.modelspec.dev/v1/policy-check` takes a policy document —
+required licence terms, permitted origin countries, required processing regions,
+a commercial-use requirement — and returns, per model **and per platform**, one
+of three verdicts.
+
+There is no CLI surface for it yet (`REV-6`), so nothing in the sections above
+changes. It is documented here because its three-state answer is the same
+discipline this contract already states for policy fields, and a consumer of one
+should be able to find the other.
+
+**`undetermined` is a verdict, not a missing `pass`.** In the response schema it
+is structurally distinct: every check carries exactly one of `satisfied`,
+`violated` or `undetermined` as a sibling key, and every row exactly one of
+`passed`, `failed`, `undetermined`. A consumer written against `satisfied` finds
+no `satisfied` key on an undetermined check, so the mistake surfaces in the
+caller's code rather than in their deployment. `require_no_undetermined: true`
+turns any undetermined row into a documented `422`.
+
+That follows directly from [the policy-field rules above](#policy-fields-and-the-one-major-bump-they-cost-model-77):
+`unspecified`, `withheld` and `unresearched` describe a file's contents, not the
+world, and none of them is ever read as a permission. Nor is a value whose only
+citation is `legacy-import`.
+
+Its status codes map onto the exit codes above:
+
+| Endpoint | CLI |
+|---|---|
+| `200` verdicts | `0` |
+| `400` refused (malformed body, empty policy, unknown model or platform) | `1` |
+| `422` the caller demanded no undetermined rows and there are some | `2` |
+| `502` the published policy export could not be read | — |
+| `503` entitled to the determinations, and they could not be read | — |
+
+The endpoint is free; the determinations it reads are not, and the difference is
+labelled on every response (`determinations.included`,
+`undetermined_for_lack_of_entitlement`) rather than degraded silently.
+
+Full contract: [`policy-check-api.md`](policy-check-api.md).

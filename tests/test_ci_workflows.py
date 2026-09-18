@@ -355,8 +355,13 @@ def test_the_route_covers_the_whole_host_including_the_bare_root() -> None:
 def test_the_worker_answers_an_unknown_path_itself() -> None:
     source = WORKER_ENTRY.read_text(encoding="utf-8")
     assert "HTTP_NOT_FOUND" in source, "unknown paths are not answered here"
-    assert 'ACCEPTED_ENDPOINTS = ("POST /v1/rank", "GET /v1/health")' in source, (
-        "a 404 that does not name the versioned paths is a dead end")
+    assert "ACCEPTED_ENDPOINTS = (" in source
+    # Membership rather than the literal tuple: an endpoint added to the Worker
+    # has to be added here too, but adding one must not fail this test for the
+    # endpoints that were already right.
+    for endpoint in _checker().ACCEPTED_ENDPOINTS:
+        assert f'"{endpoint}"' in source, (
+            f"a 404 that does not name {endpoint} is a dead end")
 
 
 def test_the_worker_refuses_a_verb_on_every_endpoint_it_serves() -> None:
@@ -381,7 +386,7 @@ def test_the_not_found_check_demands_the_versioned_paths() -> None:
     checker = _checker()
     good = {"service_commit": "abc", "result": [],
             "error": {"code": "not_found", "message": "no endpoint at /",
-                      "accepted": ["POST /v1/rank", "GET /v1/health"]}}
+                      "accepted": list(checker.ACCEPTED_ENDPOINTS)}}
     assert checker.check_not_found(good) == []
     assert checker.check_not_found({**good, "error": {**good["error"], "accepted": []}}), \
         "a 404 naming no endpoint passed"

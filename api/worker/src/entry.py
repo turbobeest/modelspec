@@ -1,10 +1,21 @@
-"""The rank Worker's Cloudflare entry point (MODEL-68).
+"""The Worker's Cloudflare entry point (MODEL-68, MODEL-80).
 
 Deliberately thin. Everything that decides what the answer is lives in
-`rank_service.py`, which imports nothing from the Workers runtime and is
-therefore exercised directly by `tests/test_rank_worker.py` under CPython. What
-is left here is transport: route, read the body, fetch the published export,
-serialise, and report the deployed version.
+`rank_service.py` and `policy_service.py`, which import nothing from the
+Workers runtime and are therefore exercised directly by
+`tests/test_rank_worker.py` and `tests/test_policy_check.py` under CPython.
+What is left here is transport: route, read the body, fetch the published
+export, read the determination store, serialise, and report the deployed
+version.
+
+Two endpoints, and they differ in one way that matters. `POST /v1/rank` holds
+no private data at all. `POST /v1/policy-check` (MODEL-80) answers from the
+public export *plus*, for an entitled caller, the policy determinations — which
+are the paid product, are never in this repository, and reach the Worker only
+through Workers KV, staged by `api/worker/load_determinations.py`. See
+`docs/policy-check-api.md` for the trust boundary. `_entitlement()` below is the
+one place a request is granted the private store, and it is the seam MODEL-69
+fills.
 
 The export is the same static JSON the sites and the CLI read
 (`https://modelspec.dev/api/rank/...`). There is no database and no private
@@ -28,6 +39,9 @@ from urllib.parse import urlparse
 from js import fetch
 from workers import Response, WorkerEntrypoint
 
+import hashlib
+
+import policy_service
 import rank_service as service
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
@@ -36,11 +50,28 @@ import rank_service as service
 #: answer.
 CANDIDATES_PATH = "/api/rank/candidates.json"
 HARDWARE_PATH = "/api/rank/hardware.json"
+#: The public half of the compliance answer (MODEL-80): licence, origin,
+#: commercial-use grant and per-platform availability for every card.
+POLICY_PATH = "/api/policy/catalogue.json"
+
+#: KV keys holding the private determinations, staged by
+#: `api/worker/load_determinations.py`. The manifest is read first and verified
+#: against the blobs, so a half-finished load is never served.
+KV_MANIFEST = "determinations/manifest"
+KV_COMMERCIAL_USE = "determinations/commercial_use"
+KV_RESIDENCY = "determinations/residency"
 
 #: Everything this Worker serves. Named back to the caller by every 404, so an
 #: unrouted path — the bare root included — is a usable answer rather than a
-#: dead end. `.github/scripts/check_rank_response.py` asserts both are named.
-ACCEPTED_ENDPOINTS = ("POST /v1/rank", "GET /v1/health")
+#: dead end. `.github/scripts/check_rank_response.py` asserts every one of them
+#: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
+#: `/v1/rank` is: a caller who mistypes it must be told it exists.
+ACCEPTED_ENDPOINTS = ("POST /v1/rank", "POST /v1/policy-check", "GET /v1/health")
+
+#: The subset that takes a body. Both refuse a wrong verb through the one
+#: `_method_not_allowed` below, and a path outside this tuple is a 404 before
+#: anything is read or fetched.
+POST_ENDPOINTS = ("/v1/rank", "/v1/policy-check")
 
 #: How long a fetched export is reused inside one isolate. Short enough that a
 #: site deploy reaches callers quickly, long enough that a burst of requests
@@ -50,6 +81,13 @@ EXPORT_TTL_SECONDS = 300
 #: Module-scope, so it survives across requests within an isolate and is
 #: rebuilt by the memory snapshot on a cold start.
 _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "error": None}
+
+#: The policy export and the determination store, cached on the same terms. The
+#: determinations change when someone runs the loader, which is rare; the TTL
+#: is the same one so that a deploy and a load both reach callers in five
+#: minutes rather than by two different rules.
+_policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
+_store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None}
 
 
 async def _get_json(url: str):
@@ -87,6 +125,98 @@ async def _load_export(origin: str, *, force: bool = False):
     return candidates, hardware
 
 
+async def _load_policy_catalogue(origin: str):
+    """Fetch `/api/policy/catalogue.json`, or reuse this isolate's copy.
+
+    Same posture as `_load_export`: a failed refresh keeps a good copy rather
+    than turning a working endpoint into an error.
+    """
+    fresh = (time.time() - float(_policy_cache["at"])) < EXPORT_TTL_SECONDS
+    if fresh and _policy_cache["catalogue"] is not None:
+        return _policy_cache["catalogue"]
+    try:
+        catalogue = await _get_json(origin + POLICY_PATH)
+    except Exception as exc:  # noqa: BLE001 - surfaced on /v1/health, never swallowed
+        _policy_cache["error"] = f"{type(exc).__name__}: {exc}"
+        if _policy_cache["catalogue"] is not None:
+            return _policy_cache["catalogue"]
+        raise
+    _policy_cache.update({"at": time.time(), "catalogue": catalogue, "error": None})
+    return catalogue
+
+
+async def _load_determinations(env):
+    """Read the determination store out of KV, or return `None`.
+
+    `None` means "not available", and every caller of this treats that as a
+    refusal rather than as an empty store: an empty store would answer
+    `undetermined` for everything, which is exactly the free answer, which is
+    the one thing a paid caller must never receive by accident.
+
+    The manifest is read first and each blob is verified against the SHA-256 it
+    records. That is what makes the loader's write order meaningful — a load
+    that died between the two blobs leaves a manifest describing the previous
+    pair, and a mismatch here is a hard failure rather than a half-snapshot.
+    """
+    kv = getattr(env, "DETERMINATIONS", None)
+    if kv is None:
+        _store_cache["error"] = "no DETERMINATIONS KV binding on this deployment"
+        return None
+    fresh = (time.time() - float(_store_cache["at"])) < EXPORT_TTL_SECONDS
+    if fresh and _store_cache["store"] is not None:
+        return _store_cache["store"]
+
+    try:
+        manifest_text = await kv.get(KV_MANIFEST)
+        if manifest_text is None:
+            raise RuntimeError(f"{KV_MANIFEST} is not in the namespace; run "
+                               "api/worker/load_determinations.py")
+        manifest = json.loads(str(manifest_text))
+        blobs = {}
+        for key in (KV_COMMERCIAL_USE, KV_RESIDENCY):
+            text = await kv.get(key)
+            if text is None:
+                raise RuntimeError(f"{key} is named by the manifest and is not in "
+                                   "the namespace")
+            text = str(text)
+            expected = (manifest.get("blobs") or {}).get(key, {}).get("sha256")
+            actual = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            if expected != actual:
+                raise RuntimeError(
+                    f"{key} does not match the manifest (sha256 {actual[:12]} vs "
+                    f"{expected}). The bundle is mid-load or was written by hand.")
+            blobs[key] = json.loads(text)
+        store = {
+            "bundle_version": manifest.get("bundle_version"),
+            "generated_on": manifest.get("generated_on"),
+            "commercial_use": blobs[KV_COMMERCIAL_USE].get("commercial_use") or {},
+            "residency": blobs[KV_RESIDENCY].get("residency") or {},
+        }
+    except Exception as exc:  # noqa: BLE001 - reported; never degraded into a free answer
+        _store_cache["error"] = f"{type(exc).__name__}: {exc}"
+        return None
+
+    _store_cache.update({"at": time.time(), "store": store, "error": None})
+    return store
+
+
+def _entitlement(request, env) -> str:
+    """Which store this request may read. **The single seam MODEL-69 fills.**
+
+    Nothing here authenticates anything, on purpose: keys, tiers and rate limits
+    are MODEL-69's, and a second opinion about who a caller is would be a second
+    place for them to disagree. Until that lands, every request is the free
+    tier, which is a complete and honest answer — `determinations.included` says
+    `false` on it and every check it could not settle says `available_in_tier:
+    paid` — and not a degraded one.
+
+    MODEL-69 replaces the body of this function with its own tier lookup and
+    returns `policy_service.ENTITLEMENT_DETERMINATIONS` for a paid key. Nothing
+    else in this file or in `policy_service.py` changes.
+    """
+    return policy_service.ENTITLEMENT_PUBLIC
+
+
 def _json_response(status: int, body: dict) -> Response:
     return Response(
         json.dumps(body, indent=2, default=str),
@@ -113,7 +243,7 @@ class Default(WorkerEntrypoint):
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
             return await self._health(service_commit, origin)
-        if path != "/v1/rank":
+        if path not in POST_ENDPOINTS:
             # Including the bare root: the route covers the whole host, so an
             # unknown path is answered here rather than left to Cloudflare's
             # 522, which reads like an outage. No export fetch — a crawler
@@ -128,23 +258,35 @@ class Default(WorkerEntrypoint):
         if method != "POST":
             return self._method_not_allowed(service_commit, path, "POST", method)
 
+        max_body = (policy_service.MAX_BODY_BYTES if path == "/v1/policy-check"
+                    else service.MAX_BODY_BYTES)
         raw = await request.text()
-        if len(raw.encode("utf-8")) > service.MAX_BODY_BYTES:
+        if len(raw.encode("utf-8")) > max_body:
             return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "payload_too_large",
-                          "message": f"the body must be at most {service.MAX_BODY_BYTES} bytes"},
+                          "message": f"the body must be at most {max_body} bytes"},
                 "result": [],
             })
 
         try:
             payload = json.loads(raw) if raw.strip() else None
         except ValueError as exc:
-            status, body = service.error_response(
-                service.RequestError("invalid_request", f"the body is not valid JSON: {exc}"),
-                None, service_commit, origin)
+            if path == "/v1/policy-check":
+                status, body = policy_service.error_response(
+                    policy_service.RequestError(
+                        "invalid_request", f"the body is not valid JSON: {exc}"),
+                    None, service_commit, origin)
+            else:
+                status, body = service.error_response(
+                    service.RequestError(
+                        "invalid_request", f"the body is not valid JSON: {exc}"),
+                    None, service_commit, origin)
             return _json_response(status, body)
+
+        if path == "/v1/policy-check":
+            return await self._policy_check(payload, service_commit, origin)
 
         try:
             candidates, hardware = await _load_export(origin)
@@ -180,6 +322,43 @@ class Default(WorkerEntrypoint):
             "result": [],
         })
 
+    async def _policy_check(self, payload, service_commit: str, origin: str) -> Response:
+        """`POST /v1/policy-check` (MODEL-80).
+
+        The entitlement is decided first and the store is read only when the
+        request is entitled to it, so the free path never touches KV. When an
+        entitled request cannot read the store, `policy_service.check` refuses
+        with 503 rather than answering from the public export alone — a paid
+        caller cannot tell that answer from a real one.
+        """
+        try:
+            catalogue = await _load_policy_catalogue(origin)
+        except Exception as exc:  # noqa: BLE001 - reported, with the origin named
+            return _json_response(service.HTTP_BAD_GATEWAY, {
+                "schema_version": policy_service.SCHEMA_VERSION,
+                "endpoint": "policy-check",
+                "service_commit": service_commit,
+                "export_origin": origin,
+                "error": {"code": "export_unavailable",
+                          "message": f"could not read the policy export: {exc}"},
+                "result": [],
+            })
+
+        entitlement = _entitlement(None, self.env)
+        store = None
+        if entitlement == policy_service.ENTITLEMENT_DETERMINATIONS:
+            store = await _load_determinations(self.env)
+
+        try:
+            status, body = policy_service.check(payload, catalogue, store, entitlement,
+                                                service_commit, origin)
+        except policy_service.RequestError as exc:
+            if exc.code == "determinations_unavailable":
+                exc.detail.setdefault("last_error", _store_cache.get("error"))
+            status, body = policy_service.error_response(exc, catalogue, service_commit,
+                                                         origin)
+        return _json_response(status, body)
+
     async def _health(self, service_commit: str, origin: str) -> Response:
         """What version is running, and can it read the catalogue.
 
@@ -196,16 +375,44 @@ class Default(WorkerEntrypoint):
         except Exception as exc:  # noqa: BLE001 - the diagnosis is the point
             error = f"{type(exc).__name__}: {exc}"
 
-        status = service.HTTP_OK if loaded else service.HTTP_BAD_GATEWAY
+        policy_loaded, policy_count = False, 0
+        try:
+            catalogue = await _load_policy_catalogue(origin)
+            policy_loaded = True
+            policy_count = len(catalogue.get("models") or [])
+        except Exception as exc:  # noqa: BLE001 - reported, not hidden
+            error = error or f"{type(exc).__name__}: {exc}"
+
+        status = service.HTTP_OK if loaded and policy_loaded else service.HTTP_BAD_GATEWAY
         return _json_response(status, {
             "schema_version": service.SCHEMA_VERSION,
             "endpoint": "health",
             "service_commit": service_commit,
             "export_origin": origin,
             "export_loaded": loaded,
+            "policy_export_loaded": policy_loaded,
             "build": {"commit": build.get("commit"),
                       "built_at": build.get("built_at"),
                       "export_schema_version": build.get("export_schema_version")},
             "model_count": model_count,
-            "last_error": error or _cache.get("error"),
+            "policy_model_count": policy_count,
+            # Whether a determination bundle is loadable, and which one — the
+            # version and the day it was staged, so a KV load can be verified
+            # from outside. Deliberately no counts and no content: this is a
+            # public endpoint and the determinations are the product.
+            "determinations": await self._determinations_health(),
+            "last_error": error or _cache.get("error") or _policy_cache.get("error"),
         })
+
+    async def _determinations_health(self) -> dict:
+        """Is a bundle staged, and which one. Metadata only, never content."""
+        if getattr(self.env, "DETERMINATIONS", None) is None:
+            return {"bound": False, "loaded": False, "bundle_version": None,
+                    "generated_on": None, "last_error": None}
+        store = await _load_determinations(self.env)
+        if store is None:
+            return {"bound": True, "loaded": False, "bundle_version": None,
+                    "generated_on": None, "last_error": _store_cache.get("error")}
+        return {"bound": True, "loaded": True,
+                "bundle_version": store.get("bundle_version"),
+                "generated_on": store.get("generated_on"), "last_error": None}

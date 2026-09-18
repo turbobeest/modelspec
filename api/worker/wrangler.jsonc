@@ -27,13 +27,33 @@
   // The whole host, not just `/v1/*`. A path outside the route has no origin —
   // `100::` is the discard prefix — so Cloudflare answers 522, which is
   // indistinguishable from the endpoint being down. The Worker already 404s
-  // every path it does not serve, naming `/v1/health` and `/v1/rank`; widening
+  // every path it does not serve, naming `/v1/health`, `/v1/rank` and
+  // `/v1/policy-check`; widening
   // the route is what lets that honest answer reach the bare root. It also
   // removes a 522 the deploy's own smoke test hit and could not read
   // (MODEL-68 follow-up).
   "routes": [
     { "pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev" }
   ],
+  // MODEL-80. The policy determinations reach the Worker through Workers KV and
+  // through nothing else: they are the paid product and are never committed to
+  // this repository (docs/business/decision-record.md §2.2). The binding is
+  // commented out because the namespace does not exist yet and wrangler refuses
+  // a deploy that names a missing one — creating it is a console/CLI step for
+  // whoever holds the Cloudflare account:
+  //
+  //     npx wrangler kv namespace create DETERMINATIONS
+  //
+  // then paste the printed id below and uncomment. Until then the endpoint
+  // answers every request from the public export, which is the free tier's
+  // complete and labelled answer — `determinations.included: false` — not a
+  // degraded one. `_entitlement()` in src/entry.py grants the store, and it
+  // grants it to nobody until MODEL-69 supplies the tier, so an unbound
+  // namespace changes no answer today.
+  //
+  // "kv_namespaces": [
+  //   { "binding": "DETERMINATIONS", "id": "<paste the id here>" }
+  // ],
   "observability": { "enabled": true },
   "vars": {
     // Where the published static export is read from. The Worker holds no data
