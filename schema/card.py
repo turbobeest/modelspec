@@ -1140,8 +1140,10 @@ class ModelCard(BaseModel):
     @computed_field
     @property
     def applicable_field_coverage(self) -> float:
-        """Percent of this card's type-applicable schema fields that are filled.
+        """Internal statistic: percent of type-applicable schema fields filled.
 
+        Not published. It is not a Model node property, not in the graph
+        export, and not shown by ``modelspec info`` or ``modelspec stats``.
         Nested modality details and the Capabilities block declare
         ``__applicable_model_types__``; those subtrees count only when the
         card's ``model_type`` or a ``model_subtype`` is in the set. Untagged

@@ -151,6 +151,21 @@ def _node_props(node) -> dict[str, Any]:
     return {}
 
 
+_UNPUBLISHED_MODEL_KEYS = ("applicable_field_coverage", "card_completeness")
+
+
+def _published_model_props(node) -> dict[str, Any]:
+    """Model node properties minus the internal coverage statistic.
+
+    A stale FalkorDB may still hold the key from before MODEL-74 stopped
+    writing it. Drop it here so ``info`` cannot republish it.
+    """
+    props = dict(_node_props(node))
+    for key in _UNPUBLISHED_MODEL_KEYS:
+        props.pop(key, None)
+    return props
+
+
 def _edge_props(edge) -> dict[str, Any]:
     """Extract properties dict from a FalkorDB edge."""
     if hasattr(edge, "properties"):
@@ -326,7 +341,7 @@ def info(
         console.print(f"[bold red]Model not found:[/] {model_id}")
         raise typer.Exit(1)
 
-    m = _node_props(result.result_set[0][0])
+    m = _published_model_props(result.result_set[0][0])
 
     # Fetch provider
     prov_result = graph.query(
@@ -422,9 +437,6 @@ def info(
     ]
     if tags:
         identity_lines.append(f"  Tags:     {', '.join(tags)}")
-    identity_lines.append(
-        f"  Applicable field coverage: {_fmt_float(m.get('applicable_field_coverage'), '%')}"
-    )
 
     console.print(Panel("\n".join(identity_lines), title="Identity", border_style="blue"))
 
@@ -665,7 +677,7 @@ def compare(
         if not result.result_set:
             console.print(f"[bold red]Model not found:[/] {mid}")
             raise typer.Exit(1)
-        m = _node_props(result.result_set[0][0])
+        m = _published_model_props(result.result_set[0][0])
         models.append(m)
 
         # Benchmarks
@@ -1011,7 +1023,7 @@ def rank(
 def stats(
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
 ) -> None:
-    """Show database overview: node counts, edge counts, coverage."""
+    """Show database overview: node counts, edge counts, type breakdown."""
     graph = _get_graph()
 
     # Node counts by label
@@ -1030,13 +1042,6 @@ def stats(
         count_r = graph.query(f"MATCH ()-[r:{rtype}]->() RETURN count(r)")
         edge_counts[rtype] = count_r.result_set[0][0]
 
-    # Type-applicable field coverage
-    comp_result = graph.query(
-        "MATCH (m:Model) "
-        "RETURN m.id, m.display_name, m.model_type, m.applicable_field_coverage "
-        "ORDER BY m.applicable_field_coverage DESC"
-    )
-
     # Type breakdown
     type_result = graph.query(
         "MATCH (m:Model) "
@@ -1048,10 +1053,6 @@ def stats(
         data = {
             "node_counts": node_counts,
             "edge_counts": edge_counts,
-            "models": [
-                {"id": r[0], "name": r[1], "type": r[2], "applicable_field_coverage": r[3]}
-                for r in comp_result.result_set
-            ],
             "type_breakdown": [
                 {"type": r[0], "count": r[1]}
                 for r in type_result.result_set
@@ -1095,27 +1096,6 @@ def stats(
         for row in type_result.result_set:
             type_table.add_row(row[0] or "(untyped)", str(row[1]))
         console.print(type_table)
-
-    # Completeness
-    if comp_result.result_set:
-        comp_table = Table(title="Applicable field coverage", show_header=True, header_style="bold yellow")
-        comp_table.add_column("Model", style="bold", min_width=30)
-        comp_table.add_column("Type", style="dim")
-        comp_table.add_column("Coverage", justify="right")
-        for row in comp_result.result_set:
-            pct = row[3]
-            if pct is not None:
-                if pct >= 50:
-                    clr = "green"
-                elif pct >= 25:
-                    clr = "yellow"
-                else:
-                    clr = "red"
-                comp_str = f"[{clr}]{pct:.1f}%[/]"
-            else:
-                comp_str = "-"
-            comp_table.add_row(row[1] or row[0], row[2] or "-", comp_str)
-        console.print(comp_table)
 
 
 # ───────────────────────────────────────────────────────────────

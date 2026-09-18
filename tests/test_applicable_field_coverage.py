@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -177,8 +179,13 @@ def test_to_yaml_does_not_emit_coverage() -> None:
 
 
 def test_owned_consumers_do_not_use_the_old_name() -> None:
-    allowed_alias = ROOT / "schema" / "card.py"
     this_file = Path(__file__).resolve()
+    allowed = {
+        ROOT / "schema" / "card.py",  # deprecated alias for scripts/**
+        ROOT / "cli" / "modelspec" / "cli.py",  # strips a stale FalkorDB key
+        ROOT / "docs" / "cli-contract.md",  # names the key that left the export
+        ROOT / "tests" / "test_graph_export.py",  # asserts the key is absent
+    }
     roots = [
         ROOT / "schema" / "card.py",
         ROOT / "schema" / "graph.py",
@@ -194,14 +201,136 @@ def test_owned_consumers_do_not_use_the_old_name() -> None:
         for path in paths:
             if not path.is_file() or path.suffix not in {".py", ".md"}:
                 continue
-            if path.resolve() == this_file:
+            if path.resolve() in {this_file, *[p.resolve() for p in allowed]}:
                 continue
-            text = path.read_text(encoding="utf-8")
-            if OLD_NAME not in text:
-                continue
-            if path.resolve() == allowed_alias:
-                # The deprecated alias for scripts/** this ticket does not own.
-                assert f"def {OLD_NAME}(self)" in text
-                continue
-            leftover.append(str(path.relative_to(ROOT)))
+            if OLD_NAME in path.read_text(encoding="utf-8"):
+                leftover.append(str(path.relative_to(ROOT)))
     assert leftover == []
+    alias = (ROOT / "schema" / "card.py").read_text(encoding="utf-8")
+    assert f"def {OLD_NAME}(self)" in alias
+
+
+PUBLISHED_COVERAGE_KEYS = ("applicable_field_coverage", "card_completeness")
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain_json(text: str) -> dict:
+    return json.loads(_ANSI.sub("", text))
+
+
+class _FakeNode:
+    def __init__(self, props: dict) -> None:
+        self.properties = props
+
+
+class _FakeResult:
+    def __init__(self, rows: list) -> None:
+        self.result_set = rows
+
+
+class _InfoGraph:
+    """Enough of FalkorDB for ``modelspec info`` to render one model."""
+
+    def query(self, q: str, params: dict | None = None) -> _FakeResult:
+        if "RETURN m" in q and "Model {id:" in q:
+            return _FakeResult([[_FakeNode({
+                "id": "t/m",
+                "display_name": "M",
+                "status": "active",
+                "applicable_field_coverage": 15.0,
+                "card_completeness": 12.0,
+            })]])
+        return _FakeResult([])
+
+
+class _StatsGraph:
+    """Enough of FalkorDB for ``modelspec stats`` counts and type breakdown."""
+
+    def query(self, q: str, params: dict | None = None) -> _FakeResult:
+        if "db.labels" in q:
+            return _FakeResult([["Model"]])
+        if "db.relationshipTypes" in q:
+            return _FakeResult([])
+        if "RETURN count(" in q:
+            return _FakeResult([[3]])
+        if "RETURN m.model_type" in q:
+            return _FakeResult([["llm-chat", 3]])
+        raise AssertionError(f"stats should not query coverage: {q}")
+
+
+def test_info_does_not_print_a_coverage_percentage(monkeypatch) -> None:
+    from typer.testing import CliRunner
+
+    from cli.modelspec import cli as cli_mod
+
+    monkeypatch.setattr(cli_mod, "_get_graph", lambda: _InfoGraph())
+    result = CliRunner().invoke(cli_mod.app, ["info", "t/m"])
+    assert result.exit_code == 0, result.output
+    out = result.stdout
+    assert "%" not in out
+    assert "coverage" not in out.lower()
+    assert "complete" not in out.lower()
+
+
+def test_info_json_omits_coverage_even_if_the_node_still_has_it(monkeypatch) -> None:
+    from typer.testing import CliRunner
+
+    from cli.modelspec import cli as cli_mod
+
+    monkeypatch.setattr(cli_mod, "_get_graph", lambda: _InfoGraph())
+    result = CliRunner().invoke(cli_mod.app, ["info", "t/m", "-f", "json"])
+    assert result.exit_code == 0, result.output
+    data = _plain_json(result.stdout)
+    for key in PUBLISHED_COVERAGE_KEYS:
+        assert key not in data["model"]
+
+
+def test_stats_does_not_query_or_rank_by_coverage(monkeypatch) -> None:
+    from typer.testing import CliRunner
+
+    from cli.modelspec import cli as cli_mod
+
+    monkeypatch.setattr(cli_mod, "_get_graph", lambda: _StatsGraph())
+    result = CliRunner().invoke(cli_mod.app, ["stats"])
+    assert result.exit_code == 0, result.output
+    out = result.stdout.lower()
+    assert "coverage" not in out
+    assert "%" not in result.stdout
+    json_result = CliRunner().invoke(cli_mod.app, ["stats", "-f", "json"])
+    assert json_result.exit_code == 0, json_result.output
+    data = _plain_json(json_result.stdout)
+    assert "models" not in data
+    blob = json.dumps(data)
+    for key in PUBLISHED_COVERAGE_KEYS:
+        assert key not in blob
+
+
+def test_ingest_does_not_put_coverage_on_the_model_node() -> None:
+    from schema.graph import CollectingSink, ingest_model_card
+
+    card = _card(ModelType.LLM_CHAT)
+    card.modalities.text.context_window = 128_000
+    assert card.applicable_field_coverage > 0
+    sink = CollectingSink()
+    ingest_model_card(sink, card)
+    props = sink.nodes[("Model", card.identity.model_id)]
+    for key in PUBLISHED_COVERAGE_KEYS:
+        assert key not in props
+
+
+def test_graph_export_nodes_do_not_carry_coverage(tmp_path: Path) -> None:
+    import json
+
+    from pipeline.graph import write
+    from schema.graph import CollectingSink, ingest_model_card
+
+    card = ModelCard.from_yaml_file(ROOT / "models/zhipu/glm-5-3-flash.md")
+    assert card.applicable_field_coverage > 0
+    sink = CollectingSink()
+    ingest_model_card(sink, card)
+    write(tmp_path, sink, {"commit": "test"})
+    nodes = json.loads((tmp_path / "nodes.json").read_text(encoding="utf-8"))["nodes"]
+    assert nodes
+    for node in nodes:
+        for key in PUBLISHED_COVERAGE_KEYS:
+            assert key not in node
