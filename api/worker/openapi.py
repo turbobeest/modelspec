@@ -1341,14 +1341,25 @@ def _health_samples() -> list[dict[str, Any]]:
         "policy_model_count": _policy_export()["count"],
         "last_error": None,
     }
+    # One per store state (`entry.py::STORE_*`). Only `broken` has a last_error:
+    # an unbound or empty store is a condition, not a fault.
+    empty_message = ("no determinations loaded yet: determinations/manifest is not "
+                     "in the namespace; run api/worker/load_determinations.py")
+
+    def store(bound, state, loaded, message=None, error=None, version=None, day=None):
+        return {"bound": bound, "state": state, "loaded": loaded,
+                "bundle_version": version, "generated_on": day,
+                "message": message, "last_error": error}
+
     samples = [
-        {**base, "determinations": {"bound": False, "loaded": False, "bundle_version": None,
-                                    "generated_on": None, "last_error": None}},
-        {**base, "determinations": {"bound": True, "loaded": True, "bundle_version": "1",
-                                    "generated_on": "2026-01-01", "last_error": None}},
+        {**base, "determinations": store(False, "unbound", False,
+                                         "no DETERMINATIONS KV binding on this deployment")},
+        {**base, "determinations": store(True, "empty", False, empty_message)},
+        {**base, "determinations": store(True, "loaded", True, version="1",
+                                         day="2026-01-01")},
         {**base, "last_error": "RuntimeError: example",
-         "determinations": {"bound": True, "loaded": False, "bundle_version": None,
-                            "generated_on": None, "last_error": "RuntimeError: example"}},
+         "determinations": store(True, "broken", False, "RuntimeError: example",
+                                 "RuntimeError: example")},
     ]
     for name, keys, sample in (("_health", _entry_body_keys("_health"), samples[0]),
                                ("_determinations_health",
