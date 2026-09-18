@@ -241,26 +241,43 @@ def test_the_privacy_statement_says_keys_are_wired_and_not_enforced() -> None:
 def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     """The statement promises nothing of a request's content is written. Keep that true.
 
-    The Worker may bind two KV namespaces and no other store:
+    The Worker may bind two KV namespaces, one Durable Object, and no other store:
 
     * DETERMINATIONS — our own research, read-only from the Worker, disclosed;
     * ACCESS (MODEL-69, MODEL-73) — key records, per-key counters, Stripe event
       ids, subscription rows, session pointers and keyrefs, only alongside the
       statement's section saying exactly what it holds, and described as not
-      yet active for as long as the binding is staged as a comment.
+      yet active for as long as the binding is staged as a comment;
+    * CREDITS (MODEL-75) — a Durable Object ledger of prepaid x402 balances and
+      payment claims, only alongside the statement's section saying exactly
+      what it holds.
 
-    Any other store, any write outside the access modules, or an access module
-    writing anything taken from a request's body, makes the statement false.
+    Any other store, any write outside the access and credits modules, or an
+    access module writing anything taken from a request's body, makes the
+    statement false.
     """
     worker = REPO_ROOT / "api" / "worker"
     raw = (worker / "wrangler.jsonc").read_text(encoding="utf-8")
     config = _wrangler_config()
     for binding in ("d1_databases", "r2_buckets", "queues",
-                    "durable_objects", "hyperdrive", "analytics_engine_datasets"):
+                    "hyperdrive", "analytics_engine_datasets"):
         assert binding not in config, (
             f"the Worker now binds {binding}; the privacy statement says nothing "
             "from a request is written anywhere, and that has stopped being true"
         )
+    if "durable_objects" in config:
+        assert "CreditsObject" in config and '"name": "CREDITS"' in config, (
+            "a Durable Object other than CREDITS/CreditsObject is bound; "
+            "the privacy statement describes that ledger and nothing else")
+        for claim in ("`CREDITS`", "CreditsObject", "SHA-256 hash of",
+                      "two integers", "payment claim", "transaction hash",
+                      "no request body", "no IP address"):
+            assert claim in FLAT_PRIVACY, (
+                f"the CREDITS Durable Object is bound and the privacy statement "
+                f"does not say {claim!r}")
+        assert "X402_ENABLED" in FLAT_PRIVACY
+    else:
+        assert "CreditsObject" not in FLAT_PRIVACY or "not bound" in FLAT_PRIVACY
     bound = _kv_bindings(config)
     assert bound <= {"DETERMINATIONS", "ACCESS"}, (
         f"a KV namespace other than DETERMINATIONS and ACCESS is bound ({sorted(bound)}); "
@@ -288,13 +305,15 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     elif access_staged:
         assert "configured, not yet active" in FLAT_PRIVACY and "commented out" in FLAT_PRIVACY
 
-    # Only the access modules write. billing*.py decides; access_billing.py stores.
+    # Only the access modules write KV. billing*.py decides; access_billing.py stores.
+    # credits*.py mutate the Durable Object via SQL, not Workers KV.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
-        if not src.name.startswith("access"):
-            assert ".put(" not in body and ".delete(" not in body, (
-                f"{src.name} writes to KV; the privacy statement says the Worker "
-                "only ever reads from DETERMINATIONS")
+        if src.name.startswith("access") or src.name.startswith("credits"):
+            continue
+        assert ".put(" not in body and ".delete(" not in body, (
+            f"{src.name} writes to KV; the privacy statement says the Worker "
+            "only ever reads from DETERMINATIONS")
     _assert_access_writes_only_records_and_counters(worker / "src")
 
 

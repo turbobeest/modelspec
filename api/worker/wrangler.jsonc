@@ -84,6 +84,40 @@
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
     // Ships OFF. Secrets (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are
     // Wrangler secrets, test mode only, never in this file. See docs/billing.md.
-    "BILLING_ENABLED": "false"
-  }
+    "BILLING_ENABLED": "false",
+    // MODEL-75. x402 prepaid credits / per-call 402. Independent of Stripe
+    // (MODEL-73) and of ACCESS_ENFORCED. Ships OFF. Any value other than
+    // "false", "0", "no", "off" or "" reads as ON. See docs/x402.md.
+    "X402_ENABLED": "false",
+    // Mainnet USDC on Base (eip155:8453). Off: Base Sepolia only. Flipping
+    // this on without also setting X402_NETWORK / X402_ASSET / X402_PAY_TO
+    // for mainnet is refused at request time, not silently remapped.
+    "X402_MAINNET": "false",
+    // CAIP-2. Default is Base Sepolia. CDP facilitator table, read 2026-09-18:
+    // https://docs.cdp.coinbase.com/x402/seller/facilitator
+    "X402_NETWORK": "eip155:84532",
+    // Circle native USDC on Base Sepolia. Source, read 2026-09-18:
+    // https://developers.circle.com/stablecoins/usdc-contract-addresses
+    "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    // Receiving address. Empty until Jamie sets it. No private key belongs here.
+    "X402_PAY_TO": "",
+    // PLACEHOLDER price, atomic USDC (6 decimals). 1000 = $0.001. Allowed
+    // range 1000–10000 ($0.001–$0.01). Not a live rate.
+    "X402_PRICE_ATOMIC": "1000",
+    // Coinbase CDP facilitator origin. Paths /v2/x402/verify and /v2/x402/settle
+    // are appended. https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/x402-facilitator
+    "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform"
+  },
+  // MODEL-75. One Durable Object for the credit ledger. Workers KV cannot
+  // keep a balance non-negative under concurrent requests (no compare-and-set,
+  // eventual consistency). The object is created by this migration on deploy;
+  // there is no pre-created id to paste. Idle while X402_ENABLED is false.
+  "durable_objects": {
+    "bindings": [
+      { "name": "CREDITS", "class_name": "CreditsObject" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] }
+  ]
 }

@@ -118,6 +118,9 @@ sandbox = _load("access_sandbox")
 #: `_load` put `src/` on the path for.
 access = importlib.import_module("access")
 billing_mod = importlib.import_module("billing")
+#: Same reason as `access`: `x402.Config` is a dataclass, and `_load` does not
+#: put the module in `sys.modules` before the decorator runs.
+x402 = importlib.import_module("x402")
 
 if policy.SCHEMA_VERSION != service.SCHEMA_VERSION:
     # One document, one `info.version`. Two endpoints on two envelope versions
@@ -523,7 +526,9 @@ _POLICY_ERROR_PROBES: dict[str, tuple[dict[str, Any], bool]] = {
 #: Codes raised by the transport in `entry.py`, which cannot be driven from
 #: CPython (it imports the Workers runtime). Their statuses are read out of its
 #: syntax tree by `entry_error_codes`, not asserted here.
-_ENTRY_ONLY = {"not_found", "method_not_allowed", "payload_too_large", "export_unavailable"}
+_ENTRY_ONLY = {"not_found", "method_not_allowed", "payload_too_large", "export_unavailable",
+              "payment_required", "payment_failed", "invalid_payment", "x402_not_configured",
+              "credits_store_not_configured", "missing_holder"}
 
 
 def source_error_codes() -> set[str]:
@@ -977,6 +982,32 @@ def billing_enabled() -> bool:
 def access_store_bound() -> bool:
     """Whether the `ACCESS` KV binding is live (not staged as a comment)."""
     return '"binding": "ACCESS"' in _wrangler_live_lines()
+
+
+def x402_enabled() -> bool:
+    import re
+    found = re.search(r'"X402_ENABLED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return x402.flag(found.group(1) if found else None)
+
+
+def _x402() -> dict[str, Any]:
+    import re
+    live = _wrangler_live_lines()
+
+    def var(name: str, default: str = "") -> str:
+        found = re.search(rf'"{name}"\s*:\s*"([^"]*)"', live)
+        return found.group(1) if found else default
+
+    return {
+        "wired": True,
+        "enabled": x402_enabled(),
+        "mainnet": x402.flag(var("X402_MAINNET", "false")),
+        "network": var("X402_NETWORK", x402.NETWORK_BASE_SEPOLIA),
+        "price_atomic": int(var("X402_PRICE_ATOMIC", "1000")),
+        "placeholder_price": True,
+        "facilitator": var("X402_FACILITATOR_URL", x402.DEFAULT_ORIGIN),
+        "docs": "docs/x402.md",
+    }
 
 
 def entitlement_follows_tier() -> bool:
@@ -1656,9 +1687,27 @@ def build_spec() -> dict[str, Any]:
             "what_is_sold": billing_mod.WHAT_YOU_BUY,
             "documented_in": "docs/billing.md",
         },
+        "x-modelspec-x402": _x402(),
         "security": security,
         "servers": [{"url": SERVER_URL, "description": "production"}],
         "paths": {
+            "/v1/credits": {
+                "get": {
+                    "operationId": "credits",
+                    "summary": "The prepaid x402 credit balance for the presented API key.",
+                    "responses": {
+                        "200": _json_body(
+                            "The holder's available and reserved units.",
+                            {"$ref": "#/components/schemas/CreditsBalance"}),
+                        str(x402.HTTP_UNAUTHORIZED): _json_body(
+                            "missing_holder: no API key presented.",
+                            {"$ref": "#/components/schemas/AccessRefused"}),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/credits takes GET.")[1],
+                    },
+                },
+            },
             "/v1/health": {
                 "get": {
                     "operationId": "health",
@@ -1706,6 +1755,11 @@ def build_spec() -> dict[str, Any]:
                         str(service.HTTP_BAD_GATEWAY): transport(
                             service.HTTP_BAD_GATEWAY,
                             "The published export could not be read. Retry.")[1],
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required (MODEL-75, when X402_ENABLED). "
+                            "`PAYMENT-REQUIRED` header is the x402 v2 object; the body "
+                            "names price, payTo, network and how to pay.",
+                            {"$ref": "#/components/schemas/PaymentRequired"}),
                         **access_responses(),
                         str(access.HTTP_STORE_UNAVAILABLE): refused_by_access(
                             "access_store_not_configured: a live key was presented and this "
@@ -1749,6 +1803,9 @@ def build_spec() -> dict[str, Any]:
                         str(service.HTTP_BAD_GATEWAY): transport(
                             service.HTTP_BAD_GATEWAY,
                             "The published policy export could not be read. Retry.")[1],
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required (MODEL-75, when X402_ENABLED). Same 402 as /v1/rank.",
+                            {"$ref": "#/components/schemas/PaymentRequired"}),
                         **access_responses(),
                         str(policy.HTTP_DETERMINATIONS_UNAVAILABLE): refused_by_access(
                             "determinations_unavailable: entitled to the determinations by a "
@@ -1771,6 +1828,26 @@ def build_spec() -> dict[str, Any]:
                 "NoMatch": error_envelope(no_match_schema),
                 "RequestRefused": error_envelope(refused_schema),
                 **policy_schemas,
+                "PaymentRequired": error_envelope(_infer(
+                    x402.payment_required_body(
+                        x402.Config(
+                            enabled=True, mainnet=False,
+                            network=x402.NETWORK_BASE_SEPOLIA,
+                            asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
+                            pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+                            price_atomic=1000,
+                            facilitator_url=x402.DEFAULT_ORIGIN,
+                            resource_origin=_ORIGIN,
+                        ),
+                        {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
+                        "https://api.modelspec.dev/v1/rank",
+                    )
+                )["properties"]["error"]),
+                "CreditsBalance": _infer(x402.balance_body(
+                    {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
+                    __import__("credits").Balance("key:" + "a" * 64, 3, 1),
+                    enabled=False,
+                )),
                 "TransportError": error_envelope({
                     "type": "object",
                     "required": ["code", "message"],
