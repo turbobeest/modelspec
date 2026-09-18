@@ -102,6 +102,10 @@ def test_restricted_readings_state_their_restriction():
         ("nvidia-open-model-license", UsePermission.RESTRICTED),
         ("nvidia-open-model-agreement", UsePermission.ALLOWED),
         ("nvidia-nemotron-open-model-license", UsePermission.ALLOWED),
+        ("cogvideox", UsePermission.RESTRICTED),
+        ("glm-4", UsePermission.RESTRICTED),
+        ("glm-4-voice", UsePermission.RESTRICTED),
+        ("glm-edge", UsePermission.RESTRICTED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
@@ -141,6 +145,31 @@ def test_nvidia_open_model_and_nemotron_licences_are_different_documents():
     assert open_models.permission is UsePermission.RESTRICTED
     assert agreement.permission is UsePermission.ALLOWED
     assert nemotron.permission is UsePermission.ALLOWED
+
+
+def test_zhipu_hub_licences_are_four_documents():
+    """CogVideoX, glm-4-9b, glm-4-voice and GLM-Edge share a registration
+    form and are still four files. Citing glm-4 for CogVideoX would
+    manufacture evidence, and CogVideoX's 1 million monthly-visit cap is
+    not in the glm-4 text."""
+    keys = ("cogvideox", "glm-4", "glm-4-voice", "glm-edge")
+    readings = [reading_for(k) for k in keys]
+    assert all(r is not None for r in readings)
+    urls = {r.source.url for r in readings}
+    assert len(urls) == 4
+    for r in readings:
+        assert r.permission is UsePermission.RESTRICTED
+        assert "open.bigmodel.cn/mla/form" in r.conditions
+    assert "1 million" in readings[0].conditions
+    assert "1 million" not in readings[1].conditions
+
+
+def test_glm_4_hub_license_name_resolves_from_the_distribution_declaration():
+    r = licence_of_record(
+        "other", declared_licence="other", declared_licence_name="glm-4"
+    )
+    assert r.licence_key == "glm-4"
+    assert r.reason == "distribution-declaration"
 
 
 def test_an_unread_licence_produces_no_value_and_never_a_default():

@@ -524,6 +524,85 @@ _READINGS: dict[str, LicenceReading] = {
     ),
 }
 
+# ── MODEL-86 batch 5: Zhipu / Z.AI Hub licences ─────────────────────────────
+# Read 2026-09-18 from zai-org LICENSE files. Four documents. Commercial use
+# is granted after registration at open.bigmodel.cn/mla/form; CogVideoX also
+# caps that grant at 1 million monthly service visits. They are still four
+# files and each is cited as itself. Appended as its own block so a merge
+# with batch 2 (NVIDIA readings above) stays a clean append.
+_READINGS.update(
+    {
+        "cogvideox": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/CogVideoX-5b/raw/main/LICENSE",
+                "Users who wish to use the models for commercial purposes "
+                "must register and obtain a basic commercial license in "
+                "https://open.bigmodel.cn/mla/form .",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registering for a basic "
+                "commercial licence at open.bigmodel.cn/mla/form, and only "
+                "while monthly service visits stay at or below 1 million; "
+                "above that a further commercial licence is required. The "
+                "grant is revocable, non-transferable and non-sublicensable."
+            ),
+        ),
+        "glm-4": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-4-9b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with glm-4'; a model trained or "
+                "fine-tuned on these materials must prefix its name with "
+                "'glm-4'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+        "glm-4-voice": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-4-voice-9b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with glm-4'; a model trained or "
+                "fine-tuned on these materials must prefix its name with "
+                "'glm-4'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+        "glm-edge": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-edge-v-2b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with GLM-Edge'; a model trained "
+                "or fine-tuned on these materials must prefix its name with "
+                "'GLM-Edge'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+    }
+)
+
 # Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
 # longer spelling. Same document, same reading.
 _READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
