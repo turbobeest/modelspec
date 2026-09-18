@@ -64,7 +64,7 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: apache-2.0
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -865,10 +865,12 @@ sources:
 card_schema_version: '3.0'
 card_author: ''
 card_created: '2026-04-04'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Qwen3 30B-A3B
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
 
 ## Overview
 Qwen3-30B-A3B is a Mixture-of-Experts model from Alibaba's Qwen team with 30B total parameters but only 3B active per forward pass. This MoE architecture gives it surprisingly strong performance — competitive with much larger dense models — while fitting comfortably on consumer hardware including a MacBook Air with 24GB RAM.

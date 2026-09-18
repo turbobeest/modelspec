@@ -64,7 +64,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-nemotron-open-model-license/
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -819,15 +819,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # NVIDIA Nemotron 3 Nano 30B A3B Base BF16
 
 Auto-generated from HuggingFace Hub metadata for [nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-Base-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-Base-BF16).
+
+Licence: other. Creator distribution https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-nemotron-open-model-license/ (nvidia-nemotron-open-model-license) and Hub cardData.license other and license_name nvidia-nemotron-open-model-license, read 2026-09-18.

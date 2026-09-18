@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -848,15 +848,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-09-10'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-10'
+card_updated: '2026-09-18'
 ---
 
 # Llama Nemotron Ultra
 
 Carded from Hugging Face Hub [nvidia/Llama-3_1-Nemotron-Ultra-253B-v1](https://huggingface.co/nvidia/Llama-3_1-Nemotron-Ultra-253B-v1) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 253,401,268,224. No benchmark evidence attached.
+
+Licence: other. Creator distribution https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/ (nvidia-open-model-license) and Hub cardData.license other and license_name nvidia-open-model-license, read 2026-09-18.

@@ -452,11 +452,82 @@ _READINGS: dict[str, LicenceReading] = {
             "generation product."
         ),
     ),
+    "terms:qwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.alibabacloud.com/help/en/legal/latest/"
+            "alibaba-cloud-international-website-product-terms-of-service",
+            "Model Studio does not claim ownership of any Intellectual "
+            "Property Rights in the Output. You may use the Input and Output, "
+            "provided your use complies with applicable laws, the Agreement, "
+            "and our rules.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use of Model Studio Output is granted under Alibaba "
+            "Cloud International Website Product Terms of Service §4.48, but "
+            "you may not resell Model Studio or the AI models provided through "
+            "it, or use those models or their Output to train or develop "
+            "products or services that compete with Alibaba Cloud, unless "
+            "expressly authorised."
+        ),
+    ),
+    # NVIDIA Open Models License (Hub license_name nvidia-open-model-license),
+    # last modified 24 October 2025. Distinct from the NVIDIA Nemotron Open
+    # Model License and from the April 2026 NVIDIA Open Model Agreement.
+    "nvidia-open-model-license": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-open-model-license/",
+            "Use of the Models under the Agreement must be consistent with "
+            "NVIDIA’s Trustworthy AI terms found at "
+            "https://www.nvidia.com/en-us/agreements/trustworthy-ai/terms/.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but the grant is revocable as stated "
+            "in Section 2.1, use must be consistent with NVIDIA's Trustworthy "
+            "AI terms, and bypassing a safety guardrail without a substantially "
+            "similar replacement terminates the licence."
+        ),
+    ),
+    # NVIDIA Open Model Agreement, release date 2 April 2026. Apache-shaped
+    # irrevocable grant; not the October 2025 Open Models License.
+    "nvidia-open-model-agreement": LicenceReading(
+        permission=UsePermission.ALLOWED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-open-model-agreement/",
+            "Subject to the terms and conditions of this License, NVIDIA "
+            "hereby grants to You a perpetual, worldwide, non-exclusive, "
+            "no-charge, royalty-free, irrevocable license to reproduce, "
+            "prepare Derivative Works of, publicly display, publicly perform, "
+            "sublicense, and distribute the Work and such Derivative Works in "
+            "source or object form.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "nvidia-nemotron-open-model-license": LicenceReading(
+        permission=UsePermission.ALLOWED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-nemotron-open-model-license/",
+            "Subject to the terms and conditions of this License, NVIDIA "
+            "hereby grants to You a perpetual, worldwide, non-exclusive, "
+            "no-charge, royalty-free, irrevocable license to reproduce, "
+            "prepare Derivative Works of, publicly display, publicly perform, "
+            "sublicense, and distribute the Work and such Derivative Works in "
+            "source or object form.",
+            read_on="2026-09-18",
+        ),
+    ),
 }
 
 # Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
 # longer spelling. Same document, same reading.
 _READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
+_READINGS["apache-license-2.0"] = _READINGS["apache-2.0"]
 
 #: The licence readings, by licence identifier. Read-only on purpose: a caller
 #: that wants a new licence answered has to add it here, with a document and a

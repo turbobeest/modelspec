@@ -62,7 +62,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: other
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -818,16 +818,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # segformer b0 finetuned ade 512 512
 
 Auto-generated from HuggingFace Hub metadata for [nvidia/segformer-b0-finetuned-ade-512-512](https://huggingface.co/nvidia/segformer-b0-finetuned-ade-512-512).
+
+Licence: null. No readable licence at the creator distribution point huggingface.co/nvidia/segformer-b0-finetuned-ade-512-512 (Hub cardData.license 'other' license_name None; no LICENSE file), read 2026-09-18. A known-wrong other default is worse than none.

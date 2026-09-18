@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-internal-scientific-research-and-development-model-license/
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,16 +818,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Nemotron H 4B Instruct 128K
 
 Auto-generated from HuggingFace Hub metadata for [nvidia/Nemotron-H-4B-Instruct-128K](https://huggingface.co/nvidia/Nemotron-H-4B-Instruct-128K).
+
+Licence: other. Creator distribution https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-internal-scientific-research-and-development-model-license/ (nvidia-internal-scientific-research-and-development-model-license) and Hub cardData.license other and license_name nvidia-internal-scientific-research-and-development-model-license, read 2026-09-18.
