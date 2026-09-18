@@ -920,6 +920,40 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-2-5-flash
+    version: gemini-2.5-flash
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Leave budget unset (default) for mixed workloads; raise it for math, coding and multi-step
+        planning; set 0 for classification and fact lookup.
+      sources:
+      - url: https://developers.googleblog.com/en/start-building-with-gemini-25-flash/
+        title: Start building with Gemini 2.5 Flash
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: 'First fully hybrid reasoning Flash: it can think before answering, or you can set thinking
+        budget to 0 for 2.0-Flash-like latency while still beating 2.0 quality.'
+      sources:
+      - url: https://developers.googleblog.com/en/start-building-with-gemini-25-flash/
+        title: Start building with Gemini 2.5 Flash
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: thinking_budget ranges from 0 to 24576 tokens and is a cap, not a target. The model chooses
+        how long to think from the prompt's apparent difficulty.
+      sources:
+      - url: https://developers.googleblog.com/en/start-building-with-gemini-25-flash/
+        title: Start building with Gemini 2.5 Flash
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

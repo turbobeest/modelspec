@@ -883,7 +883,52 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-reasoner
+    version: deepseek-reasoner
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Put every instruction in the user prompt. DeepSeek recommends against a system prompt for
+        the R1 series.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: For math, add 'Please reason step by step, and put your final answer within \boxed{}'.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Avoid a system prompt; the R1 card says all instructions should live in the user turn.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Force the completion to start with <think> so it does not skip the thinking pattern (empty
+        think tags), which DeepSeek says hurts quality.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: 'Sampling: temperature 0.5–0.7, 0.6 recommended, to avoid repetition or incoherence.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

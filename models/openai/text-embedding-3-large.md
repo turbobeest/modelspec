@@ -838,6 +838,47 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/text-embedding-3-large
+    version: text-embedding-3-large
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Default vector length is 3072. You can shorten via the dimensions parameter; OpenAI reports
+        256 dimensions still beating unshortened ada-002 on MTEB.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/embeddings
+        title: Vector embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Strip newlines from each input string before embedding. If you shorten a vector after generation,
+        L2-normalise it.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/embeddings
+        title: Vector embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: OpenAI embeddings are length-1 normalised; cosine similarity (or a dot product) is the recommended
+        distance. Max input is 8192 tokens.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/embeddings
+        title: Vector embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes:
+    - text: text-embedding-3-large has no knowledge of events after September 2021, which can hurt a few
+        retrieval edge cases.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/embeddings
+        title: Vector embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 # text-embedding-3-large

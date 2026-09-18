@@ -974,6 +974,37 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-sonnet-4-5-20250929
+    version: claude-sonnet-4-5-20250929
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Thinking is off by default and extended-only: use thinking type enabled with budget_tokens.
+        Adaptive thinking is rejected with a 400.'
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: budget_tokens is a cap, not a target; set max_tokens above the thinking budget so the final
+        answer is not cut off.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

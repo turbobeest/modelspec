@@ -838,7 +838,34 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: baai/bge-m3
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Unlike earlier BGE models, BGE-M3 does not want an instruction prefix on queries; embed the
+        raw text.
+      sources:
+      - url: https://huggingface.co/BAAI/bge-m3
+        title: BGE-M3 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: One checkpoint exposes dense, sparse (lexical) and ColBERT multi-vector embeddings; hybrid
+        scoring is documented on the card.
+      sources:
+      - url: https://huggingface.co/BAAI/bge-m3
+        title: BGE-M3 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # bge m3
