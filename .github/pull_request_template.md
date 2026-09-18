@@ -9,7 +9,11 @@
 
 ## Checklist
 
-- [ ] I have read [CLA.md](../CLA.md) and my commits carry a `Signed-off-by` line (`git commit -s`).
+- [ ] My commits carry a `Signed-off-by` line (`git commit -s`), certifying the
+      [DCO](../DCO). This is not a copyright assignment.
+- [ ] This change contains no policy determination (`commercial_use`, `data_residency`,
+      licence or origin analysis) — those are researched in-house, see
+      [CONTRIBUTING.md](../CONTRIBUTING.md).
 - [ ] Every fact I added or changed carries a source and the date it was read.
 - [ ] Where I could not establish something, I left the field empty and said so in the prose, rather than guessing.
 - [ ] Third-party material I included is identified with its source and licence.

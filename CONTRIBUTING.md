@@ -4,23 +4,53 @@ Contributions are welcome, and the bar is about evidence rather than volume.
 
 ## Before your first pull request
 
-Read [CLA.md](CLA.md). You keep the copyright in what you write; the agreement gives the project
-permission to publish it, including under different licence terms in future. Agree to it by signing
-off each commit:
+Sign off each commit:
 
 ```bash
-git commit -s -m "your message"
+git commit -s
 ```
+
+That adds a `Signed-off-by` line, which certifies the **Developer Certificate of Origin 1.1**
+— reproduced verbatim in [DCO](DCO) at the root of this repository. In short: you are
+certifying that you wrote the contribution, or that you have the right to submit it under the
+licence the project already uses.
+
+**It is not a copyright assignment and it grants no relicensing right.** You keep everything
+you write. A CI check enforces the sign-off on pull requests.
+
+To sign off a branch you have already written:
+
+```bash
+git rebase --signoff main
+```
+
+### When a signed agreement is also needed
+
+For a substantial or ongoing contribution, the project may additionally ask you to sign
+[CLA.md](CLA.md) — the unmodified Harmony Individual Contributor License Agreement v1.0. It
+is not required for ordinary pull requests, and it is also not a copyright assignment.
 
 ## The licences
 
 | Part | Licence |
 | --- | --- |
 | Code | MIT |
-| Data (`models/`, `benchmarks/`) | CC BY-SA 4.0 |
+| Data (`models/`, `benchmarks/`, `hardware/`, `hosts/`) | CC BY-SA 4.0 |
 
 If you redistribute the corpus or something derived from it, credit ModelSpec and publish yours under
 the same terms. Full text in [LICENSE](LICENSE) and [LICENSE-DATA](LICENSE-DATA).
+
+## What this project does not accept from contributors
+
+These are boundaries of the project, not judgements about your work.
+
+1. **Policy determinations.** `commercial_use`, `data_residency`, and licence or origin
+   analysis are researched in-house from primary sources and are not accepted through pull
+   requests. Where a card shows one of these as unresearched, that is not an invitation.
+2. **Private submissions.** Contributions arrive as public pull requests. Material sent
+   privately will not be read or merged, so that what the project holds and what it publishes
+   never diverge without a record.
+3. **Third-party material you cannot point at.** See the sourcing rule below.
 
 ## The one rule that matters
 
@@ -32,6 +62,17 @@ something is worth more than a page that is confidently wrong, because the next 
 
 This is not a style preference. The corpus exists so that somebody deciding whether to trust a
 benchmark number can see where it came from and how old it is.
+
+## Third-party material
+
+Any third-party material inside a contribution must be identified with its source and its
+licence, and that licence must permit the use being made of it. This matters more here than in
+most projects: the cards and pages record facts drawn from papers, repositories and
+leaderboards.
+
+If you do not own the copyright in the whole of what you are submitting, say so in the pull
+request, name the part you did not write, and give its source and licence. If its terms do not
+allow redistribution here, do not include it — cite it instead.
 
 ## Benchmark pages
 

@@ -1,0 +1,65 @@
+name: DCO
+
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dco-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dco:
+    name: Check sign-off
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Every commit carries a matching Signed-off-by
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          OWNER: ${{ github.repository_owner }}
+          # Commits whose author email is not linked to a GitHub account report a null
+          # login, so the owner check alone is not enough. These addresses are the
+          # operator's own; everyone else signs off.
+          EXEMPT_EMAILS: j@terbeest.com,claude@terbeest.com,github@terbeest.com
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/pulls/$PR/commits" --paginate > commits.json
+          python3 - <<'PY'
+          import json, os, re, sys
+
+          owner = os.environ["OWNER"].lower()
+          exempt = {e.strip().lower() for e in os.environ["EXEMPT_EMAILS"].split(",") if e.strip()}
+          commits = json.load(open("commits.json"))
+
+          missing = []
+          for c in commits:
+              if len(c["parents"]) > 1:          # merge commits carry no authorship of their own
+                  continue
+              author = c["commit"]["author"]
+              login = ((c.get("author") or {}).get("login") or "").lower()
+              if login == owner or author["email"].lower() in exempt:
+                  continue                       # the operator's own commits, as the DCO app allows
+              want = f"Signed-off-by: {author['name']} <{author['email']}>"
+              body = c["commit"]["message"]
+              if not any(line.strip().lower() == want.lower() for line in body.splitlines()):
+                  missing.append((c["sha"], want))
+
+          for sha, want in missing:
+              print(f"::error::{sha[:12]} is missing a sign-off line: {want}")
+
+          if missing:
+              print()
+              print("Add one to each commit with `git commit -s`, or to a whole branch with")
+              print("`git rebase --signoff <base>`. The sign-off certifies the Developer")
+              print("Certificate of Origin 1.1, reproduced verbatim in the DCO file at the")
+              print("root of this repository. It is not a copyright assignment.")
+              sys.exit(1)
+
+          print(f"{len(commits)} commit(s) checked, all signed off.")
+          PY
