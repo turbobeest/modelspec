@@ -265,9 +265,18 @@ def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
+#: Where a static page (a landing, the wizard) takes the site's nav. The build
+#: fills it from `site_nav`, so no page can carry a nav list of its own.
+NAV_PLACEHOLDER = "<!-- site-nav -->"
+
+
+def site_nav(site: str, nav_links: Iterable[tuple[str, str]]) -> str:
+    links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
+    return f'<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>'
+
+
 def shell(*, title: str, description: str, canonical: str, body: str, build: Build,
           site: str, nav_links: Iterable[tuple[str, str]], robots: str = "index, follow") -> str:
-    links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
     return f"""<!doctype html>
 <html lang="en" data-site="{esc(site.lower())}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -284,7 +293,7 @@ def shell(*, title: str, description: str, canonical: str, body: str, build: Bui
 {FONTS}
 <style>{CSS}</style></head>
 <body><div class="wrap">
-<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>
+{site_nav(site, nav_links)}
 <main class="page">
 {body}
 </main>

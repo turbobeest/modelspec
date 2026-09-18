@@ -199,3 +199,40 @@ def test_the_disposition_keeps_the_catalogue_spec_wording() -> None:
 def test_a_page_with_no_long_facts_has_no_notes_section() -> None:
     html = _bench({"category": "coding"})
     assert "<h2>Notes</h2>" not in html and "<details" not in html
+
+
+# ── one nav per site ─────────────────────────────────────────────────────────
+
+STATIC_NAV_PAGES = ("site/holding/index.html", "site/benchgraph/build/index.tpl.html",
+                    "site/benchgraph/index.html", "web3d/downselect.v2.html")
+
+
+def test_static_pages_hold_the_placeholder_and_no_nav_of_their_own() -> None:
+    for page in STATIC_NAV_PAGES:
+        text = (ROOT / page).read_text(encoding="utf-8")
+        assert text.count(r.NAV_PLACEHOLDER) == 1, page
+        assert "<nav" not in text, page
+
+
+def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
+    build = Build(commit="abc", built_at="2026-09-18T00:00:00Z", as_of=date(2026, 9, 18))
+    for site, links in (("ModelSpec", r.MS_NAV), ("benchgraph", r.BG_NAV)):
+        page = r.shell(title="t", description="d", canonical="https://x/", body="",
+                       build=build, site=site, nav_links=links)
+        assert r.site_nav(site, links) in page
+    filled = builder.with_site_nav(f"<body>{r.NAV_PLACEHOLDER}</body>",
+                                   r.site_nav("ModelSpec", r.MS_NAV), "landing")
+    assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
+                      '<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a>'
+                      '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
+                      '<a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>'
+                      '<a href="/api/index.json">API</a></div></nav></body>')
+
+
+def test_a_page_that_lost_its_placeholder_fails_the_build() -> None:
+    try:
+        builder.with_site_nav("<body>no nav here</body>", "<nav></nav>", "site/holding/index.html")
+    except ValueError as err:
+        assert "site/holding/index.html" in str(err)
+    else:
+        raise AssertionError("a page without the placeholder must not build")

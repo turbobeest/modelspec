@@ -98,6 +98,18 @@ def _div_end(html: str, start: int) -> int:
     return -1
 
 
+def with_site_nav(html: str, nav: str, page: str) -> str:
+    """Fill a static page's nav from the one renderer every generated page uses.
+
+    Each landing and the wizard used to carry its own hand-written list, and the
+    four had drifted to four different sets of links. A page without the
+    placeholder fails the build rather than shipping with no nav.
+    """
+    if r.NAV_PLACEHOLDER not in html:
+        raise ValueError(f"{page} has no {r.NAV_PLACEHOLDER}; its nav must come from render.site_nav")
+    return html.replace(r.NAV_PLACEHOLDER, nav, 1)
+
+
 def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
@@ -110,18 +122,6 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     Its statistics were hand-written too, and had drifted. They are now injected
     from the build, so they cannot go stale again.
     """
-    nav_old = '<a href="https://github.com/turbobeest/modelspec">GitHub</a>'
-    nav_new = (
-        '<a href="/graph/">Graph</a>\n'
-        '      <a href="/downselect/">Downselect</a>\n'
-        '      <a href="/models/">Models</a>\n'
-        '      <a href="/providers/">Providers</a>\n'
-        '      <a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>\n'
-        '      <a href="https://github.com/turbobeest/modelspec">GitHub</a>'
-    )
-    if nav_old in html:
-        html = html.replace(nav_old, nav_new, 1)
-
     # A question with no way to answer it is a poster. Put the answer one click
     # away, immediately under the question the page asks.
     answer_anchor = ('<div class="a">That question, answered from evidence, '
@@ -306,6 +306,9 @@ def main(argv: list[str] | None = None) -> int:
     if wizard.is_file():
         _inject(wizard, ms / "downselect/index.html",
                 "<!-- catalogue-freshness -->", freshness)
+        page = ms / "downselect/index.html"
+        page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
+                                      "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
 
     explorer = root / "web3d/explorer.html"
@@ -361,6 +364,9 @@ def main(argv: list[str] | None = None) -> int:
             "benchmarks": len(benchmarks),
             "fields": _schema_field_count(ModelCard),
         }, freshness=freshness), encoding="utf-8")
+        landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
+                                         r.site_nav("ModelSpec", r.MS_NAV),
+                                         "site/holding/index.html"), encoding="utf-8")
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
@@ -369,7 +375,12 @@ def main(argv: list[str] | None = None) -> int:
             [("Every model", "/models/"), ("Providers", "/providers/"),
              ("Benchmark catalogue", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
-    if not _copy_static(root / "site/benchgraph", bg):
+    if _copy_static(root / "site/benchgraph", bg):
+        landing = bg / "index.html"
+        landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
+                                         r.site_nav("benchgraph", r.BG_NAV),
+                                         "site/benchgraph/index.html"), encoding="utf-8")
+    else:
         (bg / "index.html").write_text(_fallback_home(
             "benchgraph", "benchgraph",
             f"Every AI benchmark, as a graph you can read. {len(benchmarks)} pages, "
