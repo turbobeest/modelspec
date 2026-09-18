@@ -188,6 +188,37 @@ interchangeable and a consumer must not collapse them:
 | `withheld` | The determination exists and is deliberately not published in this tree. | Treat as unknown **for the purposes of the public data**, but as *obtainable* — the answer exists and is not on this card. Never render it as "not researched". |
 | `allowed` / `restricted` / `prohibited` | A determination, with its citation. | Use it, and carry the citation. For `restricted`, read `commercial_use_conditions` — the value alone is not actionable. |
 
+#### The two senses of `withheld` (MODEL-79, decided 2026-09-17)
+
+`withheld` means one thing in the contract and always has: **a determination
+exists, and this card is not where it is.** It never means nobody looked. What
+differs between the two fields is *what kind of thing* was determined, and a
+consumer who assumes "withheld = a value is being held back for sale" will
+misread most residency cards.
+
+| field | what a `withheld` card is telling you |
+| --- | --- |
+| `licensing.commercial_use` | **Determined, not published to you.** A licence was identified, read and decided — allowed, restricted or prohibited. The value is held back; ask for it. |
+| `availability.primary_provider.data_residency_disclosure` | **Determined — which may be that the provider publishes nothing.** Either a region list was read from the provider's own page, or the provider's documents were read and commit to no region at all. Both are findings, and both are held back; ask for it. |
+
+So for residency, `withheld` answers "has anyone looked?" with *yes*, and
+leaves "is there a region list to have?" open. That second question has a real
+answer for every withheld platform, and it is sometimes "no — we read their
+documents, and they name no processing location". A buyer who needs EU-only
+inference is told something useful by that: not "we don't know", but "there is
+nothing here to check your requirement against". Under the old shape, this
+platform and one nobody had ever looked at were the same card.
+
+**What is *not* withheld.** A platform recorded as unreachable — every
+connection refused or timed out from the network the work was done on — stays
+`unresearched`, because nobody successfully looked. Two of the fifty platforms
+are in that state. `unresearched` is also what a local runtime carries
+(`ollama`, `lm_studio`, …): a model on hardware you own has no region-shaped
+answer at all, and `withheld` would advertise one that cannot exist.
+`scripts/residency/platforms.py` holds that list and the reasoning;
+`scripts/residency/report.py disclosure` prints what each of the fifty
+publishes.
+
 `withheld` exists because the alternative is a lie at scale. Once
 determinations are made and held back, a public `commercial_use: null` would
 assert "not yet researched" on roughly 1,300 cards where it is false, in the

@@ -13,6 +13,14 @@ consequences of taking that seriously.
 * `determined []`, `undetermined` and `unbounded` are three different answers
   and no consumer has to guess which one an empty collection meant. MODEL-77
   removed that ambiguity from the card; this keeps it out of the table.
+
+Jamie's decision of 2026-09-17 adds a fourth, and it is the one with teeth: a
+platform whose documents were **read** and commit to no region publishes
+`withheld`, because that is a researched answer, and a platform nobody could
+**reach** publishes `unresearched`, because nobody looked. Those two records
+are otherwise identical — both are `undetermined`, both have null regions, both
+name URLs in `checked` — so the tests under "the two non-disclosures" exist to
+fail the moment they start converging.
 """
 
 from __future__ import annotations
@@ -32,15 +40,21 @@ from schema.card import Availability, PlatformEntry, PolicySource, PrimaryProvid
 from schema.enums import DisclosureState  # noqa: E402
 from scripts.residency import report  # noqa: E402
 from scripts.residency.determination import (  # noqa: E402
+    CARD_DISCLOSURE,
     PlatformResidency,
     classify,
     counts,
+    disclosure_counts,
+    disclosures,
     dump_store,
     load_store,
+    unreached,
     unrecorded,
+    withheld,
 )
 from scripts.residency.platforms import (  # noqa: E402
     LOCAL_RUNTIMES,
+    NonDisclosure,
     ResidencyScope,
     is_local_runtime,
     platform_slugs,
@@ -67,14 +81,37 @@ def determined(platform: str, regions: list[str]) -> PlatformResidency:
     )
 
 
-def undetermined(platform: str) -> PlatformResidency:
+def undetermined(
+    platform: str,
+    non_disclosure: NonDisclosure = NonDisclosure.NO_COMMITMENT,
+) -> PlatformResidency:
     return PlatformResidency(
         platform=platform,
         scope=ResidencyScope.UNDETERMINED,
+        non_disclosure=non_disclosure,
         checked=["https://example.com/privacy"],
         reason="privacy policy names no processing location",
         determined_by="tests",
         determined_on="2026-09-16",
+    )
+
+
+def unreachable(platform: str) -> PlatformResidency:
+    """A platform nobody got to. The documents below were attempted, not read.
+
+    The slug passed to these helpers is an arbitrary member of the namespace
+    and asserts nothing about the platform it names. The determinations are
+    not in this repository and these fixtures are not a copy of them.
+    """
+    return PlatformResidency(
+        platform=platform,
+        scope=ResidencyScope.UNDETERMINED,
+        non_disclosure=NonDisclosure.UNREACHED,
+        checked=["https://example.cn/privacy"],
+        reason="every connection timed out or was refused from this network",
+        notes="unreached, not established as absent",
+        determined_by="tests",
+        determined_on="2026-09-17",
     )
 
 
@@ -193,6 +230,7 @@ def test_an_undetermined_platform_names_what_was_checked_and_what_it_said():
         PlatformResidency(
             platform="poe",
             scope=ResidencyScope.UNDETERMINED,
+            non_disclosure=NonDisclosure.NO_COMMITMENT,
             reason="nothing published",
             determined_by="tests",
             determined_on="2026-09-16",
@@ -201,6 +239,7 @@ def test_an_undetermined_platform_names_what_was_checked_and_what_it_said():
         PlatformResidency(
             platform="poe",
             scope=ResidencyScope.UNDETERMINED,
+            non_disclosure=NonDisclosure.NO_COMMITMENT,
             checked=["https://poe.com/tos"],
             determined_by="tests",
             determined_on="2026-09-16",
@@ -212,6 +251,7 @@ def test_an_undetermined_platform_cannot_smuggle_a_value_or_a_source():
         PlatformResidency(
             platform="poe",
             scope=ResidencyScope.UNDETERMINED,
+            non_disclosure=NonDisclosure.NO_COMMITMENT,
             regions=["US"],
             checked=["https://poe.com/tos"],
             reason="x",
@@ -244,6 +284,162 @@ def test_a_determination_has_an_author_and_an_exact_date():
             determined_by="tests",
             determined_on="September 2026",
         )
+
+
+# ── the two non-disclosures ─────────────────────────────────────────────────
+
+
+def test_an_undetermined_platform_must_say_which_non_disclosure_it_is():
+    """No default. A default is how an unreached platform acquires an answer."""
+    with pytest.raises(ValidationError, match="which non-disclosure"):
+        PlatformResidency(
+            platform="poe",
+            scope=ResidencyScope.UNDETERMINED,
+            checked=["https://poe.com/tos"],
+            reason="names no processing location",
+            determined_by="tests",
+            determined_on="2026-09-17",
+        )
+
+
+def test_a_determined_platform_cannot_carry_a_non_disclosure():
+    with pytest.raises(ValidationError, match="carries a non_disclosure"):
+        PlatformResidency(
+            platform="groq",
+            scope=ResidencyScope.DETERMINED,
+            regions=["us-east-1"],
+            source=SOURCE,
+            non_disclosure=NonDisclosure.NO_COMMITMENT,
+            determined_by="tests",
+            determined_on="2026-09-17",
+        )
+
+
+def test_every_non_disclosure_maps_to_exactly_one_card_state():
+    """Adding a member to `NonDisclosure` must force a decision, not inherit one."""
+    assert set(CARD_DISCLOSURE) == set(NonDisclosure)
+    assert CARD_DISCLOSURE[NonDisclosure.NO_COMMITMENT] is DisclosureState.WITHHELD
+    assert CARD_DISCLOSURE[NonDisclosure.UNREACHED] is DisclosureState.UNRESEARCHED
+
+
+def test_reading_the_documents_and_finding_nothing_is_an_answer():
+    """Jamie, 2026-09-17: 'no commitment exists' IS the researched answer.
+
+    `unresearched` here would say nobody had looked at platforms whose records
+    name up to five documents that were read.
+    """
+    record = undetermined("kaggle_models")
+    assert record.card_disclosure() is DisclosureState.WITHHELD
+    assert record.regions is None
+    assert PrimaryProvider(**record.card_fields()).data_residency_disclosure is (
+        DisclosureState.WITHHELD
+    )
+
+
+def test_an_unreached_platform_is_never_withheld():
+    """The wall this decision needs, and the reason the field has no default.
+
+    `withheld` claims a determination exists. For a platform whose every
+    connection was refused, no determination exists and claiming one would be
+    the same lie the decision was made to avoid, pointed the other way.
+    """
+    blocked = unreachable("poe")
+    assert blocked.card_disclosure() is DisclosureState.UNRESEARCHED
+    assert PrimaryProvider(**blocked.card_fields()).data_residency_disclosure is (
+        DisclosureState.UNRESEARCHED
+    )
+
+    store = [
+        determined("aws_bedrock", ["us-east-1"]),
+        undetermined("kaggle_models"),
+        blocked,
+    ]
+    assert "poe" not in withheld(store)
+    assert unreached(store) == ("poe",)
+    assert disclosures(store)["poe"] is DisclosureState.UNRESEARCHED
+    assert not set(unreached(store)) & set(withheld(store))
+
+
+def test_no_unreached_platform_is_withheld_in_any_arrangement_of_the_store():
+    """Exhaustive over the record shapes, so the guarantee is not one example."""
+    store = [unreachable(slug) for slug in requires_determination()[:5]]
+    store += [undetermined(slug) for slug in requires_determination()[5:10]]
+    store += [determined(slug, []) for slug in requires_determination()[10:15]]
+    states = disclosures(store)
+    for record in store:
+        if record.non_disclosure is NonDisclosure.UNREACHED:
+            assert states[record.platform] is DisclosureState.UNRESEARCHED
+        else:
+            assert states[record.platform] is DisclosureState.WITHHELD
+
+
+def test_the_two_records_are_indistinguishable_except_where_it_counts():
+    """Same scope, same null regions, same shape of `checked` — one field apart."""
+    read = undetermined("kaggle_models")
+    blocked = unreachable("poe")
+    assert read.scope is blocked.scope is ResidencyScope.UNDETERMINED
+    assert read.regions is blocked.regions is None
+    assert read.checked and blocked.checked
+    assert read.card_disclosure() is not blocked.card_disclosure()
+
+
+def test_an_unreached_platform_is_outstanding_work_rather_than_a_finding():
+    """It has a record, so `audit` passes; it is still not an answer."""
+    store = [undetermined(slug) for slug in requires_determination()]
+    store = [unreachable("poe") if r.platform == "poe" else r for r in store]
+    assert "poe" not in unrecorded(store)
+    assert "poe" in unreached(store)
+    assert "poe" not in withheld(store)
+
+
+# ── what the 50 cards say ───────────────────────────────────────────────────
+
+
+def test_a_local_runtime_publishes_unresearched_rather_than_withheld():
+    """`withheld` would advertise an answer no store holds and none can hold.
+
+    Residency for a model on the operator's own machine has no region-shaped
+    answer at all. The card has no state for that, Jamie declined to add a
+    fourth, and of the three it has, `unresearched` is the only one that
+    does not promise something obtainable.
+    """
+    states = disclosures([undetermined("poe")])
+    assert all(states[slug] is DisclosureState.UNRESEARCHED for slug in LOCAL_RUNTIMES)
+
+
+def test_a_platform_with_no_record_publishes_unresearched():
+    assert disclosures([])["kaggle_models"] is DisclosureState.UNRESEARCHED
+
+
+def test_the_disclosure_counts_cover_every_platform_and_publish_nothing():
+    """A residency value on a public card would mean the enrichment split broke."""
+    store = [determined("aws_bedrock", ["us-east-1"]), undetermined("kaggle_models"), unreachable("poe")]
+    tally = disclosure_counts(store)
+    assert sum(tally.values()) == len(platform_slugs())
+    assert tally[DisclosureState.WITHHELD] == 2
+    assert tally[DisclosureState.PUBLISHED] == 0
+    assert tally[DisclosureState.UNRESEARCHED] == len(platform_slugs()) - 2
+
+
+def test_the_scope_counts_are_unchanged_by_the_card_split():
+    """The three-way classification MODEL-79 shipped still answers its question."""
+    store = [undetermined("kaggle_models"), unreachable("poe")]
+    tally = counts(store)
+    assert tally[ResidencyScope.UNDETERMINED] == len(platform_slugs()) - len(LOCAL_RUNTIMES)
+    assert tally[ResidencyScope.DETERMINED] == 0
+
+
+def test_the_disclosure_report_lists_every_platform_and_its_state(tmp_path, capsys):
+    path = tmp_path / "data_residency.jsonl"
+    path.write_text(
+        dump_store([determined("aws_bedrock", ["us-east-1"]), unreachable("poe")]),
+        encoding="utf-8",
+    )
+    assert report.main(["disclosure", "--store", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "aws_bedrock            withheld" in out
+    assert "poe                    unresearched" in out
+    assert "could not be reached" in out
 
 
 # ── the projection onto a card ──────────────────────────────────────────────
