@@ -521,6 +521,32 @@ _READINGS: dict[str, LicenceReading] = {
             read_on="2026-09-18",
         ),
     ),
+    # ── MODEL-86 batch 6: FLUX.2 Non-Commercial License v2.1, OpenBMB GML
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # stays a clean append.
+    # FLUX.1 [dev] remains flux-1-dev-non-commercial-license. This is the
+    # FLUX.2 Hub name flux-non-commercial-license, a different document
+    # (v2.1). The two gated FLUX.2 klein-base-9B repos name it; the text
+    # was read from a public BFL LICENSE file of the same Hub name.
+    # flux-dev-non-commercial-license is still unread.
+    "flux-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv-fp8/raw/main/LICENSE",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "general-model-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/OpenBMB/General-Model-License/main/"
+            "通用模型许可协议-来源说明-宣传限制-商业授权.md",
+            "商业授权：使用者获得发布者书面授权后，可以以任何商业目的使用此通用模型。",
+            read_on="2026-09-18",
+        ),
+    ),
 }
 
 # Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the

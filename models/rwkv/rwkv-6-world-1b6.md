@@ -62,7 +62,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: apache-2.0
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -824,9 +824,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # rwkv 6 world 1b6
 
 Auto-generated from HuggingFace Hub metadata for [RWKV/rwkv-6-world-1b6](https://huggingface.co/RWKV/rwkv-6-world-1b6).
+
+Licence: null. No readable licence at the creator distribution point huggingface.co/RWKV/rwkv-6-world-1b6 (Hub cardData.license None license_name None; no LICENSE file), read 2026-09-18. A known-wrong apache-2.0 default is worse than none.

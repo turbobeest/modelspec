@@ -96,6 +96,8 @@ def test_restricted_readings_state_their_restriction():
         ("stabilityai-ai-community", UsePermission.RESTRICTED),
         ("openrail++", UsePermission.RESTRICTED),
         ("flux-1-dev-non-commercial-license", UsePermission.PROHIBITED),
+        ("flux-non-commercial-license", UsePermission.PROHIBITED),
+        ("general-model-license", UsePermission.PROHIBITED),
         ("deepseek-license", UsePermission.RESTRICTED),
         ("qwen", UsePermission.RESTRICTED),
         ("qwen-research", UsePermission.PROHIBITED),
@@ -134,12 +136,15 @@ def test_an_unread_licence_produces_no_value_and_never_a_default():
 
 
 def test_flux1_dev_noncommercial_is_not_the_flux2_name():
-    """FLUX.1 [dev] was read. FLUX.2's Hub identifier is a different string
-    and must not inherit that document."""
+    """FLUX.1 [dev] and FLUX.2 Non-Commercial License v2.1 are different
+    documents. Citing one for the other manufactures evidence. The Hub
+    name flux-dev-non-commercial-license is still unread."""
     flux1 = reading_for("flux-1-dev-non-commercial-license")
-    assert flux1 is not None
+    flux2 = reading_for("flux-non-commercial-license")
+    assert flux1 is not None and flux2 is not None
+    assert flux1.source.url != flux2.source.url
     assert flux1.permission is UsePermission.PROHIBITED
-    assert reading_for("flux-non-commercial-license") is None
+    assert flux2.permission is UsePermission.PROHIBITED
     assert reading_for("flux-dev-non-commercial-license") is None
 
 
