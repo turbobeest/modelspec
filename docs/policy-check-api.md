@@ -174,11 +174,50 @@ up against rather than only that something failed.
 | `not_determined` | the determination store holds nothing for this | research (MODEL-78/79 coverage) |
 | `not_on_card` | the public card does not name the licence or the origin | the catalogue |
 | `uncited` | a value exists whose only citation is `legacy-import` | re-read the licence |
-| `unbounded` | a local runtime: residency is a property of *your* machine | you, against your own infrastructure |
+| `unbounded` | a local runtime or weights-only publisher: residency is a property of *your* machine | you, against your own infrastructure |
 | `no_platform` | the card names no platform, so no place to determine | the catalogue |
 
 `unbounded` is not for sale and `available_in_tier` is `null` for it. No region
-list can ever be true of Ollama, at any tier, for any money.
+list can ever be true of these platforms, at any tier, for any money.
+
+### Platform classes (counts as of 2026-09-18)
+
+50 platforms on `Availability`. Class is derived from
+`scripts/residency/platforms.LOCAL_RUNTIMES` and published on the export as
+`platform_classes.unbounded`. Cards for the unbounded set carry
+`data_residency_disclosure: unresearched`, the same marker as a platform
+nobody has looked at, because the card has no state for "the question has no
+region-shaped answer".
+
+| class | count | card disclosure | paid-tier answer |
+|---|---|---|---|
+| cited region list | 14 | `withheld` | the list |
+| no-commitment finding | 25 | `withheld` | the documents, and that they name no region |
+| unreached | 2 | `unresearched` | none (`not_determined`) |
+| unbounded | 9 | `unresearched` | none (`why: unbounded`) |
+
+`withheld` is 39: the 14 lists plus the 25 no-commitment findings. That is
+the paid-tier invariant from PR #110: a card that publishes `withheld` has
+something to serve. Unbounded is not withheld.
+
+The 9 unbounded platforms are six local runtimes (`ollama`, `lm_studio`,
+`gpt4all`, `jan_ai`, `mlx_community`, `open_webui`) plus three weights-only
+publishers moved here on 2026-09-18 (Jamie). Each publishes model weights
+and runs no hosted inference, so residency is "wherever you run it", not
+"the provider declined to say":
+
+* `samsung_gauss` — Samsung publishes Gauss weights; there is no hosted Gauss
+  inference platform to locate.
+* `tii_falcon` — TII publishes Falcon weights; falconllm.tii.ae is a model
+  page, not a region-scoped inference API.
+* `zero_one_ai` — 01.AI publishes Yi weights; 01.ai is not a hosted
+  inference platform.
+
+A leftover determination for any of those three must be dropped from the
+private `data_residency.jsonl` before the next KV load. The loader refuses
+a record whose platform is in `LOCAL_RUNTIMES`. Until that reload, the
+Worker still answers `unbounded` from the public export, because the
+unbounded check runs before the store is consulted.
 
 ---
 

@@ -62,6 +62,10 @@ from typing import Any
 
 #: This repository. Anything under it is refused as both an input and an output.
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.residency.platforms import is_local_runtime  # noqa: E402
 
 #: Bumped when the blob shape changes incompatibly. The Worker refuses a bundle
 #: it does not recognise rather than reading unfamiliar fields as absences.
@@ -214,12 +218,22 @@ def residency_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
     An `unbounded` platform is refused, exactly as `determination.py` refuses to
     write one: a local runtime's residency is a property of the operator's
     machine, and a record here would be a region list attached to Ollama.
+    The same refusal applies to a leftover `undetermined` / `no-commitment`
+    record for a slug now in `LOCAL_RUNTIMES` (the three weights-only
+    publishers moved 2026-09-18). Drop those lines from the private JSONL
+    before reloading.
     """
     out: dict[str, Any] = {}
     for record in records:
         platform = record.get("platform")
         if not platform:
             raise LoadError(f"a residency record has no platform: {record!r:.120}")
+        if is_local_runtime(platform):
+            raise LoadError(
+                f"{platform}: a residency record for a local runtime. "
+                "Residency is wherever the operator put the machine; no region "
+                "list can be true of it, so no record is stored for it. Drop "
+                "this line from the private JSONL before reloading.")
         scope = record.get("scope")
         if scope == "unbounded":
             raise LoadError(

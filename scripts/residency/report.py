@@ -64,7 +64,7 @@ GLOSS = {
 
 #: The card-facing gloss. `withheld` carries two unlike answers and says so
 #: here, because a reader who takes it to mean only "held back for sale" will
-#: misread 28 of them.
+#: misread 25 of them.
 DISCLOSURE_GLOSS = {
     DisclosureState.WITHHELD: (
         "determined — a cited region list, or a reading that found no commitment"

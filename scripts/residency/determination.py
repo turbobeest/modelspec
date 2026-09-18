@@ -71,7 +71,7 @@ from scripts.residency.platforms import (  # noqa: E402
 #: you" — determined, and determined by us. `UNREACHED` reads as "nobody has
 #: looked", which is the truth when the network refused every connection.
 #: Collapsing them would publish the first as the second and make the
-#: catalogue understate its own work on 28 platforms, or publish the second as
+#: catalogue understate its own work on 25 platforms, or publish the second as
 #: the first and claim a determination nobody made on two.
 CARD_DISCLOSURE: dict[NonDisclosure, DisclosureState] = {
     NonDisclosure.NO_COMMITMENT: DisclosureState.WITHHELD,
