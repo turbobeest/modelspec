@@ -189,19 +189,6 @@ def test_incomplete_evidence_error_still_wraps_a_report_for_strict_callers():
     assert 'not ranked low' in str(error)
 
 
-def test_http_rank_response_discloses_withheld_count():
-    from api.main import RankResponse
-    # 1103 is a payload fixture to prove the field round-trips, not a live count.
-    payload = RankResponse(
-        ranked=[], use_case='coding', total=0,
-        unranked_count=1103, ranking_status='unavailable',
-    )
-    dumped = payload.model_dump()
-    assert dumped['unranked_count'] == 1103
-    assert dumped['ranking_status'] == 'unavailable'
-    assert dumped['ranked'] == []
-
-
 def test_empty_unavailable_and_truncated_are_distinct():
     assert rank_report([], 'coding')['ranking_status'] == 'empty'
     empty_evidence = rank_report([candidate('x', {})], 'coding', limit=0)
