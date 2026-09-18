@@ -1,58 +1,54 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-site="modelspec">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Downselect — ModelSpec</title>
 <meta name="description" content="What is the best model you can actually run, for your use case, on your hardware, under your rules? Ranked in your browser, with the reasoning shown.">
 <link rel="canonical" href="https://modelspec.dev/downselect/">
+<meta name="theme-color" content="#07080a">
+<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/instrument.css">
 <style>
-:root{--ink:#f3f4f6;--mute:#9aa3b2;--dim:#5b6472;--ground:#000;--panel:#0b0e14;
---line:#1f2430;--amber:#f5b342;--good:#34d399;--warn:#fbbf24}
-*{box-sizing:border-box}
-html{color-scheme:dark}
-body{margin:0;background:var(--ground);color:var(--ink);
-font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-size:17px;line-height:1.6}
-a{color:inherit;text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:3px}
-a:hover{text-decoration-color:var(--amber)}
-.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 8px;
-border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap;gap:12px}
-nav .brand{font-weight:700;font-size:18px;text-decoration:none;letter-spacing:-.02em}
-nav .links{display:flex;gap:20px;font-size:15px;flex-wrap:wrap}
-nav .links a{color:var(--mute);text-decoration:none}
-nav .links a:hover{color:var(--ink)}
-h1{font-size:34px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
-.lede{color:var(--mute);font-size:18px;margin-bottom:22px}
-.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px}
-.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;
-background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:17px 19px;margin-bottom:8px}
-label{display:block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
-select,input{width:100%;background:#05070c;color:var(--ink);border:1px solid var(--line);
-border-radius:7px;padding:8px 10px;font:inherit;font-size:15px}
-select:focus,input:focus{outline:none;border-color:var(--amber)}
-.check{display:flex;align-items:center;gap:9px;margin-top:26px;font-size:15px}
-.check input{width:auto}
-.meta{color:var(--dim);font-size:13.5px;margin:12px 0 18px}
-.notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:16px 0;font-size:15px}
-.result{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 18px;margin-bottom:11px}
+:root{--seg-bench:var(--accent);--seg-cap:color-mix(in srgb,var(--accent) 72%,var(--ground));
+--seg-type:color-mix(in srgb,var(--accent) 52%,var(--ground));
+--seg-ctx:color-mix(in srgb,var(--accent) 36%,var(--ground));
+--seg-cost:color-mix(in srgb,var(--accent) 24%,var(--ground))}
+.lede{max-width:68ch;margin-bottom:22px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 18px;
+border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0 20px;margin-bottom:8px}
+label{display:block;margin-bottom:7px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+text-transform:uppercase;color:var(--dim)}
+select,input{width:100%;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+padding:8px 10px;font-family:var(--mono);font-size:13px}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+.check{display:flex;align-items:center;gap:9px;margin-top:24px}
+.check input{width:auto;accent-color:var(--accent)}
+.check label{font-family:var(--sans)}
+.meta{margin:12px 0 18px}
+#results{border-top:1px solid var(--line)}
+#results:empty{border-top:0}
+.result{padding:16px 0 15px;border-bottom:1px solid var(--line)}
 .result .top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.rank{font-family:"JetBrains Mono",monospace;color:var(--dim);font-size:14px;min-width:30px}
-.name{font-weight:700;font-size:18px;text-decoration:none}
-.prov{color:var(--mute);font-size:14px}
-.total{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:19px;color:var(--amber)}
-.bars{display:flex;gap:3px;margin:11px 0 8px;height:7px}
-.bar{border-radius:3px;min-width:2px}
-.why{font-size:14px;color:var(--mute);display:flex;gap:16px;flex-wrap:wrap}
+.rank{min-width:30px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.result .name{font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:-.01em;
+color:var(--ink);border-bottom:0}
+.result .name:hover{color:var(--accent)}
+.prov{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.total{margin-left:auto;font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent)}
+.bars{display:flex;gap:3px;height:6px;margin:11px 0 9px;background:var(--raise)}
+.bars .bar{display:block;min-width:2px}
+.why{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mute)}
 .why b{color:var(--ink);font-weight:500}
-.contrib{margin-top:9px;font-size:13px;color:var(--dim)}
-.pill{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
-color:var(--mute);margin-right:5px;font-family:"JetBrains Mono",monospace}
-.basis{font-size:13px;color:var(--dim);margin-top:6px}
-footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
-#status{color:var(--mute);padding:30px 0}
+.contrib,.basis{margin-top:6px;font-size:12px;color:var(--dim)}
+.contrib{margin-top:9px}
+.result .pill{margin-top:4px}
+#results>p.lede{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+color:var(--mute)}
+#status{padding:30px 0;color:var(--mute)}
+footer p{max-width:68ch}
 </style>
 </head>
 <body><div class="wrap">
@@ -347,9 +343,9 @@ the server engine: filter, score, rank, explain.</p>
         '<span class="prov">' + c.provider + "</span>" +
         '<span class="total">' + totalLabel + "</span></div>" +
         '<div class="bars">' +
-          bar(r.bench, 100, "#63c9d9") + bar(r.cap, 100, "#78b5a2") +
-          bar(r.type, 100, "#f5b342") + bar(r.ctx, 100, "#8fa4d4") +
-          bar(r.cost, 100, "#9aa5b6") +
+          bar(r.bench, 100, "var(--seg-bench)") + bar(r.cap, 100, "var(--seg-cap)") +
+          bar(r.type, 100, "var(--seg-type)") + bar(r.ctx, 100, "var(--seg-ctx)") +
+          bar(r.cost, 100, "var(--seg-cost)") +
         "</div>" +
         '<div class="why">' + why.join("") + "</div>" +
         contrib + basis +
