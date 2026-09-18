@@ -1,0 +1,181 @@
+# Who built a model: configuration for scripts/attribution.py (MODEL-82).
+#
+# The daily research job used to take a model's provider from the models.dev
+# page it was found on. Alibaba's page lists Moonshot's Kimi K3, so PR #92
+# proposed models/qwen/kimi-k3.md. A listing is evidence of availability, not
+# of authorship.
+#
+# Everything a human might want to tune lives here, not in code:
+#   - the confidence bands that decide what Jev's judgment may write,
+#   - which id prefixes name a creating organisation,
+#   - which product names point at one (these only nominate candidates),
+#   - which models.dev pages map onto which availability field.
+#
+# Changing a threshold does not need new inference. Every raw judgment is kept
+# in scripts/attribution_judgments.jsonl; the policy is applied at read time.
+
+typesafe:
+  endpoint: https://api.typesafe.ai/v1/systemone
+  # Pinned, not jev-latest: a threshold was chosen against this model's
+  # behaviour (scripts/eval_attribution.py). Re-run the evaluation before
+  # moving it.
+  model: jev-1.13.0
+  timeout_seconds: 30
+  max_retries: 4
+  # Hard stop for one run. Past it, remaining listings stay unattributed and
+  # the report says so. 2M input tokens is $0.084 at $0.042/Mtok.
+  max_input_tokens_per_run: 2000000
+
+# Confidence is the Choice answer's own `confidence` (docs.typesafe.ai/confidence).
+# Authorship is published as fact, so only the top band writes silently.
+#   confidence >= write            -> creator written
+#   review <= confidence < write   -> creator written, listed for review in the PR
+#   confidence < review            -> creator left null; no card is created
+#
+# How these were chosen (scripts/eval_attribution.py, 2026-09-17, jev-1.13.0,
+# 3,510 judgments over 379 cards whose creator is established independently of
+# models.dev, including 379 built in the PR #92 shape on purpose):
+#   - Jev never picked a wrong organisation, in any band. The most probability
+#     it ever put on a wrong one was 0.33. Every error was an abstention.
+#   - With zero errors, the 95% upper bound on the wrong-creator rate is 3/n:
+#     0.32% for the 926 picks at >= 0.90, 0.21% for the 1,401 at >= 0.60.
+#   - Accuracy on the real evidence is 97.9-99.8% at >= 0.90 and falls to
+#     87-94% between 0.60 and 0.90, where cannot_establish holds real mass.
+#     That middle band is where a person should look before it is published.
+#   - Below 0.60 the answer is split between an organisation and
+#     cannot_establish; 48% of those judgments abstain outright. Null.
+# The data would allow a lower write bar. It is not lowered: authorship is
+# published as fact, and the evaluation's cards are easier than a day-one model
+# from an unknown lab.
+thresholds:
+  write: 0.90
+  review: 0.60
+  # If Jev picks the listing platform's own organisation while also judging
+  # that platform to be a reseller of someone else's model, the answers
+  # disagree and nothing is written. The reseller Noul separates the two cases
+  # well (AUC 0.92) but not cleanly: at 0.50 it flagged 16% of pages listing
+  # their OWN models and blocked 55 correct picks while preventing no error.
+  # At 0.85 it flagged none of the 597 own listings and still 32% of resellers.
+  reseller_veto: 0.85
+
+# Id prefixes that name the organisation that created the model. A prefix here
+# is the whole deterministic path: `moonshotai/kimi-k3` is Moonshot's, no model
+# call. Keys are models.dev prefixes (lowercase, leading `~` and `hf:`
+# stripped); values are catalogue provider slugs (models/<slug>/).
+# A prefix that is absent here names nobody we can card: it is recorded as
+# evidence, never promoted to a creator.
+creator_namespaces:
+  openai: openai
+  anthropic: anthropic
+  google: google
+  meta: meta
+  meta-llama: meta
+  qwen: qwen
+  alibaba: qwen
+  qwenlm: qwen
+  deepseek: deepseek
+  deepseek-ai: deepseek
+  moonshotai: moonshot
+  moonshot: moonshot
+  moonshot-ai: moonshot
+  z-ai: zhipu
+  zai: zhipu
+  zai-org: zhipu
+  zhipuai: zhipu
+  thudm: zhipu
+  mistralai: mistral
+  mistral: mistral
+  x-ai: xai
+  xai: xai
+  minimax: minimax
+  minimaxai: minimax
+  nvidia: nvidia
+  tencent: tencent
+  amazon: amazon
+  bytedance: bytedance
+  bytedance-seed: bytedance
+  cohere: cohere
+  perplexity: perplexity
+  perplexityai: perplexity
+  xiaomi: xiaomi
+  xiaomimimo: xiaomi
+  stepfun: stepfun
+  stepfun-ai: stepfun
+  baidu: baidu
+  inclusionai: inclusionai
+  thinkingmachines: thinkingmachines
+  nousresearch: nous-research
+  upstage: upstage
+  voyage: voyage
+  bfl: black-forest-labs
+  black-forest-labs: black-forest-labs
+  inception: inception
+  microsoft: microsoft
+  ibm-granite: ibm
+  ibm: ibm
+  meituan: meituan
+  nex-agi: nex-agi
+  rekaai: reka
+  liquid: liquid
+  liquidai: liquid
+  deepcogito: deepcogito
+  intfloat: intfloat
+  sarvam: sarvam
+  salesforce: salesforce
+  stabilityai: stability
+  allenai: allen-ai
+
+# Leading segments that route a request rather than name its maker:
+# `@cf/meta/llama-3.1-8b` is Meta's, `accounts/fireworks/models/x` is nobody's.
+# Skipped before the creator prefix is read.
+route_prefixes:
+  - "@cf"
+  - "@hf"
+  - accounts
+  - fireworks
+  - models
+
+# Product names that point at an organisation. Matched as whole words in a
+# listing's id, name and family. They NOMINATE candidates for the judgment and
+# settle nothing on their own, with one exception: when the listing page's own
+# organisation is the only one named and no id prefix disagrees, page and name
+# corroborate each other (`qwen-plus` on Alibaba's page).
+brand_tokens:
+  openai: [gpt, chatgpt, dall, whisper, sora]
+  anthropic: [claude]
+  google: [gemini, gemma, imagen, veo, palm]
+  meta: [llama]
+  qwen: [qwen, qwq, qvq, tongyi]
+  deepseek: [deepseek]
+  moonshot: [kimi, moonshot]
+  zhipu: [glm, chatglm, zhipu]
+  mistral: [mistral, mixtral, codestral, devstral, magistral, pixtral, ministral, voxtral]
+  xai: [grok]
+  cohere: [cohere, command, aya]
+  minimax: [minimax, abab, hailuo]
+  perplexity: [sonar, perplexity]
+  stepfun: [step, stepfun]
+  inception: [mercury]
+  upstage: [solar]
+  nvidia: [nemotron]
+  tencent: [hunyuan]
+  bytedance: [doubao, seedream, seedance]
+  baidu: [ernie]
+  xiaomi: [mimo]
+  microsoft: [phi]
+  ibm: [granite]
+  amazon: [nova, titan]
+
+# Where a listing on one of the seeded models.dev pages is recorded as
+# availability when the page's organisation did not build the model.
+# Pages not listed here go to availability.other_platforms.
+availability_fields:
+  alibaba: qwen_alibaba
+  cerebras: cerebras
+  perplexity: perplexity
+  deepseek: deepseek
+  minimax: minimax
+  moonshotai: moonshot_kimi
+  mistral: mistral_plateforme
+  cohere: cohere
+  upstage: upstage_solar

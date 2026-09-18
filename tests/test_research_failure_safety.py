@@ -32,6 +32,27 @@ WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "daily-research.yml"
 from scripts import seed_models_dev as seeder  # noqa: E402
 
 
+class _JudgesPageAsCreator:
+    """Stub TypeSafe judge (MODEL-82): these fixtures are the page's own models.
+
+    ``test-model-a`` names no organisation, so attribution asks for a judgment.
+    Never calls the API; picks the first offered organisation with full
+    confidence and says the page is not reselling.
+    """
+
+    model = "jev-test"
+
+    def evaluate(self, state, questions):
+        option = next(iter(questions["creator"]["criteria"]))
+        return {
+            "answers": {
+                "creator": {"choice": option, "probabilities": {option: 1.0}, "confidence": 1.0},
+                "reseller": {"noul": 0.0},
+            },
+            "usage": {"input_tokens": 0},
+        }
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Fakes for the HTTP layer. No test in this file makes a real request.
 # ─────────────────────────────────────────────────────────────────────────
@@ -314,6 +335,7 @@ def test_crash_partway_through_providers_leaves_no_half_written_card(
     models_dir = tmp_path / "models"
     monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(seeder, "load_known_identities", lambda *a, **k: {})
+    monkeypatch.setattr(seeder, "make_judge", lambda config: _JudgesPageAsCreator())
 
     api_data = {
         "openai": {
@@ -364,6 +386,7 @@ def test_card_that_fails_round_trip_validation_is_never_written(
     models_dir = tmp_path / "models"
     monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(seeder, "load_known_identities", lambda *a, **k: {})
+    monkeypatch.setattr(seeder, "make_judge", lambda config: _JudgesPageAsCreator())
 
     api_data = {
         "openai": {
