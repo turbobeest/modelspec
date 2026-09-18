@@ -87,7 +87,10 @@ _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "e
 #: is the same one so that a deploy and a load both reach callers in five
 #: minutes rather than by two different rules.
 _policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
-_store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None}
+#: `state` is one of the `STORE_*` values below; `error` is set only when it is
+#: `broken`; `message` is the operator-facing sentence for whichever it is.
+_store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
+                                   "state": None, "message": None}
 
 
 async def _get_json(url: str):
@@ -145,6 +148,54 @@ async def _load_policy_catalogue(origin: str):
     return catalogue
 
 
+#: The four states of the determination store, as `/v1/health` names them.
+#: `unbound` and `empty` are normal and carry no error; `broken` is the only
+#: one that does, and it stays loud. Every state but `loaded` makes
+#: `_load_determinations` return `None`, so an entitled request is refused
+#: with 503 in all three — an empty store is not an empty answer.
+STORE_UNBOUND = "unbound"
+STORE_EMPTY = "empty"
+STORE_LOADED = "loaded"
+STORE_BROKEN = "broken"
+
+#: What each non-error state means, in the words an operator reads.
+STORE_MESSAGES = {
+    STORE_UNBOUND: "no DETERMINATIONS KV binding on this deployment",
+    STORE_EMPTY: (f"no determinations loaded yet: {KV_MANIFEST} is not in the "
+                  "namespace; run api/worker/load_determinations.py"),
+}
+
+try:  # Pyodide's JS `null`. Absent under CPython, where tests stub KV.
+    from pyodide.ffi import jsnull as _JSNULL  # type: ignore[import-not-found]
+except Exception:  # noqa: BLE001 - optional import; `_absent` also checks the type name
+    _JSNULL = None
+
+
+def _absent(value) -> bool:
+    """Whether a `kv.get()` result means "no such key".
+
+    Workers KV resolves a missing key to JS `null`. Pyodide converts JS `null`
+    to `pyodide.ffi.jsnull`, **not** to `None` (only `undefined` becomes
+    `None`), so an `is None` test lets it through, and `str()` of it is not
+    JSON. That is the bug this guards: an empty namespace was reported as
+    `JSONDecodeError`, i.e. as corrupt data. An empty or blank string is
+    treated as absent too — no loader writes one, and parsing it proves
+    nothing but that it is empty.
+    """
+    if value is None:
+        return True
+    if _JSNULL is not None and value is _JSNULL:
+        return True
+    if type(value).__name__ in ("JsNull", "JsUndefined"):
+        return True
+    return isinstance(value, str) and not value.strip()
+
+
+def _store_state(state: str, *, error: str | None = None) -> None:
+    _store_cache.update({"state": state, "error": error,
+                         "message": error or STORE_MESSAGES.get(state)})
+
+
 async def _load_determinations(env):
     """Read the determination store out of KV, or return `None`.
 
@@ -153,6 +204,10 @@ async def _load_determinations(env):
     `undetermined` for everything, which is exactly the free answer, which is
     the one thing a paid caller must never receive by accident.
 
+    The reason is recorded in `_store_cache["state"]`, one of the four
+    `STORE_*` values. Only `broken` sets `_store_cache["error"]`: no binding
+    and no manifest yet are states, not faults.
+
     The manifest is read first and each blob is verified against the SHA-256 it
     records. That is what makes the loader's write order meaningful — a load
     that died between the two blobs leaves a manifest describing the previous
@@ -160,7 +215,7 @@ async def _load_determinations(env):
     """
     kv = getattr(env, "DETERMINATIONS", None)
     if kv is None:
-        _store_cache["error"] = "no DETERMINATIONS KV binding on this deployment"
+        _store_state(STORE_UNBOUND)
         return None
     fresh = (time.time() - float(_store_cache["at"])) < EXPORT_TTL_SECONDS
     if fresh and _store_cache["store"] is not None:
@@ -168,14 +223,19 @@ async def _load_determinations(env):
 
     try:
         manifest_text = await kv.get(KV_MANIFEST)
-        if manifest_text is None:
-            raise RuntimeError(f"{KV_MANIFEST} is not in the namespace; run "
-                               "api/worker/load_determinations.py")
+        if _absent(manifest_text):
+            # Nothing loaded yet. A missing manifest is the empty store, and the
+            # blobs are not read: without a manifest there is nothing to verify
+            # them against, and a stray blob is not a bundle.
+            _store_state(STORE_EMPTY)
+            return None
         manifest = json.loads(str(manifest_text))
+        if not isinstance(manifest, dict):
+            raise RuntimeError(f"{KV_MANIFEST} is not a JSON object")
         blobs = {}
         for key in (KV_COMMERCIAL_USE, KV_RESIDENCY):
             text = await kv.get(key)
-            if text is None:
+            if _absent(text):
                 raise RuntimeError(f"{key} is named by the manifest and is not in "
                                    "the namespace")
             text = str(text)
@@ -193,10 +253,11 @@ async def _load_determinations(env):
             "residency": blobs[KV_RESIDENCY].get("residency") or {},
         }
     except Exception as exc:  # noqa: BLE001 - reported; never degraded into a free answer
-        _store_cache["error"] = f"{type(exc).__name__}: {exc}"
+        _store_state(STORE_BROKEN, error=f"{type(exc).__name__}: {exc}")
         return None
 
-    _store_cache.update({"at": time.time(), "store": store, "error": None})
+    _store_cache.update({"at": time.time(), "store": store})
+    _store_state(STORE_LOADED)
     return store
 
 
@@ -354,6 +415,10 @@ class Default(WorkerEntrypoint):
                                                 service_commit, origin)
         except policy_service.RequestError as exc:
             if exc.code == "determinations_unavailable":
+                # Why, in the store's own terms: unbound, empty or broken.
+                # `last_error` is null unless it is broken.
+                exc.detail.setdefault("store_state", _store_cache.get("state"))
+                exc.detail.setdefault("store_message", _store_cache.get("message"))
                 exc.detail.setdefault("last_error", _store_cache.get("error"))
             status, body = policy_service.error_response(exc, catalogue, service_commit,
                                                          origin)
@@ -405,14 +470,21 @@ class Default(WorkerEntrypoint):
         })
 
     async def _determinations_health(self) -> dict:
-        """Is a bundle staged, and which one. Metadata only, never content."""
-        if getattr(self.env, "DETERMINATIONS", None) is None:
-            return {"bound": False, "loaded": False, "bundle_version": None,
-                    "generated_on": None, "last_error": None}
+        """Is a bundle staged, and which one. Metadata only, never content.
+
+        `state` is one of `unbound`, `empty`, `loaded`, `broken`. Only
+        `broken` carries a `last_error`: an unbound or empty store is a normal
+        condition, and reporting it as an exception would send an operator
+        looking for corruption that is not there.
+        """
         store = await _load_determinations(self.env)
+        state = _store_cache.get("state")
         if store is None:
-            return {"bound": True, "loaded": False, "bundle_version": None,
-                    "generated_on": None, "last_error": _store_cache.get("error")}
-        return {"bound": True, "loaded": True,
+            return {"bound": state != STORE_UNBOUND, "state": state, "loaded": False,
+                    "bundle_version": None, "generated_on": None,
+                    "message": _store_cache.get("message"),
+                    "last_error": _store_cache.get("error")}
+        return {"bound": True, "state": STORE_LOADED, "loaded": True,
                 "bundle_version": store.get("bundle_version"),
-                "generated_on": store.get("generated_on"), "last_error": None}
+                "generated_on": store.get("generated_on"),
+                "message": None, "last_error": None}
