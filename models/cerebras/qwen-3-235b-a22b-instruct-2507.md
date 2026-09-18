@@ -923,6 +923,40 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: cerebras/qwen-3-235b-a22b-instruct-2507
+    version: qwen-3-235b-a22b-instruct-2507
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: This is Qwen's non-thinking Instruct-2507 checkpoint. It does not emit think blocks; enable_thinking=False
+        is no longer required.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507
+        title: Qwen3-235B-A22B-Instruct-2507 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Sampling: Temperature 0.7, TopP 0.8, TopK 20, MinP 0. Recommended max output 16,384 tokens.
+        presence_penalty 0-2 can cut endless repetition.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507
+        title: Qwen3-235B-A22B-Instruct-2507 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: For math, include a step-by-step instruction and put the final answer in LaTeX boxed notation.
+        For multiple-choice, ask for a JSON answer field with the choice letter.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507
+        title: Qwen3-235B-A22B-Instruct-2507 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

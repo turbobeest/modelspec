@@ -884,7 +884,41 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: unsloth/gemma-4-31b-it-gguf
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Unsloth's card for this GGUF reprints Gemma 4 IT roles (system, user, assistant) and says
+        to re-download for Google's latest chat template.
+      sources:
+      - url: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+        title: unsloth/gemma-4-31B-it-GGUF model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: On this card, thinking is enabled by putting the <|think|> token at the start of the system
+        prompt; omit it to disable.
+      sources:
+      - url: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+        title: unsloth/gemma-4-31B-it-GGUF model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: 'Unsloth reprints the Gemma 4 sampling notes: temperature 1.0, top_p 0.95, top_k 64. Multi-turn
+        history should drop prior thoughts except on tool-call turns.'
+      sources:
+      - url: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+        title: unsloth/gemma-4-31B-it-GGUF model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

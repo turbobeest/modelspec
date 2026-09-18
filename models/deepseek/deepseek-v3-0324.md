@@ -946,7 +946,42 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-v3-0324
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message:
+    - text: DeepSeek's web/app system prompt for this V3-0324 card names the assistant DeepSeek Chat and
+        includes today's date.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3-0324
+        title: DeepSeek-V3-0324 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Official web/app model temperature is 0.3. The API maps temperature 1.0 to 0.3 (T_model =
+        T_api * 0.3 for T_api in 0-1).
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3-0324
+        title: DeepSeek-V3-0324 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: File-upload prompts use a [file name] / [file content begin] ... [file content end] wrapper
+        then the question. Function calling, JSON output and FIM follow the DeepSeek-V2.5 prompt construction
+        the card points to.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3-0324
+        title: DeepSeek-V3-0324 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

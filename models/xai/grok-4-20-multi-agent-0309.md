@@ -869,6 +869,34 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4-20-multi-agent-0309
+    version: grok-4.20-multi-agent-0309
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: xAI's multi-agent docs tell you to set model grok-4.20-multi-agent (this card is the 0309
+        snapshot). The feature is beta; the API may change.
+      sources:
+      - url: https://docs.x.ai/developers/model-capabilities/text/multi-agent
+        title: Multi Agent
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: Enable built-in tools on the request (web_search, x_search, code_execution, collections_search).
+        The server runs the agent loop until a final answer. Multiple agents collaborate; a leader agent
+        synthesizes the reply.
+      sources:
+      - url: https://docs.x.ai/developers/model-capabilities/text/multi-agent
+        title: Multi Agent
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 
