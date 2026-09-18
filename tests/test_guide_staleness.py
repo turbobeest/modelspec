@@ -28,6 +28,27 @@ SOURCE = {
 }
 
 
+class _JudgesPageAsCreator:
+    """Stub TypeSafe judge (MODEL-82): these fixtures are the page's own models.
+
+    ``test-model-a`` names no organisation, so attribution asks for a judgment.
+    Never calls the API; picks the first offered organisation with full
+    confidence and says the page is not reselling.
+    """
+
+    model = "jev-test"
+
+    def evaluate(self, state, questions):
+        option = next(iter(questions["creator"]["criteria"]))
+        return {
+            "answers": {
+                "creator": {"choice": option, "probabilities": {option: 1.0}, "confidence": 1.0},
+                "reseller": {"noul": 0.0},
+            },
+            "usage": {"input_tokens": 0},
+        }
+
+
 def _card(model_id: str = "acme/widget-1", version: str = "widget-1.0",
           guide_status: str | None = "current") -> ModelCard:
     data: dict[str, Any] = {
@@ -116,6 +137,7 @@ def test_seeder_overwrite_of_guided_card_writes_stale_notice_file(
     notices = tmp_path / "stale-guides.md"
     monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(seeder, "load_known_identities", lambda *a, **k: {})
+    monkeypatch.setattr(seeder, "make_judge", lambda config: _JudgesPageAsCreator())
     monkeypatch.setattr(seeder.httpx, "get", lambda *a, **k: _Resp(api))
     monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--stale-notices", str(notices)])
     seeder.main()

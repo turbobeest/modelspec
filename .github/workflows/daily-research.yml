@@ -76,9 +76,17 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # MODEL-82: a page lists what it serves, not what it built. Where the
+      # evidence does not settle a model's creator by itself, a TypeSafe
+      # judgment picks among the organisations the evidence names. The key is
+      # passed to this step only. Without it the seeder fails closed: those
+      # listings get no card, and the PR body says so. It never falls back to
+      # the listing page.
       - name: Write the new cards
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
-        run: python scripts/seed_models_dev.py --new-only --stale-notices stale-guides.md
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: python scripts/seed_models_dev.py --new-only --stale-notices stale-guides.md --attribution-report attribution.md
 
       - name: Validate everything, not just the new cards
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
@@ -111,6 +119,20 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           rm -f stale-guides.md
 
+      # MODEL-82: cards whose creator a person must check, and listings left
+      # uncarded because nobody could establish who built them.
+      - name: Collect attribution notices
+        id: attribution
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: |
+          delim="ATTRIBUTION_$(openssl rand -hex 16)"
+          {
+            echo "report<<${delim}"
+            if [ -f attribution.md ]; then cat attribution.md; fi
+            echo "${delim}"
+          } >> "$GITHUB_OUTPUT"
+          rm -f attribution.md
+
       - name: Open a pull request, never merge one
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
         uses: peter-evans/create-pull-request@v7
@@ -142,6 +164,12 @@ jobs:
             duplicates, that the provider and type mapping is right, and that
             nothing here is a rename of a card we already have under a different
             id.
+
+            The provider on each card is the organisation that built the model,
+            never the page it was listed on (MODEL-82). A listing by someone
+            else is recorded under `availability`.
+
+            ${{ steps.attribution.outputs.report }}
 
             ${{ steps.stale.outputs.notices }}
 
