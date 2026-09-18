@@ -16,15 +16,23 @@ export function asToolResult(envelope: OriginEnvelope) {
   };
 }
 
+/**
+ * `via` is a service binding to the Worker that owns `origin`. A Worker cannot
+ * reach another Worker on its own zone over the public hostname: the
+ * subrequest skips the route and hits the zone's origin (`100::`), which
+ * answers 522. The envelope still names the public URL, because that is the
+ * endpoint a caller could reach directly.
+ */
 export async function fetchOrigin(
   origin: string,
   init: RequestInit = {},
+  via?: { fetch: typeof fetch },
 ): Promise<OriginEnvelope> {
   const headers = new Headers(init.headers);
   if (!headers.has("user-agent")) headers.set("user-agent", USER_AGENT);
   if (!headers.has("accept")) headers.set("accept", "application/json");
   try {
-    const response = await fetch(origin, {
+    const response = await (via ? via.fetch.bind(via) : fetch)(origin, {
       ...init,
       headers,
       signal: init.signal ?? AbortSignal.timeout(30_000),

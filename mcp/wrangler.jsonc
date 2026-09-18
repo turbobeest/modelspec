@@ -20,6 +20,10 @@
   "routes": [
     { "pattern": "api.modelspec.dev/mcp*", "zone_name": "modelspec.dev" }
   ],
+  // rank and policy_check reach the rank Worker through this binding. Over the
+  // public hostname a same-zone Worker-to-Worker fetch skips the route and
+  // hits the zone origin (100::), which answered 522 on the first deploy.
+  "services": [{ "binding": "RANK", "service": "modelspec-rank" }],
   "observability": { "enabled": true },
   "vars": {
     "EXPORT_ORIGIN": "https://modelspec.dev",
