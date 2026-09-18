@@ -839,6 +839,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: nomic/nomic-embed-text-v1-5-gguf
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Nomic''s GGUF card requires a task-instruction prefix at the start of each
+        string. Its llama.cpp example uses ''search_query: What is TSNE?''.'
+      sources:
+      - url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF
+        title: nomic-embed-text-v1.5-GGUF model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: llama.cpp defaults these files to 2048 tokens of context. The card says 8192
+        needs --rope-scaling yarn --rope-freq-scale .75.
+      sources:
+      - url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF
+        title: nomic-embed-text-v1.5-GGUF model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # nomic embed text v1.5 GGUF
