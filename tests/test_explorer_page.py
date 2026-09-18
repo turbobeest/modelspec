@@ -70,3 +70,11 @@ def test_the_built_explorer_carries_the_modelspec_nav_and_its_libraries(tmp_path
     assert '<div id="freshness"><p class="fresh">as of 2026-09-18</p></div>' in built
     assert sorted(p.name for p in (ms / "graph/vendor").iterdir()) == [
         "3d-force-graph.min.js", "README.md", "three.min.js"]
+
+
+def test_the_detail_panel_leaves_out_card_completeness() -> None:
+    """MODEL-74: the field spans 10 to 21 percent across the whole catalogue, so
+    one node's value reads as a verdict. The suite has no JavaScript runtime, so
+    this reads the panel's skip table rather than rendering the panel."""
+    skip = re.search(r"var SKIP = \{(.*?)\};", _page(), re.S).group(1)
+    assert "card_completeness: 1" in skip
