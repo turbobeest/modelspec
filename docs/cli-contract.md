@@ -156,27 +156,21 @@ error instead of crashing a client that assumed the old range.
 The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
 shipped without a bump; that is the case the rule exists to prevent.
 
-### Graph Model property removed (MODEL-74)
-
-`build.export_schema_version` is **3.0**. Model nodes in `/api/graph/nodes.json`
-and the graph views no longer carry `applicable_field_coverage` (the MODEL-74
-rename of `card_completeness`). That figure remains an internal
-`ModelCard` statistic. It is not a ranking input, not a CLI `--json` field,
-and not shown by `modelspec info` or `modelspec stats`.
-
-The field was always a number on carded Model nodes. Removing it means a
-client that handled every old value can now receive a node without the key —
-"a field that can now be absent" under the MODEL-59 rule above. That is a
-major bump of the export tree, not of the CLI `--json` envelope
-(`schema_version` stays `"1.0"`). A 2.x CLI refuses a 3.x snapshot with the
-usual incompatible-major message.
-
 ### Policy fields, and the one major bump they cost (MODEL-77)
 
-`build.export_schema_version` became **2.0** in MODEL-77. `/api/models/<id>.json`
-publishes a card's frontmatter verbatim, so reshaping the policy fields
-reshapes that tree. Two widenings shipped as one bump because they were one
-decision:
+### Graph Model property removed without a bump (MODEL-74)
+
+Model nodes in `/api/graph/nodes.json` and the graph views no longer carry
+`card_completeness` (renamed `applicable_field_coverage`, now an internal
+`ModelCard` statistic only). `build.export_schema_version` stays **2.0**:
+Jamie decided 2026-09-18 that this removal does not bump the export major.
+The CLI snapshot files (`index`, `candidates`, `profiles`, `hardware`) never
+carried the key, and the CLI does not read the graph views, so a bump would
+have made every 2.x CLI refuse new snapshots with no consumer to protect.
+
+`build.export_schema_version` is **2.0**. `/api/models/<id>.json` publishes a
+card's frontmatter verbatim, so reshaping the policy fields reshapes that tree.
+Two widenings ship as one bump because they are one decision:
 
 * `licensing.commercial_use` was `true | false | null`. It is now a string:
   `allowed`, `restricted`, `prohibited`, `unspecified` or `withheld` — the same

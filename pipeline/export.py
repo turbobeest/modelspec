@@ -31,9 +31,9 @@ from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 #: Distinct from:
 #: * CLI envelope `schema_version` (`cli.modelspec.offline.SCHEMA_VERSION`, "1.0")
 #: * ranking-report `schema_version` (`rankings.json` and `pipeline.ranking` JSON,
-#:   "2.0") — that file is not what the CLI snapshot fetches. They remain
-#:   different fields in different files; a consumer tells them apart by name,
-#:   not by value.
+#:   "2.0") — that file is not what the CLI snapshot fetches. The two now hold
+#:   the same *string*; they remain different fields in different files, and a
+#:   consumer tells them apart by name, not by value.
 #:
 #: 1.0 -> 2.0 (MODEL-77). `/api/models/<id>.json` publishes the card
 #: frontmatter verbatim, so the policy reshape is a change to this tree:
@@ -44,13 +44,7 @@ from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 #: became `list | null` beside a new `data_residency_disclosure`. Both are
 #: range-widening under the MODEL-59 rule, and they ship as one bump because
 #: they are one decision. See `docs/cli-contract.md`.
-#:
-#: 2.0 -> 3.0 (MODEL-74). Model nodes in `/api/graph/nodes.json` and the graph
-#: views no longer carry `applicable_field_coverage`. That key was always a
-#: number on carded Model nodes; dropping it means the field can now be
-#: absent, which MODEL-59 names as a range widening. A 2.x CLI refuses a 3.x
-#: snapshot.
-EXPORT_SCHEMA_VERSION = "3.0"
+EXPORT_SCHEMA_VERSION = "2.0"
 
 
 def _commit(root: Path) -> str:

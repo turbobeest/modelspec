@@ -130,19 +130,19 @@ def test_compatible_export_minor_is_accepted(cache: Path) -> None:
     _write(cache)
     path = cache / "snapshot.json"
     payload = json.loads(path.read_text())
-    payload["data"]["index"]["build"]["export_schema_version"] = "3.1"
+    payload["data"]["index"]["build"]["export_schema_version"] = "2.1"
     path.write_text(json.dumps(payload))
     loaded = snapshot.load(cache)
-    assert loaded.export_schema_version == "3.1"
+    assert loaded.export_schema_version == "2.1"
 
 
 def test_incompatible_export_schema_is_refused(cache: Path) -> None:
     _write(cache)
     path = cache / "snapshot.json"
     payload = json.loads(path.read_text())
-    payload["data"]["index"]["build"]["export_schema_version"] = "4.0"
+    payload["data"]["index"]["build"]["export_schema_version"] = "3.0"
     path.write_text(json.dumps(payload))
-    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 4.0"):
+    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 3.0"):
         snapshot.load(cache)
 
 
@@ -150,7 +150,7 @@ def test_incompatible_export_schema_is_a_runtime_error_without_traceback(cache: 
     _write(cache)
     path = cache / "snapshot.json"
     payload = json.loads(path.read_text())
-    payload["data"]["index"]["build"]["export_schema_version"] = "4.0"
+    payload["data"]["index"]["build"]["export_schema_version"] = "3.0"
     path.write_text(json.dumps(payload))
     result = _run(["offline", "rank", "coding", "--json"], cache)
     assert result.returncode == offline.EXIT_ERROR
@@ -185,7 +185,7 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
     bodies = {
         "/api/index.json": {
             "build": {"commit": "newcommit", "built_at": "2026-09-10T00:00:00+00:00",
-                      "export_schema_version": "4.0"},
+                      "export_schema_version": "3.0"},
         },
         "/api/rank/candidates.json": {"candidates": []},
         "/api/rank/profiles.json": {"profiles": {}},
@@ -209,7 +209,7 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
             raise AssertionError(url)
 
     monkeypatch.setattr(httpx, "Client", FakeClient)
-    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 4.0"):
+    with pytest.raises(snapshot.SnapshotInvalid, match="export_schema_version 3.0"):
         snapshot.fetch("https://example.test", cache)
     assert (cache / "snapshot.json").read_text() == original
 
