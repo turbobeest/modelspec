@@ -60,8 +60,8 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
-  license_type: apache-2.0
+  open_weights: false
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -827,13 +827,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Devstral 2 (latest)
 
 Devstral 2 (latest) is a Llm Code model from Mistral AI. Part of the devstral family. Knowledge cutoff: 2025-12.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. Floating API alias, not a weight distribution. No creator Hub repo for Devstral Medium (read 2026-09-18). Open Devstral weights are on mistral/devstral-small-2507 and mistral/devstral-2-123b-instruct-2512.
 
 ## Key Features
 - Function calling / tool use

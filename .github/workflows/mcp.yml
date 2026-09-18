@@ -1,0 +1,133 @@
+name: MCP server
+
+# MODEL-3 phase 1. Typechecks and tests the TypeScript MCP Worker, and on
+# push to main only, deploys it to api.modelspec.dev/mcp. PR runs never
+# reach the deploy job or its secrets. This is not a required check.
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  WRANGLER: wrangler@4.134.0
+  MCP_URL: https://api.modelspec.dev/mcp
+
+jobs:
+  test:
+    name: MCP Worker tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Install
+        working-directory: mcp
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: mcp
+        run: npm run typecheck
+
+      - name: Test
+        working-directory: mcp
+        run: npm test
+
+      - name: Build the Worker bundle
+        working-directory: mcp
+        run: npx --yes "$WRANGLER" deploy --dry-run --outdir ../dist/mcp-worker
+
+  deploy:
+    name: Deploy the MCP Worker
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: mcp-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Install
+        working-directory: mcp
+        run: npm ci
+
+      - name: Deploy
+        working-directory: mcp
+        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
+
+      - name: Smoke-test api.modelspec.dev/mcp
+        run: |
+          set -uo pipefail
+          url="${MCP_URL}"
+          checker="mcp/scripts/check_response.py"
+          probe_path="/mcp"; status=""
+
+          probe() {
+            probe_path="$1"; shift
+            : > body.json
+            status=$(curl -sS -o body.json -w '%{http_code}' --max-time 60 \
+              -A 'modelspec-mcp-smoke/1.0 (+https://github.com/turbobeest/modelspec)' \
+              -H 'content-type: application/json' \
+              -H 'accept: application/json, text/event-stream' \
+              "$url" "$@" || echo 000)
+          }
+
+          digest() {
+            python3 "$checker" digest "${probe_path}" "${status}" body.json
+          }
+
+          fail() {
+            echo "::error::$1 — $(digest)"
+            exit 1
+          }
+
+          field() {
+            python3 "$checker" field "$1" body.json
+          }
+
+          deadline=$((SECONDS + 300)); version=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            probe /mcp -X POST --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"modelspec-ci","version":"0"}}}'
+            version=$(field version)
+            if [ "$status" = 200 ] && [ "$version" = "${GITHUB_SHA}" ]; then break; fi
+            echo "not ready yet: $(digest); version=${version:-none}, want ${GITHUB_SHA}; retrying"
+            sleep 10
+          done
+          if [ "$status" = 000 ]; then
+            fail "${url} is unreachable after 5 min. A 522 means the Workers route api.modelspec.dev/mcp* is not bound."
+          fi
+          if [ "$status" != 200 ] || [ "$version" != "${GITHUB_SHA}" ]; then
+            fail "the MCP Worker never rolled onto ${GITHUB_SHA}: initialize reports version=${version:-none} after 5 min."
+          fi
+          python3 "$checker" initialize body.json "${GITHUB_SHA}" || exit 1
+
+          probe /mcp -X POST --data '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+          if [ "$status" != 200 ]; then fail "tools/list returned HTTP ${status}, not 200"; fi
+          python3 "$checker" tools-list body.json || exit 1
+
+          echo "api.modelspec.dev/mcp is live on ${GITHUB_SHA}"

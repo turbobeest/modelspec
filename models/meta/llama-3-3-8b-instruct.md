@@ -60,8 +60,8 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
-  license_type: llama-community
+  open_weights: false
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -823,13 +823,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Llama-3.3-8B-Instruct
 
 Llama-3.3-8B-Instruct is a Llm Chat model from Meta. Part of the llama family. Knowledge cutoff: 2023-12.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong llama-community default is worse than none.
 
 ## Key Features
 - Function calling / tool use

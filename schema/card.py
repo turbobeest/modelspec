@@ -8,14 +8,14 @@ Usage:
     from schema.card import ModelCard
     card = ModelCard.from_yaml("models/qwen/qwen3-30b-a3b.md")
     card.validate()
-    print(card.card_completeness)
+    print(card.applicable_field_coverage)
 """
 
 from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import yaml
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
@@ -318,8 +318,47 @@ class Licensing(BaseModel):
 # ═══════════════════════════════════════════════════════════════
 # Section 5: Modalities
 # ═══════════════════════════════════════════════════════════════
+#
+# Nested modality and capability models declare ``__applicable_model_types__``.
+# ``ModelCard.applicable_field_coverage`` counts a nested section only when the
+# card's ``model_type`` (or a ``model_subtype``) is in that set. Sections with
+# no declaration count for every type. The field *sets* are the nested models'
+# own fields — not a hand list of paths.
+
+
+def _model_types(*keys: str) -> frozenset[ModelType]:
+    """Resolve ModelType members by exact value or hyphen-prefix (``'llm-'``)."""
+    found: set[ModelType] = set()
+    for key in keys:
+        if key.endswith("-"):
+            matched = [t for t in ModelType if t.value.startswith(key)]
+            if not matched:
+                raise ValueError(f"no ModelType starts with {key!r}")
+            found.update(matched)
+        else:
+            found.add(ModelType(key))
+    return frozenset(found)
+
+
+_LLM_TYPES = _model_types("llm-")
+_EMBEDDING_TYPES = _model_types("embedding-")
+_AUDIO_TYPES = _model_types("audio-")
+_IMAGE_TYPES = _model_types("image-generation", "image-editing")
+_TEXT_TYPES = _LLM_TYPES | _model_types(
+    "vlm", "agent-model", "medical", "legal", "financial",
+    "router", "reward-model", "safety-classifier", "text-encoder", "document-ocr",
+)
+_GENERATIVE_TEXT_TYPES = _LLM_TYPES | _model_types(
+    "vlm", "agent-model", "medical", "legal", "financial",
+    "router", "reward-model", "safety-classifier",
+)
+_VISION_TYPES = _IMAGE_TYPES | _model_types(
+    "vlm", "vision-encoder", "document-ocr", "embedding-multimodal",
+)
+
 
 class VisionDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _VISION_TYPES
     supported: bool = False
     ocr: bool = False
     chart_reading: bool = False
@@ -334,6 +373,7 @@ class VisionDetail(BaseModel):
 
 
 class AudioDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _AUDIO_TYPES
     input_supported: bool = False
     output_supported: bool = False
     realtime_streaming: bool = False
@@ -348,6 +388,7 @@ class AudioDetail(BaseModel):
 
 
 class VideoDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _model_types("video-generation")
     input_supported: bool = False
     output_supported: bool = False
     max_input_duration_sec: int | None = None
@@ -359,6 +400,9 @@ class VideoDetail(BaseModel):
 
 
 class DocumentDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _model_types(
+        "document-ocr", "vlm",
+    )
     pdf_native: bool = False
     table_extraction: bool = False
     form_understanding: bool = False
@@ -367,6 +411,7 @@ class DocumentDetail(BaseModel):
 
 
 class ImageGenDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _IMAGE_TYPES
     supported: bool = False
     max_resolution: str = ""
     aspect_ratios: list[str] = []
@@ -380,6 +425,7 @@ class ImageGenDetail(BaseModel):
 
 
 class EmbeddingDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _EMBEDDING_TYPES
     supported: bool = False
     dimensions: int | None = None
     dimensions_configurable: bool = False
@@ -392,6 +438,7 @@ class EmbeddingDetail(BaseModel):
 
 
 class RerankingDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _model_types("reranker")
     supported: bool = False
     max_input_pairs: int | None = None
     max_input_length: int | None = None
@@ -399,6 +446,7 @@ class RerankingDetail(BaseModel):
 
 
 class TextDetail(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _TEXT_TYPES
     max_input_tokens: int | None = None
     max_output_tokens: int | None = None
     context_window: int | None = None
@@ -509,6 +557,7 @@ class AgentCapability(BaseModel):
 
 
 class Capabilities(BaseModel):
+    __applicable_model_types__: ClassVar[frozenset[ModelType]] = _GENERATIVE_TEXT_TYPES
     coding: CodingCapability = CodingCapability()
     reasoning: ReasoningCapability = ReasoningCapability()
     tool_use: ToolUseCapability = ToolUseCapability()
@@ -1074,22 +1123,69 @@ class ModelCard(BaseModel):
                 "against current provider guidance, or set status: stale")
         return self
 
+    def _coverage_types(self) -> frozenset[ModelType]:
+        types: set[ModelType] = set()
+        ident = self.identity
+        if ident.model_type is not None:
+            types.add(ident.model_type)
+        types.update(ident.model_subtypes)
+        return frozenset(types)
+
+    def _section_applies(self, obj: BaseModel) -> bool:
+        applicable = getattr(type(obj), "__applicable_model_types__", None)
+        if applicable is None:
+            return True
+        return bool(self._coverage_types() & applicable)
+
+    def warnings(self) -> list[str]:
+        """Non-fatal catalogue checks. CI reports these; they do not invalidate the card."""
+        out: list[str] = []
+        if (
+            self.licensing.open_weights is True
+            and self.licensing.license_type is LicenseType.PROPRIETARY
+        ):
+            out.append(
+                "open_weights is true with license_type proprietary: "
+                "a proprietary licence does not distribute downloadable weights"
+            )
+        return out
+
     @computed_field
     @property
-    def card_completeness(self) -> float:
-        """Calculate what percentage of applicable fields are filled."""
+    def applicable_field_coverage(self) -> float:
+        """Internal statistic: percent of type-applicable schema fields filled.
+
+        Not published. It is not a Model node property, not in the graph
+        export, and not shown by ``modelspec info`` or ``modelspec stats``.
+        Nested modality details and the Capabilities block declare
+        ``__applicable_model_types__``; those subtrees count only when the
+        card's ``model_type`` or a ``model_subtype`` is in the set. Untagged
+        sections count for every type. ``card_*`` metadata, ``prose_body`` and
+        ``authoring_guide`` never count.
+        """
         filled, total = self._count_fields(self)
         return round((filled / total) * 100, 1) if total > 0 else 0.0
 
+    @property
+    def card_completeness(self) -> float:
+        """Deprecated alias of ``applicable_field_coverage`` for scripts/**."""
+        return self.applicable_field_coverage
+
+    def applicable_field_counts(self) -> tuple[int, int]:
+        """Filled and total fields that apply to this card's type."""
+        return self._count_fields(self)
+
     def _count_fields(self, obj: BaseModel, _depth: int = 0) -> tuple[int, int]:
-        """Recursively count filled vs total fields."""
+        """Recursively count filled vs type-applicable fields."""
         filled = 0
         total = 0
         for field_name, field_info in type(obj).model_fields.items():
             value = getattr(obj, field_name)
             if field_name == "authoring_guide":
-                continue  # guidance, not model facts: never moves completeness
+                continue  # guidance, not model facts: never moves coverage
             if isinstance(value, BaseModel):
+                if not self._section_applies(value):
+                    continue
                 f, t = self._count_fields(value, _depth + 1)
                 filled += f
                 total += t
@@ -1182,7 +1278,7 @@ class ModelCard(BaseModel):
         data = self.model_dump(
             mode="json",
             exclude_none=False,
-            exclude={"prose_body", "card_completeness"},
+            exclude={"prose_body", "applicable_field_coverage"},
         )
         if self.authoring_guide is None:
             data.pop("authoring_guide", None)

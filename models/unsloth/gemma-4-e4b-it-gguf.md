@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: apache-2.0
-  license_url: ''
+  license_url: https://ai.google.dev/gemma/apache_2
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -825,9 +825,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # gemma 4 E4B it GGUF
 
 Auto-generated from HuggingFace Hub metadata for [unsloth/gemma-4-E4B-it-GGUF](https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF).
+
+Licence: apache-2.0. Creator LICENSE file https://ai.google.dev/gemma/apache_2 (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.

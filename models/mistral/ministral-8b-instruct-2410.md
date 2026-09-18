@@ -62,8 +62,8 @@ lineage:
   library_name: vllm
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: other
+  license_url: https://mistral.ai/licenses/MRL-0.1.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -833,10 +833,12 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Ministral 8B Instruct 2410
 
 Auto-generated from HuggingFace Hub metadata for [mistralai/Ministral-8B-Instruct-2410](https://huggingface.co/mistralai/Ministral-8B-Instruct-2410).
+
+Licence: other. Creator distribution https://mistral.ai/licenses/MRL-0.1.md (mrl) and Hub cardData.license other and license_name mrl, read 2026-09-18.

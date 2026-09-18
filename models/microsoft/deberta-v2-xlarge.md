@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: mit
-  license_url: ''
+  license_url: https://huggingface.co/microsoft/deberta-v2-xlarge/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,16 +818,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # deberta v2 xlarge
 
 Auto-generated from HuggingFace Hub metadata for [microsoft/deberta-v2-xlarge](https://huggingface.co/microsoft/deberta-v2-xlarge).
+
+Licence: mit. Creator distribution https://huggingface.co/microsoft/deberta-v2-xlarge/raw/main/README.md (mit) and Hub cardData.license mit, read 2026-09-18.

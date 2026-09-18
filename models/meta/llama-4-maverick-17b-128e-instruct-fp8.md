@@ -64,7 +64,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: llama-community
-  license_url: ''
+  license_url: https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama4/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -851,18 +851,20 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Llama-4-Maverick-17B-128E-Instruct-FP8
 
 Llama-4-Maverick-17B-128E-Instruct-FP8 is a Vlm model from Meta. Part of the llama family. Knowledge cutoff: 2024-08.
+
+Licence: llama-community. Creator distribution https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama4/LICENSE (Llama 4 Community License Agreement) and Hub cardData.license other and license_name llama4, read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

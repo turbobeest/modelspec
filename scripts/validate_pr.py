@@ -217,6 +217,7 @@ def validate_card(filepath: str, compute_diff: bool = True) -> dict:
     entry["model_id"] = card.identity.model_id
     entry["completeness"] = card.card_completeness
     entry["fields_filled"] = count_non_null_fields(card)
+    entry["warnings"] = card.warnings()
 
     if compute_diff:
         baseline = get_baseline_completeness(filepath)

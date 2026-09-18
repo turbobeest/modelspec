@@ -62,8 +62,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: https://www.anthropic.com/legal/terms
+  license_url: https://www.anthropic.com/legal/commercial-terms
+  tos_url: https://www.anthropic.com/legal/commercial-terms
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -840,9 +840,11 @@ sources:
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-10'
+card_updated: '2026-09-18'
 ---
 
 # Claude Instant
 
 Anthropic Claude Instant, the faster Claude 1-era SKU (https://www.anthropic.com/news/introducing-claude). Closed weights; no Hub safetensors. Catalogue had no Instant card. Parameters unpublished; left null. No benchmark evidence attached.
+
+Licence: proprietary. Vendor terms https://www.anthropic.com/legal/commercial-terms (Anthropic Commercial Terms of Service), read 2026-09-18.

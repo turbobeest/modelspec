@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: apache-2.0
-  license_url: ''
+  license_url: https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Thinking/blob/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,19 +818,21 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Qwen3-Next 80B-A3B (Thinking)
 
 Qwen3-Next 80B-A3B (Thinking) is a Llm Reasoning model from Alibaba / Qwen Team. Part of the qwen family. Knowledge cutoff: 2025-04.
+
+Licence: apache-2.0. Creator distribution https://huggingface.co/Qwen/Qwen3-Next-80B-A3B-Thinking/blob/main/LICENSE (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

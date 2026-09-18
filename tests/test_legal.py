@@ -241,25 +241,43 @@ def test_the_privacy_statement_says_keys_are_wired_and_not_enforced() -> None:
 def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     """The statement promises nothing of a request's content is written. Keep that true.
 
-    The Worker may bind two KV namespaces and no other store:
+    The Worker may bind two KV namespaces, one Durable Object, and no other store:
 
     * DETERMINATIONS — our own research, read-only from the Worker, disclosed;
-    * ACCESS (MODEL-69) — key records and per-key counters, only alongside the
+    * ACCESS (MODEL-69, MODEL-73) — key records, per-key counters, Stripe event
+      ids, subscription rows, session pointers and keyrefs, only alongside the
       statement's section saying exactly what it holds, and described as not
-      yet active for as long as the binding is staged as a comment.
+      yet active for as long as the binding is staged as a comment;
+    * CREDITS (MODEL-75) — a Durable Object ledger of prepaid x402 balances and
+      payment claims, only alongside the statement's section saying exactly
+      what it holds.
 
-    Any other store, any write outside the access modules, or an access module
-    writing anything taken from a request's body, makes the statement false.
+    Any other store, any write outside the access and credits modules, or an
+    access module writing anything taken from a request's body, makes the
+    statement false.
     """
     worker = REPO_ROOT / "api" / "worker"
     raw = (worker / "wrangler.jsonc").read_text(encoding="utf-8")
     config = _wrangler_config()
     for binding in ("d1_databases", "r2_buckets", "queues",
-                    "durable_objects", "hyperdrive", "analytics_engine_datasets"):
+                    "hyperdrive", "analytics_engine_datasets"):
         assert binding not in config, (
             f"the Worker now binds {binding}; the privacy statement says nothing "
             "from a request is written anywhere, and that has stopped being true"
         )
+    if "durable_objects" in config:
+        assert "CreditsObject" in config and '"name": "CREDITS"' in config, (
+            "a Durable Object other than CREDITS/CreditsObject is bound; "
+            "the privacy statement describes that ledger and nothing else")
+        for claim in ("`CREDITS`", "CreditsObject", "SHA-256 hash of",
+                      "two integers", "payment claim", "transaction hash",
+                      "no request body", "no IP address"):
+            assert claim in FLAT_PRIVACY, (
+                f"the CREDITS Durable Object is bound and the privacy statement "
+                f"does not say {claim!r}")
+        assert "X402_ENABLED" in FLAT_PRIVACY
+    else:
+        assert "CreditsObject" not in FLAT_PRIVACY or "not bound" in FLAT_PRIVACY
     bound = _kv_bindings(config)
     assert bound <= {"DETERMINATIONS", "ACCESS"}, (
         f"a KV namespace other than DETERMINATIONS and ACCESS is bound ({sorted(bound)}); "
@@ -274,7 +292,10 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     access_staged = '"binding": "ACCESS"' in raw
     if access_staged or "ACCESS" in bound:
         for claim in ("`ACCESS`", "SHA-256 hash of the key", "never under the key",
-                      "Two counters per key", "no request body", "no IP address"):
+                      "the key value itself is never stored",
+                      "Two counters per key", "no request body", "no IP address",
+                      "Stripe event id", "subscription record",
+                      "Checkout session pointer", "keyref", "Card data never"):
             assert claim in FLAT_PRIVACY, (
                 f"the ACCESS store is configured and the privacy statement does not "
                 f"say {claim!r}")
@@ -284,13 +305,15 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     elif access_staged:
         assert "configured, not yet active" in FLAT_PRIVACY and "commented out" in FLAT_PRIVACY
 
-    # Only the access modules write, and they write only key records and counters.
+    # Only the access modules write KV. billing*.py decides; access_billing.py stores.
+    # credits*.py mutate the Durable Object via SQL, not Workers KV.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
-        if not src.name.startswith("access"):
-            assert ".put(" not in body and ".delete(" not in body, (
-                f"{src.name} writes to KV; the privacy statement says the Worker "
-                "only ever reads from DETERMINATIONS")
+        if src.name.startswith("access") or src.name.startswith("credits"):
+            continue
+        assert ".put(" not in body and ".delete(" not in body, (
+            f"{src.name} writes to KV; the privacy statement says the Worker "
+            "only ever reads from DETERMINATIONS")
     _assert_access_writes_only_records_and_counters(worker / "src")
 
 
@@ -304,7 +327,11 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
     """
     import ast
 
-    allowed_names = {"storage_name", "day_name", "minute_name", "name"}
+    allowed_names = {
+        "storage_name", "storage_name_from_fingerprint",
+        "day_name", "minute_name", "name",
+        "event_name", "session_name", "subscription_name", "keyref_name",
+    }
     for module in sorted(src.glob("access*.py")):
         tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -316,8 +343,8 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
                      and isinstance(target.func, ast.Name) else getattr(target, "id", None))
             assert label in allowed_names, (
                 f"{module.name}:{node.lineno} writes to KV under {ast.unparse(target)}; "
-                "the privacy statement says the access store holds key records and "
-                "counters only")
+                "the privacy statement says the access store holds named record "
+                "kinds only")
             if len(node.args) > 1:
                 value = ast.unparse(node.args[1])
                 assert ("to_json()" in value or "_used + 1" in value
@@ -335,6 +362,31 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
             f"access.gate({keyword.arg}=...) is handed the request body")
     assert "access_keys.extract" in ast.unparse(
         next(k.value for k in gate.keywords if k.arg == "api_key"))
+
+
+def test_no_access_module_writes_a_plaintext_key() -> None:
+    """The key is stored only as its SHA-256 hash. A `secret` field on a record
+    would be the key sitting in ACCESS until someone claims it."""
+    import ast
+
+    forbidden = {"secret", "plaintext", "api_key", "key_value"}
+    src = REPO_ROOT / "api" / "worker" / "src"
+    for module in sorted(src.glob("access*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for stmt in node.body:
+                name = None
+                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                    name = stmt.target.id
+                elif (isinstance(stmt, ast.Assign) and stmt.targets
+                      and isinstance(stmt.targets[0], ast.Name)):
+                    name = stmt.targets[0].id
+                assert name not in forbidden, (
+                    f"{module.name}::{node.name} field {name!r} would store a key "
+                    "value; the privacy statement says the key is stored only as "
+                    "its SHA-256 hash")
 
 
 def test_the_privacy_statement_discloses_cloudflare_observability() -> None:

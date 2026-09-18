@@ -112,13 +112,18 @@ x-modelspec-access:
       daily_limit: 1000
       burst_limit_per_minute: 60
       live_data: true
-      description: Placeholder for the by-plan rows MODEL-73 provisions. Limits are a starting point,
-        not a commitment.
+      description: Determinations-entitled row. Not what MODEL-73 sells on day one.
     sandbox:
       daily_limit: null
       burst_limit_per_minute: null
       live_data: false
       description: Fixed, obviously synthetic results. Unlimited, no signup, no live data.
+    subscriber:
+      daily_limit: 1000
+      burst_limit_per_minute: 60
+      live_data: true
+      description: 'PLACEHOLDER monthly plan: live rankings at these limits. Does not include policy-check
+        determinations. Limits are configuration, not a commitment.'
   refusals:
     access_not_configured: 500
     access_store_not_configured: 503
@@ -129,6 +134,23 @@ x-modelspec-access:
     sandbox_not_available: 400
     tier_not_configured: 500
   documented_in: docs/api-access.md
+x-modelspec-billing:
+  status: wired; flag off
+  ticket: MODEL-73
+  enabled: false
+  switch: BILLING_ENABLED in api/worker/wrangler.jsonc
+  what_is_sold: live rank access at the mapped tier's configured limits. It does not include policy-check
+    determinations.
+  documented_in: docs/billing.md
+x-modelspec-x402:
+  wired: true
+  enabled: false
+  mainnet: false
+  network: eip155:84532
+  price_atomic: 1000
+  placeholder_price: true
+  facilitator: https://api.cdp.coinbase.com/platform
+  docs: docs/x402.md
 security:
 - {}
 - bearer: []
@@ -137,6 +159,35 @@ servers:
 - url: https://api.modelspec.dev
   description: production
 paths:
+  /v1/credits:
+    get:
+      operationId: credits
+      summary: The prepaid x402 credit balance for the presented API key.
+      responses:
+        '200':
+          description: The holder's available and reserved units.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsBalance'
+        '401':
+          description: 'missing_holder: no API key presented.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '404': &id001
+          description: No endpoint at that path. `error.accepted` names the versioned paths.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/credits takes GET.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
   /v1/health:
     get:
       operationId: health
@@ -154,12 +205,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
-        '404': &id001
-          description: No endpoint at that path. `error.accepted` names the versioned paths.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransportError'
+        '404': *id001
         '405':
           description: /v1/health takes GET.
           content:
@@ -222,6 +268,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). `PAYMENT-REQUIRED` header is the
+            x402 v2 object; the body names price, payTo, network and how to pay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -317,6 +370,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). Same 402 as /v1/rank.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -354,6 +413,748 @@ paths:
                 oneOf:
                 - $ref: '#/components/schemas/DeterminationsUnavailable'
                 - $ref: '#/components/schemas/AccessRefused'
+  /v1/billing/checkout:
+    post:
+      operationId: billingCheckout
+      summary: Create a Stripe-hosted Checkout Session for a monthly key.
+      description: 'Redirect the browser to `url`. What is sold is live rank access at the mapped tier''s
+        limits, not policy-check determinations. Flag off: 503.'
+      x-modelspec-probe: skip
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                price_id:
+                  type: string
+            example: {}
+      responses:
+        '200':
+          description: Hosted Checkout URL. Open it in a browser.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - placeholder
+                - price_id
+                - result
+                - schema_version
+                - service_commit
+                - session_id
+                - terms_url
+                - tier
+                - url
+                - what_you_buy
+                properties:
+                  endpoint:
+                    type: string
+                  placeholder:
+                    type: boolean
+                  price_id:
+                    type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+                  session_id:
+                    type: string
+                  terms_url:
+                    type: string
+                  tier:
+                    type: string
+                  url:
+                    type: string
+                  what_you_buy:
+                    type: string
+        '400':
+          description: Unknown field, or more than one price and none sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '503':
+          description: BILLING_ENABLED is off.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '404':
+          description: No endpoint at that path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/billing/checkout takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+  /v1/billing/stripe-webhook:
+    post:
+      operationId: billingStripeWebhook
+      summary: Stripe webhook. HMAC-SHA256 over t.payload; no SDK.
+      x-modelspec-probe: skip
+      parameters:
+      - name: Stripe-Signature
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Received. duplicate is true on a replay.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - action
+                - duplicate
+                - endpoint
+                - event_id
+                - received
+                - schema_version
+                - service_commit
+                - type
+                properties:
+                  action:
+                    type: string
+                  duplicate:
+                    type: boolean
+                  endpoint:
+                    type: string
+                  event_id:
+                    type: string
+                  received:
+                    type: boolean
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+                  type:
+                    type: string
+        '400':
+          description: Missing, wrong, or stale Stripe-Signature.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '503':
+          description: BILLING_ENABLED is off.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '404':
+          description: No endpoint at that path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/billing/stripe-webhook takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+  /v1/billing/claim:
+    get:
+      operationId: billingClaimGet
+      summary: Mint the key and show it once. Checkout success_url lands here.
+      parameters:
+      - name: session_id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: The key, shown once.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - how
+                - key
+                - key_id
+                - result
+                - schema_version
+                - service_commit
+                - shown
+                - tier
+                - what_you_bought
+                properties:
+                  endpoint:
+                    type: string
+                  how:
+                    type: string
+                  key:
+                    type: string
+                  key_id:
+                    type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+                  shown:
+                    type: string
+                  tier:
+                    type: string
+                  what_you_bought:
+                    type: string
+        '400':
+          description: session_id missing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '409':
+          description: Payment received, key not ready. Retry in a few seconds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '410':
+          description: Already shown. Rotate if you still hold the key.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - key_id
+                    - message
+                    - tier
+                    properties:
+                      code:
+                        type: string
+                      key_id:
+                        type: string
+                      message:
+                        type: string
+                      tier:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '503':
+          description: BILLING_ENABLED is off.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '404':
+          description: No endpoint at that path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/billing/claim takes GET or POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+    post:
+      operationId: billingClaimPost
+      summary: Mint the key and show it once, with session_id in the JSON body.
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+              required:
+              - session_id
+      responses:
+        '200':
+          description: The key, shown once.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - how
+                - key
+                - key_id
+                - result
+                - schema_version
+                - service_commit
+                - shown
+                - tier
+                - what_you_bought
+                properties:
+                  endpoint:
+                    type: string
+                  how:
+                    type: string
+                  key:
+                    type: string
+                  key_id:
+                    type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+                  shown:
+                    type: string
+                  tier:
+                    type: string
+                  what_you_bought:
+                    type: string
+        '400':
+          description: session_id missing.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '409':
+          description: Payment received, key not ready. Retry in a few seconds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '410':
+          description: Already shown.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - key_id
+                    - message
+                    - tier
+                    properties:
+                      code:
+                        type: string
+                      key_id:
+                        type: string
+                      message:
+                        type: string
+                      tier:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '503':
+          description: BILLING_ENABLED is off.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '404':
+          description: No endpoint at that path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/billing/claim takes GET or POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+  /v1/billing/rotate:
+    post:
+      operationId: billingRotate
+      summary: Issue a new key; revoke the one presented.
+      x-modelspec-probe: skip
+      responses:
+        '401':
+          description: No current key presented.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '503':
+          description: BILLING_ENABLED is off.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '404':
+          description: No endpoint at that path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '405':
+          description: /v1/billing/rotate takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
 components:
   securitySchemes:
     bearer:
@@ -2665,6 +3466,155 @@ components:
           type: string
         service_commit:
           type: string
+    PaymentRequired:
+      type: object
+      required:
+      - schema_version
+      - error
+      - result
+      properties:
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        error:
+          type: object
+          required:
+          - accepts
+          - code
+          - how_to_pay
+          - message
+          - payTo
+          - price
+          - resource
+          - x402Version
+          properties:
+            accepts:
+              type: array
+              items:
+                type: object
+                required:
+                - amount
+                - asset
+                - description
+                - extra
+                - maxAmountRequired
+                - maxTimeoutSeconds
+                - mimeType
+                - network
+                - payTo
+                - resource
+                - scheme
+                properties:
+                  amount:
+                    type: string
+                  asset:
+                    type: string
+                  description:
+                    type: string
+                  extra:
+                    type: object
+                    required:
+                    - name
+                    - version
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                  maxAmountRequired:
+                    type: string
+                  maxTimeoutSeconds:
+                    type: integer
+                  mimeType:
+                    type: string
+                  network:
+                    type: string
+                  payTo:
+                    type: string
+                  resource:
+                    type: string
+                  scheme:
+                    type: string
+            code:
+              type: string
+            how_to_pay:
+              type: string
+            message:
+              type: string
+            payTo:
+              type: string
+            price:
+              type: object
+              required:
+              - amount
+              - asset
+              - atomic
+              - currency
+              - network
+              - placeholder
+              - placeholder_note
+              - usd
+              properties:
+                amount:
+                  type: string
+                asset:
+                  type: string
+                atomic:
+                  type: integer
+                currency:
+                  type: string
+                network:
+                  type: string
+                placeholder:
+                  type: boolean
+                placeholder_note:
+                  type: string
+                usd:
+                  type: number
+            resource:
+              type: string
+            x402Version:
+              type: integer
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+    CreditsBalance:
+      type: object
+      required:
+      - available
+      - endpoint
+      - holder
+      - reserved
+      - result
+      - schema_version
+      - service_commit
+      - total
+      - unit
+      - x402_enabled
+      properties:
+        available:
+          type: integer
+        endpoint:
+          type: string
+        holder:
+          type: string
+        reserved:
+          type: integer
+        result:
+          type: array
+          items: {}
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        total:
+          type: integer
+        unit:
+          type: string
+        x402_enabled:
+          type: boolean
     TransportError:
       type: object
       required:

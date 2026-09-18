@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from js import fetch
@@ -52,9 +53,13 @@ import access_config
 import access_keys
 import access_kv
 import access_sandbox
+import billing
+import credits
+from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 import kv_value
 import policy_service
 import rank_service as service
+import x402
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -82,13 +87,22 @@ ACCESS_BINDING = "ACCESS"
 #: exactly as before MODEL-69, and a presented key is checked. On: an unkeyed
 #: request is a 401. Flipped in `wrangler.jsonc` once keys can be obtained.
 ACCESS_ENFORCED_VAR = "ACCESS_ENFORCED"
+#: MODEL-73. Hosted Checkout and the webhook that records the entitlement. Ships off.
+BILLING_ENABLED_VAR = "BILLING_ENABLED"
+STRIPE_WEBHOOK_SECRET_VAR = "STRIPE_WEBHOOK_SECRET"
+STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 
 #: Everything this Worker serves. Named back to the caller by every 404, so an
 #: unrouted path — the bare root included — is a usable answer rather than a
 #: dead end. `.github/scripts/check_rank_response.py` asserts every one of them
 #: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
-ACCEPTED_ENDPOINTS = ("POST /v1/rank", "POST /v1/policy-check", "GET /v1/health")
+ACCEPTED_ENDPOINTS = (
+    "POST /v1/rank", "POST /v1/policy-check", "GET /v1/health",
+    "GET /v1/credits",
+    "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
+    "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
+)
 
 #: The subset that takes a body. Both refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
@@ -286,6 +300,27 @@ def _access_store(env):
     return access_kv.CloudflareKV(binding)
 
 
+def _billing_unconfigured(service_commit: str):
+    """The tier table is missing, so Checkout/webhook cannot map a price."""
+    outcome = billing._refusal(
+        billing.BILLING_NOT_CONFIGURED,
+        "the access/billing layer is not configured on this deployment",
+        service_commit=service_commit, endpoint="billing")
+    return outcome.status, outcome.body
+
+
+async def _stripe_http(url: str, *, method: str, headers: dict, body: str):
+    """POST to Stripe. Injected into billing so tests never import `js`."""
+    try:  # pragma: no cover - isolate only
+        from js import Object  # type: ignore[import-not-found]
+        from pyodide.ffi import to_js  # type: ignore[import-not-found]
+        options = to_js({"method": method, "headers": headers, "body": body},
+                        dict_converter=Object.fromEntries)
+    except ImportError:
+        options = {"method": method, "headers": headers, "body": body}
+    return await fetch(url, options)
+
+
 def _known_hardware_for_sandbox(payload) -> set[str]:
     """The sandbox reads no hardware vocabulary, so it cannot refuse a device id.
 
@@ -329,6 +364,12 @@ class Default(WorkerEntrypoint):
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
             return await self._health(service_commit, origin)
+        if path.startswith("/v1/billing/"):
+            return await self._billing(request, path, method, service_commit)
+        if path == "/v1/credits":
+            if method not in ("GET", "HEAD"):
+                return self._method_not_allowed(service_commit, path, "GET", method)
+            return await self._credits(request, service_commit, origin)
         if path not in POST_ENDPOINTS:
             # Including the bare root: the route covers the whole host, so an
             # unknown path is answered here rather than left to Cloudflare's
@@ -374,14 +415,15 @@ class Default(WorkerEntrypoint):
         # MODEL-69. Everything above is transport and costs no data; from here
         # on the access gate decides. It runs before either export is fetched,
         # so the sandbox never reaches data and a refused key costs nothing.
+        api_key = access_keys.extract(lambda name: request.headers.get(name))
         if path == "/v1/policy-check":
             envelope = policy_service._envelope({}, service_commit, origin)
 
-            async def anonymous():
+            async def _anonymous():
                 return await self._policy_answer(payload, service_commit, origin,
                                                  _entitlement(None))
 
-            async def live(record, tier):
+            async def _live(record, tier):
                 return await self._policy_answer(payload, service_commit, origin,
                                                  _entitlement(tier))
 
@@ -394,10 +436,10 @@ class Default(WorkerEntrypoint):
         else:
             envelope = service._envelope({}, service_commit, origin)
 
-            async def anonymous():
+            async def _anonymous():
                 return await self._rank(payload, service_commit, origin)
 
-            async def live(record, tier):
+            async def _live(record, tier):
                 return await self._rank(payload, service_commit, origin)
 
             def sandbox():
@@ -408,6 +450,15 @@ class Default(WorkerEntrypoint):
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
 
+        # MODEL-75. One wrap around the live/anonymous producers: x402 verify
+        # and settle run before either of them writes an answer. The sandbox
+        # is not wrapped. X402_ENABLED default off is a no-op.
+        x402_trace = x402.ChargeTrace()
+        anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
+                                    x402_trace, keyed=False)
+        live = self._x402_wrap(_live, request, path, api_key, envelope,
+                               x402_trace, keyed=True)
+
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
             enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
@@ -415,6 +466,134 @@ class Default(WorkerEntrypoint):
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
         )
+        return _json_response(
+            outcome.status, outcome.body,
+            {**(outcome.headers or {}),
+             **x402.http_headers(outcome.status, outcome.body,
+                                 settlement=x402_trace.settlement)})
+
+    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *, keyed: bool):
+        """MODEL-75 hook. `keyed` uses the presented API key as the credit holder."""
+
+        async def wrapped(*args, **kwargs):
+            cfg = x402.load_config(self.env)
+            holder = x402.holder_from_key(api_key) if keyed else None
+            return await x402.charge(
+                config=cfg,
+                ledger=credits.ledger_from_env(self.env),
+                facilitator=x402.facilitator_from_env(self.env, cfg),
+                get_header=lambda name: request.headers.get(name),
+                holder=holder,
+                resource_url=x402.resource_url(str(request.url), path, envelope.get(
+                    "export_origin") or "https://api.modelspec.dev"),
+                envelope=envelope,
+                produce=lambda: produce(*args, **kwargs),
+                trace=trace,
+            )
+
+        return wrapped
+
+    async def _credits(self, request, service_commit: str, origin: str):
+        """`GET /v1/credits` — the holder's prepaid balance."""
+        envelope = service._envelope({}, service_commit, origin)
+        envelope["endpoint"] = "credits"
+        status, body = await x402.balance_query(
+            config=x402.load_config(self.env),
+            ledger=credits.ledger_from_env(self.env),
+            api_key=access_keys.extract(lambda name: request.headers.get(name)),
+            envelope=envelope,
+        )
+        return _json_response(status, body)
+
+    async def _billing(self, request, path: str, method: str, service_commit: str):
+        """MODEL-73: Checkout, webhook, claim, rotate. Routing only."""
+        if path not in ("/v1/billing/stripe-webhook", "/v1/billing/checkout",
+                        "/v1/billing/claim", "/v1/billing/rotate"):
+            return _json_response(service.HTTP_NOT_FOUND, {
+                "schema_version": service.SCHEMA_VERSION,
+                "service_commit": service_commit,
+                "error": {"code": "not_found", "message": f"no endpoint at {path}",
+                          "accepted": list(ACCEPTED_ENDPOINTS)},
+                "result": [],
+            })
+
+        flag = billing.enabled(getattr(self.env, BILLING_ENABLED_VAR, None))
+        kv = _access_store(self.env)
+        origin = (f"{urlparse(str(request.url)).scheme}://"
+                  f"{urlparse(str(request.url)).netloc}")
+        now = datetime.now(UTC)
+        header = request.headers.get
+        try:
+            policy = access_config.load_policy(self.env)
+        except access_config.PolicyError:
+            policy = None
+
+        if path == "/v1/billing/stripe-webhook":
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            if policy is None:
+                return _json_response(*_billing_unconfigured(service_commit))
+            raw = await request.text()
+            outcome = await billing.webhook(
+                payload=raw,
+                signature=header("stripe-signature") or header("Stripe-Signature"),
+                secret=str(getattr(self.env, STRIPE_WEBHOOK_SECRET_VAR, "") or "") or None,
+                flag=flag, kv=kv, policy=policy, now=now,
+                service_commit=service_commit)
+            return _json_response(outcome.status, outcome.body, outcome.headers)
+
+        if path == "/v1/billing/claim":
+            if method not in ("GET", "POST"):
+                return self._method_not_allowed(service_commit, path, "GET or POST", method)
+            if policy is None:
+                return _json_response(*_billing_unconfigured(service_commit))
+            raw = await request.text() if method == "POST" else ""
+            payload = None
+            if raw.strip():
+                try:
+                    payload = json.loads(raw)
+                except ValueError as exc:
+                    bad = billing._refusal(
+                        billing.INVALID_REQUEST, f"the body is not valid JSON: {exc}",
+                        service_commit=service_commit, endpoint="billing.claim")
+                    return _json_response(bad.status, bad.body, bad.headers)
+            session_id = billing.session_id_from_request(
+                query=billing.query_string(str(request.url)), payload=payload)
+            outcome = await billing.claim(
+                session_id=session_id, flag=flag, kv=kv, policy=policy, now=now,
+                service_commit=service_commit)
+            return _json_response(outcome.status, outcome.body, outcome.headers)
+
+        if path == "/v1/billing/rotate":
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            if policy is None:
+                return _json_response(*_billing_unconfigured(service_commit))
+            outcome = await billing.rotate(
+                api_key=access_keys.extract(lambda name: header(name)),
+                flag=flag, kv=kv, policy=policy, now=now,
+                service_commit=service_commit)
+            return _json_response(outcome.status, outcome.body, outcome.headers)
+
+        if method != "POST":
+            return self._method_not_allowed(service_commit, path, "POST", method)
+        if policy is None:
+            return _json_response(*_billing_unconfigured(service_commit))
+        raw = await request.text()
+        payload = None
+        if raw.strip():
+            try:
+                payload = json.loads(raw)
+            except ValueError as exc:
+                bad = billing._refusal(
+                    billing.INVALID_REQUEST, f"the body is not valid JSON: {exc}",
+                    service_commit=service_commit, endpoint="billing.checkout")
+                return _json_response(bad.status, bad.body, bad.headers)
+        outcome = await billing.checkout(
+            payload=payload, flag=flag,
+            secret=str(getattr(self.env, STRIPE_SECRET_KEY_VAR, "") or "") or None,
+            origin=origin, kv=kv, policy=policy, service_commit=service_commit,
+            http=_stripe_http)
         return _json_response(outcome.status, outcome.body, outcome.headers)
 
     async def _rank(self, payload, service_commit: str, origin: str):

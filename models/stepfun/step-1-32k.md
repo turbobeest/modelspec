@@ -60,7 +60,7 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: other
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -822,13 +822,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Step 1 (32K)
 
 Step 1 (32K) is a Llm Reasoning model from StepFun. Knowledge cutoff: 2024-06.
+
+Licence: null. Closed model; no vendor terms document was read for provider 'stepfun' on 2026-09-18. A known-wrong other default is worse than none.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

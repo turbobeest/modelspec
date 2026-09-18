@@ -60,8 +60,8 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
-  license_type: apache-2.0
+  open_weights: false
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -823,13 +823,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Ministral 8B (latest)
 
 Ministral 8B (latest) is a Llm Chat model from Mistral AI. Part of the ministral family. Knowledge cutoff: 2024-10.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. Floating API alias, not a weight distribution. Current open Ministral 3 8B weights are on mistral/ministral-3-8b-instruct-2512 (https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512 read 2026-09-18); the 2410 8B checkpoint is on mistral/ministral-8b-instruct-2410.
 
 ## Key Features
 - Function calling / tool use

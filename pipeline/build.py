@@ -24,6 +24,29 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 
 ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 
+#: Rank API and MCP live on api.modelspec.dev, not on the Pages hosts, so both
+#: sites' llms.txt point at the same URLs.
+API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
+RANK_API = "https://api.modelspec.dev/v1/rank"
+MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
+
+
+def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
+    """llms.txt for one published tree. Null on a card still means not researched."""
+    return (
+        f"# {site}\n\n"
+        f"> {base}\n\n"
+        f"Open data on AI models and benchmarks. "
+        f"Built {build.built_at} from commit {build.commit[:12]}. "
+        f"Null means not researched.\n\n"
+        f"- Machine-readable index: {base}/api/index.json\n"
+        f"- Benchmark catalogue: {base}/api/catalogue.json\n"
+        f"- Rank API: {RANK_API}\n"
+        f"- API docs: {API_DOCS}\n"
+        f"- MCP: {MCP_ENDPOINT}\n"
+        f"- Source: https://github.com/turbobeest/modelspec\n"
+    )
+
 
 def _schema_field_count(model_cls) -> int:
     """Every leaf field, not the 20 top-level sections.
@@ -408,11 +431,7 @@ def main(argv: list[str] | None = None) -> int:
         (tree / "robots.txt").write_text(ROBOTS.format(base=base), encoding="utf-8")
         (tree / "404.html").write_text(r.not_found(site, build, nav, base + "/"), encoding="utf-8")
         (tree / "llms.txt").write_text(
-            f"# {site}\n\n> {base}\n\nOpen data on AI models and benchmarks. "
-            f"Built {build.built_at} from commit {build.commit[:12]}.\n\n"
-            f"- Machine-readable index: {base}/api/index.json\n"
-            f"- Benchmark catalogue: {base}/api/catalogue.json\n"
-            f"- Source: https://github.com/turbobeest/modelspec\n", encoding="utf-8")
+            llms_txt(site=site, base=base, build=build), encoding="utf-8")
 
     for tree, name in ((ms, "modelspec"), (bg, "benchgraph")):
         missing = missing_internal_hrefs(tree)

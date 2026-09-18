@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: deepseek
-  license_url: ''
+  license_url: https://raw.githubusercontent.com/deepseek-ai/DeepSeek-LLM/HEAD/LICENSE-MODEL
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -825,9 +825,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # deepseek vl2 tiny
 
 Auto-generated from HuggingFace Hub metadata for [deepseek-ai/deepseek-vl2-tiny](https://huggingface.co/deepseek-ai/deepseek-vl2-tiny).
+
+Licence: deepseek. Creator LICENSE file https://raw.githubusercontent.com/deepseek-ai/DeepSeek-LLM/HEAD/LICENSE-MODEL (DeepSeek License Agreement) and Hub cardData.license other and license_name deepseek, read 2026-09-18.

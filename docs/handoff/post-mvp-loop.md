@@ -25,7 +25,8 @@ item you picked and why.
   answer, and verify by running rather than by reading a ticket comment.
 * **Own your work end to end**: branch from `origin/main` **in a new
   worktree**, run tests from that tree
-  (`PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q`)
+  (`PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q`,
+  or `-n auto --dist loadfile` for the CI-shaped parallel run)
   and require them green, commit, push, open a PR with
   `gh pr create --repo turbobeest/modelspec --base main`. Required checks on
   `main` are **Run pytest** and **Build both sites**. A red branch cannot merge.

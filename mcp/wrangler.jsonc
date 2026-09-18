@@ -1,0 +1,35 @@
+// Remote MCP server for ModelSpec (MODEL-3 phase 1).
+//
+// Stateless Streamable HTTP via createMcpHandler (agents/mcp/server).
+// McpAgent is deprecated; these tools are read-only proxies and need no
+// Durable Object. See mcp/README.md for the docs that settled this.
+//
+// Deployed by .github/workflows/mcp.yml on push to main only. No hand deploys.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "modelspec-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "43840d11c8c4586acdba8b048414900a",
+  "workers_dev": false,
+  // More specific than the rank Worker's api.modelspec.dev/* ; Cloudflare
+  // prefers the longer match. The CI token has Workers Routes:Edit and no DNS,
+  // so this is a route on the existing proxied api.modelspec.dev record, not a
+  // new hostname. See docs/rank-api.md.
+  "routes": [
+    { "pattern": "api.modelspec.dev/mcp*", "zone_name": "modelspec.dev" }
+  ],
+  // rank and policy_check reach the rank Worker through this binding. Over the
+  // public hostname a same-zone Worker-to-Worker fetch skips the route and
+  // hits the zone origin (100::), which answered 522 on the first deploy.
+  "services": [{ "binding": "RANK", "service": "modelspec-rank" }],
+  "observability": { "enabled": true },
+  "vars": {
+    "EXPORT_ORIGIN": "https://modelspec.dev",
+    "RANK_API_ORIGIN": "https://api.modelspec.dev",
+    // CI overrides with --var BUILD_COMMIT:$GITHUB_SHA. The smoke test
+    // reads this back as MCP serverInfo.version.
+    "BUILD_COMMIT": "dev"
+  }
+}

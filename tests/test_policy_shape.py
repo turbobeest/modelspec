@@ -126,14 +126,22 @@ def test_every_card_still_validates_against_the_new_schema() -> None:
 
 
 def test_the_restricted_population_is_the_reason_this_changed() -> None:
-    """165 cards whose licence grants commercial use up to a threshold. None
-    gains a value here — but `restricted` now exists for them to gain."""
+    """Cards whose licence grants commercial use up to a threshold. None
+    gains a value here — but `restricted` now exists for them to gain.
+
+    MODEL-86 batch 2 nulled five hosted/alias Llama cards that named no
+    creator distribution point, so they no longer count as llama-community.
+    Batch 3 moved 17 DeepSeek cards off `deepseek` (MIT / Apache / API terms)
+    and typed one BAAI Gemma derivative `gemma`. Batch 4 retyped Hermes 4
+    70B FP8 from apache-2.0 onto llama-community. Union of those card edits
+    is 145.
+    """
     restricted_licences = [
         model_id for model_id, front in CARDS
         if (front.get("licensing") or {}).get("license_type")
         in {"llama-community", "gemma", "deepseek"}
     ]
-    assert len(restricted_licences) == 165
+    assert len(restricted_licences) == 145
 
 
 # ── a determination needs a source ───────────────────────────────────────────

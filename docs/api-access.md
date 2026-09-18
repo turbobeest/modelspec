@@ -64,7 +64,10 @@ requests record an identical sequence of steps, and
 `test_no_module_branches_on_the_exempt_tier_by_name` parses the package's syntax
 tree and fails if the tier is named anywhere outside a comment or a docstring.
 
-MODEL-73 provisions paid plans by adding rows to this table.
+MODEL-73 adds a `subscriber` row and a `billing.prices` map: a Stripe Price id
+selects a tier. Limits and the mapping are still this file. The subscriber row
+is live rank access, not the policy-check determinations (`paid: false`).
+See [`billing.md`](billing.md).
 
 ## Windows and the reset boundary
 
@@ -220,9 +223,9 @@ the free answer without being told.
 `"false"`, `"0"`, `"no"`, `"off"` and `""` (and unset) read as off; **anything
 else reads as on**, so a typo made while switching it on cannot leave it off.
 
-It ships off because there is no way to obtain a key yet (no self-serve
-issuance; Stripe is MODEL-73). Enforcing now would refuse every anonymous
-caller. **Flip it once key issuance exists.**
+It ships off because self-serve issuance (Stripe Checkout, MODEL-73) ships
+behind its own flag, `BILLING_ENABLED`, also off. Enforcing now would refuse
+every anonymous caller. **Flip `ACCESS_ENFORCED` once keys can be obtained.**
 
 ## The key store: the `ACCESS` binding
 
@@ -240,7 +243,8 @@ because neither reads the store. No crash, and no silent pass.
 What the store holds, and what it does not, is disclosed in
 `docs/legal/privacy.md`; `tests/test_legal.py` fails if the binding is live or
 staged without that disclosure, or if an access module writes anything but a
-key record or a counter.
+named record kind (key, counter, Stripe event id, subscription, session
+pointer, keyref).
 
 ### Missing keys and Pyodide's `jsnull`
 
@@ -272,7 +276,9 @@ invented in code. Anonymous requests never load the table.
 1. **Done 2026-09-18.** The `ACCESS` namespace
    (`ef86b7ce138d4891b3eb630cdd2ba4e5`) is bound in
    `api/worker/wrangler.jsonc`. Enforcement stays off.
-2. Issue keys (`access_keys.issue`, once issuance exists — MODEL-73).
+2. Issue keys: Stripe Checkout (`docs/billing.md`, MODEL-73) records the
+   entitlement from the webhook. `GET`/`POST /v1/billing/claim` calls
+   `access_keys.issue` once. Rotation is `POST /v1/billing/rotate`.
 3. Then, and only then, set `"ACCESS_ENFORCED": "true"`, regenerate the spec
    (`python api/worker/openapi.py`) and update `docs/api.md`; the doc tests
    fail until both say a key is required.

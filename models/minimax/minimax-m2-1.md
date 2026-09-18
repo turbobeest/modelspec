@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M2.1/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -868,13 +868,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # MiniMax-M2.1
 
 MiniMax-M2.1 is a Llm Reasoning model from MiniMax. Part of the minimax family.
+
+Licence: other. Creator LICENSE file https://raw.githubusercontent.com/MiniMax-AI/MiniMax-M2.1/main/LICENSE (Modified MIT License) and Hub cardData.license other and license_name modified-mit, read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

@@ -63,8 +63,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://openai.com/policies/business-terms/
+  tos_url: https://openai.com/policies/business-terms/
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -855,13 +855,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # GPT-5.1 Codex mini
 
 GPT-5.1 Codex mini is a Llm Code model from OpenAI. Part of the gpt-codex family. Knowledge cutoff: 2024-09-30.
+
+Licence: proprietary. Vendor terms https://openai.com/policies/business-terms/ (OpenAI Services Agreement (effective 1 January 2026)), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

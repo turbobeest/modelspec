@@ -61,8 +61,8 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
-  license_type: apache-2.0
+  open_weights: false
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -838,13 +838,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Magistral Medium (latest)
 
 Magistral Medium (latest) is a Llm Reasoning model from Mistral AI. Part of the magistral-medium family. Knowledge cutoff: 2025-06.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. Floating API alias, not a weight distribution. No creator Hub repo for Magistral Medium (mistralai/Magistral-Medium-2506 was not found, read 2026-09-18). Open Magistral weights are on mistral/magistral-small-2506 (https://huggingface.co/mistralai/Magistral-Small-2506 read 2026-09-18).
 
 ## Key Features
 - Extended reasoning / chain-of-thought

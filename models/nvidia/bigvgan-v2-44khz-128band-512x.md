@@ -62,8 +62,8 @@ lineage:
   library_name: PyTorch
 licensing:
   open_weights: true
-  license_type: other
-  license_url: ''
+  license_type: mit
+  license_url: https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,16 +818,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # bigvgan v2 44khz 128band 512x
 
 Auto-generated from HuggingFace Hub metadata for [nvidia/bigvgan_v2_44khz_128band_512x](https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x).
+
+Licence: mit. Creator LICENSE file https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x/raw/main/LICENSE (MIT License) and Hub cardData.license mit, read 2026-09-18.

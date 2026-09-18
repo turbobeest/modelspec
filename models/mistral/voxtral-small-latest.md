@@ -59,7 +59,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''
@@ -827,12 +827,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Voxtral Small (latest)
 
 Voxtral Small (latest) is a Llm Chat model from Mistral AI. Part of the voxtral family.
+
+open_weights: false. Floating API alias, not a weight distribution. Weights are on mistral/voxtral-small-24b-2507 (https://huggingface.co/mistralai/Voxtral-Small-24B-2507 read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use

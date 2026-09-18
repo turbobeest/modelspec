@@ -60,7 +60,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: other
   license_url: ''
   tos_url: ''
@@ -827,13 +827,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Kimi K2 Turbo
 
 Kimi K2 Turbo is a Llm Chat model from Moonshot AI. Part of the kimi family. Knowledge cutoff: 2024-10.
+
+open_weights: false. API turbo serving id, not a weight distribution. No moonshotai/Kimi-K2-Turbo Hub repo (read 2026-09-18). Open K2 Instruct weights: https://huggingface.co/moonshotai/Kimi-K2-Instruct (read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use

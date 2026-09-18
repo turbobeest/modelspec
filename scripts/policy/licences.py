@@ -85,12 +85,12 @@ class LicenceReading:
             )
 
 
-def _licence(url: str, quote: str) -> PolicySource:
-    return PolicySource(kind="license", url=url, read_on=READ_ON, quote=quote)
+def _licence(url: str, quote: str, read_on: str = READ_ON) -> PolicySource:
+    return PolicySource(kind="license", url=url, read_on=read_on, quote=quote)
 
 
-def _terms(url: str, quote: str) -> PolicySource:
-    return PolicySource(kind="terms_of_service", url=url, read_on=READ_ON, quote=quote)
+def _terms(url: str, quote: str, read_on: str = READ_ON) -> PolicySource:
+    return PolicySource(kind="terms_of_service", url=url, read_on=read_on, quote=quote)
 
 
 # ── The Llama community licences ────────────────────────────────────────────
@@ -362,7 +362,425 @@ _READINGS: dict[str, LicenceReading] = {
             "integrated under the agreement."
         ),
     ),
+    # ── MODEL-86: Qwen / Tongyi and Mistral research licences ───────────────
+    # Read 2026-09-18. Keys are the Hub `license` / `license_name` strings, not
+    # the card family `qwen`. Tongyi Qianwen (2023-08-03) and the Qwen LICENSE
+    # AGREEMENT (2024-09-19) are two documents; they share the 100M-MAU
+    # threshold and differ on output-to-train-other-models.
+    "qwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen2.5-72B/raw/main/LICENSE",
+            "If you are commercially using the Materials, and your product or "
+            "service has more than 100 million monthly active users, you shall "
+            "request a license from us. You cannot exercise your rights under "
+            "this Agreement without our express authorization.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but a licensee whose product or "
+            "service has more than 100 million monthly active users must "
+            "request a separate licence from Alibaba Cloud. Using the "
+            "Materials or their outputs to create a distributed AI model "
+            "requires 'Built with Qwen' or 'Improved using Qwen' attribution."
+        ),
+    ),
+    "tongyi-qianwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen-7B/raw/main/LICENSE",
+            "If you are commercially using the Materials, and your product or "
+            "service has more than 100 million monthly active users, You shall "
+            "request a license from Us. You cannot exercise your rights under "
+            "this Agreement without our express authorization.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but a licensee whose product or "
+            "service has more than 100 million monthly active users must "
+            "request a separate licence from Alibaba Cloud. The Materials and "
+            "their outputs may not be used to improve any other large language "
+            "model (excluding Tongyi Qianwen or derivative works thereof)."
+        ),
+    ),
+    "qwen-research": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/raw/main/LICENSE",
+            "make modifications to the Materials FOR NON-COMMERCIAL PURPOSES ONLY.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "mrl": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://mistral.ai/licenses/MRL-0.1.md",
+            "You shall only use the Mistral Models, Derivatives (whether or "
+            "not created by Mistral AI) and Outputs for Research Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "mnpl": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://mistral.ai/licenses/MNPL-0.1.md",
+            "You shall not supply the Mistral Models or Derivatives in the "
+            "course of a commercial activity, whether in return for payment "
+            "or free of charge, in any medium or form, including but not "
+            "limited to through a hosted or managed service (e.g. SaaS, cloud "
+            "instances, etc.), or behind a software layer.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "terms:mistral": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://legal.mistral.ai/terms/commercial-terms-of-service",
+            "Subject to Customer's compliance with these Terms, Mistral AI "
+            "grants Customer a limited, non-exclusive, non-transferrable "
+            "(except as provided in Section 14.2 (Assignment)), "
+            "non-sublicensable (except to its End Users) license to access "
+            "and use the Mistral AI Products.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Mistral AI Terms of Service "
+            "for Commercial Users as a limited, non-exclusive, "
+            "non-transferable, non-sublicensable licence to access the Mistral "
+            "AI Products. Use is bound by the Usage Policy and Additional "
+            "Terms; image Outputs may not be used to train a competing image "
+            "generation product."
+        ),
+    ),
+    "terms:qwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.alibabacloud.com/help/en/legal/latest/"
+            "alibaba-cloud-international-website-product-terms-of-service",
+            "Model Studio does not claim ownership of any Intellectual "
+            "Property Rights in the Output. You may use the Input and Output, "
+            "provided your use complies with applicable laws, the Agreement, "
+            "and our rules.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use of Model Studio Output is granted under Alibaba "
+            "Cloud International Website Product Terms of Service §4.48, but "
+            "you may not resell Model Studio or the AI models provided through "
+            "it, or use those models or their Output to train or develop "
+            "products or services that compete with Alibaba Cloud, unless "
+            "expressly authorised."
+        ),
+    ),
+    # NVIDIA Open Models License (Hub license_name nvidia-open-model-license),
+    # last modified 24 October 2025. Distinct from the NVIDIA Nemotron Open
+    # Model License and from the April 2026 NVIDIA Open Model Agreement.
+    "nvidia-open-model-license": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-open-model-license/",
+            "Use of the Models under the Agreement must be consistent with "
+            "NVIDIA’s Trustworthy AI terms found at "
+            "https://www.nvidia.com/en-us/agreements/trustworthy-ai/terms/.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but the grant is revocable as stated "
+            "in Section 2.1, use must be consistent with NVIDIA's Trustworthy "
+            "AI terms, and bypassing a safety guardrail without a substantially "
+            "similar replacement terminates the licence."
+        ),
+    ),
+    # NVIDIA Open Model Agreement, release date 2 April 2026. Apache-shaped
+    # irrevocable grant; not the October 2025 Open Models License.
+    "nvidia-open-model-agreement": LicenceReading(
+        permission=UsePermission.ALLOWED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-open-model-agreement/",
+            "Subject to the terms and conditions of this License, NVIDIA "
+            "hereby grants to You a perpetual, worldwide, non-exclusive, "
+            "no-charge, royalty-free, irrevocable license to reproduce, "
+            "prepare Derivative Works of, publicly display, publicly perform, "
+            "sublicense, and distribute the Work and such Derivative Works in "
+            "source or object form.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "nvidia-nemotron-open-model-license": LicenceReading(
+        permission=UsePermission.ALLOWED,
+        source=_licence(
+            "https://www.nvidia.com/en-us/agreements/enterprise-software/"
+            "nvidia-nemotron-open-model-license/",
+            "Subject to the terms and conditions of this License, NVIDIA "
+            "hereby grants to You a perpetual, worldwide, non-exclusive, "
+            "no-charge, royalty-free, irrevocable license to reproduce, "
+            "prepare Derivative Works of, publicly display, publicly perform, "
+            "sublicense, and distribute the Work and such Derivative Works in "
+            "source or object form.",
+            read_on="2026-09-18",
+        ),
+    ),
+    # ── MODEL-86 batch 3: DeepSeek API, OpenRAIL++, Stability Community, FLUX.1 [dev]
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # (qwen/meta/microsoft/nvidia/ibm/zhipu) stays a clean append.
+    # FLUX.2's Hub name `flux-non-commercial-license` is a different
+    # identifier; it is deliberately not aliased onto the FLUX.1 [dev]
+    # document.
+    "terms:deepseek": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
+            "We grant you a right to access and use the Services provided by "
+            "the Open Platform in accordance with these Terms: API services "
+            "based on the DeepSeek Chat models, as well as other new service "
+            "types which will be developed by DeepSeek.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the DeepSeek Open Platform Terms "
+            "of Service (effective 29 April 2026). DeepSeek assigns any rights "
+            "it has in Outputs to the customer. Use is bound by the DeepSeek "
+            "Terms of Use and by applicable export-control and sanctions law."
+        ),
+    ),
+    "stabilityai-ai-community": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/sd-turbo/raw/main/LICENSE.md",
+            "If at any time You or Your Affiliate(s), either individually or "
+            "in aggregate, generate more than USD $1,000,000 in annual revenue "
+            "(or the equivalent thereof in Your local currency), regardless of "
+            "whether that revenue is generated directly or indirectly from the "
+            "Stability AI Materials or Derivative Works, any licenses granted "
+            "to You under this Agreement shall terminate as of such date.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Stability AI Community "
+            "License Agreement (last updated 5 July 2024), but the licence "
+            "terminates if the licensee or its affiliates generate more than "
+            "USD $1,000,000 in annual revenue; above that threshold a separate "
+            "enterprise licence must be requested from Stability AI."
+        ),
+    ),
+    "openrail++": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/main/LICENSE.md",
+            "Use-based restrictions. The restrictions set forth in Attachment A "
+            "are considered Use-based restrictions. Therefore You cannot use "
+            "the Model and the Derivatives of the Model for the specified "
+            "restricted uses.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, including hosting for third-party "
+            "remote access, but the Attachment A use-based restrictions apply "
+            "and must be included as an enforceable provision in any agreement "
+            "governing a derivative or redistribution."
+        ),
+    ),
+    "flux-1-dev-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/black-forest-labs/flux/main/model_licenses/LICENSE-FLUX1-dev",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX.1 [dev] Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    # ── MODEL-86 batch 6: FLUX.2 Non-Commercial License v2.1, OpenBMB GML
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # stays a clean append.
+    # FLUX.1 [dev] remains flux-1-dev-non-commercial-license. This is the
+    # FLUX.2 Hub name flux-non-commercial-license, a different document
+    # (v2.1). The two gated FLUX.2 klein-base-9B repos name it; the text
+    # was read from a public BFL LICENSE file of the same Hub name.
+    # flux-dev-non-commercial-license is still unread.
+    "flux-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv-fp8/raw/main/LICENSE",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "general-model-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/OpenBMB/General-Model-License/main/"
+            "通用模型许可协议-来源说明-宣传限制-商业授权.md",
+            "商业授权：使用者获得发布者书面授权后，可以以任何商业目的使用此通用模型。",
+            read_on="2026-09-18",
+        ),
+    ),
+    # ── MODEL-86 batch 4: long-tail providers ───────────────────────────────
+    # Own block so a merge with batch 2 (Qwen / Meta / Microsoft / NVIDIA)
+    # stays a clean append. Read 2026-09-18. Keys are Hub license_name or
+    # terms:<provider>. MiniMax's "modified-mit" is several documents with
+    # different commercial clauses, so it is not keyed here.
+    "lfm1.0": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/LiquidAI/LFM2-1.2B/raw/main/LICENSE",
+            "The rights granted under this License for Commercial Use are "
+            "conditioned upon You or Your Legal Entity not exceeding the "
+            "Threshold.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LFM Open License v1.0 only "
+            "while the licensee's annual revenue is below USD 10 million. "
+            "Commercial use by an entity at or above that threshold is not "
+            "licensed; the threshold does not apply to a qualified non-profit "
+            "using the work for non-commercial or research purposes."
+        ),
+    ),
+    "ltx-2-community-license-agreement": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/unsloth/LTX-2.3-GGUF/raw/main/LICENSE",
+            "Entities with annual revenues of at least $10,000,000 (the "
+            '"Commercial Entities") are required to obtain a paid commercial '
+            "use license in order to use LTX-2 and Derivatives of LTX-2",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LTX-2 Community License "
+            "Agreement (5 January 2026) below USD 10 million annual revenue. "
+            "Entities at or above that threshold must obtain a separate paid "
+            "commercial-use licence from Lightricks. Attachment A use "
+            "restrictions apply, including a ban on using the model to train "
+            "a competing system."
+        ),
+    ),
+    "terms:inception": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.inceptionlabs.ai/docs/terms-of-use",
+            "Subject to these Terms, we grant each user of the Services a "
+            "worldwide, non-exclusive, non-sublicensable and non-transferable "
+            "license to use (i.e., to download and display locally) Content "
+            "solely for purposes of using the Services.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Access is under the Inception Terms of Use (effective 1 September "
+            "2025). The grant is non-exclusive, non-sublicensable and "
+            "non-transferable. Outputs may be used, modified, reproduced, "
+            "distributed and displayed for any purpose not otherwise "
+            "restricted; the Terms also say the Services may be used only for "
+            "the user's own internal, personal use and not on behalf of a "
+            "third party, and Inception may change the Terms."
+        ),
+    ),
+    "terms:upstage": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.upstage.ai/terms-of-service",
+            "When a member agrees to these Terms, the Company grants the "
+            "member a non-transferable, limited license to use the Service, "
+            "and may not be sublicensed. The member may use the Service and "
+            "its outputs only within the scope of the Service's intended "
+            "purpose, as specified in these Terms.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Upstage Terms of Service as "
+            "a non-transferable, limited, non-sublicensable licence. Outputs "
+            "may be used only within the Service's intended purpose. Where "
+            "the Company publishes a Korean and an English version, the "
+            "Korean text prevails."        ),
+    ),
 }
+
+# ── MODEL-86 batch 5: Zhipu / Z.AI Hub licences ─────────────────────────────
+# Read 2026-09-18 from zai-org LICENSE files. Four documents. Commercial use
+# is granted after registration at open.bigmodel.cn/mla/form; CogVideoX also
+# caps that grant at 1 million monthly service visits. They are still four
+# files and each is cited as itself. Appended as its own block so a merge
+# with batch 2 (NVIDIA readings above) stays a clean append.
+_READINGS.update(
+    {
+        "cogvideox": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/CogVideoX-5b/raw/main/LICENSE",
+                "Users who wish to use the models for commercial purposes "
+                "must register and obtain a basic commercial license in "
+                "https://open.bigmodel.cn/mla/form .",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registering for a basic "
+                "commercial licence at open.bigmodel.cn/mla/form, and only "
+                "while monthly service visits stay at or below 1 million; "
+                "above that a further commercial licence is required. The "
+                "grant is revocable, non-transferable and non-sublicensable."
+            ),
+        ),
+        "glm-4": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-4-9b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with glm-4'; a model trained or "
+                "fine-tuned on these materials must prefix its name with "
+                "'glm-4'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+        "glm-4-voice": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-4-voice-9b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with glm-4'; a model trained or "
+                "fine-tuned on these materials must prefix its name with "
+                "'glm-4'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+        "glm-edge": LicenceReading(
+            permission=UsePermission.RESTRICTED,
+            source=_licence(
+                "https://huggingface.co/zai-org/glm-edge-v-2b/raw/main/LICENSE",
+                "For users who wish to use the models for commercial "
+                "purposes, please do so [here](https://open.bigmodel.cn/mla/form)",
+                read_on="2026-09-18",
+            ),
+            conditions=(
+                "Commercial use is granted after registration at "
+                "open.bigmodel.cn/mla/form. Redistribution must include this "
+                "licence and display 'Built with GLM-Edge'; a model trained "
+                "or fine-tuned on these materials must prefix its name with "
+                "'GLM-Edge'. The grant is revocable, non-transferable and "
+                "non-sublicensable."
+            ),
+        ),
+    }
+)
+
+# Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
+# longer spelling. Same document, same reading.
+_READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
+_READINGS["apache-license-2.0"] = _READINGS["apache-2.0"]
+_READINGS["deepseek-license"] = _READINGS["deepseek"]
 
 #: The licence readings, by licence identifier. Read-only on purpose: a caller
 #: that wants a new licence answered has to add it here, with a document and a

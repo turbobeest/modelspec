@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: deepseek
-  license_url: ''
+  license_url: https://huggingface.co/deepseek-ai/deepseek-coder-1.3b-base/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -883,15 +883,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # deepseek coder 1.3B base
 
 Auto-generated from HuggingFace Hub metadata for [deepseek-ai/deepseek-coder-1.3b-base](https://huggingface.co/deepseek-ai/deepseek-coder-1.3b-base).
+
+Licence: deepseek. Creator LICENSE file https://huggingface.co/deepseek-ai/deepseek-coder-1.3b-base/raw/main/LICENSE (DeepSeek License Agreement) and Hub cardData.license other and license_name deepseek-license, read 2026-09-18.

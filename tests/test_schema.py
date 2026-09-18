@@ -20,8 +20,8 @@ card = ModelCard(
     )
 )
 assert card.identity.model_id == "test/minimal-model"
-assert card.card_completeness > 0  # Should have some fields filled
-print(f"  ✓ Created. Completeness: {card.card_completeness}%")
+assert card.applicable_field_coverage > 0  # Should have some fields filled
+print(f"  ✓ Created. Completeness: {card.applicable_field_coverage}%")
 
 # ── Test 2: Create a fully populated card ──────────────────
 print("\nTest 2: Rich card creation...")
@@ -109,7 +109,7 @@ card = ModelCard(
     ),
 )
 
-print(f"  ✓ Created. Completeness: {card.card_completeness}%")
+print(f"  ✓ Created. Completeness: {card.applicable_field_coverage}%")
 print(f"  ✓ Model type: {card.identity.model_type}")
 print(f"  ✓ Parameters: {card.architecture.total_parameters:,} total, {card.architecture.active_parameters:,} active")
 print(f"  ✓ Benchmarks filled: {card.benchmarks.filled_count()}")
@@ -118,7 +118,7 @@ print(f"  ✓ Platforms available: {card.availability.platforms_available()}")
 # ── Test 3: Count fields ───────────────────────────────────
 print("\nTest 3: Field counting...")
 filled, total = card._count_fields(card)
-print(f"  ✓ {filled} / {total} fields filled ({card.card_completeness}%)")
+print(f"  ✓ {filled} / {total} fields filled ({card.applicable_field_coverage}%)")
 
 # ── Test 4: YAML round-trip ────────────────────────────────
 print("\nTest 4: YAML serialization...")
@@ -157,4 +157,4 @@ print(f"  Total fields in schema:  {total_fields}")
 print(f"  Model types supported:   {len(ModelType)}")
 print(f"  Architecture types:      {len(ArchitectureType)}")
 print(f"  License types:           {len(LicenseType)}")
-print(f"  Sample card completeness: {card.card_completeness}%")
+print(f"  Sample card completeness: {card.applicable_field_coverage}%")

@@ -65,8 +65,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://ai.google.dev/gemini-api/terms
+  tos_url: https://ai.google.dev/gemini-api/terms
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -855,12 +855,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Gemini 2.0 Flash Lite
 
 Gemini 2.0 Flash Lite is a Vlm model from Google DeepMind. Part of the gemini-flash-lite family. Knowledge cutoff: 2024-06.
+
+Licence: proprietary. Vendor terms https://ai.google.dev/gemini-api/terms (Gemini API Additional Terms of Service (effective 23 March 2026)), read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

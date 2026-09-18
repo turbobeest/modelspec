@@ -91,12 +91,47 @@ def test_restricted_readings_state_their_restriction():
         ("terms:xai", UsePermission.RESTRICTED),
         ("terms:amazon", UsePermission.RESTRICTED),
         ("terms:perplexity", UsePermission.RESTRICTED),
+        ("terms:mistral", UsePermission.RESTRICTED),
+        ("terms:qwen", UsePermission.RESTRICTED),
+        ("terms:deepseek", UsePermission.RESTRICTED),
+        ("stabilityai-ai-community", UsePermission.RESTRICTED),
+        ("openrail++", UsePermission.RESTRICTED),
+        ("flux-1-dev-non-commercial-license", UsePermission.PROHIBITED),
+        ("flux-non-commercial-license", UsePermission.PROHIBITED),
+        ("general-model-license", UsePermission.PROHIBITED),
+        ("deepseek-license", UsePermission.RESTRICTED),
+        ("qwen", UsePermission.RESTRICTED),
+        ("qwen-research", UsePermission.PROHIBITED),
+        ("tongyi-qianwen", UsePermission.RESTRICTED),
+        ("tongyi-qianwen-license-agreement", UsePermission.RESTRICTED),
+        ("mrl", UsePermission.PROHIBITED),
+        ("mnpl", UsePermission.PROHIBITED),
+        ("nvidia-open-model-license", UsePermission.RESTRICTED),
+        ("nvidia-open-model-agreement", UsePermission.ALLOWED),
+        ("nvidia-nemotron-open-model-license", UsePermission.ALLOWED),
+        ("cogvideox", UsePermission.RESTRICTED),
+        ("glm-4", UsePermission.RESTRICTED),
+        ("glm-4-voice", UsePermission.RESTRICTED),
+        ("glm-edge", UsePermission.RESTRICTED),
+        ("lfm1.0", UsePermission.RESTRICTED),
+        ("ltx-2-community-license-agreement", UsePermission.RESTRICTED),
+        ("terms:inception", UsePermission.RESTRICTED),
+        ("terms:upstage", UsePermission.RESTRICTED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
     reading = reading_for(key)
     assert reading is not None, f"{key} is missing from the table"
     assert reading.permission is permission
+
+
+def test_qwen_commercial_and_research_licences_are_different_documents():
+    commercial = reading_for("qwen")
+    research = reading_for("qwen-research")
+    assert commercial is not None and research is not None
+    assert commercial.source.url != research.source.url
+    assert commercial.permission is UsePermission.RESTRICTED
+    assert research.permission is UsePermission.PROHIBITED
 
 
 def test_the_llama_licences_are_six_documents_not_one():
@@ -107,9 +142,63 @@ def test_the_llama_licences_are_six_documents_not_one():
     assert len(set(urls.values())) == 6, "two Llama versions share a citation"
 
 
+def test_nvidia_open_model_and_nemotron_licences_are_different_documents():
+    """Hub license_name nvidia-open-model-license is not the Nemotron licence
+    and not the April 2026 Open Model Agreement. The Open Models License is
+    revocable and binds Trustworthy AI terms; the other two are Apache-shaped
+    irrevocable grants."""
+    open_models = reading_for("nvidia-open-model-license")
+    agreement = reading_for("nvidia-open-model-agreement")
+    nemotron = reading_for("nvidia-nemotron-open-model-license")
+    assert open_models is not None and agreement is not None and nemotron is not None
+    urls = {open_models.source.url, agreement.source.url, nemotron.source.url}
+    assert len(urls) == 3
+    assert open_models.permission is UsePermission.RESTRICTED
+    assert agreement.permission is UsePermission.ALLOWED
+    assert nemotron.permission is UsePermission.ALLOWED
+
+
+def test_zhipu_hub_licences_are_four_documents():
+    """CogVideoX, glm-4-9b, glm-4-voice and GLM-Edge share a registration
+    form and are still four files. Citing glm-4 for CogVideoX would
+    manufacture evidence, and CogVideoX's 1 million monthly-visit cap is
+    not in the glm-4 text."""
+    keys = ("cogvideox", "glm-4", "glm-4-voice", "glm-edge")
+    readings = [reading_for(k) for k in keys]
+    assert all(r is not None for r in readings)
+    urls = {r.source.url for r in readings}
+    assert len(urls) == 4
+    for r in readings:
+        assert r.permission is UsePermission.RESTRICTED
+        assert "open.bigmodel.cn/mla/form" in r.conditions
+    assert "1 million" in readings[0].conditions
+    assert "1 million" not in readings[1].conditions
+
+
+def test_glm_4_hub_license_name_resolves_from_the_distribution_declaration():
+    r = licence_of_record(
+        "other", declared_licence="other", declared_licence_name="glm-4"
+    )
+    assert r.licence_key == "glm-4"
+    assert r.reason == "distribution-declaration"
+
+
 def test_an_unread_licence_produces_no_value_and_never_a_default():
-    for unknown in ("openrail", "gpl-3.0", "cc-by-4.0", "qwen", "", None, "APACHE-3.0"):
+    for unknown in ("gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
         assert reading_for(unknown) is None
+
+
+def test_flux1_dev_noncommercial_is_not_the_flux2_name():
+    """FLUX.1 [dev] and FLUX.2 Non-Commercial License v2.1 are different
+    documents. Citing one for the other manufactures evidence. The Hub
+    name flux-dev-non-commercial-license is still unread."""
+    flux1 = reading_for("flux-1-dev-non-commercial-license")
+    flux2 = reading_for("flux-non-commercial-license")
+    assert flux1 is not None and flux2 is not None
+    assert flux1.source.url != flux2.source.url
+    assert flux1.permission is UsePermission.PROHIBITED
+    assert flux2.permission is UsePermission.PROHIBITED
+    assert reading_for("flux-dev-non-commercial-license") is None
 
 
 def test_the_table_cannot_be_mutated_into_a_default():
@@ -216,8 +305,10 @@ def test_proprietary_resolves_by_provider_terms():
 
 
 def test_a_provider_whose_terms_were_not_found_gets_nothing():
-    """Voyage AI publishes no locatable terms document. Reaching for MongoDB's
-    because MongoDB bought Voyage would be inference."""
+    """Voyage AI still publishes no locatable terms document (re-checked
+    2026-09-18: voyageai.com/terms 404s; MongoDB Terms of Use do not mention
+    Voyage). Reaching for MongoDB's because MongoDB bought Voyage would be
+    inference."""
     r = licence_of_record("proprietary", provider="voyage")
     assert r.licence_key is None
     assert r.reason == "unread-provider-terms"
@@ -226,7 +317,7 @@ def test_a_provider_whose_terms_were_not_found_gets_nothing():
 
 def test_no_card_type_in_the_map_is_a_family_licence():
     """A family name must never be able to answer on its own."""
-    for family in ("llama-community", "deepseek", "other", "proprietary"):
+    for family in ("llama-community", "deepseek", "qwen", "other", "proprietary"):
         assert family not in CARD_TYPE_TO_LICENCE
 
 

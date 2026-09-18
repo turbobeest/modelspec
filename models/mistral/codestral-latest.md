@@ -60,8 +60,8 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
-  license_type: apache-2.0
+  open_weights: false
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -859,13 +859,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Codestral (latest)
 
 Codestral (latest) is a Llm Code model from Mistral AI. Part of the codestral family. Knowledge cutoff: 2024-10.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. Floating API alias, not a weight distribution. Later Codestral API snapshots have no creator Hub repo (mistralai/Codestral-2508 was not found, read 2026-09-18). An older open checkpoint is https://huggingface.co/mistralai/Codestral-22B-v0.1 (read 2026-09-18); this catalogue has no dated Codestral card for those weights.
 
 ## Key Features
 - Function calling / tool use

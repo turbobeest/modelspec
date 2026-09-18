@@ -63,8 +63,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://x.ai/legal/terms-of-service-enterprise
+  tos_url: https://x.ai/legal/terms-of-service-enterprise
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -890,13 +890,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Grok 4 Fast
 
 Grok 4 Fast is a Llm Reasoning model from xAI. Part of the grok family. Knowledge cutoff: 2025-07.
+
+Licence: proprietary. Vendor terms https://x.ai/legal/terms-of-service-enterprise (SpaceXAI Terms of Service — Enterprise (last updated 14 August 2026)), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

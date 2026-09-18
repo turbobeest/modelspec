@@ -62,8 +62,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: other
-  license_url: ''
+  license_type: cc-by-nc-4.0
+  license_url: https://huggingface.co/CohereLabs/command-a-vision-07-2025
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -826,18 +826,20 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Command A Vision
 
 Command A Vision is a Vlm model from Cohere. Part of the command-a family. Knowledge cutoff: 2024-06-01.
+
+Licence: cc-by-nc-4.0. Creator distribution https://huggingface.co/CohereLabs/command-a-vision-07-2025 (cc-by-nc-4.0) and Hub cardData.license cc-by-nc-4.0, read 2026-09-18.
 
 ## Key Features
 - Open weights
