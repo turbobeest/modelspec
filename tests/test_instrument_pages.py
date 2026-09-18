@@ -56,6 +56,68 @@ def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
     assert ":where(.page) h2::before{content:counter(sec" in r.CSS
 
 
+# ── the static pages ─────────────────────────────────────────────────────────
+
+def _stylesheets(page: str) -> list[str]:
+    return re.findall(r'<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"|'
+                      r'<link[^>]*href="([^"]+)"[^>]*rel="stylesheet"', page)
+
+
+def test_each_static_page_links_the_shared_sheet() -> None:
+    for name, path in STATIC_PAGES.items():
+        page = path.read_text(encoding="utf-8")
+        assert '<link rel="stylesheet" href="/instrument.css">' in page, name
+
+
+def _styles(page: str) -> str:
+    """Every stylesheet and style attribute on the page, not its SVG artwork."""
+    return ("".join(re.findall(r"<style>(.*?)</style>", page, re.S))
+            + "".join(re.findall(r'style="([^"]*)"', page)))
+
+
+def test_no_static_page_requests_space_grotesk() -> None:
+    """The benchgraph logo's generated SVG still names the face in a presentation
+    attribute. That requests nothing, and the page's CSS outranks it."""
+    for name, path in STATIC_PAGES.items():
+        page = path.read_text(encoding="utf-8")
+        assert "Space+Grotesk" not in page, name
+        assert "Space Grotesk" not in _styles(page), name
+
+
+def test_jetbrains_mono_is_the_only_cdn_font() -> None:
+    for name, path in STATIC_PAGES.items():
+        page = path.read_text(encoding="utf-8")
+        remote = [href for pair in _stylesheets(page) for href in pair
+                  if href.startswith(("http:", "https:", "//"))]
+        assert remote == ["https://fonts.googleapis.com/css2?family=JetBrains+Mono:"
+                          "wght@400;500;700&display=swap"], (name, remote)
+        assert "@font-face" not in page, name
+
+
+def test_static_page_styles_take_every_colour_and_family_from_a_token() -> None:
+    """Hex literals in a static page are how the drift started."""
+    for name, path in STATIC_PAGES.items():
+        styles = _styles(path.read_text(encoding="utf-8"))
+        assert re.findall(r"#[0-9a-fA-F]{3,8}\b|rgba?\(", styles) == [], name
+        families = re.findall(r"font-family:\s*([^;}]+)", styles)
+        assert all(f.strip().startswith("var(--") for f in families), (name, families)
+
+
+def test_the_benchgraph_landing_root_is_marked_as_benchgraph() -> None:
+    for key in ("benchgraph landing", "benchgraph landing template"):
+        page = STATIC_PAGES[key].read_text(encoding="utf-8")
+        assert '<html lang="en" data-site="benchgraph">' in page, key
+
+
+def test_the_benchgraph_landing_matches_its_template_outside_the_placeholders() -> None:
+    template = STATIC_PAGES["benchgraph landing template"].read_text(encoding="utf-8")
+    page = STATIC_PAGES["benchgraph landing"].read_text(encoding="utf-8")
+    literal = re.split(r"(\{\{[A-Z_]+\}\})", template)
+    pattern = "".join(".*?" if re.fullmatch(r"\{\{[A-Z_]+\}\}", part) else re.escape(part)
+                      for part in literal)
+    assert re.fullmatch(pattern, page, re.S), "index.html has drifted from index.tpl.html"
+
+
 # ── the landing's calls to action ────────────────────────────────────────────
 
 LANDING_ANSWER = ('<div class="a">That question, answered from evidence, '
