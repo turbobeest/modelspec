@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-site="modelspec">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
 <meta name="description" content="ModelSpec is a free, open-source knowledge graph of AI models: what each one can do, what it costs, where it runs, and how it scores on every benchmark we can find. Select your intelligence carefully." />
 <link rel="canonical" href="https://modelspec.dev/" />
 <meta name="robots" content="index, follow, max-image-preview:large" />
-<meta name="theme-color" content="#000000" />
+<meta name="theme-color" content="#07080a" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="ModelSpec" />
 <meta property="og:title" content="ModelSpec — the open knowledge graph of AI models" />
@@ -20,9 +20,11 @@
 <meta name="twitter:image" content="https://modelspec.dev/og-card.png" />
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="/icon-512.png" />
+<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/instrument.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -39,91 +41,54 @@
 }
 </script>
 <style>
-  :root {
-    --bg: #000000;
-    --panel: #0a0c12;
-    --line: #1c2029;
-    --ink: #f0f0f0;
-    --ink-2: #b7bcc6;
-    --mute: #8a8f98;
-    --blue: #3b82f6;
-    --indigo: #6366f1;
-    --glow: rgba(99, 102, 241, 0.35);
+  nav .brand { display: inline-flex; align-items: center; gap: 10px; }
+  nav .brand img { width: 24px; height: 24px; }
+
+  .hero { padding: 18px 0 0; }
+  .hero .logo { display: block; width: min(560px, 100%); height: auto; margin: 0 0 22px -12px; }
+  .hero h1 { font-size: clamp(32px, 5vw, 54px); max-width: 20ch; margin: 0 0 16px; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero .lede { font-size: 18px; max-width: 62ch; margin: 0; }
+
+  .question { margin: 34px 0 0; padding: 22px 0 24px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .question .q { font-family: var(--sans); font-size: 22px; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; color: var(--ink); max-width: 44ch; }
+  .question .a { margin-top: 10px; font-size: 13px; color: var(--mute); }
+  .question .go { margin-top: 20px; }
+
+  .feats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 44px 0 0; }
+  .feat { padding: 22px 22px 24px; min-width: 0; }
+  .feat:first-child { padding-left: 0; }
+  .feat + .feat { border-left: 1px solid var(--line); }
+  .feat h2 { font-family: var(--sans); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); margin: 8px 0 8px; }
+  .feat p { font-size: 15px; margin: 0; }
+  .feat pre { margin: 14px 0 0; font-size: 12px; line-height: 1.7; color: var(--body); }
+  .feat pre b { color: var(--accent); font-weight: 500; }
+
+  .status { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: center; margin: 44px 0 0; padding: 0 0 26px; border-bottom: 1px solid var(--line); }
+  .status .lab { display: block; color: var(--accent); margin-bottom: 8px; }
+  .status p { font-size: 15px; margin: 0; }
+  .status .btns { justify-content: flex-end; }
+
+  .built { margin: 36px 0 0; font-size: 15px; color: var(--mute); }
+
+  footer { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 12px; color: var(--dim); }
+  footer a { color: var(--mute); border-bottom: 0; }
+  footer a:hover { color: var(--accent); }
+  footer .fine { flex-basis: 100%; }
+
+  @media (max-width: 800px) {
+    .hero .logo { margin-left: -6px; }
+    .feats { grid-template-columns: 1fr; }
+    .feat { padding-left: 0; padding-right: 0; }
+    .feat + .feat { border-left: 0; border-top: 1px solid var(--line); }
+    .status { grid-template-columns: 1fr; }
+    .status .btns { justify-content: flex-start; }
   }
-  * { box-sizing: border-box; }
-  html { color-scheme: dark; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--ink); text-decoration: none; }
-  a:hover { color: #fff; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-  nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-  nav .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: 0.02em; }
-  nav .brand img { height: 32px; width: 32px; }
-  nav .links { display: flex; gap: 22px; font-size: 13px; color: var(--mute); }
-  nav .links a { color: var(--mute); }
-  nav .links a:hover { color: var(--ink); }
-  .hero { padding: 48px 0 24px; text-align: center; }
-  .hero .logo { width: min(720px, 100%); height: auto; display: block; margin: 0 auto 8px; }
-  .hero h1 {
-    font-size: clamp(26px, 4vw, 40px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; margin: 24px 0 14px;
-  }
-  .hero h1 .accent {
-    background: linear-gradient(90deg, var(--blue), var(--indigo)); -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .hero p.lede { max-width: 62ch; margin: 0 auto; color: var(--ink-2); font-size: 16.5px; }
-  .question {
-    margin: 40px auto 0; max-width: 820px; border: 1px solid var(--line); background: var(--panel); border-radius: 14px;
-    padding: 24px 28px; box-shadow: 0 0 80px var(--glow) inset;
-  }
-  .question .q { font-size: 18px; font-weight: 500; color: var(--ink); }
-  .question .a { margin-top: 10px; color: var(--mute); font-size: 14px; }
-  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 48px 0 0; }
-  @media (max-width: 800px) { .cards { grid-template-columns: 1fr; } }
-  .card { border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 22px 22px 20px; }
-  .card h2 { font-size: 15px; margin: 0 0 8px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); }
-  .card h2 span { color: var(--blue); margin-right: 8px; }
-  .card p { margin: 0; color: var(--ink-2); font-size: 14px; }
-  .card pre {
-    margin: 12px 0 0; padding: 12px 14px; background: #000; border: 1px solid var(--line); border-radius: 10px;
-    font-size: 12.5px; line-height: 1.7; color: var(--ink-2); overflow-x: auto;
-  }
-  .card pre b { color: var(--ink); font-weight: 500; }
-  .stats { display: flex; flex-wrap: wrap; gap: 28px 40px; justify-content: center; margin: 44px 0 0; color: var(--mute); font-size: 13px; }
-  .stats b { display: block; color: var(--ink); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
-  .status { margin: 56px 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 28px 0; display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center; }
-  @media (max-width: 800px) { .status { grid-template-columns: 1fr; } }
-  .status .label { color: var(--blue); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
-  .status p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
-  .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
-  @media (max-width: 800px) { .actions { justify-content: flex-start; } }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 500;
-    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-  }
-  .btn.primary { background: linear-gradient(90deg, var(--blue), var(--indigo)); border-color: transparent; color: #fff; }
-  .btn.primary:hover { filter: brightness(1.08); }
-  .built { margin: 48px 0 0; text-align: center; color: var(--mute); font-size: 14px; max-width: 70ch; margin-left: auto; margin-right: auto; }
-  .built a { color: var(--ink); border-bottom: 1px solid var(--line); }
-  footer { margin: 56px 0 0; padding: 28px 0 40px; border-top: 1px solid var(--line); color: var(--mute); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
-  footer a { color: var(--mute); }
-  footer a:hover { color: var(--ink); }
-  footer .fine { flex-basis: 100%; color: #5c616b; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav>
-    <a class="brand" href="/"><img src="/icon-512.png" alt="" width="32" height="32" />modelspec</a>
-    <div class="links">
-      <a href="https://github.com/turbobeest/modelspec">GitHub</a>
-      <a href="https://github.com/turbobeest/modelspec#readme">README</a>
-      <a href="https://darkproductfactories.com/">Dark Product Factories</a>
-    </div>
-  </nav>
+  <!-- site-nav -->
 
   <section class="hero">
     <img class="logo" src="/logo.png" alt="modelspec — select your intelligence carefully" width="1408" height="398" />
@@ -138,26 +103,23 @@
       <div class="a">That question, answered from evidence, and kept current as the models change underneath you.</div>
     </div>
 
-    <div class="stats" aria-label="What the graph holds today">
-      <div><b>1,140+</b>model cards</div>
-      <div><b>47</b>providers</div>
-      <div><b>8,400+</b>relationships</div>
-      <div><b>15</b>model types</div>
-      <div><b>750</b>fields per card</div>
-    </div>
+    <div class="stats" aria-label="What the graph holds today" style="grid-template-columns:repeat(5,minmax(0,1fr))"><div class="cell"><span class="lab">model cards</span><div class="val">1,140+</div></div><div class="cell"><span class="lab">providers</span><div class="val">47</div></div><div class="cell"><span class="lab">relationships</span><div class="val">8,400+</div></div><div class="cell"><span class="lab">model types</span><div class="val">15</div></div><div class="cell"><span class="lab">fields per card</span><div class="val">750</div></div></div>
   </section>
 
-  <section class="cards" aria-label="What ModelSpec does">
-    <div class="card">
-      <h2><span>01</span>The graph</h2>
+  <section class="feats" aria-label="What ModelSpec does">
+    <div class="feat">
+      <span class="lab">01</span>
+      <h2>The graph</h2>
       <p>Every model as a node, linked to its provider, its lineage, its competitors, the platforms that serve it, the benchmarks that measured it, its capabilities and its licence. Eight views, one graph, explorable in 3D.</p>
     </div>
-    <div class="card">
-      <h2><span>02</span>The downselect</h2>
+    <div class="feat">
+      <span class="lab">02</span>
+      <h2>The downselect</h2>
       <p>Tell it your use case, where you can host, what hardware you have, from a Raspberry Pi to a B200, and the rules you live under: open weights, origin, cost, context. It filters, scores, ranks, and shows its reasons.</p>
     </div>
-    <div class="card">
-      <h2><span>03</span>The CLI</h2>
+    <div class="feat">
+      <span class="lab">03</span>
+      <h2>The CLI</h2>
       <p>The same graph from your terminal, for scripts and for the tools that build with you.</p>
 <pre><b>modelspec</b> rank --use-case coding --top 10
 <b>modelspec</b> compare anthropic/claude-opus-4-6 openai/o3
@@ -168,10 +130,10 @@
 
   <section class="status">
     <div>
-      <div class="label">Status</div>
+      <span class="lab">Status</span>
       <p>The site is coming online. The data, the graph and the CLI are open source on GitHub today. Next: research on every model and every benchmark, every day, merged by a human; a graph of the benchmarks themselves; and an authoring guide for each model, so you know how to talk to it before you spend a token.</p>
     </div>
-    <div class="actions">
+    <div class="btns">
       <a class="btn primary" href="https://github.com/turbobeest/modelspec">Star on GitHub →</a>
       <a class="btn" href="https://github.com/turbobeest/modelspec#contribute">Contribute research</a>
     </div>

@@ -85,6 +85,31 @@ def _inject(src: Path, dest: Path, needle: str, html: str) -> None:
     dest.write_text(text, encoding="utf-8")
 
 
+_DIV = re.compile(r"<div\b|</div>")
+
+
+def _div_end(html: str, start: int) -> int:
+    """The index just past the </div> that closes the <div> opening at `start`."""
+    depth = 0
+    for tag in _DIV.finditer(html, start):
+        depth += 1 if tag.group() == "<div" else -1
+        if depth == 0:
+            return tag.end()
+    return -1
+
+
+def with_site_nav(html: str, nav: str, page: str) -> str:
+    """Fill a static page's nav from the one renderer every generated page uses.
+
+    Each landing and the wizard used to carry its own hand-written list, and the
+    four had drifted to four different sets of links. A page without the
+    placeholder fails the build rather than shipping with no nav.
+    """
+    if r.NAV_PLACEHOLDER not in html:
+        raise ValueError(f"{page} has no {r.NAV_PLACEHOLDER}; its nav must come from render.site_nav")
+    return html.replace(r.NAV_PLACEHOLDER, nav, 1)
+
+
 def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
@@ -97,49 +122,31 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     Its statistics were hand-written too, and had drifted. They are now injected
     from the build, so they cannot go stale again.
     """
-    nav_old = '<a href="https://github.com/turbobeest/modelspec">GitHub</a>'
-    nav_new = (
-        '<a href="/graph/">Graph</a>\n'
-        '      <a href="/downselect/">Downselect</a>\n'
-        '      <a href="/models/">Models</a>\n'
-        '      <a href="/providers/">Providers</a>\n'
-        '      <a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>\n'
-        '      <a href="https://github.com/turbobeest/modelspec">GitHub</a>'
-    )
-    if nav_old in html:
-        html = html.replace(nav_old, nav_new, 1)
-
     # A question with no way to answer it is a poster. Put the answer one click
     # away, immediately under the question the page asks.
     answer_anchor = ('<div class="a">That question, answered from evidence, '
                      'and kept current as the models change underneath you.</div>')
     if answer_anchor in html:
         html = html.replace(answer_anchor, answer_anchor + (
-            '\n      <div class="go" style="margin-top:22px;display:flex;gap:12px;flex-wrap:wrap">'
-            '<a href="/downselect/" style="background:#f5b342;color:#1a1200;padding:11px 20px;'
-            'border-radius:9px;font-weight:700;text-decoration:none">Answer it now &rarr;</a>'
-            '<a href="/graph/" style="border:1px solid #2a3140;padding:11px 20px;border-radius:9px;'
-            'text-decoration:none">Explore the graph</a>'
-            '<a href="/models/" style="border:1px solid #2a3140;padding:11px 20px;border-radius:9px;'
-            'text-decoration:none">Browse every model</a>'
+            '\n      <div class="btns go">'
+            '<a class="btn primary" href="/downselect/">Answer it now &rarr;</a>'
+            '<a class="btn" href="/graph/">Explore the graph</a>'
+            '<a class="btn" href="/models/">Browse every model</a>'
             "</div>"), 1)
 
     # Replace the hand-written statistics with the build's own counts.
     start = html.find('<div class="stats"')
-    if start != -1:
-        end = html.find("</div>", html.rfind("<div>", start, html.find("</section>", start)))
-        end = html.find("</div>", end + 6)
-        if end != -1:
-            live = (
-                f'<div class="stats" aria-label="What the graph holds today">'
-                f'<div><b>{stats["models"]:,}</b>model cards</div>'
-                f'<div><b>{stats["providers"]}</b>providers</div>'
-                f'<div><b>{stats["edges"]:,}</b>relationships</div>'
-                f'<div><b>{stats["benchmarks"]:,}</b>benchmarks</div>'
-                f'<div><b>{stats["fields"]}</b>fields per card</div>'
-                f"</div>"
-            )
-            html = html[:start] + live + html[end + 6:]
+    end = _div_end(html, start) if start != -1 else -1
+    if end != -1:
+        cells = [("model cards", f'{stats["models"]:,}'),
+                 ("providers", f'{stats["providers"]}'),
+                 ("relationships", f'{stats["edges"]:,}'),
+                 ("benchmarks", f'{stats["benchmarks"]:,}'),
+                 ("fields per card", f'{stats["fields"]}')]
+        live = ('<div class="stats" aria-label="What the graph holds today" '
+                f'style="grid-template-columns:repeat({len(cells)},minmax(0,1fr))">'
+                + "".join(r._stat_cell(label, value) for label, value in cells) + "</div>")
+        html = html[:start] + live + html[end:]
     if freshness:
         footer = html.find("<footer")
         if footer != -1:
@@ -147,13 +154,20 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     return html
 
 
-def _copy_fonts(root: Path, *dests: Path) -> None:
-    """Serve the self-hosted faces from every site that renders through the shell.
+def _ship_instrument(root: Path, *dests: Path) -> None:
+    """Serve the shared stylesheet and its self-hosted faces from every site.
+
+    The generated pages inline `render.CSS`; the hand-written pages (the two
+    landings and the wizard) link `/instrument.css`, which is the same string.
+    Their colours and fonts used to be copied in by hand and had drifted.
 
     Both sites share one stylesheet, so a face missing from either one silently
     falls back to the system sans on that domain only — the kind of difference
     nobody notices until the two sites are compared side by side.
     """
+    for dest in dests:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "instrument.css").write_text(r.CSS, encoding="utf-8")
     src = root / "site/fonts"
     if not src.is_dir():
         return
@@ -218,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
 
     ms = out / "modelspec"
     bg = out / "benchgraph"
-    _copy_fonts(root, ms, bg)
+    _ship_instrument(root, ms, bg)
     ms.mkdir(parents=True, exist_ok=True)
     bg.mkdir(parents=True, exist_ok=True)
 
@@ -292,6 +306,9 @@ def main(argv: list[str] | None = None) -> int:
     if wizard.is_file():
         _inject(wizard, ms / "downselect/index.html",
                 "<!-- catalogue-freshness -->", freshness)
+        page = ms / "downselect/index.html"
+        page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
+                                      "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
 
     explorer = root / "web3d/explorer.html"
@@ -347,6 +364,9 @@ def main(argv: list[str] | None = None) -> int:
             "benchmarks": len(benchmarks),
             "fields": _schema_field_count(ModelCard),
         }, freshness=freshness), encoding="utf-8")
+        landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
+                                         r.site_nav("ModelSpec", r.MS_NAV),
+                                         "site/holding/index.html"), encoding="utf-8")
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
@@ -355,7 +375,12 @@ def main(argv: list[str] | None = None) -> int:
             [("Every model", "/models/"), ("Providers", "/providers/"),
              ("Benchmark catalogue", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
-    if not _copy_static(root / "site/benchgraph", bg):
+    if _copy_static(root / "site/benchgraph", bg):
+        landing = bg / "index.html"
+        landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
+                                         r.site_nav("benchgraph", r.BG_NAV),
+                                         "site/benchgraph/index.html"), encoding="utf-8")
+    else:
         (bg / "index.html").write_text(_fallback_home(
             "benchgraph", "benchgraph",
             f"Every AI benchmark, as a graph you can read. {len(benchmarks)} pages, "

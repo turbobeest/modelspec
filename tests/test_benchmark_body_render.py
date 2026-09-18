@@ -62,8 +62,9 @@ def test_notes_render() -> None:
                   "dataset": {"size_note": "500 tasks"},
                   "saturation": {"note": "Top models near ceiling."},
                   "contamination": {"note": "Held-out answers."}})
-    assert "<th>Baseline note</th><td>No &lt;baseline&gt;.</td>" in html
-    assert "<th>Dataset size note</th><td>500 tasks</td>" in html
+    assert ('<span class="lab">Baseline note</span><div class="val long">No &lt;baseline&gt;.</div>'
+            in html)
+    assert '<span class="lab">Dataset size note</span><div class="val">500 tasks</div>' in html
     assert "Top models near ceiling." in html and "Held-out answers." in html
 
 
@@ -71,7 +72,7 @@ def test_empty_body_and_notes_render_nothing() -> None:
     html = _html({"metric": {"name": "x", "baseline_note": "  "}, "dataset": {"size_note": ""},
                   "saturation": {"note": ""}}, "\n\n   \n")
     assert 'class="prose"' not in html
-    assert "note</th>" not in html
+    assert "note</span>" not in html
     assert "<h2></h2>" not in html and "<h3></h3>" not in html
     assert render_markdown_body("") == "" and render_markdown_body("#\n\n") == ""
 
@@ -80,7 +81,7 @@ def test_page_without_body_matches_previous_output_shape() -> None:
     html = _html({"measures": "Things.", "metric": {"name": "acc", "unit": "%"}})
     assert 'class="prose"' not in html
     assert "<h2>What it measures</h2><p>Things.</p>" in html
-    assert "<th>Metric</th><td>acc</td>" in html
+    assert '<span class="lab">Metric</span><div class="val">acc</div>' in html
 
 
 def _real(bench_id: str) -> str:

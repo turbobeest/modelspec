@@ -52,12 +52,15 @@ CSS = FONT_FACES + """
 :root{--ground:#07080a;--surface:#0d1014;--raise:#13171d;--line:#1a1f26;--rule:#13171d;
 --ink:#e6eaf0;--body:#c3cad4;--mute:#9aa4b2;--dim:#767f8d;
 --good:#4ade80;--warn:#f5b342;--bad:#f87171;--off:#767f8d;--alias:#a78bfa;
---accent:#f5b342;--gutter:46px}
+--accent:#f5b342;--gutter:46px;
+--seg-bench:#63c9d9;--seg-cap:#78b5a2;--seg-type:#f5b342;--seg-ctx:#8fa4d4;--seg-cost:#9aa5b6;
+--sans:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 [data-site="benchgraph"]{--accent:#38bdf8}
 *{box-sizing:border-box}
 html{color-scheme:dark}
 body{margin:0;background:var(--ground);color:var(--ink);
-font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+font-family:var(--mono);
 font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
 a:hover{border-bottom-color:var(--accent)}
@@ -65,47 +68,48 @@ a:hover{border-bottom-color:var(--accent)}
 .wrap{max-width:1220px;margin:0 auto;padding:0 24px}
 nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;
 border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap;gap:12px}
-nav .brand{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:16px;
+nav .brand{font-family:var(--sans);font-weight:700;font-size:16px;
 letter-spacing:-.02em;color:var(--ink);border-bottom:0}
 nav .brand:hover{color:var(--accent)}
 nav .links{display:flex;gap:20px;font-size:12px;letter-spacing:.06em;flex-wrap:wrap}
 nav .links a{color:var(--dim);border-bottom:0;text-transform:uppercase}
 nav .links a:hover{color:var(--accent)}
-.sans,.card,.prose{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
-h1{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+.sans,.card,.prose{font-family:var(--sans)}
+h1{font-family:var(--sans);font-weight:700;
 font-size:46px;line-height:1.05;letter-spacing:-.035em;margin:0 0 12px;overflow-wrap:break-word}
-h2{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:500;
+:where(.page) h2{font-family:var(--sans);font-weight:500;
 font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--mute);
 border-bottom:1px solid var(--line);padding-bottom:8px;margin:38px 0 14px;
 position:relative;counter-increment:sec}
-h2::before{content:counter(sec,decimal-leading-zero);position:absolute;
+:where(.page) h2::before{content:counter(sec,decimal-leading-zero);position:absolute;
 left:calc(-1 * var(--gutter));top:2px;width:var(--gutter);
-font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 color:var(--dim);text-transform:uppercase}
-h3{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+h3{font-family:var(--sans);font-weight:700;
 font-size:16px;letter-spacing:-.01em;margin:22px 0 6px}
-p{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
-line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px}
-li{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
-line-height:1.65;color:var(--body)}
+p{font-family:var(--sans);font-size:16px;
+line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px;
+overflow-wrap:break-word}
+li{font-family:var(--sans);font-size:16px;
+line-height:1.65;color:var(--body);overflow-wrap:break-word}
 .page{counter-reset:sec;padding-left:var(--gutter)}
-.lab{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+.lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 color:var(--dim);text-transform:uppercase}
 .lede{color:var(--body);font-size:16px}
-.meta{color:var(--dim);font-size:12px;font-family:"JetBrains Mono",ui-monospace,monospace;
+.meta{color:var(--dim);font-size:12px;font-family:var(--mono);
 max-width:none}
-code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+code,.mono{font-family:var(--mono);font-size:13px}
+pre{margin:0 0 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);
+line-height:1.6;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13px}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;
 overflow-wrap:break-word}
-th{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:400;font-size:10px;
+th{font-family:var(--mono);font-weight:400;font-size:10px;
 letter-spacing:.14em;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--line)}
-td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace}
+td.num{text-align:right;font-family:var(--mono)}
 td.grouphead{background:var(--surface);border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.panel{background:var(--surface);border:1px solid var(--line);padding:14px 16px;margin:14px 0}
-.panel table{margin:0}
-.pill{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;
 letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--line);
 color:var(--mute);margin-right:6px}
 .pill::before{margin-right:6px}
@@ -122,25 +126,25 @@ color:var(--mute);margin-right:6px}
 .card a{border-bottom:0;font-weight:700;font-size:16px;color:var(--ink)}
 .card a:hover{color:var(--accent)}
 .card .sub{color:var(--dim);font-size:12px;margin-top:3px;
-font-family:"JetBrains Mono",ui-monospace,monospace}
+font-family:var(--mono)}
 ul.cols{columns:3;column-gap:26px;padding-left:18px}
 ul.cols li{font-size:14px}
 footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line)}
-footer p{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--dim);
+footer p{font-family:var(--mono);font-size:12px;color:var(--dim);
 max-width:none;margin:0 0 6px}
 .notice{border-left:3px solid var(--warn);padding:11px 15px;background:var(--surface);
 margin:14px 0;font-size:15px;color:var(--body);max-width:68ch;
-font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
+font-family:var(--sans)}
 .notice.ok{border-left-color:var(--good)}
 .notice.derived{border-left-color:var(--warn)}
-.notice.derived::before{content:"Derived";font-family:"JetBrains Mono",ui-monospace,monospace;
+.notice.derived::before{content:"Derived";font-family:var(--mono);
 font-size:10px;letter-spacing:.14em;color:var(--warn);text-transform:uppercase;margin-right:12px}
 .stats{display:grid;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
 margin:22px 0 30px}
 .stats .cell{padding:16px 18px;min-width:0}
 .stats .cell+.cell{border-left:1px solid var(--line)}
 .stats .lab{display:block;margin-bottom:7px}
-.stats .val{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+.stats .val{font-family:var(--sans);
 font-size:20px;font-weight:700;letter-spacing:-.03em;overflow-wrap:break-word}
 .stats .val.long{font-size:16px;font-weight:500}
 .basis-verified{color:var(--good)}
@@ -154,25 +158,25 @@ padding:18px 0;margin:0 0 24px}
 .chain-col+.chain-col{border-left:1px solid var(--line)}
 .chain-col.self{justify-content:center}
 .chain-card{border:1px solid var(--line);padding:10px 13px;font-size:15px;
-font-family:"Archivo",ui-sans-serif,system-ui,sans-serif}
+font-family:var(--sans)}
 .chain-card.self{border-color:var(--accent)}
 .chain-card a{border-bottom:0;color:var(--ink);
-font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px}
+font-family:var(--sans);font-size:15px}
 .chain-card a:hover{color:var(--accent)}
 .chain-card .lab{display:block;margin-top:4px;color:var(--accent)}
 .chain-card.self .lab{color:var(--dim)}
-.chain-name{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px;font-weight:700}
+.chain-name{font-family:var(--sans);font-size:15px;font-weight:700}
 .bar{display:flex;align-items:center;gap:10px}
 .bar .track{flex:0 0 150px;width:150px;height:8px;background:var(--raise)}
 .bar .fill{display:block;height:8px;background:var(--accent)}
 .bar .val{flex:0 0 auto;min-width:52px;text-align:right;
-font-family:"JetBrains Mono",ui-monospace,monospace}
+font-family:var(--mono)}
 .bar.flex .track{flex:1 1 auto;width:auto}
 .hw{display:flex;flex-direction:column}
 .hw>.scroll{order:-1}
 .showall{margin-top:12px}
 .showall summary{display:inline-block;cursor:pointer;list-style:none;
-font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.1em;
+font-family:var(--mono);font-size:11px;letter-spacing:.1em;
 text-transform:uppercase;color:var(--accent);border:1px solid var(--line);padding:7px 14px}
 .showall summary::-webkit-details-marker{display:none}
 .showall summary:hover{border-color:var(--accent)}
@@ -182,19 +186,37 @@ text-transform:uppercase;color:var(--accent);border:1px solid var(--line);paddin
 .showall+.scroll tr.more{display:none}
 .showall[open]+.scroll tr.more{display:table-row}
 .gaps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
-.gap{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+.gap{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 text-transform:uppercase;border:1px dashed var(--line);color:var(--mute);padding:4px 11px}
 .complete{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:68ch}
 .complete .track{flex:1 1 auto;height:6px;background:var(--raise)}
 .complete .fill{display:block;height:6px;background:var(--accent)}
+.stats.facts{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));border-bottom:0;overflow:hidden}
+.stats.facts .cell{border-bottom:1px solid var(--line);border-left:1px solid var(--line);margin-left:-1px}
+.notes{border-top:1px solid var(--line);margin:0 0 18px}
+.note{border-bottom:1px solid var(--line)}
+.note summary{display:flex;gap:12px;align-items:baseline;padding:11px 0;cursor:pointer;list-style:none}
+.note summary::-webkit-details-marker{display:none}
+.note summary::before{content:"+";width:1ch;font-family:var(--mono);color:var(--accent)}
+.note[open] summary::before{content:"−"}
+.note summary .lab{color:var(--mute)}
+.note summary:hover .lab{color:var(--accent)}
+.note p{padding-left:calc(1ch + 12px);margin:0 0 14px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:1px solid var(--line);
+font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--ground);font-weight:700}
+.btn.primary:hover{color:var(--ground);filter:brightness(1.1)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
 @media(max-width:800px){
 .page{padding-left:0}
-h2::before{position:static;display:block;width:auto;margin-bottom:6px}
+:where(.page) h2::before{position:static;display:block;width:auto;margin-bottom:6px}
 h1{font-size:30px}
 ul.cols{columns:1}
 .grid{grid-template-columns:1fr}
 .stats{grid-template-columns:1fr!important}
 .stats .cell+.cell{border-left:0;border-top:1px solid var(--line)}
+.stats.facts .cell+.cell{border-top:0}
 .chain{flex-direction:column;gap:16px}
 .chain-col+.chain-col{border-left:0;border-top:1px solid var(--line);padding-top:16px}
 .bar .track{flex:0 0 90px;width:90px}
@@ -244,9 +266,18 @@ def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
+#: Where a static page (a landing, the wizard) takes the site's nav. The build
+#: fills it from `site_nav`, so no page can carry a nav list of its own.
+NAV_PLACEHOLDER = "<!-- site-nav -->"
+
+
+def site_nav(site: str, nav_links: Iterable[tuple[str, str]]) -> str:
+    links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
+    return f'<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>'
+
+
 def shell(*, title: str, description: str, canonical: str, body: str, build: Build,
           site: str, nav_links: Iterable[tuple[str, str]], robots: str = "index, follow") -> str:
-    links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
     return f"""<!doctype html>
 <html lang="en" data-site="{esc(site.lower())}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -263,7 +294,7 @@ def shell(*, title: str, description: str, canonical: str, body: str, build: Bui
 {FONTS}
 <style>{CSS}</style></head>
 <body><div class="wrap">
-<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>
+{site_nav(site, nav_links)}
 <main class="page">
 {body}
 </main>
@@ -809,13 +840,15 @@ def stat_strip(model: Model) -> str:
                 if value not in (None, "", [])]
     if not rendered:
         return ""
-    body = "".join(
-        f'<div class="cell"><span class="lab">{esc(label)}</span>'
-        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
-        f"{esc(value)}</div></div>"
-        for label, value, extra in rendered)
+    body = "".join(_stat_cell(label, value, extra) for label, value, extra in rendered)
     return (f'<div class="stats" style="grid-template-columns:repeat({len(rendered)},'
             f'minmax(0,1fr))">{body}</div>')
+
+
+def _stat_cell(label: str, value: str, extra: str = "") -> str:
+    return (f'<div class="cell"><span class="lab">{esc(label)}</span>'
+            f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
+            f"{esc(value)}</div></div>")
 
 
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
@@ -1198,6 +1231,49 @@ def benchmark_links_section(front: dict[str, Any]) -> str:
                           lede="Where each fact on this page came from, and when it was read.")
 
 
+#: Past this many characters a benchmark fact is a paragraph. In a stat cell it
+#: would push the prose that explains the benchmark below the fold, so it goes
+#: behind its own disclosure instead.
+FACT_SHORT_MAX = 64
+
+
+def benchmark_facts(front: dict[str, Any]) -> list[tuple[str, str]]:
+    """The page's front-matter facts, labelled, with blanks dropped."""
+    facts = [("Category", front.get("category")), ("Subcategory", front.get("subcategory")),
+             ("Page status", front.get("status"))]
+    metric = front.get("metric")
+    if isinstance(metric, dict):
+        facts += [("Metric", metric.get("name")), ("Direction", metric.get("direction")),
+                  ("Unit", metric.get("unit")), ("Baseline note", metric.get("baseline_note"))]
+    dataset = front.get("dataset")
+    if isinstance(dataset, dict):
+        facts += [("Dataset size", dataset.get("size")), ("Dataset size note", dataset.get("size_note")),
+                  ("Dataset licence", dataset.get("license"))]
+    for key, label in (("saturation", "Saturation note"), ("contamination", "Contamination note")):
+        block = front.get(key)
+        if isinstance(block, dict):
+            facts.append((label, block.get("note")))
+    publisher = front.get("publisher")
+    if isinstance(publisher, dict):
+        facts.append(("Publisher", publisher.get("org")))
+    return [(label, str(value).strip()) for label, value in facts
+            if value is not None and str(value).strip() not in ("", "[]")]
+
+
+def fact_strip(facts: list[tuple[str, str]]) -> str:
+    cells = "".join(_stat_cell(label, value) for label, value in facts
+                    if len(value) <= FACT_SHORT_MAX)
+    return f'<div class="stats facts">{cells}</div>' if cells else ""
+
+
+def fact_notes(facts: list[tuple[str, str]]) -> str:
+    notes = "".join(
+        f'<details class="note"><summary><span class="lab">{esc(label)}</span></summary>'
+        f"<p>{esc(value)}</p></details>"
+        for label, value in facts if len(value) > FACT_SHORT_MAX)
+    return _section("Notes", f'<div class="notes">{notes}</div>' if notes else "")
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -1248,25 +1324,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             f'<th>Card as of</th></tr></thead><tbody>{rows}</tbody></table></div>{more}')
 
     front = bench.front
-    facts = [("Category", front.get("category")), ("Subcategory", front.get("subcategory")),
-             ("Page status", front.get("status"))]
-    metric = front.get("metric")
-    if isinstance(metric, dict):
-        facts += [("Metric", metric.get("name")), ("Direction", metric.get("direction")),
-                  ("Unit", metric.get("unit")), ("Baseline note", metric.get("baseline_note"))]
-    dataset = front.get("dataset")
-    if isinstance(dataset, dict):
-        facts += [("Dataset size", dataset.get("size")), ("Dataset size note", dataset.get("size_note")),
-                  ("Dataset licence", dataset.get("license"))]
-    for key, label in (("saturation", "Saturation note"), ("contamination", "Contamination note")):
-        block = front.get(key)
-        if isinstance(block, dict):
-            facts.append((label, block.get("note")))
-    publisher = front.get("publisher")
-    if isinstance(publisher, dict):
-        facts.append(("Publisher", publisher.get("org")))
-    fact_rows = "".join(f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>"
-                        for k, v in facts if v is not None and str(v).strip() not in ("", "[]"))
+    facts = benchmark_facts(front)
 
     measures = str(front.get("measures") or "").strip()
     task = str(front.get("task_format") or "").strip()
@@ -1286,10 +1344,11 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 {aliases}
 <p><span class="pill {esc(status)}">{esc(status)}</span></p>
 <div class="{notice_class}">{esc(blurb)}{reasons}{alias_note}</div>
-<div class="panel"><table>{fact_rows}</table></div>
+{fact_strip(facts)}
 {f'<h2>What it measures</h2><p>{esc(measures)}</p>' if measures else ''}
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {f'<div class="prose">{prose}</div>' if prose else ''}
+{fact_notes(facts)}
 {verified}
 {benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>

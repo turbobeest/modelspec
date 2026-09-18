@@ -239,12 +239,15 @@ def test_the_landing_page_links_to_the_site() -> None:
     so its only links were to GitHub. A visitor saw the same holding page as
     before and reasonably concluded nothing had shipped.
     """
-    from pipeline.build import wire_landing
+    from pipeline import render
+    from pipeline.build import REPO_ROOT, wire_landing, with_site_nav
 
-    html = wire_landing(
-        '<nav><a href="https://github.com/turbobeest/modelspec">GitHub</a></nav>',
-        {"models": 1, "providers": 1, "edges": 1, "benchmarks": 1, "fields": 1},
-    )
+    # The build's own path: the real landing, wired, then given the site nav.
+    source = (REPO_ROOT / "site/holding/index.html").read_text(encoding="utf-8")
+    html = with_site_nav(
+        wire_landing(source, {"models": 1, "providers": 1, "edges": 1,
+                              "benchmarks": 1, "fields": 1}),
+        render.site_nav("ModelSpec", render.MS_NAV), "site/holding/index.html")
     for route in ("/graph/", "/downselect/", "/models/", "/providers/"):
         assert f'href="{route}"' in html, f"the front door does not link to {route}"
 
