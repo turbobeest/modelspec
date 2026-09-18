@@ -4,6 +4,12 @@
 supplied environment, use case and constraints, computed per request from the
 current published export.
 
+This file is the design record: why the endpoint exists, how it is bundled and
+deployed, and what it deliberately does not do. **Callers want
+[`api.md`](api.md)** — the agent-facing reference — and
+[`../api/worker/openapi.yaml`](../api/worker/openapi.yaml), which is generated
+from this implementation by `api/worker/openapi.py` (MODEL-72).
+
 This is the first piece of the enrichment layer: the origin that later carries
 keys, limits and billing (MODEL-69, MODEL-73, MODEL-75). None of that is here.
 Today it serves exactly the data the public export already has.
