@@ -158,6 +158,16 @@ shipped without a bump; that is the case the rule exists to prevent.
 
 ### Policy fields, and the one major bump they cost (MODEL-77)
 
+### Graph Model property removed without a bump (MODEL-74)
+
+Model nodes in `/api/graph/nodes.json` and the graph views no longer carry
+`card_completeness` (renamed `applicable_field_coverage`, now an internal
+`ModelCard` statistic only). `build.export_schema_version` stays **2.0**:
+Jamie decided 2026-09-18 that this removal does not bump the export major.
+The CLI snapshot files (`index`, `candidates`, `profiles`, `hardware`) never
+carried the key, and the CLI does not read the graph views, so a bump would
+have made every 2.x CLI refuse new snapshots with no consumer to protect.
+
 `build.export_schema_version` is **2.0**. `/api/models/<id>.json` publishes a
 card's frontmatter verbatim, so reshaping the policy fields reshapes that tree.
 Two widenings ship as one bump because they are one decision:

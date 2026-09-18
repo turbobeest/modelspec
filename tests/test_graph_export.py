@@ -336,3 +336,13 @@ def test_both_sinks_agree_on_a_classed_hardware_node() -> None:
 def test_the_device_class_index_exists() -> None:
     """Filtering the whole corpus by class without an index is a full scan."""
     assert "CREATE INDEX ON :Hardware(device_class)" in INDEXES
+
+
+def test_published_model_nodes_do_not_carry_coverage() -> None:
+    """applicable_field_coverage is an internal ModelCard statistic (MODEL-74)."""
+    sink = _sink()
+    for (label, _nid), props in sink.nodes.items():
+        if label != "Model":
+            continue
+        assert "applicable_field_coverage" not in props
+        assert "card_completeness" not in props

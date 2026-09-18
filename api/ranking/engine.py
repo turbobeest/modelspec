@@ -1247,7 +1247,6 @@ class ModelData:
     cost_input: float | None = None
     cost_output: float | None = None
     arena_elo_overall: float | None = None
-    card_completeness: float | None = None
     release_date: str | None = None
     reasoning: bool = False
     tool_call: bool = False
@@ -1423,7 +1422,6 @@ class RankingEngine:
                 cost_input=_safe_float(props.get("cost_input")),
                 cost_output=_safe_float(props.get("cost_output")),
                 arena_elo_overall=_safe_float(props.get("arena_elo_overall")),
-                card_completeness=_safe_float(props.get("card_completeness")),
                 release_date=props.get("release_date"),
                 reasoning=bool(props.get("reasoning")),
                 tool_call=bool(props.get("tool_call")),
