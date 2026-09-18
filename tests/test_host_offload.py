@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -175,49 +174,46 @@ def _fixture(directory: Path, with_hosts: bool = True) -> None:
     path.write_text(json.dumps(payload))
 
 
-def _invoke(cache: Path, args: list[str]):
-    os.environ["MODELSPEC_CACHE"] = str(cache)
-    try:
-        return CliRunner().invoke(offline.app, args)
-    finally:
-        os.environ.pop("MODELSPEC_CACHE", None)
+def _invoke(cache: Path, args: list[str], monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    return CliRunner().invoke(offline.app, args)
 
 
-def test_fit_without_host_is_byte_identical(tmp_path):
+def test_fit_without_host_is_byte_identical(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    human = _invoke(tmp_path, ["fit", "gpu"])
+    human = _invoke(tmp_path, ["fit", "gpu"], monkeypatch)
     assert human.exit_code == 0 and human.stdout == GOLDEN_HUMAN
-    raw = _invoke(tmp_path, ["fit", "gpu", "--json"])
+    raw = _invoke(tmp_path, ["fit", "gpu", "--json"], monkeypatch)
     data = json.loads(raw.stdout)
     data["freshness"] = {}
     assert json.dumps(data) == GOLDEN_JSON
 
 
-def test_include_offload_requires_host(tmp_path):
+def test_include_offload_requires_host(tmp_path, monkeypatch):
     _fixture(tmp_path)
     for args in (["fit", "gpu", "--include-offload"], ["fit", "gpu", "--host-ram", "64"]):
-        r = _invoke(tmp_path, args)
+        r = _invoke(tmp_path, args, monkeypatch)
         assert r.exit_code == offline.EXIT_ERROR
         assert "requires --host" in r.stderr
 
 
-def test_unknown_host_is_an_error(tmp_path):
+def test_unknown_host_is_an_error(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    r = _invoke(tmp_path, ["fit", "gpu", "--host", "nope", "--json"])
+    r = _invoke(tmp_path, ["fit", "gpu", "--host", "nope", "--json"], monkeypatch)
     assert r.exit_code == offline.EXIT_ERROR
     assert "unknown host" in json.loads(r.stderr)["error"]["message"]
 
 
-def test_snapshot_without_hosts_is_an_error(tmp_path):
+def test_snapshot_without_hosts_is_an_error(tmp_path, monkeypatch):
     _fixture(tmp_path, with_hosts=False)
-    r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5"])
+    r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5"], monkeypatch)
     assert r.exit_code == offline.EXIT_ERROR and "no host profiles" in r.stderr
 
 
-def test_offload_tier_follows_accelerator_rows(tmp_path):
+def test_offload_tier_follows_accelerator_rows(tmp_path, monkeypatch):
     _fixture(tmp_path)
     r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5",
-                           "--include-offload", "--json"])
+                           "--include-offload", "--json"], monkeypatch)
     assert r.exit_code == 0, r.stderr
     rows = json.loads(r.stdout)["result"]
     states = [x["fit_state"] for x in rows]
@@ -229,27 +225,27 @@ def test_offload_tier_follows_accelerator_rows(tmp_path):
     assert 0 < rows[2]["offload_fraction"] < 1
     assert rows[3]["predicted_decode_tps"] is None  # non-token
     human = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5",
-                               "--include-offload"]).stdout
+                               "--include-offload"], monkeypatch).stdout
     assert human.index("Vision Encoder") < human.index("offload tier") < human.index("Big Chat")
 
 
-def test_host_without_include_offload_adds_fields_only(tmp_path):
+def test_host_without_include_offload_adds_fields_only(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5", "--json"])
+    r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5", "--json"], monkeypatch)
     rows = json.loads(r.stdout)["result"]
     assert [x["fit_state"] for x in rows] == ["accelerator", "accelerator"]
     assert rows[0]["offload_fraction"] == 0.0
 
 
-def test_unified_host_shows_no_offload_tier(tmp_path):
+def test_unified_host_shows_no_offload_tier(tmp_path, monkeypatch):
     _fixture(tmp_path)
     r = _invoke(tmp_path, ["fit", "gpu", "--host", "apple_mac_studio_m5_max",
-                           "--include-offload", "--json"])
+                           "--include-offload", "--json"], monkeypatch)
     assert {x["fit_state"] for x in json.loads(r.stdout)["result"]} == {"accelerator"}
 
 
-def test_host_ram_can_remove_the_offload_tier(tmp_path):
+def test_host_ram_can_remove_the_offload_tier(tmp_path, monkeypatch):
     _fixture(tmp_path)
     r = _invoke(tmp_path, ["fit", "gpu", "--host", "amd_ryzen_9_9950x_am5",
-                           "--include-offload", "--host-ram", "8", "--json"])
+                           "--include-offload", "--host-ram", "8", "--json"], monkeypatch)
     assert "offload" not in {x["fit_state"] for x in json.loads(r.stdout)["result"]}

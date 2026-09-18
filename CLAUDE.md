@@ -121,6 +121,8 @@ git -C /Users/terbeest/dev/modelspec worktree add -b <branch> \
 cd /Users/terbeest/dev/worktrees/<name>
 
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q
+# CI and the fast local path (pytest-xdist). Serial still works.
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n auto --dist loadfile
 ```
 
 Required checks on `main`: **Run pytest** and **Build both sites**.

@@ -60,6 +60,7 @@ jobs:
             "rich==15.0.0" \
             "typer==0.27.2" \
             "pytest==9.1.1" \
+            "pytest-xdist==3.8.0" \
             -e .
 
       - name: Vendor the scorer into the Worker bundle

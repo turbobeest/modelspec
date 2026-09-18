@@ -37,6 +37,8 @@ are the contract. Read the file; do not reconstruct it from memory.
 Never check out a branch in another session's tree. Create a new worktree from
 `origin/main`. CodeGraph indexes **this checkout only** — initialise and refresh
 it here. Instructions: [`docs/handoff/worktrees.md`](docs/handoff/worktrees.md).
+Tests: `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q`
+or `-n auto --dist loadfile` (what the "Run pytest" check uses).
 
 ## Do not start
 

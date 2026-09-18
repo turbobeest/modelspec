@@ -35,7 +35,7 @@ def _on_block(workflow_text: str) -> str:
 def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
 
-    assert "run: python -m pytest -q" in workflow
+    assert "run: python -m pytest -q -n auto --dist loadfile" in workflow
     assert "continue-on-error" not in workflow
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow

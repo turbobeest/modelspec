@@ -58,7 +58,8 @@ jobs:
             "pydantic==2.13.5" \
             "PyYAML==6.0.3" \
             "FalkorDB==1.7.1" \
-            "pytest==9.1.1"
+            "pytest==9.1.1" \
+            "pytest-xdist==3.8.0"
 
       - name: Ingest, round-trip and query tests
         run: python -m pytest -q tests/test_benchgraph_graph.py
