@@ -396,12 +396,16 @@ def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
     assert "Workers observability is enabled" in FLAT_PRIVACY
 
 
-def test_the_privacy_statement_discloses_the_one_third_party_request() -> None:
-    """Generated pages no longer load Google Fonts (MODEL-92). explorer.html
-    still does until PR #115, and the privacy draft still discloses that."""
+def test_the_privacy_statement_says_pages_load_nothing_third_party() -> None:
+    """No page on either site loads a font from a CDN any more (MODEL-92, with
+    explorer.html switched in MODEL-24's PR #115), so the draft must not disclose
+    a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
+    proves the premise against the source tree and a built site."""
     from pipeline import render as r
     assert "fonts.googleapis.com" not in r.FONTS
-    assert "fonts.googleapis.com" in FLAT_PRIVACY
+    assert "fonts.googleapis.com" not in FLAT_PRIVACY
+    assert "Google Fonts" not in FLAT_PRIVACY
+    assert "pages load nothing from a third party" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> None:

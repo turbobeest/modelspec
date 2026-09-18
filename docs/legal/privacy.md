@@ -140,11 +140,9 @@ you. Cloudflare processes it under its own terms as our infrastructure provider.
 - The downselect wizard ranks **in your browser**, from the same public JSON
   anyone can fetch. The choices you make in it are not sent anywhere and are not
   saved (`web3d/downselect.v2.html`).
-- **One third-party request:** page styling loads web fonts from Google Fonts
-  (`fonts.googleapis.com`, `fonts.gstatic.com`), so your browser's IP address
-  and user-agent reach Google when a page loads, as with any site that uses
-  them. Nothing else on the page is third-party; the graph explorer's libraries
-  are served from our own origin rather than a CDN.
+- **No third-party requests:** pages load nothing from a third party. Web fonts
+  and the graph explorer's libraries are served from our own origin rather than
+  a CDN.
 
 ## Inference, and why there is nothing to say about it
 
