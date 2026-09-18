@@ -218,16 +218,38 @@ def test_the_privacy_statement_marks_keys_as_not_wired() -> None:
     )
 
 
-def test_the_privacy_statement_claims_no_store_and_the_worker_binds_none() -> None:
-    """'The rank endpoint keeps no store' is only true while nothing is bound."""
-    config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
-    for binding in ("kv_namespaces", "d1_databases", "r2_buckets", "queues",
+def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
+    """The statement promises nothing of a request is written. Keep that true.
+
+    The Worker may bind the DETERMINATIONS KV namespace — that holds our own
+    research, is read-only from the Worker, and is disclosed. Any OTHER store,
+    or any write to this one, makes the statement false.
+    """
+    worker = REPO_ROOT / "api" / "worker"
+    config = (worker / "wrangler.jsonc").read_text(encoding="utf-8")
+    for binding in ("d1_databases", "r2_buckets", "queues",
                     "durable_objects", "hyperdrive", "analytics_engine_datasets"):
         assert binding not in config, (
-            f"the Worker now binds {binding}; the privacy statement says the rank "
-            "endpoint has nowhere to write a request, and that has stopped being true"
+            f"the Worker now binds {binding}; the privacy statement says nothing "
+            "from a request is written anywhere, and that has stopped being true"
         )
-    assert "no database, no key-value store" in FLAT_PRIVACY
+    if "kv_namespaces" in config:
+        assert '"binding": "DETERMINATIONS"' in config, (
+            "a KV namespace other than DETERMINATIONS is bound; the privacy "
+            "statement describes exactly one store and says what is in it"
+        )
+        assert "DETERMINATIONS" in FLAT_PRIVACY, (
+            "the Worker binds a store the privacy statement does not disclose"
+        )
+        for src in sorted((worker / "src").glob("*.py")):
+            if src.name.startswith("access"):
+                continue  # MODEL-69's own store, covered by its own tests
+            body = src.read_text(encoding="utf-8")
+            assert ".put(" not in body and ".delete(" not in body, (
+                f"{src.name} writes to KV; the privacy statement says the Worker "
+                "only ever reads from DETERMINATIONS"
+            )
+    assert "only ever reads from it" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
