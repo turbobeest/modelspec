@@ -131,6 +131,15 @@ Every response — success or failure — carries `build.commit` and
   "policy":  { "min_benchmark_coverage": 0.5, "min_benchmark_count": 2, … },
   "ranking_status": "partial",
   "ranked_count": 126, "unranked_count": 1213, "candidates_considered": 1339,
+  "authoring_guide": {
+    "state": "current",
+    "model_id": "openai/gpt-5-6",
+    "why": null,
+    "guide": { "applies_to": {…}, "as_of": "2026-09-15", "status": "current",
+               "sections": { "prompt_shape": [ { "text": "…",
+                 "sources": [ { "url": "https://…", "accessed": "2026-09-15",
+                                "kind": "provider-guidance" } ] } ] } }
+  },
   "result": [ { "model_id": …, "score": …, "cost_input": …, "evidence_basis": "mixed", … } ]
 }
 ```
@@ -140,6 +149,47 @@ Every response — success or failure — carries `build.commit` and
 `partial-verified` or `verified`. It describes the provenance of the benchmark
 inputs. It is **not** a quality verdict on the composite, and `verified` is not a
 certificate.
+
+`authoring_guide` is the **recommended** model's card guide (`result[0]`),
+always present on a 200 and a 422. It is not on each row, so the CLI
+byte-identity of `result` holds. The Worker copies what
+`/api/rank/candidates.json`.`authoring_guides` already holds — MODEL-8's dated,
+sourced claims — and does not generate text at request time.
+
+| `state` | meaning |
+|---|---|
+| `current` | the card's guide, `status: current` |
+| `stale` | the card's guide, `status: stale` (MODEL-65: pinned `identity.version` moved). Served as stale, never rewritten to current |
+| `absent` | no guide to serve. `guide` is `null`, never `""` |
+
+`why` is set only when `state` is `absent`: `no_guide` (the recommended card
+has none) or `no_recommendation` (the shortlist is empty, including `limit: 0`
+and a 422). `guide` is the card payload, including `applies_to`, `as_of`,
+`status`, and every claim's `sources` (`url`, `accessed`, `kind`). An older
+export with no `authoring_guides` map degrades to `absent` / `no_guide`.
+
+**Payload** (measured 2026-09-18, 1,339 candidates, 6 guides, all `current`,
+0 stale). `candidates.json` is 2,289,044 bytes without the map and 2,318,171
+with it (+29,127, 1.3%). A `POST /v1/rank` `coding` `limit: 1` body is 3,183
+bytes without `authoring_guide` and 3,294 with the absent state (+111). The
+largest card guide is 7,788 bytes (`anthropic/claude-fable-5-1`). Included by
+default: an opt-in would make the field absences that MODEL-59 treats as a
+major bump, and the bytes do not justify it. Re-measure if the guide count
+grows by an order of magnitude. None of the six guided cards is currently
+rankable under any profile — today's #1 is `absent` / `no_guide` until those
+cards have enough benchmark evidence. That is the catalogue, not a serving bug.
+
+**Tier.** Public card data, same as the rest of `/v1/rank`. Free. Not a
+MODEL-80 determination; nothing is read from Workers KV.
+
+**MODEL-59.** `schema_version` stays `"1.0"`. `authoring_guide` is a new
+always-present envelope field (absent is a *state*, not an omitted key).
+`result` rows are unchanged. That is additive under the rule in
+[`cli-contract.md`](cli-contract.md), not a range widening. A major bump here
+would also bump policy-check: the two endpoints share one OpenAPI
+`info.version`. `build.export_schema_version` stays `"2.0"`: the new
+`authoring_guides` map on `candidates.json` is an optional object, not a
+widened field.
 
 `policy` comes from `api.ranking.engine.ranking_policy()`. The floors —
 `MIN_BENCHMARK_COVERAGE = 0.50`, `MIN_BENCHMARK_COUNT = 2` — are not written

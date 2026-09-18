@@ -24,7 +24,8 @@ from api.ranking.engine import (  # noqa: E402
 )
 from pipeline import hardware  # noqa: E402
 from pipeline.ranking import (  # noqa: E402
-    FEATURED_PROFILES, Candidate, build_candidates, rank, rank_report, score,
+    FEATURED_PROFILES, Candidate, authoring_guides_from_cards, build_candidates,
+    rank, rank_report, score, write_export,
 )
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import derive_graph  # noqa: E402
@@ -446,3 +447,47 @@ def test_every_repackaged_card_points_at_a_catalogue_card() -> None:
     dangling = {c.identity.model_id: rehost_of(c) for c in cards
                 if rehost_of(c) and rehost_of(c) not in ids}
     assert not dangling
+
+
+def test_write_export_puts_card_guides_on_candidates_json(tmp_path: Path) -> None:
+    """MODEL-81: the Worker reads guides from candidates.json, not by generating them."""
+    import json
+    import yaml
+    from schema.graph import CollectingSink
+
+    source = {
+        "url": "https://docs.acme.example/prompting",
+        "title": "Prompting",
+        "accessed": "2026-09-15",
+        "kind": "provider-guidance",
+    }
+    guided = {
+        "model_id": "acme/widget-1", "display_name": "Widget 1", "provider": "acme",
+        "version": "widget-1.0",
+        "authoring_guide": {
+            "applies_to": {"model_id": "acme/widget-1", "version": "widget-1.0"},
+            "as_of": "2026-09-15",
+            "status": "stale",
+            "sections": {"prompt_shape": [{"text": "Be direct.", "sources": [source]}]},
+        },
+    }
+    plain = {"model_id": "acme/plain", "display_name": "Plain", "provider": "acme",
+             "version": "1.0"}
+    cards = [
+        ModelCard.from_yaml_string("---\n" + yaml.safe_dump(guided) + "---\n"),
+        ModelCard.from_yaml_string("---\n" + yaml.safe_dump(plain) + "---\n"),
+    ]
+    write_export(tmp_path, cards, CollectingSink(), {"commit": "test"})
+    payload = json.loads((tmp_path / "candidates.json").read_text(encoding="utf-8"))
+    guides = payload["authoring_guides"]
+    assert set(guides) == {"acme/widget-1"}
+    assert guides["acme/widget-1"]["status"] == "stale"
+    claim = guides["acme/widget-1"]["sections"]["prompt_shape"][0]
+    assert claim["text"] == "Be direct."
+    assert claim["sources"][0]["url"] == source["url"]
+    assert claim["sources"][0]["accessed"] == source["accessed"]
+    for row in payload["candidates"]:
+        assert "authoring_guide" not in row
+    # Unguided cards are omitted from the map, not present as "".
+    assert "acme/plain" not in guides
+    assert authoring_guides_from_cards(cards) == guides
