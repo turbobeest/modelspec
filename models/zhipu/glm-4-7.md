@@ -355,12 +355,12 @@ availability:
     notes: ''
   cerebras:
     available: false
-    model_id: ''
-    url: https://www.cerebras.ai/
+    model_id: zai-glm-4.7
+    url: 'https://inference-docs.cerebras.ai/models/zai-glm-47'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Deprecated by Cerebras on 2026-08-17 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18). Re-hosted as cerebras/zai-glm-4-7.'
   sambanova:
     available: false
     model_id: ''

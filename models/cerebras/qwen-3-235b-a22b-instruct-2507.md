@@ -1,8 +1,8 @@
 ---
 model_id: cerebras/qwen-3-235b-a22b-instruct-2507
 display_name: Qwen 3 235B Instruct
-provider: cerebras
-provider_display: Cerebras
+provider: qwen
+provider_display: Alibaba / Qwen Team
 family: qwen
 version: qwen-3-235b-a22b-instruct-2507
 release_date: '2025-07-22'
@@ -353,12 +353,12 @@ availability:
     notes: ''
   cerebras:
     available: false
-    model_id: ''
-    url: https://www.cerebras.ai/
+    model_id: qwen-3-235b-a22b-instruct-2507
+    url: 'https://inference-docs.cerebras.ai/models/qwen-3-235b-2507'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Deprecated by Cerebras on 2026-05-27 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18).'
   sambanova:
     available: false
     model_id: ''
@@ -908,7 +908,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/cerebras
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -922,13 +922,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 
 # Qwen 3 235B Instruct
 
-Qwen 3 235B Instruct is a Llm Chat model from Cerebras. Part of the qwen family. Knowledge cutoff: 2025-04.
+Qwen 3 235B Instruct is a Llm Chat model from Alibaba's Qwen team. Part of the qwen family. Knowledge cutoff: 2025-04.
+
+Served by Cerebras's inference API; the host is recorded under availability (MODEL-84).
+
+Creator: Qwen. Cerebras's own model page linked huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507 (https://web.archive.org/web/20260328114647/https://inference-docs.cerebras.ai/models/qwen-3-235b-2507, read 2026-09-18); the repository's author is `Qwen`.
 
 ## Key Features
 - Function calling / tool use

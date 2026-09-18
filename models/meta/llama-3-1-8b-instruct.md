@@ -354,13 +354,13 @@ availability:
     regions: []
     notes: ''
   cerebras:
-    available: true
-    model_id: ''
-    url: https://www.cerebras.ai/
+    available: false
+    model_id: llama3.1-8b
+    url: 'https://inference-docs.cerebras.ai/models/llama-31-8b'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Deprecated by Cerebras on 2026-05-27 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18). Re-hosted as cerebras/llama3-1-8b.'
   sambanova:
     available: true
     model_id: ''

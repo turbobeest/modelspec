@@ -1,8 +1,8 @@
 ---
 model_id: cerebras/qwen-3-8-27b
 display_name: Qwen3.8 27B
-provider: cerebras
-provider_display: Cerebras
+provider: qwen
+provider_display: Alibaba / Qwen Team
 family: qwen
 version: qwen-3.8-27b
 release_date: '2026-08-14'
@@ -352,13 +352,13 @@ availability:
     regions: []
     notes: ''
   cerebras:
-    available: false
-    model_id: ''
-    url: https://www.cerebras.ai/
+    available: true
+    model_id: qwen-3.8-27b
+    url: 'https://inference-docs.cerebras.ai/models/qwen-3.8-27b'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Listed on Cerebras''s model catalogue, read 2026-09-18.'
   sambanova:
     available: false
     model_id: ''
@@ -892,7 +892,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/cerebras
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/Qwen/Qwen3.8-27B
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -906,12 +906,16 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 # Qwen3.8 27B
 
-Qwen3.8 27B is a Llm Reasoning model from Cerebras. Part of the qwen family.
+Qwen3.8 27B is a Llm Reasoning model from Alibaba's Qwen team. Part of the qwen family.
+
+Served by Cerebras's inference API; the host is recorded under availability (MODEL-84).
+
+Creator: Qwen. Cerebras's own model page calls it Alibaba's model and links huggingface.co/Qwen/Qwen3.8-27B (https://inference-docs.cerebras.ai/models/qwen-3.8-27b, read 2026-09-18).
 
 ## Key Features
 - Extended reasoning / chain-of-thought
