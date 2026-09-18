@@ -127,3 +127,60 @@ def test_llama_3_1_8b_instruct_still_records_cerebras() -> None:
     cerebras = _front("meta/llama-3-1-8b-instruct")["availability"]["cerebras"]
     assert cerebras["model_id"] == "llama3.1-8b"
     assert cerebras["url"] == "https://inference-docs.cerebras.ai/models/llama-31-8b"
+
+
+# ── MODEL-86: provider-default audit (first 250, highest-traffic) ───────────
+
+
+def test_closed_api_cards_cite_vendor_terms() -> None:
+    cases = {
+        "openai/gpt-4o": "https://openai.com/policies/business-terms/",
+        "anthropic/claude-sonnet-4-5": "https://www.anthropic.com/legal/commercial-terms",
+        "google/gemini-2-5-pro": "https://ai.google.dev/gemini-api/terms",
+        "xai/grok-3": "https://x.ai/legal/terms-of-service-enterprise",
+        "mistral/mistral-embed": "https://legal.mistral.ai/terms/commercial-terms-of-service",
+    }
+    for model_id, url in cases.items():
+        lic = _front(model_id)["licensing"]
+        assert lic["license_type"] == "proprietary", model_id
+        assert lic["license_url"] == url, model_id
+
+
+def test_qwen3_8b_apache_is_cited_from_the_creator_license() -> None:
+    lic = _front("qwen/qwen3-8b")["licensing"]
+    assert lic["license_type"] == "apache-2.0"
+    assert lic["license_url"] == "https://huggingface.co/Qwen/Qwen3-8B/raw/main/LICENSE"
+
+
+def test_qwen25_research_weights_are_not_apache() -> None:
+    lic = _front("qwen/qwen2-5-3b-instruct")["licensing"]
+    assert lic["license_type"] == "qwen"
+    assert lic["license_url"] == (
+        "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/raw/main/LICENSE"
+    )
+
+
+def test_qwen25_72b_instruct_is_the_qwen_licence_not_apache() -> None:
+    lic = _front("qwen/qwen2-5-72b-instruct")["licensing"]
+    assert lic["license_type"] == "qwen"
+    assert lic["license_url"] == (
+        "https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/raw/main/LICENSE"
+    )
+
+
+def test_mistral_large_2411_is_research_not_apache() -> None:
+    lic = _front("mistral/mistral-large-2411")["licensing"]
+    assert lic["license_type"] == "other"
+    assert lic["license_url"] == "https://mistral.ai/licenses/MRL-0.1.md"
+
+
+def test_devstral_modified_mit_is_not_apache() -> None:
+    lic = _front("mistral/devstral-2-123b-instruct-2512")["licensing"]
+    assert lic["license_type"] == "other"
+    assert "Devstral-2-123B-Instruct-2512/raw/main/LICENSE" in lic["license_url"]
+
+
+def test_mistral_api_alias_without_a_distribution_point_is_nulled() -> None:
+    lic = _front("mistral/codestral-latest")["licensing"]
+    assert lic["license_type"] is None
+    assert not (lic.get("license_url") or "").strip()

@@ -63,8 +63,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://www.anthropic.com/legal/commercial-terms
+  tos_url: https://www.anthropic.com/legal/commercial-terms
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -992,12 +992,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Claude Opus 4.6
 
 Claude Opus 4.6 is a Llm Reasoning model from Anthropic. Part of the claude-opus family. Knowledge cutoff: 2025-05.
+
+Licence: proprietary. Vendor terms https://www.anthropic.com/legal/commercial-terms (Anthropic Commercial Terms of Service), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

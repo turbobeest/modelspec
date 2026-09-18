@@ -64,8 +64,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://openai.com/policies/business-terms/
+  tos_url: https://openai.com/policies/business-terms/
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -843,13 +843,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # o3-deep-research
 
 o3-deep-research is a Llm Reasoning model from OpenAI. Part of the o family. Knowledge cutoff: 2024-05.
+
+Licence: proprietary. Vendor terms https://openai.com/policies/business-terms/ (OpenAI Services Agreement (effective 1 January 2026)), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

@@ -91,12 +91,28 @@ def test_restricted_readings_state_their_restriction():
         ("terms:xai", UsePermission.RESTRICTED),
         ("terms:amazon", UsePermission.RESTRICTED),
         ("terms:perplexity", UsePermission.RESTRICTED),
+        ("terms:mistral", UsePermission.RESTRICTED),
+        ("qwen", UsePermission.RESTRICTED),
+        ("qwen-research", UsePermission.PROHIBITED),
+        ("tongyi-qianwen", UsePermission.RESTRICTED),
+        ("tongyi-qianwen-license-agreement", UsePermission.RESTRICTED),
+        ("mrl", UsePermission.PROHIBITED),
+        ("mnpl", UsePermission.PROHIBITED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
     reading = reading_for(key)
     assert reading is not None, f"{key} is missing from the table"
     assert reading.permission is permission
+
+
+def test_qwen_commercial_and_research_licences_are_different_documents():
+    commercial = reading_for("qwen")
+    research = reading_for("qwen-research")
+    assert commercial is not None and research is not None
+    assert commercial.source.url != research.source.url
+    assert commercial.permission is UsePermission.RESTRICTED
+    assert research.permission is UsePermission.PROHIBITED
 
 
 def test_the_llama_licences_are_six_documents_not_one():
@@ -108,7 +124,7 @@ def test_the_llama_licences_are_six_documents_not_one():
 
 
 def test_an_unread_licence_produces_no_value_and_never_a_default():
-    for unknown in ("openrail", "gpl-3.0", "cc-by-4.0", "qwen", "", None, "APACHE-3.0"):
+    for unknown in ("openrail", "gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
         assert reading_for(unknown) is None
 
 
@@ -226,7 +242,7 @@ def test_a_provider_whose_terms_were_not_found_gets_nothing():
 
 def test_no_card_type_in_the_map_is_a_family_licence():
     """A family name must never be able to answer on its own."""
-    for family in ("llama-community", "deepseek", "other", "proprietary"):
+    for family in ("llama-community", "deepseek", "qwen", "other", "proprietary"):
         assert family not in CARD_TYPE_TO_LICENCE
 
 

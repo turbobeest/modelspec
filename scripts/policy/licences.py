@@ -85,12 +85,12 @@ class LicenceReading:
             )
 
 
-def _licence(url: str, quote: str) -> PolicySource:
-    return PolicySource(kind="license", url=url, read_on=READ_ON, quote=quote)
+def _licence(url: str, quote: str, read_on: str = READ_ON) -> PolicySource:
+    return PolicySource(kind="license", url=url, read_on=read_on, quote=quote)
 
 
-def _terms(url: str, quote: str) -> PolicySource:
-    return PolicySource(kind="terms_of_service", url=url, read_on=READ_ON, quote=quote)
+def _terms(url: str, quote: str, read_on: str = READ_ON) -> PolicySource:
+    return PolicySource(kind="terms_of_service", url=url, read_on=read_on, quote=quote)
 
 
 # ── The Llama community licences ────────────────────────────────────────────
@@ -362,7 +362,101 @@ _READINGS: dict[str, LicenceReading] = {
             "integrated under the agreement."
         ),
     ),
+    # ── MODEL-86: Qwen / Tongyi and Mistral research licences ───────────────
+    # Read 2026-09-18. Keys are the Hub `license` / `license_name` strings, not
+    # the card family `qwen`. Tongyi Qianwen (2023-08-03) and the Qwen LICENSE
+    # AGREEMENT (2024-09-19) are two documents; they share the 100M-MAU
+    # threshold and differ on output-to-train-other-models.
+    "qwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen2.5-72B/raw/main/LICENSE",
+            "If you are commercially using the Materials, and your product or "
+            "service has more than 100 million monthly active users, you shall "
+            "request a license from us. You cannot exercise your rights under "
+            "this Agreement without our express authorization.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but a licensee whose product or "
+            "service has more than 100 million monthly active users must "
+            "request a separate licence from Alibaba Cloud. Using the "
+            "Materials or their outputs to create a distributed AI model "
+            "requires 'Built with Qwen' or 'Improved using Qwen' attribution."
+        ),
+    ),
+    "tongyi-qianwen": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen-7B/raw/main/LICENSE",
+            "If you are commercially using the Materials, and your product or "
+            "service has more than 100 million monthly active users, You shall "
+            "request a license from Us. You cannot exercise your rights under "
+            "this Agreement without our express authorization.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, but a licensee whose product or "
+            "service has more than 100 million monthly active users must "
+            "request a separate licence from Alibaba Cloud. The Materials and "
+            "their outputs may not be used to improve any other large language "
+            "model (excluding Tongyi Qianwen or derivative works thereof)."
+        ),
+    ),
+    "qwen-research": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/raw/main/LICENSE",
+            "make modifications to the Materials FOR NON-COMMERCIAL PURPOSES ONLY.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "mrl": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://mistral.ai/licenses/MRL-0.1.md",
+            "You shall only use the Mistral Models, Derivatives (whether or "
+            "not created by Mistral AI) and Outputs for Research Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "mnpl": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://mistral.ai/licenses/MNPL-0.1.md",
+            "You shall not supply the Mistral Models or Derivatives in the "
+            "course of a commercial activity, whether in return for payment "
+            "or free of charge, in any medium or form, including but not "
+            "limited to through a hosted or managed service (e.g. SaaS, cloud "
+            "instances, etc.), or behind a software layer.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "terms:mistral": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://legal.mistral.ai/terms/commercial-terms-of-service",
+            "Subject to Customer's compliance with these Terms, Mistral AI "
+            "grants Customer a limited, non-exclusive, non-transferrable "
+            "(except as provided in Section 14.2 (Assignment)), "
+            "non-sublicensable (except to its End Users) license to access "
+            "and use the Mistral AI Products.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Mistral AI Terms of Service "
+            "for Commercial Users as a limited, non-exclusive, "
+            "non-transferable, non-sublicensable licence to access the Mistral "
+            "AI Products. Use is bound by the Usage Policy and Additional "
+            "Terms; image Outputs may not be used to train a competing image "
+            "generation product."
+        ),
+    ),
 }
+
+# Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
+# longer spelling. Same document, same reading.
+_READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
 
 #: The licence readings, by licence identifier. Read-only on purpose: a caller
 #: that wants a new licence answered has to add it here, with a document and a

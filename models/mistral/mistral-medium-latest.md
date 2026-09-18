@@ -61,7 +61,7 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: apache-2.0
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -843,13 +843,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Mistral Medium (latest)
 
 Mistral Medium (latest) is a Vlm model from Mistral AI. Part of the mistral-medium family. Knowledge cutoff: 2025-05.
+
+Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
 
 ## Key Features
 - Function calling / tool use

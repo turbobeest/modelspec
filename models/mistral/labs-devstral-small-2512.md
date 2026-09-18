@@ -62,7 +62,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: apache-2.0
-  license_url: ''
+  license_url: https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -884,19 +884,21 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-09-12'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Devstral Small 2
 
 Devstral Small 2 is a Llm Code model from Mistral AI. Part of the devstral family. Knowledge cutoff: 2025-12.
+
+Licence: apache-2.0. Creator distribution https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512/raw/main/README.md (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use
