@@ -860,6 +860,55 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-1
+    version: gpt-5.1
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Can be excessively concise; prompt for persistence and completeness so answers are not
+        cut short.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-1_prompting_guide
+        title: GPT-5.1 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.1
+        title: Using GPT-5.1
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Give concrete length and formatting constraints. Personality works best as a defined agent
+        persona rather than a vague label.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-1_prompting_guide
+        title: GPT-5.1 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.1
+        title: Using GPT-5.1
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Excellent at instruction-following; check for conflicting instructions and state the wanted
+        behaviour clearly.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-1_prompting_guide
+        title: GPT-5.1 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: reasoning.effort supports none (the default), low, medium and high. none is the low-latency
+        mode; from GPT-4.1, none is the usual starting point.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.1
+        title: Using GPT-5.1
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

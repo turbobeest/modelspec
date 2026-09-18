@@ -844,6 +844,51 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/o3-deep-research
+    version: o3-deep-research
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: The Responses API path does not clarify or rewrite the user prompt. Give a fully-formed
+        research brief; the model will not ask for missing context.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/deep-research.md
+        title: Deep research
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Include the expected output format in the prompt. If some sources should be preferred,
+        name them there.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/deep-research.md
+        title: Deep research
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: 'You must attach at least one data source: web search, remote MCP, or file search over
+        vector stores. Optional code interpreter is for analysis in code.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/deep-research.md
+        title: Deep research
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/o3-deep-research.md
+        title: o3-deep-research
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Remote MCP servers must implement the search-and-fetch interface; other MCP shapes are
+        not supported. For generic tool calling, OpenAI points at o3 instead.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/deep-research.md
+        title: Deep research
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

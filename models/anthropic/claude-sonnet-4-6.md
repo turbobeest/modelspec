@@ -935,6 +935,58 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-sonnet-4-6
+    version: claude-sonnet-4-6
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Be explicit about the desired output format and constraints. Sequential numbered steps
+        help when order or completeness matters.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: XML tags help Claude parse mixed instructions, context, examples and inputs; use consistent
+        descriptive names.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: A role in the system prompt focuses behaviour and tone; even a single sentence is enough.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Adaptive thinking is the supported mode (extended/manual budget_tokens is deprecated).
+        Default effort is high.
+      sources:
+      - url: https://platform.claude.com/docs/en/models/sonnet-4-6/overview
+        title: Claude Sonnet 4.6
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: With adaptive thinking Claude decides whether and how much to think; at lower effort it
+        may skip thinking on easy inputs. Adaptive interleaves automatically, without the interleaved-thinking
+        beta header.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

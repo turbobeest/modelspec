@@ -853,6 +853,37 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-2-pro
+    version: gpt-5.2-pro
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: The GPT-5.2 generation's pro variant is for problems that take longer and need harder
+        thinking, not as a drop-in for default gpt-5.2.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.2
+        title: Using GPT-5.2
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://developers.openai.com/api/docs/models/gpt-5.2-pro.md
+        title: GPT-5.2 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: Supports reasoning.effort medium, high and xhigh. Responses API only. Long jobs can take
+        minutes; use background mode to avoid timeouts.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.2-pro.md
+        title: GPT-5.2 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

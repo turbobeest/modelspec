@@ -850,7 +850,41 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: cohere/command-r-plus-08-2024
+    version: command-r-plus-08-2024
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: The August 2024 Command R+ refresh follows instructions in the request's system message
+        more closely, and is more robust to non-semantic whitespace or newline changes.
+      sources:
+      - url: https://docs.cohere.com/docs/command-r-plus
+        title: Cohere's Command R+ Model
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: It will decline unanswerable questions and can run RAG without citations. Grounded English
+        generations can cite supplied document snippets.
+      sources:
+      - url: https://docs.cohere.com/docs/command-r-plus
+        title: Cohere's Command R+ Model
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: Trained for complex RAG and multi-step tool use. Tool-use decision-making (whether to
+        call a tool) improved in this dated release versus prior Command R+.
+      sources:
+      - url: https://docs.cohere.com/docs/command-r-plus
+        title: Cohere's Command R+ Model
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 
