@@ -276,21 +276,25 @@ def site_nav(site: str, nav_links: Iterable[tuple[str, str]]) -> str:
     return f'<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>'
 
 
-def shell(*, title: str, description: str, canonical: str, body: str, build: Build,
+def shell(*, title: str, description: str, canonical: str | None, body: str, build: Build,
           site: str, nav_links: Iterable[tuple[str, str]], robots: str = "index, follow") -> str:
+    canonical_link = (
+        f'<link rel="canonical" href="{esc(canonical)}">\n' if canonical else ""
+    )
+    og_url = (
+        f'<meta property="og:url" content="{esc(canonical)}">\n' if canonical else ""
+    )
     return f"""<!doctype html>
 <html lang="en" data-site="{esc(site.lower())}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
-<link rel="canonical" href="{esc(canonical)}">
-<meta name="robots" content="{esc(robots)}">
+{canonical_link}<meta name="robots" content="{esc(robots)}">
 <meta name="theme-color" content="#07080a">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{esc(title)}">
 <meta property="og:description" content="{esc(description)}">
-<meta property="og:url" content="{esc(canonical)}">
-<meta name="generator" content="modelspec-pipeline {esc(build.commit[:12])}">
+{og_url}<meta name="generator" content="modelspec-pipeline {esc(build.commit[:12])}">
 {FONTS}
 <style>{CSS}</style></head>
 <body><div class="wrap">
@@ -1436,8 +1440,13 @@ def sitemap(base: str, paths: Iterable[str], today: date) -> str:
 
 
 def not_found(site: str, build: Build, nav: list[tuple[str, str]], home: str) -> str:
+    """Cloudflare Pages serves this file for any missing path.
+
+    It carries no canonical URL and is noindex: a homepage canonical on
+    404.html tells crawlers every dead path duplicates the front page.
+    """
     body = ('<h1>Not found</h1><p class="lede">There is no page at this address.</p>'
             f'<p><a href="{esc(home)}">Back to {esc(site)}</a></p>')
     return shell(title=f"Not found — {site}", description="No page at this address.",
-                 canonical=home, body=body, build=build, site=site, nav_links=nav,
-                 robots="noindex, follow")
+                 canonical=None, body=body, build=build, site=site, nav_links=nav,
+                 robots="noindex")
