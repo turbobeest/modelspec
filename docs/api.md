@@ -5,8 +5,7 @@ Ranks AI models you can actually run, given your hardware, providers, use case
 and policy rules. Returns ranked models with scores, cost and reasons; on
 failure, returns which constraint eliminated every option.
 
-Computed per request from the current public export. No state, no signup, and
-today a key is optional.
+Computed per request from the current public export. No state, no signup.
 
 * `POST https://api.modelspec.dev/v1/rank` — a shortlist for one profile.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
@@ -259,5 +258,19 @@ the catalogue. Widening a field's range bumps that contract's major
 ([`cli-contract.md`](cli-contract.md)). Fields may be added within a major:
 ignore what you do not know.
 
-A request carries a profile, never a prompt — architectural, not missing.
-Design and deployment: [`rank-api.md`](rank-api.md).
+A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
+
+## MCP
+
+Read-only remote MCP at `https://api.modelspec.dev/mcp`. Claude Code:
+
+```json
+{
+  "mcpServers": {
+    "modelspec": {
+      "type": "http",
+      "url": "https://api.modelspec.dev/mcp"
+    }
+  }
+}
+```
