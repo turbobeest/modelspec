@@ -345,6 +345,25 @@ notice, so the day a document was read is as load-bearing as its URL.
 | `502` | the published policy export could not be read |
 | `503` | `determinations_unavailable` — entitled, and the store could not be read |
 
+### The store's state on `/v1/health`
+
+`determinations.state` is one of four values. Only `broken` carries a
+`last_error`; the other three are conditions, not faults.
+
+| `state` | Means | `last_error` |
+|---|---|---|
+| `unbound` | no `DETERMINATIONS` binding on this deployment | `null` |
+| `empty` | bound, and `determinations/manifest` is absent — nothing loaded yet | `null` |
+| `loaded` | the manifest is present and both blobs match its SHA-256s | `null` |
+| `broken` | a manifest exists and a blob is missing, mismatched, or not JSON | the reason |
+
+Workers KV answers a missing key with JS `null`, which Pyodide hands to Python
+as `pyodide.ffi.jsnull`, not `None`. Before this was handled, an empty namespace
+was reported as `JSONDecodeError` — an empty store read as a corrupt one.
+
+An entitled request is refused with `503` in every state but `loaded`, an empty
+store included, and the error names the state as `store_state`.
+
 ---
 
 ## Needs Jamie
@@ -357,7 +376,7 @@ notice, so the day a document was read is as load-bearing as its URL.
    Nothing answers differently until it lands: `_entitlement()` grants the store
    to nobody until MODEL-69.
 2. **Run the first load** from the private checkout, and confirm
-   `GET /v1/health` reports `determinations.loaded: true` with the expected
+   `GET /v1/health` reports `determinations.state: loaded` with the expected
    `generated_on`. Health reports the bundle's version and date only — never
    counts and never content.
 3. **Decide who may run the loader.** Today it is whoever holds both the private

@@ -831,12 +831,19 @@ components:
               nullable: true
             loaded:
               type: boolean
+            message:
+              type: string
+              nullable: true
+            state:
+              type: string
           required:
           - bound
           - bundle_version
           - generated_on
           - last_error
           - loaded
+          - message
+          - state
         endpoint:
           type: string
         export_loaded:
