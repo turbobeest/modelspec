@@ -42,9 +42,14 @@ jobs:
             "click==8.5.0" \
             "pytest==9.1.1" \
             "pytest-asyncio==1.4.0" \
+            "pytest-xdist==3.8.0" \
             "ruff==0.16.6" \
             "mypy==2.3.1" \
             -e ".[dev]"
 
       - name: Run test suite
-        run: python -m pytest -q
+        # -n auto: ubuntu-latest public runners are 4 vCPU, so this is 4
+        # workers there and uses the machine's cores locally. --dist loadfile
+        # keeps each test module on one worker: several modules cache the
+        # catalogue at import, and a few hold process-wide state.
+        run: python -m pytest -q -n auto --dist loadfile

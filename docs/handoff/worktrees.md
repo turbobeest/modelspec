@@ -16,6 +16,8 @@ Run tests from that tree so imports resolve there:
 
 ```bash
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q
+# Parallel (what "Run pytest" CI uses). Serial above still works.
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n auto --dist loadfile
 ```
 
 Leave other `modelspec-*` worktrees under `/Users/terbeest/dev/worktrees`
