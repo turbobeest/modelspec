@@ -56,6 +56,20 @@ def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
     assert ":where(.page) h2::before{content:counter(sec" in r.CSS
 
 
+def _bare_rule(selector: str) -> str:
+    rule = re.search(r"(?:^|\})" + selector + r"\{([^}]*)\}", r.CSS, re.M)
+    assert rule, f"{selector} is not declared"
+    return rule.group(1)
+
+
+def test_long_unbroken_text_stays_inside_a_phone_width() -> None:
+    """At 375px the neutrality page's JSON block made the page 1,069px wide, and
+    a repository URL used as link text made a benchmark page 396px wide."""
+    assert "overflow-x:auto" in _bare_rule("pre")
+    assert "overflow-wrap:break-word" in _bare_rule("p")
+    assert "overflow-wrap:break-word" in _bare_rule("li")
+
+
 # ── the static pages ─────────────────────────────────────────────────────────
 
 def _stylesheets(page: str) -> list[str]:

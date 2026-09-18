@@ -60,9 +60,10 @@ color:var(--dim);text-transform:uppercase}
 h3{font-family:var(--sans);font-weight:700;
 font-size:16px;letter-spacing:-.01em;margin:22px 0 6px}
 p{font-family:var(--sans);font-size:16px;
-line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px}
+line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px;
+overflow-wrap:break-word}
 li{font-family:var(--sans);font-size:16px;
-line-height:1.65;color:var(--body)}
+line-height:1.65;color:var(--body);overflow-wrap:break-word}
 .page{counter-reset:sec;padding-left:var(--gutter)}
 .lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 color:var(--dim);text-transform:uppercase}
@@ -70,6 +71,8 @@ color:var(--dim);text-transform:uppercase}
 .meta{color:var(--dim);font-size:12px;font-family:var(--mono);
 max-width:none}
 code,.mono{font-family:var(--mono);font-size:13px}
+pre{margin:0 0 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);
+line-height:1.6;overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13px}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;
 overflow-wrap:break-word}
