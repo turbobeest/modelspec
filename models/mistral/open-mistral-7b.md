@@ -61,7 +61,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''
@@ -873,6 +873,8 @@ card_updated: '2026-09-18'
 Mistral 7B is a Llm Chat model from Mistral AI. Part of the mistral family. Knowledge cutoff: 2023-12.
 
 Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. API name open-mistral-7b, not a weight distribution. Weights are on mistral/mistral-7b-v0-1 (https://huggingface.co/mistralai/Mistral-7B-v0.1 read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use

@@ -62,7 +62,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''

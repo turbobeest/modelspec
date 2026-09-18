@@ -59,7 +59,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''
@@ -865,12 +865,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Step 3.5 Flash 2603
 
 Step 3.5 Flash 2603 is a Llm Reasoning model from StepFun. Knowledge cutoff: 2025-01.
+
+open_weights: false. Dated API snapshot, not a weight distribution. No stepfun-ai/Step-3.5-Flash-2603 Hub repo (read 2026-09-18). Weights for Step 3.5 Flash are on stepfun/step-3-5-flash (https://huggingface.co/stepfun-ai/Step-3.5-Flash read 2026-09-18).
 
 ## Key Features
 - Extended reasoning / chain-of-thought
