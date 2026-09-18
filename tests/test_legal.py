@@ -244,7 +244,8 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     The Worker may bind two KV namespaces and no other store:
 
     * DETERMINATIONS — our own research, read-only from the Worker, disclosed;
-    * ACCESS (MODEL-69) — key records and per-key counters, only alongside the
+    * ACCESS (MODEL-69, MODEL-73) — key records, per-key counters, Stripe event
+      ids, subscription rows, session pointers and keyrefs, only alongside the
       statement's section saying exactly what it holds, and described as not
       yet active for as long as the binding is staged as a comment.
 
@@ -274,7 +275,10 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     access_staged = '"binding": "ACCESS"' in raw
     if access_staged or "ACCESS" in bound:
         for claim in ("`ACCESS`", "SHA-256 hash of the key", "never under the key",
-                      "Two counters per key", "no request body", "no IP address"):
+                      "the key value itself is never stored",
+                      "Two counters per key", "no request body", "no IP address",
+                      "Stripe event id", "subscription record",
+                      "Checkout session pointer", "keyref", "Card data never"):
             assert claim in FLAT_PRIVACY, (
                 f"the ACCESS store is configured and the privacy statement does not "
                 f"say {claim!r}")
@@ -284,7 +288,7 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     elif access_staged:
         assert "configured, not yet active" in FLAT_PRIVACY and "commented out" in FLAT_PRIVACY
 
-    # Only the access modules write, and they write only key records and counters.
+    # Only the access modules write. billing*.py decides; access_billing.py stores.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
         if not src.name.startswith("access"):
@@ -304,7 +308,11 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
     """
     import ast
 
-    allowed_names = {"storage_name", "day_name", "minute_name", "name"}
+    allowed_names = {
+        "storage_name", "storage_name_from_fingerprint",
+        "day_name", "minute_name", "name",
+        "event_name", "session_name", "subscription_name", "keyref_name",
+    }
     for module in sorted(src.glob("access*.py")):
         tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -316,8 +324,8 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
                      and isinstance(target.func, ast.Name) else getattr(target, "id", None))
             assert label in allowed_names, (
                 f"{module.name}:{node.lineno} writes to KV under {ast.unparse(target)}; "
-                "the privacy statement says the access store holds key records and "
-                "counters only")
+                "the privacy statement says the access store holds named record "
+                "kinds only")
             if len(node.args) > 1:
                 value = ast.unparse(node.args[1])
                 assert ("to_json()" in value or "_used + 1" in value
@@ -335,6 +343,31 @@ def _assert_access_writes_only_records_and_counters(src: Path) -> None:
             f"access.gate({keyword.arg}=...) is handed the request body")
     assert "access_keys.extract" in ast.unparse(
         next(k.value for k in gate.keywords if k.arg == "api_key"))
+
+
+def test_no_access_module_writes_a_plaintext_key() -> None:
+    """The key is stored only as its SHA-256 hash. A `secret` field on a record
+    would be the key sitting in ACCESS until someone claims it."""
+    import ast
+
+    forbidden = {"secret", "plaintext", "api_key", "key_value"}
+    src = REPO_ROOT / "api" / "worker" / "src"
+    for module in sorted(src.glob("access*.py")):
+        tree = ast.parse(module.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for stmt in node.body:
+                name = None
+                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                    name = stmt.target.id
+                elif (isinstance(stmt, ast.Assign) and stmt.targets
+                      and isinstance(stmt.targets[0], ast.Name)):
+                    name = stmt.targets[0].id
+                assert name not in forbidden, (
+                    f"{module.name}::{node.name} field {name!r} would store a key "
+                    "value; the privacy statement says the key is stored only as "
+                    "its SHA-256 hash")
 
 
 def test_the_privacy_statement_discloses_cloudflare_observability() -> None:

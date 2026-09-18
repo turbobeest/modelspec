@@ -29,7 +29,14 @@
       "paid": true,
       "daily_limit": 1000,
       "burst_limit": 60,
-      "description": "Placeholder for the by-plan rows MODEL-73 provisions. Limits are a starting point, not a commitment."
+      "description": "Determinations-entitled row. Not what MODEL-73 sells on day one."
+    },
+    "subscriber": {
+      "live_data": true,
+      "paid": false,
+      "daily_limit": 1000,
+      "burst_limit": 60,
+      "description": "PLACEHOLDER monthly plan: live rankings at these limits. Does not include policy-check determinations. Limits are configuration, not a commitment."
     },
     "dpf": {
       "live_data": true,
@@ -37,6 +44,22 @@
       "daily_limit": null,
       "burst_limit": null,
       "description": "Unlimited, and deliberately on the same handler as a paid key: null limits, not a bypass."
+    }
+  },
+  "billing": {
+    "downgrade_tier": "free",
+    "terms_url": "https://modelspec.dev/legal/terms/",
+    "cancel_url": "https://modelspec.dev/pricing",
+    "success_path": "/v1/billing/claim",
+    "signature_tolerance_seconds": 300,
+    "event_ttl_seconds": 604800,
+    "prices": {
+      "price_PLACEHOLDER_live_monthly": {
+        "tier": "subscriber",
+        "interval": "month",
+        "placeholder": true,
+        "description": "PLACEHOLDER — replace with a Stripe Price id from the Dashboard (test mode). Buys live rank limits, not the compliance answer. No amount is in force."
+      }
     }
   }
 }
