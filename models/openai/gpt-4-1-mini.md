@@ -937,6 +937,60 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-4-1-mini
+    version: gpt-4.1-mini
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'OpenAI''s GPT-4.1 prompting guide covers the GPT-4.1 family: follow instructions literally,
+        and put long-context instructions at both ends of the documents.'
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/gpt-4.1-mini
+        title: GPT-4.1 Mini
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: 'The same agent reminders as GPT-4.1 apply: persistence until the task is done, tool-use instead
+        of guessing, optional explicit planning. Mini is documented as strong at instruction following
+        and tool calling without a reasoning step.'
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/gpt-4.1-mini
+        title: GPT-4.1 Mini
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Not a reasoning model; 1M-token context. Pass tools through the API tools field rather than
+        inlined schemas.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-4.1-mini
+        title: GPT-4.1 Mini
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes:
+    - text: 'Family failure modes still apply: it follows the later of two conflicting instructions, and
+        ''always call a tool'' can invent arguments unless it may ask first.'
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 # GPT-4.1 mini

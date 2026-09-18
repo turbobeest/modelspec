@@ -902,6 +902,93 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-4
+    version: gpt-5.4
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Start with the smallest prompt that passes evals. Add blocks only for measured failures:
+        tool routing, dependency checks, citations, irreversible actions, or tool-boundary rules.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Keep outputs compact with an explicit output contract and verbosity controls; verbosity still
+        defaults to medium and is a separate knob from reasoning effort.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: 'State a follow-through policy: proceed on reversible low-risk steps, ask before irreversible
+        or external side effects, and make user instructions override style while safety does not yield.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: For mid-conversation changes, send a scoped task_update that names what changed, what still
+        applies, and whether it is this turn only.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: reasoning.effort supports none (default), low, medium, high and xhigh. With none, prompt it
+        to outline steps; raise effort only after the prompt already has success criteria and tool rules.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4
+        title: GPT-5.4
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: temperature, top_p and logprobs are only valid at effort none; other efforts error. Prefer
+        the Responses API so chain-of-thought can be passed between turns.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Round-trip assistant phase (commentary vs final_answer) or previous_response_id; dropped phase
+        can treat a preamble as the final answer.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Prompt for persistent tool use, prerequisite checks, and a verification loop before high-impact
+        actions. Parallelise only independent lookups.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting:
+    - text: For SQL/JSON, emit only the target format. For vision or computer use, set image detail explicitly
+        (high or original) instead of auto.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes:
+    - text: Early in a session, tool routing is less reliable; name the intended tool and required lookups.
+        Empty retrievals should trigger fallback queries, not a 'nothing found' close.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 

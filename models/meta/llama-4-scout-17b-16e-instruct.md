@@ -969,6 +969,46 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-4-scout-17b-16e-instruct
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Same Llama 4 instruct envelope as Maverick: header_start/header_end roles, eot, and image_start/image_end
+        patch spans.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Image understanding was tested up to 5 images. Scout (17Bx16E) is the 10M-context member of
+        the pair.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md
+        title: Llama 4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Declare tools in system or user; assistant turns that call tools should be function-call-only,
+        not mixed with prose.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Zero-shot tool format is [name(param=value), ...] and natively supports parallel calls.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Llama 4 Scout 17B 16E Instruct
