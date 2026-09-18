@@ -122,7 +122,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/rank`;
-      return asToolResult(await fetchOrigin(origin, postInit(args, authorization)));
+      return asToolResult(await fetchOrigin(origin, postInit(args, authorization), env.RANK));
     },
   );
 
@@ -180,7 +180,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/policy-check`;
-      return asToolResult(await fetchOrigin(origin, postInit(args, authorization)));
+      return asToolResult(await fetchOrigin(origin, postInit(args, authorization), env.RANK));
     },
   );
 

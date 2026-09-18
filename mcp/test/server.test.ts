@@ -42,6 +42,7 @@ async function rpc(
   params: Record<string, unknown>,
   id = 1,
   headers: Record<string, string> = {},
+  env: Env = ENV,
 ): Promise<{ status: number; payload: Record<string, unknown> }> {
   const response = await workerFetch(
     new Request("http://localhost/mcp", {
@@ -54,7 +55,7 @@ async function rpc(
       },
       body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
     }),
-    ENV,
+    env,
     testCtx(),
   );
   const text = await response.text();
@@ -130,6 +131,24 @@ describe("modelspec MCP worker", () => {
     const result = payload.result as { serverInfo: { name: string; version: string } };
     expect(result.serverInfo.name).toBe("modelspec");
     expect(result.serverInfo.version).toBe("test-commit-sha");
+  });
+
+  it("rank and policy_check go through the RANK service binding when bound", async () => {
+    // Deployed, a same-zone fetch of api.modelspec.dev answered 522; the
+    // binding is the path. The envelope still names the public URL.
+    const bound = vi.fn(async () => jsonResponse(200, { result: [] }));
+    const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
+    for (const name of ["rank", "policy_check"]) {
+      const args = name === "rank" ? { use_case: "coding", limit: 1 } : { policy: { origin: { permitted_countries: ["US"] } }, limit: 1 };
+      const { payload } = await rpc("tools/call", { name, arguments: args }, 1, {}, env);
+      expect(envelopeFromCall(payload).status).toBe(200);
+    }
+    expect(bound).toHaveBeenCalledTimes(2);
+    expect(bound.mock.calls.map((c) => c[0])).toEqual([
+      "https://api.modelspec.dev/v1/rank",
+      "https://api.modelspec.dev/v1/policy-check",
+    ]);
+    expect(originFetch).not.toHaveBeenCalled();
   });
 
   it("rank happy path proxies the origin JSON and URL", async () => {
