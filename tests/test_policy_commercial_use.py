@@ -93,6 +93,13 @@ def test_restricted_readings_state_their_restriction():
         ("terms:perplexity", UsePermission.RESTRICTED),
         ("terms:mistral", UsePermission.RESTRICTED),
         ("terms:qwen", UsePermission.RESTRICTED),
+        ("terms:deepseek", UsePermission.RESTRICTED),
+        ("stabilityai-ai-community", UsePermission.RESTRICTED),
+        ("openrail++", UsePermission.RESTRICTED),
+        ("flux-1-dev-non-commercial-license", UsePermission.PROHIBITED),
+        ("flux-non-commercial-license", UsePermission.PROHIBITED),
+        ("general-model-license", UsePermission.PROHIBITED),
+        ("deepseek-license", UsePermission.RESTRICTED),
         ("qwen", UsePermission.RESTRICTED),
         ("qwen-research", UsePermission.PROHIBITED),
         ("tongyi-qianwen", UsePermission.RESTRICTED),
@@ -106,6 +113,10 @@ def test_restricted_readings_state_their_restriction():
         ("glm-4", UsePermission.RESTRICTED),
         ("glm-4-voice", UsePermission.RESTRICTED),
         ("glm-edge", UsePermission.RESTRICTED),
+        ("lfm1.0", UsePermission.RESTRICTED),
+        ("ltx-2-community-license-agreement", UsePermission.RESTRICTED),
+        ("terms:inception", UsePermission.RESTRICTED),
+        ("terms:upstage", UsePermission.RESTRICTED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
@@ -173,8 +184,21 @@ def test_glm_4_hub_license_name_resolves_from_the_distribution_declaration():
 
 
 def test_an_unread_licence_produces_no_value_and_never_a_default():
-    for unknown in ("openrail", "gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
+    for unknown in ("gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
         assert reading_for(unknown) is None
+
+
+def test_flux1_dev_noncommercial_is_not_the_flux2_name():
+    """FLUX.1 [dev] and FLUX.2 Non-Commercial License v2.1 are different
+    documents. Citing one for the other manufactures evidence. The Hub
+    name flux-dev-non-commercial-license is still unread."""
+    flux1 = reading_for("flux-1-dev-non-commercial-license")
+    flux2 = reading_for("flux-non-commercial-license")
+    assert flux1 is not None and flux2 is not None
+    assert flux1.source.url != flux2.source.url
+    assert flux1.permission is UsePermission.PROHIBITED
+    assert flux2.permission is UsePermission.PROHIBITED
+    assert reading_for("flux-dev-non-commercial-license") is None
 
 
 def test_the_table_cannot_be_mutated_into_a_default():
@@ -281,8 +305,10 @@ def test_proprietary_resolves_by_provider_terms():
 
 
 def test_a_provider_whose_terms_were_not_found_gets_nothing():
-    """Voyage AI publishes no locatable terms document. Reaching for MongoDB's
-    because MongoDB bought Voyage would be inference."""
+    """Voyage AI still publishes no locatable terms document (re-checked
+    2026-09-18: voyageai.com/terms 404s; MongoDB Terms of Use do not mention
+    Voyage). Reaching for MongoDB's because MongoDB bought Voyage would be
+    inference."""
     r = licence_of_record("proprietary", provider="voyage")
     assert r.licence_key is None
     assert r.reason == "unread-provider-terms"

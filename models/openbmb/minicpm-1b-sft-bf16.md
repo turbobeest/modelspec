@@ -62,8 +62,8 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: other
+  license_url: https://raw.githubusercontent.com/OpenBMB/General-Model-License/main/通用模型许可协议-来源说明-宣传限制-商业授权.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -824,9 +824,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # MiniCPM 1B sft bf16
 
 Auto-generated from HuggingFace Hub metadata for [openbmb/MiniCPM-1B-sft-bf16](https://huggingface.co/openbmb/MiniCPM-1B-sft-bf16).
+
+Licence: other. Creator README https://huggingface.co/openbmb/MiniCPM-1B-sft-bf16/raw/main/README.md names the General Model License for the weights (https://raw.githubusercontent.com/OpenBMB/General-Model-License/main/通用模型许可协议-来源说明-宣传限制-商业授权.md); Apache-2.0 there is the code, not the weights. Hub cardData.license is empty. Read 2026-09-18.

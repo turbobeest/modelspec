@@ -70,12 +70,25 @@ CARD_TYPE_TO_LICENCE: dict[str, str] = {
 #: `proprietary`. A closed model has no licence file; the agreement covering
 #: the API it is served through is the governing document.
 #:
-#: `voyage` is absent on purpose. Voyage AI publishes no terms-of-service
-#: document that could be found on 2026-09-16 — the site links only a privacy
-#: notice — so its cards get no determination. Assuming MongoDB's terms apply
-#: because MongoDB acquired Voyage would be inference, not a reading.
+#: `voyage` is absent on purpose. Re-checked 2026-09-18: voyageai.com/terms
+#: 404s, the dashboard ToS is behind login, MongoDB's Terms of Use do not
+#: mention Voyage embeddings, and no archived Voyage terms page was found.
+#: Assuming MongoDB's customer agreement applies because of the acquisition
+#: would be inference, not a reading.
 PROPRIETARY_PROVIDERS = frozenset(
-    {"openai", "google", "anthropic", "xai", "amazon", "perplexity", "mistral", "qwen"}
+    {
+        "openai",
+        "google",
+        "anthropic",
+        "xai",
+        "amazon",
+        "perplexity",
+        "mistral",
+        "qwen",
+        "deepseek",
+        "inception",
+        "upstage",
+    }
 )
 
 

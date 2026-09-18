@@ -522,6 +522,179 @@ _READINGS: dict[str, LicenceReading] = {
             read_on="2026-09-18",
         ),
     ),
+    # ── MODEL-86 batch 3: DeepSeek API, OpenRAIL++, Stability Community, FLUX.1 [dev]
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # (qwen/meta/microsoft/nvidia/ibm/zhipu) stays a clean append.
+    # FLUX.2's Hub name `flux-non-commercial-license` is a different
+    # identifier; it is deliberately not aliased onto the FLUX.1 [dev]
+    # document.
+    "terms:deepseek": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
+            "We grant you a right to access and use the Services provided by "
+            "the Open Platform in accordance with these Terms: API services "
+            "based on the DeepSeek Chat models, as well as other new service "
+            "types which will be developed by DeepSeek.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the DeepSeek Open Platform Terms "
+            "of Service (effective 29 April 2026). DeepSeek assigns any rights "
+            "it has in Outputs to the customer. Use is bound by the DeepSeek "
+            "Terms of Use and by applicable export-control and sanctions law."
+        ),
+    ),
+    "stabilityai-ai-community": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/sd-turbo/raw/main/LICENSE.md",
+            "If at any time You or Your Affiliate(s), either individually or "
+            "in aggregate, generate more than USD $1,000,000 in annual revenue "
+            "(or the equivalent thereof in Your local currency), regardless of "
+            "whether that revenue is generated directly or indirectly from the "
+            "Stability AI Materials or Derivative Works, any licenses granted "
+            "to You under this Agreement shall terminate as of such date.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Stability AI Community "
+            "License Agreement (last updated 5 July 2024), but the licence "
+            "terminates if the licensee or its affiliates generate more than "
+            "USD $1,000,000 in annual revenue; above that threshold a separate "
+            "enterprise licence must be requested from Stability AI."
+        ),
+    ),
+    "openrail++": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/main/LICENSE.md",
+            "Use-based restrictions. The restrictions set forth in Attachment A "
+            "are considered Use-based restrictions. Therefore You cannot use "
+            "the Model and the Derivatives of the Model for the specified "
+            "restricted uses.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, including hosting for third-party "
+            "remote access, but the Attachment A use-based restrictions apply "
+            "and must be included as an enforceable provision in any agreement "
+            "governing a derivative or redistribution."
+        ),
+    ),
+    "flux-1-dev-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/black-forest-labs/flux/main/model_licenses/LICENSE-FLUX1-dev",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX.1 [dev] Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    # ── MODEL-86 batch 6: FLUX.2 Non-Commercial License v2.1, OpenBMB GML
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # stays a clean append.
+    # FLUX.1 [dev] remains flux-1-dev-non-commercial-license. This is the
+    # FLUX.2 Hub name flux-non-commercial-license, a different document
+    # (v2.1). The two gated FLUX.2 klein-base-9B repos name it; the text
+    # was read from a public BFL LICENSE file of the same Hub name.
+    # flux-dev-non-commercial-license is still unread.
+    "flux-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv-fp8/raw/main/LICENSE",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
+    "general-model-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/OpenBMB/General-Model-License/main/"
+            "通用模型许可协议-来源说明-宣传限制-商业授权.md",
+            "商业授权：使用者获得发布者书面授权后，可以以任何商业目的使用此通用模型。",
+            read_on="2026-09-18",
+        ),
+    ),
+    # ── MODEL-86 batch 4: long-tail providers ───────────────────────────────
+    # Own block so a merge with batch 2 (Qwen / Meta / Microsoft / NVIDIA)
+    # stays a clean append. Read 2026-09-18. Keys are Hub license_name or
+    # terms:<provider>. MiniMax's "modified-mit" is several documents with
+    # different commercial clauses, so it is not keyed here.
+    "lfm1.0": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/LiquidAI/LFM2-1.2B/raw/main/LICENSE",
+            "The rights granted under this License for Commercial Use are "
+            "conditioned upon You or Your Legal Entity not exceeding the "
+            "Threshold.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LFM Open License v1.0 only "
+            "while the licensee's annual revenue is below USD 10 million. "
+            "Commercial use by an entity at or above that threshold is not "
+            "licensed; the threshold does not apply to a qualified non-profit "
+            "using the work for non-commercial or research purposes."
+        ),
+    ),
+    "ltx-2-community-license-agreement": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/unsloth/LTX-2.3-GGUF/raw/main/LICENSE",
+            "Entities with annual revenues of at least $10,000,000 (the "
+            '"Commercial Entities") are required to obtain a paid commercial '
+            "use license in order to use LTX-2 and Derivatives of LTX-2",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LTX-2 Community License "
+            "Agreement (5 January 2026) below USD 10 million annual revenue. "
+            "Entities at or above that threshold must obtain a separate paid "
+            "commercial-use licence from Lightricks. Attachment A use "
+            "restrictions apply, including a ban on using the model to train "
+            "a competing system."
+        ),
+    ),
+    "terms:inception": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.inceptionlabs.ai/docs/terms-of-use",
+            "Subject to these Terms, we grant each user of the Services a "
+            "worldwide, non-exclusive, non-sublicensable and non-transferable "
+            "license to use (i.e., to download and display locally) Content "
+            "solely for purposes of using the Services.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Access is under the Inception Terms of Use (effective 1 September "
+            "2025). The grant is non-exclusive, non-sublicensable and "
+            "non-transferable. Outputs may be used, modified, reproduced, "
+            "distributed and displayed for any purpose not otherwise "
+            "restricted; the Terms also say the Services may be used only for "
+            "the user's own internal, personal use and not on behalf of a "
+            "third party, and Inception may change the Terms."
+        ),
+    ),
+    "terms:upstage": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.upstage.ai/terms-of-service",
+            "When a member agrees to these Terms, the Company grants the "
+            "member a non-transferable, limited license to use the Service, "
+            "and may not be sublicensed. The member may use the Service and "
+            "its outputs only within the scope of the Service's intended "
+            "purpose, as specified in these Terms.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Upstage Terms of Service as "
+            "a non-transferable, limited, non-sublicensable licence. Outputs "
+            "may be used only within the Service's intended purpose. Where "
+            "the Company publishes a Korean and an English version, the "
+            "Korean text prevails."        ),
+    ),
 }
 
 # ── MODEL-86 batch 5: Zhipu / Z.AI Hub licences ─────────────────────────────
@@ -607,6 +780,7 @@ _READINGS.update(
 # longer spelling. Same document, same reading.
 _READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
 _READINGS["apache-license-2.0"] = _READINGS["apache-2.0"]
+_READINGS["deepseek-license"] = _READINGS["deepseek"]
 
 #: The licence readings, by licence identifier. Read-only on purpose: a caller
 #: that wants a new licence answered has to add it here, with a document and a
