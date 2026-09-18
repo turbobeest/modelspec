@@ -105,8 +105,6 @@ letter-spacing:.14em;color:var(--dim);text-transform:uppercase;border-bottom:1px
 td.num{text-align:right;font-family:var(--mono)}
 td.grouphead{background:var(--surface);border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.panel{background:var(--surface);border:1px solid var(--line);padding:14px 16px;margin:14px 0}
-.panel table{margin:0}
 .pill{display:inline-block;font-family:var(--mono);font-size:10px;
 letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--line);
 color:var(--mute);margin-right:6px}
@@ -829,13 +827,15 @@ def stat_strip(model: Model) -> str:
                 if value not in (None, "", [])]
     if not rendered:
         return ""
-    body = "".join(
-        f'<div class="cell"><span class="lab">{esc(label)}</span>'
-        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
-        f"{esc(value)}</div></div>"
-        for label, value, extra in rendered)
+    body = "".join(_stat_cell(label, value, extra) for label, value, extra in rendered)
     return (f'<div class="stats" style="grid-template-columns:repeat({len(rendered)},'
             f'minmax(0,1fr))">{body}</div>')
+
+
+def _stat_cell(label: str, value: str, extra: str = "") -> str:
+    return (f'<div class="cell"><span class="lab">{esc(label)}</span>'
+            f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
+            f"{esc(value)}</div></div>")
 
 
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
@@ -1218,6 +1218,49 @@ def benchmark_links_section(front: dict[str, Any]) -> str:
                           lede="Where each fact on this page came from, and when it was read.")
 
 
+#: Past this many characters a benchmark fact is a paragraph. In a stat cell it
+#: would push the prose that explains the benchmark below the fold, so it goes
+#: behind its own disclosure instead.
+FACT_SHORT_MAX = 64
+
+
+def benchmark_facts(front: dict[str, Any]) -> list[tuple[str, str]]:
+    """The page's front-matter facts, labelled, with blanks dropped."""
+    facts = [("Category", front.get("category")), ("Subcategory", front.get("subcategory")),
+             ("Page status", front.get("status"))]
+    metric = front.get("metric")
+    if isinstance(metric, dict):
+        facts += [("Metric", metric.get("name")), ("Direction", metric.get("direction")),
+                  ("Unit", metric.get("unit")), ("Baseline note", metric.get("baseline_note"))]
+    dataset = front.get("dataset")
+    if isinstance(dataset, dict):
+        facts += [("Dataset size", dataset.get("size")), ("Dataset size note", dataset.get("size_note")),
+                  ("Dataset licence", dataset.get("license"))]
+    for key, label in (("saturation", "Saturation note"), ("contamination", "Contamination note")):
+        block = front.get(key)
+        if isinstance(block, dict):
+            facts.append((label, block.get("note")))
+    publisher = front.get("publisher")
+    if isinstance(publisher, dict):
+        facts.append(("Publisher", publisher.get("org")))
+    return [(label, str(value).strip()) for label, value in facts
+            if value is not None and str(value).strip() not in ("", "[]")]
+
+
+def fact_strip(facts: list[tuple[str, str]]) -> str:
+    cells = "".join(_stat_cell(label, value) for label, value in facts
+                    if len(value) <= FACT_SHORT_MAX)
+    return f'<div class="stats facts">{cells}</div>' if cells else ""
+
+
+def fact_notes(facts: list[tuple[str, str]]) -> str:
+    notes = "".join(
+        f'<details class="note"><summary><span class="lab">{esc(label)}</span></summary>'
+        f"<p>{esc(value)}</p></details>"
+        for label, value in facts if len(value) > FACT_SHORT_MAX)
+    return _section("Notes", f'<div class="notes">{notes}</div>' if notes else "")
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -1268,25 +1311,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
             f'<th>Card as of</th></tr></thead><tbody>{rows}</tbody></table></div>{more}')
 
     front = bench.front
-    facts = [("Category", front.get("category")), ("Subcategory", front.get("subcategory")),
-             ("Page status", front.get("status"))]
-    metric = front.get("metric")
-    if isinstance(metric, dict):
-        facts += [("Metric", metric.get("name")), ("Direction", metric.get("direction")),
-                  ("Unit", metric.get("unit")), ("Baseline note", metric.get("baseline_note"))]
-    dataset = front.get("dataset")
-    if isinstance(dataset, dict):
-        facts += [("Dataset size", dataset.get("size")), ("Dataset size note", dataset.get("size_note")),
-                  ("Dataset licence", dataset.get("license"))]
-    for key, label in (("saturation", "Saturation note"), ("contamination", "Contamination note")):
-        block = front.get(key)
-        if isinstance(block, dict):
-            facts.append((label, block.get("note")))
-    publisher = front.get("publisher")
-    if isinstance(publisher, dict):
-        facts.append(("Publisher", publisher.get("org")))
-    fact_rows = "".join(f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>"
-                        for k, v in facts if v is not None and str(v).strip() not in ("", "[]"))
+    facts = benchmark_facts(front)
 
     measures = str(front.get("measures") or "").strip()
     task = str(front.get("task_format") or "").strip()
@@ -1306,10 +1331,11 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 {aliases}
 <p><span class="pill {esc(status)}">{esc(status)}</span></p>
 <div class="{notice_class}">{esc(blurb)}{reasons}{alias_note}</div>
-<div class="panel"><table>{fact_rows}</table></div>
+{fact_strip(facts)}
 {f'<h2>What it measures</h2><p>{esc(measures)}</p>' if measures else ''}
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {f'<div class="prose">{prose}</div>' if prose else ''}
+{fact_notes(facts)}
 {verified}
 {benchmark_links_section(front)}
 <h2>Models reporting this benchmark</h2>

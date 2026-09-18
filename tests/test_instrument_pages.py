@@ -54,3 +54,43 @@ def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
     assert re.search(r"(?:^|\})h2(?:::before)?\{", r.CSS, re.M) is None
     assert ":where(.page) h2{" in r.CSS
     assert ":where(.page) h2::before{content:counter(sec" in r.CSS
+
+
+# ── the benchmark page's facts ───────────────────────────────────────────────
+
+LONG_NOTE = ("Random guessing scores 25 percent on four-option items; the published human "
+             "expert baseline is 81 percent, measured on a 200-item subset.")
+
+
+def _bench(front: dict) -> str:
+    bench = Benchmark("demo", Path("benchmarks/demo.md"), {"name": "Demo", **front}, "")
+    return r.benchmark_page(bench, BUILD, Catalogue(as_of=date(2026, 9, 15)), [])
+
+
+def test_a_long_note_sits_behind_its_own_disclosure_and_a_short_fact_does_not() -> None:
+    html = _bench({"category": "reasoning",
+                   "metric": {"name": "accuracy", "baseline_note": LONG_NOTE},
+                   "saturation": {"note": LONG_NOTE.replace("25", "30")}})
+    disclosures = re.findall(r"<details class=\"note\">.*?</details>", html, re.S)
+    assert disclosures[0] == ('<details class="note"><summary><span class="lab">Baseline note'
+                              f'</span></summary><p>{r.esc(LONG_NOTE)}</p></details>')
+    assert len(disclosures) == 2
+    assert "Saturation note" in disclosures[1]
+    outside = re.sub(r"<details.*?</details>", "", html, flags=re.S)
+    assert '<span class="lab">Category</span><div class="val">reasoning</div>' in outside
+    assert '<span class="lab">Metric</span><div class="val">accuracy</div>' in outside
+    assert LONG_NOTE not in outside
+    assert html.index('class="stats facts"') < html.index("<h2>Notes</h2>")
+
+
+def test_the_disposition_keeps_the_catalogue_spec_wording() -> None:
+    html = _bench({"metric": {"baseline_note": LONG_NOTE}})
+    assert '<p><span class="pill unassessed">unassessed</span></p>' in html
+    assert ('<div class="notice">This page is a discovery lead. Nobody has yet assessed it '
+            "against the catalogue contract, so it carries no disposition. Absence of evidence "
+            "here is not evidence of staleness.</div>") in html
+
+
+def test_a_page_with_no_long_facts_has_no_notes_section() -> None:
+    html = _bench({"category": "coding"})
+    assert "<h2>Notes</h2>" not in html and "<details" not in html
