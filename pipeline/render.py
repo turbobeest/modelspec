@@ -16,64 +16,189 @@ import html
 import math
 import posixpath
 import re
-from collections.abc import Collection, Iterable
+from collections.abc import Callable, Collection, Iterable
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model
+#: The evidence-basis vocabulary lives in the ranking engine. A page that spelled
+#: its own labels out would drift from the CLI on the first edit.
+from pipeline.ranking import _basis
 
-FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" '
+#: Archivo is served from this repo, not from a CDN. MODEL-24 permits only "the
+#: fonts already loaded", which Archivo was not, and MODEL-19 asks flatly for no
+#: runtime third-party dependency. A font that fails to load degrades to a
+#: fallback face, so this is about the constraint, not about breakage.
+FONTS = ('<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>'
+         '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" '
          'href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/'
-         'css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">')
+         'css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">')
 
-CSS = """
-:root{--ink:#f3f4f6;--mute:#9aa3b2;--dim:#5b6472;--ground:#000;--panel:#0b0e14;
---line:#1f2430;--amber:#f5b342;--good:#34d399;--warn:#fbbf24;--off:#6b7280}
+#: One file per subset covers every weight: Archivo's weight is a variable axis.
+FONT_FACES = """
+@font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;
+src:url(/fonts/archivo-latin.woff2) format("woff2");
+unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,
+U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-display:swap;
+src:url(/fonts/archivo-latin-ext.woff2) format("woff2");
+unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,
+U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+"""
+
+CSS = FONT_FACES + """
+:root{--ground:#07080a;--surface:#0d1014;--raise:#13171d;--line:#1a1f26;--rule:#13171d;
+--ink:#e6eaf0;--body:#c3cad4;--mute:#9aa4b2;--dim:#767f8d;
+--good:#4ade80;--warn:#f5b342;--bad:#f87171;--off:#767f8d;--alias:#a78bfa;
+--accent:#f5b342;--gutter:46px}
+[data-site="benchgraph"]{--accent:#38bdf8}
 *{box-sizing:border-box}
 html{color-scheme:dark}
 body{margin:0;background:var(--ground);color:var(--ink);
-font-family:"Space Grotesk",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
-font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
-a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:3px}
-a:hover{text-decoration-color:var(--amber)}
-:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
-.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0 8px;
-border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap;gap:12px}
-nav .brand{font-weight:700;font-size:18px;letter-spacing:-.02em;text-decoration:none}
-nav .links{display:flex;gap:20px;font-size:15px;flex-wrap:wrap}
-nav .links a{color:var(--mute);text-decoration:none}
-nav .links a:hover{color:var(--ink)}
-h1{font-size:34px;line-height:1.2;letter-spacing:-.02em;margin:0 0 6px}
-h2{font-size:21px;margin:34px 0 10px;letter-spacing:-.01em}
-h3{font-size:17px;margin:22px 0 6px}
-p{margin:0 0 12px}
-.lede{color:var(--mute);font-size:18px;margin-bottom:18px}
-.meta{color:var(--dim);font-size:14px;font-family:"JetBrains Mono",ui-monospace,monospace}
-code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
-table{width:100%;border-collapse:collapse;margin:10px 0 18px;font-size:15px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--mute);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
+a:hover{border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;
+border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap;gap:12px}
+nav .brand{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:16px;
+letter-spacing:-.02em;color:var(--ink);border-bottom:0}
+nav .brand:hover{color:var(--accent)}
+nav .links{display:flex;gap:20px;font-size:12px;letter-spacing:.06em;flex-wrap:wrap}
+nav .links a{color:var(--dim);border-bottom:0;text-transform:uppercase}
+nav .links a:hover{color:var(--accent)}
+.sans,.card,.prose{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
+h1{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+font-size:46px;line-height:1.05;letter-spacing:-.035em;margin:0 0 12px;overflow-wrap:break-word}
+h2{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:500;
+font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--mute);
+border-bottom:1px solid var(--line);padding-bottom:8px;margin:38px 0 14px;
+position:relative;counter-increment:sec}
+h2::before{content:counter(sec,decimal-leading-zero);position:absolute;
+left:calc(-1 * var(--gutter));top:2px;width:var(--gutter);
+font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+color:var(--dim);text-transform:uppercase}
+h3{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-weight:700;
+font-size:16px;letter-spacing:-.01em;margin:22px 0 6px}
+p{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
+line-height:1.65;color:var(--body);max-width:68ch;text-wrap:pretty;margin:0 0 12px}
+li{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;font-size:16px;
+line-height:1.65;color:var(--body)}
+.page{counter-reset:sec;padding-left:var(--gutter)}
+.lab{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+color:var(--dim);text-transform:uppercase}
+.lede{color:var(--body);font-size:16px}
+.meta{color:var(--dim);font-size:12px;font-family:"JetBrains Mono",ui-monospace,monospace;
+max-width:none}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top;
+overflow-wrap:break-word}
+th{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:400;font-size:10px;
+letter-spacing:.14em;color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--line)}
 td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace}
+td.grouphead{background:var(--surface);border-bottom:1px solid var(--line)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
-.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
-border:1px solid var(--line);color:var(--mute);margin-right:6px;font-family:"JetBrains Mono",ui-monospace,monospace}
-.pill.active{color:var(--good);border-color:#14532d}
-.pill.unverified{color:var(--warn);border-color:#422006}
-.pill.alias{color:var(--mute)}
-.pill.unassessed{color:var(--off)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
-.card a{text-decoration:none;font-weight:700}
-.card .sub{color:var(--dim);font-size:13px;margin-top:3px}
+.panel{background:var(--surface);border:1px solid var(--line);padding:14px 16px;margin:14px 0}
+.panel table{margin:0}
+.pill{display:inline-block;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;
+letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--line);
+color:var(--mute);margin-right:6px}
+.pill::before{margin-right:6px}
+.pill.active{color:var(--good);border:1px solid var(--good);background:#102a1c}
+.pill.active::before{content:"✓"}
+.pill.unverified{color:var(--warn);border:1px solid var(--warn);background:none}
+.pill.unverified::before{content:"!"}
+.pill.alias{color:var(--alias);border:1px dashed var(--alias);background:none}
+.pill.alias::before{content:"→"}
+.pill.unassessed{color:var(--off);border:1px dotted var(--off);background:none}
+.pill.unassessed::before{content:"?"}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);padding:13px 15px}
+.card a{border-bottom:0;font-weight:700;font-size:16px;color:var(--ink)}
+.card a:hover{color:var(--accent)}
+.card .sub{color:var(--dim);font-size:12px;margin-top:3px;
+font-family:"JetBrains Mono",ui-monospace,monospace}
 ul.cols{columns:3;column-gap:26px;padding-left:18px}
-@media(max-width:800px){ul.cols{columns:1}h1{font-size:27px}}
-footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
-.notice{border-left:3px solid var(--warn);padding:10px 14px;background:#0f0c04;margin:14px 0;font-size:15px}
-.notice.ok{border-left-color:var(--good);background:#04120c}
+ul.cols li{font-size:14px}
+footer{margin:56px 0 34px;padding-top:18px;border-top:1px solid var(--line)}
+footer p{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--dim);
+max-width:none;margin:0 0 6px}
+.notice{border-left:3px solid var(--warn);padding:11px 15px;background:var(--surface);
+margin:14px 0;font-size:15px;color:var(--body);max-width:68ch;
+font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif}
+.notice.ok{border-left-color:var(--good)}
+.notice.derived{border-left-color:var(--warn)}
+.notice.derived::before{content:"Derived";font-family:"JetBrains Mono",ui-monospace,monospace;
+font-size:10px;letter-spacing:.14em;color:var(--warn);text-transform:uppercase;margin-right:12px}
+.stats{display:grid;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+margin:22px 0 30px}
+.stats .cell{padding:16px 18px;min-width:0}
+.stats .cell+.cell{border-left:1px solid var(--line)}
+.stats .lab{display:block;margin-bottom:7px}
+.stats .val{font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+font-size:20px;font-weight:700;letter-spacing:-.03em;overflow-wrap:break-word}
+.stats .val.long{font-size:16px;font-weight:500}
+.basis-verified{color:var(--good)}
+.basis-unverified-legacy{color:var(--warn)}
+.basis-mixed,.basis-partial-verified{color:var(--accent)}
+.basis-none{color:var(--mute)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px}
+.chain{display:flex;align-items:stretch;border:1px solid var(--line);background:var(--surface);
+padding:18px 0;margin:0 0 24px}
+.chain-col{flex:1 1 0;min-width:0;padding:0 18px;display:flex;flex-direction:column;gap:8px}
+.chain-col+.chain-col{border-left:1px solid var(--line)}
+.chain-col.self{justify-content:center}
+.chain-card{border:1px solid var(--line);padding:10px 13px;font-size:15px;
+font-family:"Archivo",ui-sans-serif,system-ui,sans-serif}
+.chain-card.self{border-color:var(--accent)}
+.chain-card a{border-bottom:0;color:var(--ink);
+font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px}
+.chain-card a:hover{color:var(--accent)}
+.chain-card .lab{display:block;margin-top:4px;color:var(--accent)}
+.chain-card.self .lab{color:var(--dim)}
+.chain-name{font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;font-size:15px;font-weight:700}
+.bar{display:flex;align-items:center;gap:10px}
+.bar .track{flex:0 0 150px;width:150px;height:8px;background:var(--raise)}
+.bar .fill{display:block;height:8px;background:var(--accent)}
+.bar .val{flex:0 0 auto;min-width:52px;text-align:right;
+font-family:"JetBrains Mono",ui-monospace,monospace}
+.bar.flex .track{flex:1 1 auto;width:auto}
+.hw{display:flex;flex-direction:column}
+.hw>.scroll{order:-1}
+.showall{margin-top:12px}
+.showall summary{display:inline-block;cursor:pointer;list-style:none;
+font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.1em;
+text-transform:uppercase;color:var(--accent);border:1px solid var(--line);padding:7px 14px}
+.showall summary::-webkit-details-marker{display:none}
+.showall summary:hover{border-color:var(--accent)}
+.showall .when-open{display:none}
+.showall[open] .when-open{display:inline}
+.showall[open] .when-closed{display:none}
+.showall+.scroll tr.more{display:none}
+.showall[open]+.scroll tr.more{display:table-row}
+.gaps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.gap{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.14em;
+text-transform:uppercase;border:1px dashed var(--line);color:var(--mute);padding:4px 11px}
+.complete{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:68ch}
+.complete .track{flex:1 1 auto;height:6px;background:var(--raise)}
+.complete .fill{display:block;height:6px;background:var(--accent)}
+@media(max-width:800px){
+.page{padding-left:0}
+h2::before{position:static;display:block;width:auto;margin-bottom:6px}
+h1{font-size:30px}
+ul.cols{columns:1}
+.grid{grid-template-columns:1fr}
+.stats{grid-template-columns:1fr!important}
+.stats .cell+.cell{border-left:0;border-top:1px solid var(--line)}
+.chain{flex-direction:column;gap:16px}
+.chain-col+.chain-col{border-left:0;border-top:1px solid var(--line);padding-top:16px}
+.bar .track{flex:0 0 90px;width:90px}
+}
 """
 
 
@@ -123,13 +248,13 @@ def shell(*, title: str, description: str, canonical: str, body: str, build: Bui
           site: str, nav_links: Iterable[tuple[str, str]], robots: str = "index, follow") -> str:
     links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-site="{esc(site.lower())}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 <link rel="canonical" href="{esc(canonical)}">
 <meta name="robots" content="{esc(robots)}">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#07080a">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{esc(title)}">
 <meta property="og:description" content="{esc(description)}">
@@ -139,7 +264,9 @@ def shell(*, title: str, description: str, canonical: str, body: str, build: Bui
 <style>{CSS}</style></head>
 <body><div class="wrap">
 <nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>
+<main class="page">
 {body}
+</main>
 <footer>
 <p>Built {esc(build.built_at)} from commit <span class="mono">{esc(build.commit[:12])}</span>.
 Eligibility as of {esc(build.as_of.isoformat())}.</p>
@@ -251,20 +378,36 @@ def model_anchor(model_id: str, name: str, pages: Collection[str] | None = None)
     return label
 
 
-def lineage_section(relations: Any, pages: Collection[str] | None = None) -> str:
-    rows = []
-    for entry in relations.ancestors:
+def lineage_section(relations: Any, pages: Collection[str] | None = None,
+                    display_name: str = "") -> str:
+    """This model between what it came from and what came from it.
+
+    The relation word is written lowercase and uppercased by `.lab`, so the
+    markup keeps the word the graph actually stored.
+    """
+    if not (relations.ancestors or relations.descendants):
+        return ""
+
+    def card(entry: dict[str, Any], suffix: str) -> str:
         relation = str(entry.get("relation") or "").strip()
-        phrase = f"Is a <strong>{esc(relation)}</strong> of" if relation else "Derived from"
-        rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
-    for entry in relations.descendants:
-        relation = str(entry.get("relation") or "").strip()
-        phrase = (f"Is the base of this <strong>{esc(relation)}</strong>"
-                  if relation else "Is the base of")
-        rows.append(f'<tr><td>{phrase}</td>'
-                    f'<td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td></tr>')
-    return _section("Lineage", _table(["Relationship", "Model"], rows))
+        label = (f'<span class="lab">{esc(relation)}{suffix}</span>' if relation else "")
+        return ('<div class="chain-card">'
+                + model_anchor(str(entry["id"]), str(entry["name"]), pages)
+                + label + "</div>")
+
+    columns = []
+    if relations.ancestors:
+        columns.append('<div class="chain-col"><span class="lab">Descended from</span>'
+                       + "".join(card(e, " of") for e in relations.ancestors) + "</div>")
+    columns.append(
+        '<div class="chain-col self"><div class="chain-card self">'
+        + (f'<span class="chain-name">{esc(display_name)}</span>' if display_name else "")
+        + '<span class="lab">This model</span></div></div>')
+    if relations.descendants:
+        columns.append('<div class="chain-col"><span class="lab">Is the base of</span>'
+                       + "".join(card(e, "") for e in relations.descendants) + "</div>")
+
+    return _section("Lineage", '<div class="chain">' + "".join(columns) + "</div>")
 
 
 def platforms_section(relations: Any) -> str:
@@ -310,63 +453,170 @@ def _decode_cell(value: Any) -> str:
     return f"~{esc(value)}"
 
 
+#: Biggest iron first. A class this pipeline has not seen sorts after all of
+#: these rather than silently taking a position among them.
+DEVICE_CLASS_ORDER = ("datacentre", "workstation", "consumer", "edge", "integrated")
+
+#: Enough rows to see the shape of the curve. The rest are one click away.
+HARDWARE_ROWS_SHOWN = 8
+
+
+def _uniform(rows: list[dict[str, Any]], key: str) -> tuple[bool, Any]:
+    """Whether every row carries the same value for `key`, and what that value is."""
+    values = [r.get(key) for r in rows]
+    first = values[0] if values else None
+    return all(v == first for v in values), first
+
+
+def _decode_bar(value: Any, peak: float) -> str:
+    """The decode rate as a bar against the fastest device on this page."""
+    width = 0.0
+    if value is not None and peak > 0:
+        width = max(0.0, min(100.0, float(value) / peak * 100.0))
+    return ('<div class="bar"><span class="track">'
+            f'<span class="fill" style="width:{width:.1f}%"></span></span>'
+            f'<span class="val">{_decode_cell(value)}</span></div>')
+
+
+def _hardware_groups(entries: list[dict[str, Any]]) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Rows by device class, or one unnamed group when any row cannot be placed.
+
+    A partial grouping would have to invent a class for the rows it could not
+    place, so one row without a class drops the whole table back to flat.
+    """
+    classes = [(e.get("device") or {}).get("device_class") for e in entries]
+    if not all(classes):
+        return [("", entries)]
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for entry, device_class in zip(entries, classes):
+        buckets.setdefault(device_class, []).append(entry)
+    rank = {name: i for i, name in enumerate(DEVICE_CLASS_ORDER)}
+    return [(name, buckets[name])
+            for name in sorted(buckets, key=lambda c: (rank.get(c, len(rank)), c))]
+
+
 def hardware_section(relations: Any) -> str:
-    rows = []
-    for entry in relations.hardware:
-        device = entry.get("device") or {}
-        bandwidth = device.get("memory_bandwidth_gb_s")
-        rows.append(
-            f'<tr><td>{esc(entry["name"])}</td>'
-            f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>'
-            f'<td class="num">{esc(bandwidth)} GB/s</td>'
-            f'<td>{esc(entry.get("quantization"))}</td>'
-            f'<td class="num">{esc(format_weight_size(entry.get("weights_gb")))}</td>'
-            f'<td class="num">{_decode_cell(entry.get("predicted_decode_tps"))}</td>'
-            f'<td class="num">{_decode_cell(entry.get("fastest_predicted_decode_tps"))} '
-            f'<span class="mono" style="color:var(--dim)">{esc(entry.get("fastest_quantization"))}</span></td></tr>')
-    if not rows:
+    entries = list(relations.hardware)
+    if not entries:
         return ""
+
+    # A value identical on every row is a fact about the model, not about the
+    # devices, so it belongs in the sentence rather than repeated down a column.
+    same_quant, quant = _uniform(entries, "quantization")
+    same_weights, weights = _uniform(entries, "weights_gb")
+    same_fastest_quant, fastest_quant = _uniform(entries, "fastest_quantization")
+
+    hoisted = []
+    if same_quant and quant is not None:
+        hoisted.append(f'Every device here runs it at <span class="mono">{esc(quant)}</span>.')
+    if same_weights and weights is not None:
+        hoisted.append('The weights are <span class="mono">'
+                       f'{esc(format_weight_size(weights))}</span> on all of them.')
+    if same_fastest_quant and fastest_quant is not None:
+        hoisted.append('The fastest quantisation that fits is <span class="mono">'
+                       f'{esc(fastest_quant)}</span> everywhere.')
+    lede = ("Ordered by predicted speed. Bandwidth sets decode rate; memory decides whether "
+            "it runs at all." + ("" if not hoisted else " " + " ".join(hoisted)))
+
+    headers = ["Device", "Memory", "Bandwidth"]
+    if not same_quant:
+        headers.append("Best quality")
+    if not same_weights:
+        headers.append("Weights")
+    headers += ["tok/s", "Fastest"]
+    if not same_fastest_quant:
+        headers.append("Fastest at")
+
+    peak = max((float(e["predicted_decode_tps"]) for e in entries
+                if e.get("predicted_decode_tps") is not None), default=0.0)
+
+    rows: list[str] = []
+    shown = 0
+    for name, group in _hardware_groups(entries):
+        if name:
+            more = ' class="more"' if shown >= HARDWARE_ROWS_SHOWN else ""
+            plural = "s" if len(group) != 1 else ""
+            rows.append(f'<tr{more}><td class="grouphead" colspan="{len(headers)}">'
+                        f'<span class="lab">{esc(name)} &middot; {len(group)} '
+                        f'device{plural}</span></td></tr>')
+        for entry in group:
+            device = entry.get("device") or {}
+            cells = [f'<td>{esc(entry["name"])}</td>',
+                     f'<td class="num">{esc(entry.get("device_memory_gb"))} GB</td>',
+                     f'<td class="num">{esc(device.get("memory_bandwidth_gb_s"))} GB/s</td>']
+            if not same_quant:
+                cells.append(f'<td class="mono">{esc(entry.get("quantization") or "")}</td>')
+            if not same_weights:
+                cells.append('<td class="num">'
+                             f'{esc(format_weight_size(entry.get("weights_gb")))}</td>')
+            cells.append(f'<td>{_decode_bar(entry.get("predicted_decode_tps"), peak)}</td>')
+            cells.append('<td class="num">'
+                         f'{_decode_cell(entry.get("fastest_predicted_decode_tps"))}</td>')
+            if not same_fastest_quant:
+                cells.append('<td class="mono">'
+                             f'{esc(entry.get("fastest_quantization") or "")}</td>')
+            more = ' class="more"' if shown >= HARDWARE_ROWS_SHOWN else ""
+            rows.append(f"<tr{more}>" + "".join(cells) + "</tr>")
+            shown += 1
+
+    control = ""
+    if shown > HARDWARE_ROWS_SHOWN:
+        control = ('<details class="showall"><summary>'
+                   f'<span class="when-closed">Show all {shown} devices</span>'
+                   '<span class="when-open">Show fewer</span></summary></details>')
+
     moe = any(e.get("moe_prediction_is_conservative") for e in relations.hardware)
     caveat = (" This is a mixture-of-experts model and no card carries active-parameter "
               "counts, so these predictions use total parameters and understate the real "
               "speed." if moe else "")
-    note = ('<div class="notice">Every figure here is <strong>computed</strong>, not measured. '
+    note = ('<div class="notice derived">Every figure here is <strong>computed</strong>, not measured. '
             'Fit is weights at each quantisation against device memory, with a 25% allowance '
             'for the KV cache, activations and the OS. Decode rate is the memory-bandwidth '
             'roofline at 70% efficiency. Nobody has run this model on these devices.'
             + esc(caveat) + '</div>')
-    return _section(
-        "What it fits on",
-        note + _table(["Device", "Memory", "Bandwidth", "Best quality",
-                       "Weights", "tok/s", "Fastest"], rows),
-        "Ordered by predicted speed. Bandwidth sets decode rate; memory decides whether it runs at all.")
+    # `.showall + .scroll` can only reach rows that follow the control, so the
+    # control is emitted first and flex `order` puts it back under the table.
+    return _section("What it fits on",
+                    note + f'<div class="hw">{control}{_table(headers, rows)}</div>', lede)
 
 
-def capabilities_section(relations: Any) -> str:
-    if not relations.capabilities:
-        return ""
-    pills = " ".join(
+def capability_chips(relations: Any) -> str:
+    """The capability pills alone, for the page header."""
+    return " ".join(
         f'<span class="pill">{esc(str(e["name"]))}'
         + (f' &middot; {esc(e["tier"])}' if e.get("tier") else "") + "</span>"
         for e in relations.capabilities)
-    return _section("Capabilities", f"<p>{pills}</p>")
 
 
 def competitors_section(relations: Any, pages: Collection[str] | None = None) -> str:
-    rows = []
-    for entry in relations.competitors[:12]:
-        rows.append(
-            f'<tr><td>{model_anchor(str(entry["id"]), str(entry["name"]), pages)}</td>'
-            f'<td class="num">{esc(entry.get("overlap_score"))}</td>'
-            f'<td>{esc(entry.get("computed_date"))}</td></tr>')
-    if not rows:
+    entries = relations.competitors[:12]
+    if not entries:
         return ""
-    note = ('<div class="notice">Derived, not authored. Two models compete if they share a '
-            'type, sit within 3x on parameters, and report at least one benchmark in common; '
-            'the score is the overlap of their capability sets. The shared-benchmark test '
-            'rests on card scores that carry one date per card and no per-score source.</div>')
+
+    def positive(entry: dict[str, Any]) -> float:
+        try:
+            return max(0.0, float(entry.get("overlap_score") or 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    # A zero usually means neither card records capabilities, not that they share
+    # none. An empty bar would state the second; drawing nothing states neither.
+    cards = []
+    for entry in entries:
+        score = positive(entry)
+        bar = ('<div class="bar flex"><span class="track"><span class="fill" '
+               f'style="width:{min(100.0, score * 100.0):.1f}%"></span></span>'
+               f'<span class="val">{esc(entry.get("overlap_score"))}</span></div>') if score else ""
+        cards.append('<div class="card">'
+                     + model_anchor(str(entry["id"]), str(entry["name"]), pages) + bar + "</div>")
+    scored = any(positive(e) for e in entries)
+    note = ('<div class="notice derived">Derived, not authored. Two models compete if they share a '
+            'type, sit within 3x on parameters, and report at least one benchmark in common'
+            + ('; the score is the overlap of their capability sets' if scored else '')
+            + '. The shared-benchmark test rests on card scores that carry one date per card '
+            'and no per-score source.</div>')
     return _section("What competes with it",
-                    note + _table(["Model", "Capability overlap", "Derived"], rows))
+                    note + f'<div class="grid">{"".join(cards)}</div>')
 
 
 def evidence_section(model: Model) -> str:
@@ -445,6 +695,129 @@ def authoring_guide_section(front: dict[str, Any]) -> str:
                     "How to prompt this model, per its provider's guidance. Every claim is sourced and dated.")
 
 
+def _dig(front: Any, *keys: str) -> Any:
+    """Nested lookup that survives a missing or non-dict intermediate."""
+    node = front
+    for key in keys:
+        if not isinstance(node, dict):
+            return None
+        node = node.get(key)
+    return node
+
+
+#: Per-token prices only. The per-million and per-hour fields answer a different
+#: question and their presence would not mean this model's tokens are priced.
+COST_PER_TOKEN_FIELDS = ("input", "output", "reasoning", "cache_read", "cache_write",
+                         "batch_input", "batch_output")
+
+
+def _has_token_price(front: Any) -> bool:
+    cost = _dig(front, "cost")
+    return isinstance(cost, dict) and any(
+        cost.get(field) is not None for field in COST_PER_TOKEN_FIELDS)
+
+
+#: Every fact this page knows how to show, and how to tell whether the card has
+#: it. A registry rather than a run of conditionals, because the footer's whole
+#: claim is that the list is complete and the same one every page is measured
+#: against. `open_weights` is false-is-present: a card that says "closed" has
+#: been researched.
+PageFact = Callable[[dict[str, Any], Any, Any], bool]
+
+PAGE_FACTS: tuple[tuple[str, PageFact], ...] = (
+    ("Parameters", lambda f, r, m: _dig(f, "architecture", "total_parameters") is not None),
+    ("Release date", lambda f, r, m: bool(f.get("release_date"))),
+    ("Last updated", lambda f, r, m: bool(f.get("last_updated"))),
+    ("Family", lambda f, r, m: bool(f.get("family"))),
+    ("Status", lambda f, r, m: bool(f.get("status"))),
+    ("Open weights", lambda f, r, m: _dig(f, "licensing", "open_weights") is not None),
+    ("Licence", lambda f, r, m: bool(_dig(f, "licensing", "license_type"))),
+    ("Context window", lambda f, r, m: _dig(f, "modalities", "text", "context_window") is not None),
+    ("Pricing", lambda f, r, m: _has_token_price(f)),
+    ("Training cutoff", lambda f, r, m: bool(_dig(f, "lineage", "training_data_cutoff"))),
+    ("Lineage", lambda f, r, m: r is not None and bool(r.ancestors or r.descendants)),
+    ("Capabilities", lambda f, r, m: r is not None and bool(r.capabilities)),
+    ("Platform availability", lambda f, r, m: r is not None and bool(r.platforms)),
+    ("Hardware fit", lambda f, r, m: r is not None and bool(r.hardware)),
+    ("Benchmark scores", lambda f, r, m: bool(m)),
+)
+
+
+def unresearched_section(front: dict[str, Any], relations: Any, scores: Any) -> str:
+    """Name the gaps once, with the page's own denominator.
+
+    `ModelCard.card_completeness` is not used here. Measured across all 1,339
+    cards it spans 10.0%-21.3%, so it separates nothing, and it costs 20s per
+    build. What a reader wants is which of the things this page could show are
+    missing.
+    """
+    absent = [label for label, present in PAGE_FACTS
+              if not present(front if isinstance(front, dict) else {}, relations, scores)]
+    if not absent:
+        return ""
+    have, total = len(PAGE_FACTS) - len(absent), len(PAGE_FACTS)
+    bar = (f'<div class="complete"><span class="lab">{have} of the {total} facts this page '
+           'can show</span><span class="track"><span class="fill" '
+           f'style="width:{have / total * 100:.1f}%"></span></span></div>')
+    chips = "".join(f'<span class="gap">{esc(label)}</span>' for label in absent)
+    return _section(
+        "Not yet researched", bar + f'<div class="gaps">{chips}</div>',
+        "A section with nothing to say does not render at all, so this is the one place the "
+        "page names its gaps. Remember that null in this schema means nobody has looked, not "
+        "that the model lacks the property.")
+
+
+#: Past this many characters a value reads as a phrase rather than a figure, and
+#: the display size that flatters "34.4B" breaks "partial-verified" across lines.
+STAT_LONG_VALUE = 10
+
+
+def _card_evidence_basis(model: Model) -> str | None:
+    """Provenance of this card's own scores, in the ranking engine's vocabulary.
+
+    A card with no scores has nothing to characterise, and "none" would read as
+    a verdict on the model rather than on an empty input set.
+    """
+    contributing = len(model.scores)
+    if not contributing:
+        return None
+    records = _dig(model.front, "benchmarks", "evidence")
+    verified_ids = {str(r.get("benchmark_id")) for r in records
+                    if isinstance(r, dict)} if isinstance(records, list) else set()
+    verified = sum(1 for key in model.scores if str(key) in verified_ids)
+    return _basis(contributing, verified, verified / contributing)
+
+
+def stat_strip(model: Model) -> str:
+    """The card's headline figures, only the ones it actually carries.
+
+    The column count follows the cells that survive, so a thin card gets a
+    short strip rather than a row of blanks asserting we looked.
+    """
+    front = model.front
+    parameters = _dig(front, "architecture", "total_parameters")
+    open_weights = _dig(front, "licensing", "open_weights")
+    basis = _card_evidence_basis(model)
+    cells = [
+        ("Parameters", human_count(parameters) if parameters else None, ""),
+        ("Type", front.get("model_type"), ""),
+        ("Released", front.get("release_date"), ""),
+        ("Open weights", None if open_weights is None else ("yes" if open_weights else "no"), ""),
+        ("Evidence basis", basis, f" basis-{esc(basis)}" if basis else ""),
+    ]
+    rendered = [(label, str(value), extra) for label, value, extra in cells
+                if value not in (None, "", [])]
+    if not rendered:
+        return ""
+    body = "".join(
+        f'<div class="cell"><span class="lab">{esc(label)}</span>'
+        f'<div class="val{" long" if len(value) > STAT_LONG_VALUE else ""}{extra}">'
+        f"{esc(value)}</div></div>"
+        for label, value, extra in rendered)
+    return (f'<div class="stats" style="grid-template-columns:repeat({len(rendered)},'
+            f'minmax(0,1fr))">{body}</div>')
+
+
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None,
                pages: Collection[str] | None = None) -> str:
@@ -467,42 +840,21 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
              'attributed individually. They are shown as reported and are not verified evidence. '
              'Benchmark pages carry the reviewed, dated evidence where it exists.</div>') if scores else ""
 
-    identity = [
-        ("Provider", model.provider_display),
-        ("Family", front.get("family")),
-        ("Type", front.get("model_type")),
-        ("Status", front.get("status")),
-        ("Released", front.get("release_date")),
-        ("Updated", front.get("last_updated")),
-        ("Parameters", human_count(front["architecture"]["total_parameters"])
-         if isinstance(front.get("architecture"), dict)
-         and front["architecture"].get("total_parameters") else None),
-        ("Open weights", ("yes" if front["licensing"].get("open_weights") else None)
-         if isinstance(front.get("licensing"), dict) else None),
-    ]
-    id_rows = "".join(
-        f"<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>" for k, v in identity if v not in (None, "", [])
-    )
-
     rel = relations
+    chips = ""
     sections = ""
     if rel is not None:
-        sections = (lineage_section(rel, pages) + capabilities_section(rel)
+        pills = capability_chips(rel)
+        chips = f'<div class="chips">{pills}</div>' if pills else ""
+        sections = (lineage_section(rel, pages, model.display_name)
                     + hardware_section(rel) + platforms_section(rel)
                     + competitors_section(rel, pages))
 
-    unresearched = ""
-    if rel is not None and rel.is_empty:
-        unresearched = ('<div class="notice">Nothing beyond the card\'s own fields has been '
-                        'researched for this model yet — no lineage, platforms, capabilities or '
-                        'hardware fit. That is a gap in the data, not a statement about the '
-                        'model.</div>')
-
     body = f"""
 <h1>{esc(model.display_name)}</h1>
-<p class="lede">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
-<div class="panel"><table>{id_rows}</table></div>
-{unresearched}
+<p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
+{chips}
+{stat_strip(model)}
 {sections}{authoring_guide_section(front)}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
@@ -510,6 +862,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
+{unresearched_section(front, rel, scores)}
 <h2>Data</h2>
 <p><a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a> &middot;
 <a href="/graph/">See it in the graph</a> &middot;

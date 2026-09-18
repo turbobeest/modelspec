@@ -116,7 +116,14 @@ tos_url: ""
 acceptable_use_policy_url: ""
 not_for_all_audiences: false                   # HF content safety flag
 
-commercial_use: null                           # true | false | conditional
+commercial_use: "unspecified"                  # allowed | restricted | prohibited | unspecified | withheld
+commercial_use_source: null                    # required for allowed/restricted/prohibited:
+                                               #   {kind, url, read_on, quote}
+                                               #   kind: license | terms_of_service |
+                                               #     acceptable_use_policy | provider_documentation |
+                                               #     provider_statement
+commercial_use_conditions: ""                  # required for `restricted`, forbidden otherwise:
+                                               #   one line stating the threshold or carve-out
 defense_use: ""                                # allowed | restricted | prohibited | unspecified
 government_use: ""                             # allowed | restricted | prohibited | unspecified
 medical_use: ""                                # allowed | restricted | prohibited | unspecified
@@ -356,7 +363,16 @@ availability:
     rate_limit_tpm: null
     sla_uptime: ""
     regions: []
-    data_residency: []                         # where data is processed geographically
+    data_residency: null                       # where data is processed geographically.
+                                               #   null until determined; [] is a published
+                                               #   answer meaning "no residency commitment"
+    data_residency_disclosure: "unresearched"  # unresearched | published | withheld
+                                               #   withheld = determined, not on this card —
+                                               #   either a region list, or the finding that
+                                               #   the provider commits to none (MODEL-79).
+                                               #   unresearched = nobody looked, or could not
+                                               #   reach it, or it runs on your own hardware
+    data_residency_source: null                # required when published: {kind, url, read_on, quote}
     hipaa_eligible: false
     fedramp_authorized: false
     soc2_compliant: false

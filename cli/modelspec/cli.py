@@ -508,8 +508,10 @@ def info(
     # License
     if license_info:
         lic_lines = [f"  License: {license_info.get('name', '-')}"]
-        if license_info.get("commercial_ok") is not None:
-            lic_lines.append(f"  Commercial: {_bool_icon(license_info['commercial_ok'])}")
+        if license_info.get("commercial_ok"):
+            # A permission string since MODEL-77 ("allowed" / "restricted" /
+            # "prohibited" / "unspecified" / "withheld"), never a boolean.
+            lic_lines.append(f"  Commercial: {license_info['commercial_ok']}")
         console.print(Panel("\n".join(lic_lines), title="License", border_style="dim"))
 
 

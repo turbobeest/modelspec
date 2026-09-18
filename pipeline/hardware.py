@@ -28,7 +28,7 @@ from typing import Any
 
 import yaml
 
-from schema.enums import ModelType
+from schema.enums import DeviceClass, ModelType
 from schema.graph import CollectingSink
 
 #: model_type values that autoregressively decode tokens, so a tok/s figure is
@@ -137,6 +137,24 @@ def _single_device_fit(raw: dict[str, Any], path: Path) -> tuple[bool, str | Non
     )
 
 
+def _device_class(raw: dict[str, Any], path: Path) -> str:
+    """The record's `device_class`, checked against the vocabulary (MODEL-76).
+
+    The graph groups Hardware nodes by this value, so `datacenter` or `Consumer`
+    would not be a near miss — it would be a sixth class that every query for
+    the real one silently skips. Rejected at load, where the file name is still
+    in hand to name in the error.
+    """
+    value = raw.get("device_class")
+    try:
+        return DeviceClass(value).value
+    except ValueError:
+        allowed = ", ".join(c.value for c in DeviceClass)
+        raise ValueError(
+            f"{path.name}: device_class {value!r} is not one of {allowed}"
+        ) from None
+
+
 @dataclass(frozen=True)
 class MaxContext:
     """Predicted context length at one (device, quant) pair.
@@ -170,7 +188,7 @@ def load_devices(root: Path) -> list[Device]:
         fit, fit_reason = _single_device_fit(raw, path)
         out.append(Device(
             id=raw["id"], display_name=raw["display_name"], vendor=raw["vendor"],
-            device_class=raw["device_class"], bandwidth_gb_s=float(bandwidth),
+            device_class=_device_class(raw, path), bandwidth_gb_s=float(bandwidth),
             capacity_options_gb=tuple(float(c) for c in options),
             precisions_native=tuple(raw.get("precisions_native") or []),
             unified=bool(memory.get("unified_with_host")),
@@ -178,6 +196,18 @@ def load_devices(root: Path) -> list[Device]:
             single_device_fit_reason=fit_reason,
         ))
     return out
+
+
+def device_classes(devices: list[Device]) -> dict[str, str]:
+    """Device id → `DeviceClass` value, for the graph derivation (MODEL-76).
+
+    `schema.graph` sits below this loader and cannot read `hardware/*.yaml`
+    itself, so it takes this mapping and stamps the class onto the Hardware
+    nodes a card's deployment profiles produce. One source of truth for the
+    class, whether the graph is being exported as JSON or ingested into
+    FalkorDB.
+    """
+    return {device.id: device.device_class for device in devices}
 
 
 def weights_gb(params: float, quant: str) -> float:

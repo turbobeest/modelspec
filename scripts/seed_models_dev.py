@@ -25,6 +25,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.card_updates import StaleNotice, carry_guide_forward, write_notices  # noqa: E402
+from scripts import attribution  # noqa: E402
 
 KNOWN_IDENTITIES_PATH = PROJECT_ROOT / "scripts" / "models_dev_known_identities.yaml"
 
@@ -41,13 +42,18 @@ from schema.card import (
     ToolUseCapability,
     Cost,
     Sources,
+    Availability,
+    PlatformEntry,
 )
 from schema.enums import ModelStatus, ModelType, Modality
 
 
 # ── Provider configuration ──────────────────────────────────────
 # Map models.dev provider IDs to our directory slugs and display names.
-# Only these canonical providers will be seeded (the actual model creators).
+# These are the pages the seeder reads. A page is where a model is OFFERED:
+# Alibaba's page lists Moonshot's Kimi K3 and DeepSeek's V4 Flash. Who built a
+# listed model is decided by scripts/attribution.py, never by the page
+# (MODEL-82); the page's own organisation is only one candidate.
 PROVIDER_MAP: dict[str, dict] = {
     "openai": {
         "slug": "openai",
@@ -423,12 +429,44 @@ def map_status(raw: dict) -> ModelStatus:
     return ModelStatus.ACTIVE
 
 
+def org_cfg(org: attribution.Org) -> dict:
+    """A registry organisation in the shape build_model_card takes."""
+    return {"slug": org.slug, "display": org.display, "country": org.country}
+
+
+def listing_availability(provider_id: str, raw: dict, model_key: str) -> Availability:
+    """The listing page as availability: it offers the model, it did not make it."""
+    config = attribution.load_config()
+    entry = PlatformEntry(
+        available=True,
+        model_id=str(raw.get("id", model_key)),
+        url=f"https://models.dev/{provider_id}",
+        notes=f"Listed on models.dev provider '{attribution.safe(provider_id, 60)}'. "
+        "Availability, not authorship (MODEL-82).",
+    )
+    availability = Availability()
+    field_name = config.availability_fields.get(provider_id)
+    if field_name and isinstance(getattr(availability, field_name, None), PlatformEntry):
+        entry.url = getattr(availability, field_name).url or entry.url
+        setattr(availability, field_name, entry)
+    else:
+        availability.other_platforms = [entry]
+    return availability
+
+
 def build_model_card(
     raw: dict,
     provider_id: str,
     provider_cfg: dict,
+    *,
+    listed_by_other: bool = False,
 ) -> ModelCard:
-    """Build a ModelCard from a models.dev model entry."""
+    """Build a ModelCard from a models.dev model entry.
+
+    ``provider_cfg`` is the CREATOR's organisation. ``listed_by_other`` says the
+    page ``provider_id`` is a different organisation offering the model; that
+    listing is recorded as availability.
+    """
     slug = provider_cfg["slug"]
     display_name = raw.get("name", raw.get("id", "Unknown"))
 
@@ -504,6 +542,11 @@ def build_model_card(
             cache_read=raw_cost.get("cache_read") if raw_cost else None,
             cache_write=raw_cost.get("cache_write") if raw_cost else None,
         ),
+        availability=(
+            listing_availability(provider_id, raw, raw.get("id", display_name))
+            if listed_by_other
+            else Availability()
+        ),
         sources=Sources(
             models_dev_url=f"https://models.dev/{provider_id}",
         ),
@@ -560,57 +603,9 @@ def _build_prose(
     return "\n".join(lines)
 
 
-def card_to_yaml_clean(card: ModelCard) -> str:
-    """Serialize a ModelCard to clean YAML frontmatter + markdown prose.
-
-    The from_yaml_string parser expects:
-      - Identity fields FLAT at the top level
-      - Other sections as nested dicts
-      - Card metadata flat at the top level
-
-    Uses model_dump(mode='json') to avoid Python-specific YAML tags for enums.
-    """
-    data = card.model_dump(
-        mode="json",
-        exclude_none=False,
-        exclude={"prose_body", "card_completeness"},
-    )
-
-    # Flatten identity fields to top level (matching from_yaml_string expectations)
-    identity = data.pop("identity", {})
-
-    # Build ordered output: identity fields first, then sections, then metadata
-    from collections import OrderedDict
-
-    out = OrderedDict()
-    for k, v in identity.items():
-        out[k] = v
-
-    # Add all remaining sections
-    section_keys = [
-        "architecture", "lineage", "licensing", "modalities", "capabilities",
-        "cost", "availability", "benchmarks", "deployment", "risk_governance",
-        "inference_performance", "adoption", "downselect", "sources",
-    ]
-    for sk in section_keys:
-        if sk in data:
-            out[sk] = data.pop(sk)
-
-    # Card metadata
-    for mk in ("card_schema_version", "card_author", "card_created", "card_updated"):
-        if mk in data:
-            out[mk] = data.pop(mk)
-    if data.get("authoring_guide") is not None:
-        out["authoring_guide"] = data.pop("authoring_guide")
-
-    yaml_str = yaml.dump(
-        dict(out),
-        default_flow_style=False,
-        sort_keys=False,
-        allow_unicode=True,
-        width=120,
-    )
-    return f"---\n{yaml_str}---\n\n{card.prose_body}"
+def make_judge(config: attribution.Config) -> attribution.Judge | None:
+    """The TypeSafe judge, or None when no key is configured (fail closed)."""
+    return attribution.TypeSafeJudge.from_env(config)
 
 
 def main() -> None:
@@ -628,6 +623,10 @@ def main() -> None:
         "--stale-notices", type=Path, default=None,
         help="Write a PR-body snippet here when an overwrite marks an authoring "
              "guide stale because the card's version changed (MODEL-65).")
+    parser.add_argument(
+        "--attribution-report", type=Path, default=None,
+        help="Write a PR-body snippet listing cards whose creator needs review and "
+             "listings left uncarded because their creator was not established (MODEL-82).")
     args = parser.parse_args()
 
     print("Fetching models.dev API...")
@@ -645,11 +644,25 @@ def main() -> None:
     total_created = 0
     total_skipped_existing = 0
     total_skipped_known = 0
+    total_skipped_creator_page = 0
     total_errors = 0
     created_ids: list[str] = []
     total_completeness = 0.0
     seen_model_ids: set[str] = set()
     stale_notices: list[StaleNotice] = []
+
+    # MODEL-82: who built each listed model. A dry run settles only what code
+    # can settle and never calls out; ambiguous listings print as pending.
+    attr_config = attribution.load_config()
+    registry = attribution.load_registry(models_dir, PROVIDER_MAP)
+    page_orgs = {pid: cfg["slug"] for pid, cfg in PROVIDER_MAP.items()}
+    judge = None if args.dry_run else make_judge(attr_config)
+    ledger_path = PROJECT_ROOT / "scripts" / attribution.LEDGER_PATH.name
+    ledger = attribution.Ledger(None if args.dry_run else ledger_path)
+    attributor = attribution.Attributor(api_data, registry, page_orgs, judge, attr_config, ledger)
+    if judge is None and not args.dry_run:
+        print("  NOTE: TYPESAFE_API_KEY is not set. Listings whose creator the evidence "
+              "does not settle by itself will not be carded.")
 
     for provider_id, provider_cfg in PROVIDER_MAP.items():
         if provider_id not in api_data:
@@ -658,46 +671,80 @@ def main() -> None:
 
         provider_data = api_data[provider_id]
         raw_models = provider_data.get("models", {})
-        provider_dir = models_dir / provider_cfg["slug"]
-        if not args.dry_run:
-            provider_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n  Processing {provider_cfg['display']} ({provider_id}): {len(raw_models)} models")
 
         for model_key, raw_model in raw_models.items():
             try:
-                card = build_model_card(raw_model, provider_id, provider_cfg)
+                md_id = models_dev_identity(provider_id, raw_model, model_key)
+                file_slug = slugify(raw_model.get("id", model_key))
+                evidence = attributor.evidence(provider_id, raw_model, model_key)
+
+                # Held already? Look under every organisation the evidence
+                # names, not only the page's: qwen/kimi-k3 and moonshot/kimi-k3
+                # are the same model. Display names are never consulted.
+                orgs_to_check = [provider_cfg["slug"]] + [
+                    o for o in evidence.candidates if o != provider_cfg["slug"]
+                ]
+                held = None
+                for org in orgs_to_check:
+                    held = already_held(
+                        models_dev_id=md_id,
+                        seeder_id=f"{org}/{file_slug}",
+                        file_path=models_dir / org / f"{file_slug}.md",
+                        models_dir=models_dir,
+                        known=known,
+                        new_only=args.new_only,
+                    )
+                    if held:
+                        break
+                if held and held.startswith("known:"):
+                    canonical = held.split(":", 1)[1]
+                    total_skipped_known += 1
+                    print(f"    SKIP {md_id} (already {canonical})")
+                    continue
+                if held == "exists":
+                    total_skipped_existing += 1
+                    continue
+
+                result = attributor.decide(evidence, deterministic_only=args.dry_run)
+                attributor.results.append(result)
+                if not result.writes_creator:
+                    if args.dry_run and result.status == attribution.UNAVAILABLE:
+                        print(f"    NEW ? {attribution.safe(md_id)} (creator to be judged: "
+                              f"{', '.join(result.candidates)})")
+                        total_created += 1
+                    else:
+                        print(f"    QUEUE {attribution.safe(md_id)}: {result.basis}")
+                    continue
+
+                creator = result.creator
+                listed_by_other = creator != provider_cfg["slug"]
+                if listed_by_other:
+                    # The creator's own page lists it too: card it from there.
+                    if creator in evidence.first_party_orgs:
+                        total_skipped_creator_page += 1
+                        print(f"    SKIP {attribution.safe(md_id)} "
+                              f"(by {creator}; carded from its own page)")
+                        continue
+                    # Never overwrite another organisation's card from a
+                    # listing on somebody else's page.
+                    if (models_dir / creator / f"{file_slug}.md").exists():
+                        total_skipped_existing += 1
+                        continue
+
+                card = build_model_card(
+                    raw_model,
+                    provider_id,
+                    org_cfg(registry[creator]),
+                    listed_by_other=listed_by_other,
+                )
 
                 # Skip duplicates (e.g. perplexity and perplexity-agent overlap)
                 if card.identity.model_id in seen_model_ids:
                     continue
                 seen_model_ids.add(card.identity.model_id)
-
-                file_path = seeder_file_path(models_dir, provider_cfg, raw_model, model_key)
-                md_id = models_dev_identity(provider_id, raw_model, model_key)
-                seed_id = seeder_model_id(provider_cfg, raw_model, model_key)
-
-                # A card that already exists may carry research this script
-                # cannot reproduce — enrichment, hardware profiles, reviewed
-                # evidence. Overwriting it silently discards that.
-                # A models.dev row we already hold under another provider/slug
-                # is the same model, not a new one (see models_dev_known_identities.yaml).
-                held = already_held(
-                    models_dev_id=md_id,
-                    seeder_id=seed_id,
-                    file_path=file_path,
-                    models_dir=models_dir,
-                    known=known,
-                    new_only=args.new_only,
-                )
-                if held and held.startswith("known:"):
-                    canonical = held.split(":", 1)[1]
-                    total_skipped_known += 1
-                    print(f"    SKIP {seed_id} (already {canonical})")
-                    continue
-                if held == "exists":
-                    total_skipped_existing += 1
-                    continue
+                file_path = models_dir / creator / f"{file_slug}.md"
 
                 if args.dry_run:
                     print(f"    NEW {card.identity.model_id}")
@@ -714,8 +761,9 @@ def main() -> None:
                 if file_path.exists():
                     existing = ModelCard.from_yaml_file(file_path)
                     notice = carry_guide_forward(existing, card)
-                content = card_to_yaml_clean(card)
+                content = card.to_yaml()
                 loaded = ModelCard.from_yaml_string(content)
+                file_path.parent.mkdir(parents=True, exist_ok=True)
                 write_card_atomically(file_path, content)
                 created_ids.append(card.identity.model_id)
                 completeness = loaded.card_completeness
@@ -725,11 +773,21 @@ def main() -> None:
                     stale_notices.append(notice)
                     print(f"    STALE guide {notice.model_id}: {notice.old_version} -> {notice.new_version}")
 
-                print(f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete)")
+                flag = "  REVIEW creator" if result.status == attribution.REVIEW else ""
+                print(f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete){flag}")
 
             except Exception as e:
                 total_errors += 1
                 print(f"    ERR {model_key}: {e}")
+
+    if args.attribution_report is not None and not args.dry_run:
+        report = attribution.render_report(
+            attributor.results,
+            judge_available=judge is not None,
+            spent_tokens=attributor.budget.spent,
+        )
+        if report:
+            args.attribution_report.write_text(report, encoding="utf-8")
 
     if args.stale_notices is not None and not args.dry_run:
         write_notices(stale_notices, args.stale_notices)
@@ -740,6 +798,10 @@ def main() -> None:
     print(f"  Total cards created:     {total_created}")
     print(f"  Skipped, file exists:    {total_skipped_existing}")
     print(f"  Skipped, known identity: {total_skipped_known}")
+    print(f"  Skipped, creator's page: {total_skipped_creator_page}")
+    queued = [r for r in attributor.results if not r.writes_creator]
+    print(f"  Creator not established: {len(queued)}")
+    print(f"  Judgment input tokens:   {attributor.budget.spent}")
     print(f"  Total errors:            {total_errors}")
     if total_created > 0:
         avg = total_completeness / total_created

@@ -6,7 +6,8 @@ first among them. This is what they can rely on.
 ## The interface
 
 ```
-modelspec snapshot fetch [--origin URL]   download the published export (the only networked command)
+modelspec snapshot fetch [--origin URL] [--api-key KEY]
+                                          download the published export (the only networked command)
 modelspec snapshot status [--json]        what is cached, how old, which build
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
@@ -21,6 +22,9 @@ Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 (see "Hosts and offload" below). These options
 are additive and do not change the meaning of the commands above. `--origin`
 is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
+`--api-key` is an option on `snapshot fetch` too; it has no default and the
+supported way to supply one is the `MODELSPEC_API_KEY` environment variable
+(see "A keyed origin" below).
 
 ## The JSON envelope
 
@@ -104,10 +108,18 @@ with exit 3 (and `freshness: null`), not a traceback.
 | 2 | no ranked answer: nothing matched the constraints (`empty`), or no matching candidate had enough evidence (`unavailable`) | inspect `ranking_status`; loosen a constraint or obtain more evidence |
 | 3 | no snapshot | run `modelspec snapshot fetch` |
 | 4 | stale snapshot and `--require-fresh` was given | fetch, or drop the flag |
+| 5 | a keyed origin refused the credential (no key, unknown key, revoked key) | supply or replace the key; retrying the same one will not help |
+| 6 | a keyed origin rate-limited the credential | wait for the window named on stderr, then retry |
 
 **2 is not an error.** "Nothing in the catalogue fits your constraints" is a
 truthful result, and conflating it with a failure makes a caller retry something
 that will never succeed.
+
+**5 and 6 belong to `snapshot fetch` against a keyed origin.** They are the
+only codes MODEL-71 added, they are produced by no other command, and no
+unkeyed origin produces them: against `https://modelspec.dev`, `snapshot fetch`
+still exits 0 or 1 and nothing else. Every other exit code means exactly what
+it meant before.
 
 ## What we promise
 
@@ -143,6 +155,95 @@ error instead of crashing a client that assumed the old range.
 
 The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
 shipped without a bump; that is the case the rule exists to prevent.
+
+### Policy fields, and the one major bump they cost (MODEL-77)
+
+`build.export_schema_version` is **2.0**. `/api/models/<id>.json` publishes a
+card's frontmatter verbatim, so reshaping the policy fields reshapes that tree.
+Two widenings ship as one bump because they are one decision:
+
+* `licensing.commercial_use` was `true | false | null`. It is now a string:
+  `allowed`, `restricted`, `prohibited`, `unspecified` or `withheld` — the same
+  `UsePermission` its four siblings (`defense_use`, `government_use`,
+  `medical_use`, `academic_use`) already used. A boolean could not say
+  "allowed up to 700M monthly active users", which is the actual answer for the
+  169 llama-community, gemma and deepseek cards in the catalogue.
+* `availability.primary_provider.data_residency` was a list that defaulted to
+  `[]` on every card, so "no residency guarantees" and "nobody has looked" were
+  the same value. It is now `list | null`, beside
+  `data_residency_disclosure` (`unresearched` | `published` | `withheld`).
+
+Both are range-widening under the rule above, so under MODEL-59 each would bump
+the major on its own. Doing them in one pass costs one bump instead of two.
+A 1.x snapshot is refused by a 2.x CLI with the usual message, and a snapshot
+carrying no `export_schema_version` at all is a pre-2.0 tree and is refused the
+same way.
+
+**How to treat `withheld` versus `unspecified`/`null`.** They are not
+interchangeable and a consumer must not collapse them:
+
+| value | what it means | what a caller should do |
+| --- | --- | --- |
+| `unspecified` (`commercial_use`), `unresearched` (`data_residency`) | Nobody has determined this. The catalogue is not asserting anything about the licence. | Treat as unknown. Do not infer permission or prohibition. Do not ask again: there is nothing to fetch. |
+| `withheld` | The determination exists and is deliberately not published in this tree. | Treat as unknown **for the purposes of the public data**, but as *obtainable* — the answer exists and is not on this card. Never render it as "not researched". |
+| `allowed` / `restricted` / `prohibited` | A determination, with its citation. | Use it, and carry the citation. For `restricted`, read `commercial_use_conditions` — the value alone is not actionable. |
+
+#### The two senses of `withheld` (MODEL-79, decided 2026-09-17)
+
+`withheld` means one thing in the contract and always has: **a determination
+exists, and this card is not where it is.** It never means nobody looked. What
+differs between the two fields is *what kind of thing* was determined, and a
+consumer who assumes "withheld = a value is being held back for sale" will
+misread most residency cards.
+
+| field | what a `withheld` card is telling you |
+| --- | --- |
+| `licensing.commercial_use` | **Determined, not published to you.** A licence was identified, read and decided — allowed, restricted or prohibited. The value is held back; ask for it. |
+| `availability.primary_provider.data_residency_disclosure` | **Determined — which may be that the provider publishes nothing.** Either a region list was read from the provider's own page, or the provider's documents were read and commit to no region at all. Both are findings, and both are held back; ask for it. |
+
+So for residency, `withheld` answers "has anyone looked?" with *yes*, and
+leaves "is there a region list to have?" open. That second question has a real
+answer for every withheld platform, and it is sometimes "no — we read their
+documents, and they name no processing location". A buyer who needs EU-only
+inference is told something useful by that: not "we don't know", but "there is
+nothing here to check your requirement against". Under the old shape, this
+platform and one nobody had ever looked at were the same card.
+
+**What is *not* withheld.** A platform recorded as unreachable — every
+connection refused or timed out from the network the work was done on — stays
+`unresearched`, because nobody successfully looked. Two of the fifty platforms
+are in that state. `unresearched` is also what a local runtime carries
+(`ollama`, `lm_studio`, …): a model on hardware you own has no region-shaped
+answer at all, and `withheld` would advertise one that cannot exist.
+`scripts/residency/platforms.py` holds that list and the reasoning;
+`scripts/residency/report.py disclosure` prints what each of the fifty
+publishes.
+
+`withheld` exists because the alternative is a lie at scale. Once
+determinations are made and held back, a public `commercial_use: null` would
+assert "not yet researched" on roughly 1,300 cards where it is false, in the
+one place this catalogue's reputation lives. The marker is carried **in the
+value itself**, not in a companion "available elsewhere" flag, so that a
+consumer reading only `commercial_use` cannot miss it.
+
+**Sources are not optional.** A determination carries
+`commercial_use_source` / `data_residency_source`: the document it was read
+from (`kind`, `url`) and the day it was read (`read_on`, ISO), plus an optional
+short `quote` of the operative clause. Licence terms are rewritten without
+notice, so an undated reading is not evidence. A value without a source fails
+card validation; a card that is `unspecified` or `withheld` carries no source
+at all, so an empty answer can never look cited.
+
+Eight cards carry `kind: legacy-import` with no URL and no date. Those are the
+eight `commercial_use: true` values that existed before this shape, kept rather
+than discarded and kept honest rather than dressed up — the same admission
+`evidence_basis: unverified-legacy` makes about a benchmark score. A test
+freezes that kind to exactly those eight cards.
+
+**Not served yet.** These fields are on the cards and in
+`/api/models/<id>.json`. The CLI `--json` envelope does not carry them, so its
+`schema_version` stays `"1.0"`; `rank` and `fit` are unchanged. The
+`policy-check` endpoint is MODEL-80.
 
 ### Deprecated: CLIs older than MODEL-53
 
@@ -280,3 +381,134 @@ and the candidate parameter counts are new, optional data. So
 `fit_state` is a new field, not a widening of `fits`. A later change that emits
 a new `fit_state` value (for example `cpu_only`) does widen it and needs a major
 bump under the rule above.
+
+## A keyed origin (MODEL-71)
+
+The published export on `https://modelspec.dev` is delayed. A snapshot of it is
+older than `stale_after_days` the moment it is fetched, so a caller that needs
+a current answer would see `"stale": true` on day zero and could never pass
+`--require-fresh`. `snapshot fetch` can therefore present a credential to an
+origin that serves the current tree to keys entitled to it.
+
+**Nothing else changes.** Same commands, same envelope, same `schema_version`,
+same exit codes on every path that already existed. The one difference a keyed
+fetch makes is that `freshness.fetched_at` is now and `freshness.stale` is
+false. `rank` and `fit` return exactly what they returned before — no new
+field, no enrichment, no marker saying a key was used
+(`tests/test_cli_keyed_origin.py::test_the_rank_and_fit_envelopes_are_unchanged`).
+
+### Supplying the key
+
+```bash
+export MODELSPEC_API_KEY='…'        # supported
+modelspec snapshot fetch --origin https://api.modelspec.dev
+
+modelspec snapshot fetch --api-key '…'   # works, and warns
+```
+
+**Use the environment variable.** `docs/agent-commerce-assessment.md` §4 is the
+reason: a credential in `argv` is visible in process listings to every user on
+the machine, is written to shell history, and is captured by anything that logs
+a command line — CI transcripts and agent traces included. `--api-key` exists
+because some callers cannot set an environment variable, and using it prints a
+warning to stderr saying so. The environment is read when `--api-key` is absent;
+the flag wins when it is given, because a caller who typed a key meant that key.
+
+The key is sent as `Authorization: Bearer <key>`, which is what
+[`api-access.md`](api-access.md) documents and, not incidentally, the one header
+an HTTP client drops when a redirect crosses to another host. **A key is never
+put in a URL**, never written into the cached snapshot, and never printed: it
+is held in a `Credential` whose `repr` and `str` emit a 12-character `key_id`
+(the SHA-256 prefix the origin logs) instead of the secret, and every message
+`snapshot fetch` writes is passed through a redaction backstop on the way out.
+`test_the_key_appears_in_no_output_no_error_and_no_cached_file` drives every
+branch of the command with a known key and searches stdout, stderr, the
+origin's access log and the cached snapshot for it.
+
+### The four failures
+
+| What happened | Exit | On stderr |
+| --- | --- | --- |
+| No key presented, and the origin requires one (`401 missing_api_key`) | 5 | how to set `MODELSPEC_API_KEY`, and the origin's own message |
+| The key is unknown or revoked (`401 invalid_api_key`, `403 key_revoked`) | 5 | which source supplied it, its `key_id`, and the origin's message |
+| A window is spent (`429 rate_limited`) | 6 | the retry delay, and the origin's message naming the limit and its reset |
+| The origin did not answer (DNS, TLS, connection, timeout) | 1 | `error: could not fetch the snapshot: could not reach <origin><route>: …` |
+
+The unreachable case keeps exit 1 and its original sentence on purpose: that
+path existed before this change and callers already branch on it. The refusals
+relay the origin's own `error.message` rather than paraphrasing it, because the
+service already says the useful part — where to get a key, when the window
+resets. None of the four prints a traceback, and none of them replaces a
+snapshot that is already cached.
+
+### Versioning
+
+Additive under the MODEL-59 rule, so no major bump. One new option, one new
+environment variable, and two exit codes that no pre-existing call can receive
+— the same reasoning as the MODEL-26 host fields, which are emitted only when
+`--host` is given. No existing field's range widens, `schema_version` stays
+`"1.0"`, and `build.export_schema_version` is untouched.
+
+## The live rank API (MODEL-68)
+
+`POST https://api.modelspec.dev/v1/rank` answers the same question this CLI
+answers, from the current export rather than from a local snapshot. Its rows are
+**the same rows**: the endpoint runs `pipeline/ranking.py`, vendored into the
+Worker verbatim, and `tests/test_rank_worker.py` holds it to bytes identical to
+`modelspec offline rank --json` for the same input against the same build.
+
+Nothing in this document changes. The CLI keeps working with no account, no
+credential and no network after the first `snapshot fetch`, which is the point of
+it. The endpoint is for callers that want today's export without carrying one.
+
+Its status codes map onto the exit codes above:
+
+| Endpoint | CLI |
+|---|---|
+| `200` a ranking | `0` |
+| `400` refused (bad request, unknown use case, unknown device) | `1` |
+| `422` no match — carries the eliminating constraint, never a bare empty list | `2` |
+| `502` the published export could not be read | — |
+
+Full contract: [`rank-api.md`](rank-api.md).
+
+## The live policy-check API (MODEL-80)
+
+`POST https://api.modelspec.dev/v1/policy-check` takes a policy document —
+required licence terms, permitted origin countries, required processing regions,
+a commercial-use requirement — and returns, per model **and per platform**, one
+of three verdicts.
+
+There is no CLI surface for it yet (`REV-6`), so nothing in the sections above
+changes. It is documented here because its three-state answer is the same
+discipline this contract already states for policy fields, and a consumer of one
+should be able to find the other.
+
+**`undetermined` is a verdict, not a missing `pass`.** In the response schema it
+is structurally distinct: every check carries exactly one of `satisfied`,
+`violated` or `undetermined` as a sibling key, and every row exactly one of
+`passed`, `failed`, `undetermined`. A consumer written against `satisfied` finds
+no `satisfied` key on an undetermined check, so the mistake surfaces in the
+caller's code rather than in their deployment. `require_no_undetermined: true`
+turns any undetermined row into a documented `422`.
+
+That follows directly from [the policy-field rules above](#policy-fields-and-the-one-major-bump-they-cost-model-77):
+`unspecified`, `withheld` and `unresearched` describe a file's contents, not the
+world, and none of them is ever read as a permission. Nor is a value whose only
+citation is `legacy-import`.
+
+Its status codes map onto the exit codes above:
+
+| Endpoint | CLI |
+|---|---|
+| `200` verdicts | `0` |
+| `400` refused (malformed body, empty policy, unknown model or platform) | `1` |
+| `422` the caller demanded no undetermined rows and there are some | `2` |
+| `502` the published policy export could not be read | — |
+| `503` entitled to the determinations, and they could not be read | — |
+
+The endpoint is free; the determinations it reads are not, and the difference is
+labelled on every response (`determinations.included`,
+`undetermined_for_lack_of_entitlement`) rather than degraded silently.
+
+Full contract: [`policy-check-api.md`](policy-check-api.md).

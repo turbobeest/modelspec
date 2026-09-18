@@ -14,16 +14,22 @@ a convenience:
       2  no result matched the constraints, which is a real answer
       3  no snapshot; run `modelspec snapshot fetch`
       4  the snapshot is stale and --require-fresh was given
+      5  a keyed origin refused the credential (MODEL-71)
+      6  a keyed origin rate-limited the credential (MODEL-71)
 
   The pre-existing graph commands exit 0 when FalkorDB is unreachable, so a
   script cannot tell an answer from a failure. Nothing here does that.
+
+  5 and 6 belong to `snapshot fetch` against an origin that keys its export.
+  No unkeyed origin produces them, so no existing call can start seeing one:
+  the free path against `https://modelspec.dev` still exits only 0 or 1.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-from typing import Any
+from typing import Any, NoReturn
 
 import click
 import typer
@@ -39,6 +45,12 @@ EXIT_ERROR = 1
 EXIT_NO_MATCH = 2
 EXIT_NO_SNAPSHOT = 3
 EXIT_STALE = 4
+#: Only reachable from `snapshot fetch` against a keyed origin. A rejected key
+#: and a spent quota are different problems — one is fixed by a new key, the
+#: other by waiting — so a script must be able to tell them apart without
+#: reading prose off stderr.
+EXIT_KEY_REFUSED = 5
+EXIT_RATE_LIMITED = 6
 
 
 class ContractCommand(TyperCommand):
@@ -156,13 +168,43 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
 @snapshot_app.command("fetch", cls=ContractCommand)
 def snapshot_fetch(
     origin: str = typer.Option(snap.DEFAULT_ORIGIN, help="Where to fetch from."),
+    api_key: str = typer.Option(
+        None, "--api-key",
+        help=f"Credential for an origin that keys its export. Prefer the "
+             f"{snap.API_KEY_ENV} environment variable: a key in argv is visible "
+             f"in shell history and in `ps`."),
 ) -> None:
-    """Download the published export. The only command that needs the network."""
+    """Download the published export. The only command that needs the network.
+
+    Unkeyed by default. With a credential — `MODELSPEC_API_KEY`, or `--api-key`
+    — the same command fetches from an origin that keys its export, and the
+    snapshot it writes is current rather than 90 days delayed. Nothing about
+    the snapshot, the envelope or any other command changes; only `fetched_at`.
+    """
+    credential = snap.resolve_credential(api_key)
+
+    def fail(message: str, code: int) -> NoReturn:
+        # The backstop, not the plan: no message built above interpolates a key.
+        typer.echo(f"error: {credential.redact(message) if credential else message}",
+                   err=True)
+        raise typer.Exit(code)
+
+    if credential is not None and credential.source == "flag":
+        typer.echo(
+            f"warning: --api-key is visible in shell history and in process "
+            f"listings. Prefer {snap.API_KEY_ENV} in the environment.", err=True)
     try:
-        result = snap.fetch(origin)
+        result = snap.fetch(origin, credential=credential)
+    except snap.KeyRequiredError as exc:
+        fail(str(exc), EXIT_KEY_REFUSED)
+    except snap.KeyRejectedError as exc:
+        fail(str(exc), EXIT_KEY_REFUSED)
+    except snap.RateLimitedError as exc:
+        fail(str(exc), EXIT_RATE_LIMITED)
     except Exception as exc:  # noqa: BLE001 - surfaced to the user, not swallowed
-        typer.echo(f"error: could not fetch the snapshot: {exc}", err=True)
-        raise typer.Exit(EXIT_ERROR) from exc
+        # Unchanged for every failure that is not a credential one, including an
+        # unreachable origin: same sentence, same exit code as before MODEL-71.
+        fail(f"could not fetch the snapshot: {exc}", EXIT_ERROR)
     typer.echo(f"fetched {len(result.data['candidates']['candidates'])} models "
                f"from {origin} (build {result.build_commit[:12]})")
     typer.echo(f"cached at {result.path}")

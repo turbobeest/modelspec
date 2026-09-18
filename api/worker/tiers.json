@@ -1,0 +1,42 @@
+{
+  "policy_version": "access-v1",
+  "timezone": "UTC",
+  "sandbox_prefix": "test_",
+  "sandbox_tier": "sandbox",
+  "live_prefix": "live_",
+  "urls": {
+    "get_a_key": "https://modelspec.dev/pricing",
+    "docs": "https://modelspec.dev/docs/api",
+    "sandbox": "https://modelspec.dev/docs/api#sandbox"
+  },
+  "tiers": {
+    "sandbox": {
+      "live_data": false,
+      "paid": false,
+      "daily_limit": null,
+      "burst_limit": null,
+      "description": "Fixed, obviously synthetic results. Unlimited, no signup, no live data."
+    },
+    "free": {
+      "live_data": true,
+      "paid": false,
+      "daily_limit": 10,
+      "burst_limit": 5,
+      "description": "Live rankings. Enough for a genuine decision, not for a build loop."
+    },
+    "paid": {
+      "live_data": true,
+      "paid": true,
+      "daily_limit": 1000,
+      "burst_limit": 60,
+      "description": "Placeholder for the by-plan rows MODEL-73 provisions. Limits are a starting point, not a commitment."
+    },
+    "dpf": {
+      "live_data": true,
+      "paid": true,
+      "daily_limit": null,
+      "burst_limit": null,
+      "description": "Unlimited, and deliberately on the same handler as a paid key: null limits, not a bypass."
+    }
+  }
+}

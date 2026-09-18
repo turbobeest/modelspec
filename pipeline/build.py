@@ -147,6 +147,26 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     return html
 
 
+def _copy_fonts(root: Path, *dests: Path) -> None:
+    """Serve the self-hosted faces from every site that renders through the shell.
+
+    Both sites share one stylesheet, so a face missing from either one silently
+    falls back to the system sans on that domain only — the kind of difference
+    nobody notices until the two sites are compared side by side.
+    """
+    src = root / "site/fonts"
+    if not src.is_dir():
+        return
+    for dest in dests:
+        target = dest / "fonts"
+        target.mkdir(parents=True, exist_ok=True)
+        for item in src.glob("*.woff2"):
+            shutil.copy2(item, target / item.name)
+        licence = src / "Archivo-OFL.txt"
+        if licence.is_file():
+            shutil.copy2(licence, target / licence.name)
+
+
 def _copy_static(src: Path, dest: Path) -> bool:
     """Copy a prebuilt landing page tree if it exists. Never overwrite generated pages."""
     if not (src / "index.html").is_file():
@@ -198,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
 
     ms = out / "modelspec"
     bg = out / "benchgraph"
+    _copy_fonts(root, ms, bg)
     ms.mkdir(parents=True, exist_ok=True)
     bg.mkdir(parents=True, exist_ok=True)
 
@@ -212,9 +233,12 @@ def main(argv: list[str] | None = None) -> int:
     from schema.graph import derive_graph
     from pipeline import competition, hardware
     cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
-    derived = derive_graph(cards)
+    devices = hardware.load_devices(root)
+    # The device records are the only source of a device class, so they are
+    # loaded before the derivation rather than after it (MODEL-76).
+    derived = derive_graph(cards, hardware.device_classes(devices))
     competition_counts = competition.compute(derived, today)
-    hardware_counts = hardware.compute(derived, cards, hardware.load_devices(root))
+    hardware_counts = hardware.compute(derived, cards, devices)
     card_ids = {c.identity.model_id for c in cards}
     graph_export.resolve_card_ids(
         derived, card_ids=card_ids,
@@ -238,6 +262,14 @@ def main(argv: list[str] | None = None) -> int:
 
     from pipeline import ranking
     ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
+
+    # The public half of the compliance answer (MODEL-80): licence, origin,
+    # commercial-use grant and per-platform availability, reshaped so
+    # `POST /v1/policy-check` can read the whole catalogue in one fetch. Adds
+    # no information — it republishes card fields, empty states included.
+    from pipeline import policy_export
+    graph_counts["policy"] = policy_export.write_export(
+        ms / "api", cards, build.to_json())
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models)
@@ -282,6 +314,15 @@ def main(argv: list[str] | None = None) -> int:
         (ms / "p" / slug).mkdir(parents=True, exist_ok=True)
         (ms / "p" / slug / "index.html").write_text(r.provider_page(slug, group, build), encoding="utf-8")
         ms_paths.append(f"/p/{slug}/")
+
+    # Terms, the neutrality commitment and the privacy statement (MODEL-70), at
+    # stable URLs from the first build. While they are drafts they are published
+    # `noindex` and contribute nothing to the sitemap, so the URL is dependable
+    # before the documents are adopted without a crawler presenting an unadopted
+    # draft as terms in force. `legal.DRAFT` is the single switch.
+    from pipeline import legal
+    legal_counts = legal.write(ms, root, build)
+    ms_paths.extend(legal_counts["sitemap_paths"])
 
     # benchgraph.dev
     bg_paths = ["/", "/benchmarks/"]
@@ -352,6 +393,7 @@ def main(argv: list[str] | None = None) -> int:
         **counts,
         "graph": graph_counts,
         "ranking": ranking_counts,
+        "legal": legal_counts,
         "commit": build.commit[:12],
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),

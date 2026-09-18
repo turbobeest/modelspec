@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from api.ranking.engine import (
     BENCHMARK_RANGES,
@@ -29,7 +29,16 @@ from api.ranking.engine import (
     _tier_rank,
     ranking_policy,
 )
-from schema.graph import CollectingSink
+
+if TYPE_CHECKING:  # pragma: no cover - annotations only
+    # Only `build_candidates` and `write_export` take a sink, and neither runs
+    # on a serving path. `from __future__ import annotations` already makes the
+    # annotation a string, so deferring the import costs nothing here and buys
+    # a great deal: this module, and therefore the whole scorer, imports with
+    # nothing but the standard library and `api.ranking.engine`. The Cloudflare
+    # rank Worker (MODEL-68) runs this exact file, and pydantic is not
+    # available to it. See docs/rank-api.md.
+    from schema.graph import CollectingSink
 
 #: Profiles offered in the wizard. All 51 are exported for the API, but a
 #: dropdown of 51 is a worse experience than a short list. speech_to_text
@@ -342,6 +351,23 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         "candidates": [c.to_json() for c in candidates],
     })
 
+    # The device vocabulary, without the 7 MB of FITS_ON edges that the graph
+    # view carries. `offline rank --fits` refuses an unknown device id rather
+    # than answering "nothing fits your GPU", because those are different
+    # answers and a caller would act on them differently. The rank Worker
+    # (MODEL-68) has to make the same distinction and cannot afford the graph
+    # view per request, so the ids ship on their own. Additive: no consumer
+    # pinning `export_schema_version` mis-parses a new file.
+    devices = sorted(
+        (props for (label, _id), props in sink.nodes.items() if label == "Hardware"),
+        key=lambda d: str(d.get("id", "")),
+    )
+    dump("hardware.json", {
+        "build": build_json,
+        "count": len(devices),
+        "hardware": devices,
+    })
+
     precomputed = {}
     for key in FEATURED_PROFILES:
         precomputed[key] = rank_report(
@@ -352,6 +378,7 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
 
     return {
         "candidates": len(candidates),
+        "hardware": len(devices),
         "profiles": len(USE_CASE_PROFILES),
         "featured": len(FEATURED_PROFILES),
         "precomputed": {k: len(v["ranked"]) for k, v in precomputed.items()},

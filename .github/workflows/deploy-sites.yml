@@ -83,6 +83,7 @@ jobs:
           test -s dist/modelspec/api/build.json
           test -s dist/modelspec/api/rank/candidates.json
           test -s dist/modelspec/api/rank/profiles.json
+          test -s dist/modelspec/api/policy/catalogue.json
           test -s dist/modelspec/api/graph/views/hardware.json
 
       - name: Check the export carries a pin-able schema version
@@ -99,6 +100,7 @@ jobs:
           candidates = load("dist/modelspec/api/rank/candidates.json")
           profiles = load("dist/modelspec/api/rank/profiles.json")
           hardware = load("dist/modelspec/api/graph/views/hardware.json")
+          policy = load("dist/modelspec/api/policy/catalogue.json")
           version = build["export_schema_version"]
           if not version or not str(version)[0].isdigit():
               raise SystemExit(f"build.json export_schema_version is unusable: {version!r}")
@@ -107,13 +109,28 @@ jobs:
               ("candidates.json", candidates),
               ("profiles.json", profiles),
               ("hardware.json", hardware),
+              ("policy/catalogue.json", policy),
           ):
               got = (payload.get("build") or {}).get("export_schema_version")
               if got != version:
                   raise SystemExit(
                       f"{name} build.export_schema_version {got!r} != build.json {version!r}"
                   )
+          # MODEL-80: this file is the free tier's whole source, so an uncited
+          # policy answer in it is an uncited answer served to a customer.
+          # Standing rule 1, enforced on the artifact rather than on the card.
+          uncited = [
+              row["model_id"] for row in policy["models"]
+              if (row["primary_provider"]["data_residency_disclosure"] == "published"
+                  and not (row["primary_provider"]["data_residency_source"] or {}).get("read_on"))
+          ]
+          if uncited:
+              raise SystemExit(
+                  f"{len(uncited)} policy rows publish a residency with no read date: "
+                  f"{uncited[:5]}")
           print(f"export_schema_version={version}")
+          print(f"policy rows: {policy['count']} models, "
+                f"{sum(len(r['platforms']) for r in policy['models'])} platform rows")
           PY
 
       - name: Last good site remains if this build failed
