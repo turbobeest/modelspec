@@ -147,6 +147,26 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     return html
 
 
+def _copy_fonts(root: Path, *dests: Path) -> None:
+    """Serve the self-hosted faces from every site that renders through the shell.
+
+    Both sites share one stylesheet, so a face missing from either one silently
+    falls back to the system sans on that domain only — the kind of difference
+    nobody notices until the two sites are compared side by side.
+    """
+    src = root / "site/fonts"
+    if not src.is_dir():
+        return
+    for dest in dests:
+        target = dest / "fonts"
+        target.mkdir(parents=True, exist_ok=True)
+        for item in src.glob("*.woff2"):
+            shutil.copy2(item, target / item.name)
+        licence = src / "Archivo-OFL.txt"
+        if licence.is_file():
+            shutil.copy2(licence, target / licence.name)
+
+
 def _copy_static(src: Path, dest: Path) -> bool:
     """Copy a prebuilt landing page tree if it exists. Never overwrite generated pages."""
     if not (src / "index.html").is_file():
@@ -198,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
 
     ms = out / "modelspec"
     bg = out / "benchgraph"
+    _copy_fonts(root, ms, bg)
     ms.mkdir(parents=True, exist_ok=True)
     bg.mkdir(parents=True, exist_ok=True)
 
