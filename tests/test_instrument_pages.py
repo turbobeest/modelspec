@@ -56,6 +56,35 @@ def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
     assert ":where(.page) h2::before{content:counter(sec" in r.CSS
 
 
+# ── the landing's calls to action ────────────────────────────────────────────
+
+LANDING_ANSWER = ('<div class="a">That question, answered from evidence, '
+                  'and kept current as the models change underneath you.</div>')
+
+
+def test_the_landing_calls_to_action_use_the_shared_button_classes() -> None:
+    html = builder.wire_landing(LANDING_ANSWER, {"models": 1, "providers": 1, "edges": 1,
+                                                 "benchmarks": 1, "fields": 1})
+    cta = html.split(LANDING_ANSWER, 1)[1]
+    assert cta == ('\n      <div class="btns go">'
+                   '<a class="btn primary" href="/downselect/">Answer it now &rarr;</a>'
+                   '<a class="btn" href="/graph/">Explore the graph</a>'
+                   '<a class="btn" href="/models/">Browse every model</a></div>')
+    assert re.search(r"#[0-9a-fA-F]{3,8}\b", cta) is None
+    assert "style=" not in cta
+
+
+def test_the_landing_statistics_become_a_stat_strip() -> None:
+    html = builder.wire_landing(
+        '<section><div class="stats" aria-label="x"><div class="cell"><span class="lab">'
+        'model cards</span><div class="val">OLD</div></div></div></section>',
+        {"models": 1225, "providers": 47, "edges": 37020, "benchmarks": 1106, "fields": 693})
+    assert "OLD" not in html
+    assert ('<div class="cell"><span class="lab">model cards</span>'
+            '<div class="val">1,225</div></div>') in html
+    assert html.endswith("</div></section>")
+
+
 # ── the benchmark page's facts ───────────────────────────────────────────────
 
 LONG_NOTE = ("Random guessing scores 25 percent on four-option items; the published human "
