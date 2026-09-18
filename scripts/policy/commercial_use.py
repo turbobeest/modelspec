@@ -54,10 +54,11 @@ from .licences import LicenceReading, reading_for  # noqa: E402
 #: establish the licence of record on their own.
 #:
 #: The families are deliberately absent. `llama-community` names six different
-#: agreements, `deepseek` covers both the DeepSeek Model License and plain MIT
-#: depending on the release, and `other` and `proprietary` name nothing at all.
-#: A card typed with one of those needs the distribution declaration to say
-#: which document applies.
+#: agreements, `qwen` covers the Qwen LICENSE AGREEMENT and Tongyi Qianwen
+#: (and Apache-2.0 Qwen3 releases), `deepseek` covers both the DeepSeek Model
+#: License and plain MIT depending on the release, and `other` and
+#: `proprietary` name nothing at all. A card typed with one of those needs the
+#: distribution declaration to say which document applies.
 CARD_TYPE_TO_LICENCE: dict[str, str] = {
     "apache-2.0": "apache-2.0",
     "mit": "mit",
@@ -74,7 +75,7 @@ CARD_TYPE_TO_LICENCE: dict[str, str] = {
 #: notice — so its cards get no determination. Assuming MongoDB's terms apply
 #: because MongoDB acquired Voyage would be inference, not a reading.
 PROPRIETARY_PROVIDERS = frozenset(
-    {"openai", "google", "anthropic", "xai", "amazon", "perplexity"}
+    {"openai", "google", "anthropic", "xai", "amazon", "perplexity", "mistral"}
 )
 
 

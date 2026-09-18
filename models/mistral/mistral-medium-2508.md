@@ -61,9 +61,9 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: apache-2.0
-  license_url: ''
-  tos_url: ''
+  license_type: proprietary
+  license_url: https://legal.mistral.ai/terms/commercial-terms-of-service
+  tos_url: https://legal.mistral.ai/terms/commercial-terms-of-service
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -898,13 +898,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Mistral Medium 3.1
 
 Mistral Medium 3.1 is a Vlm model from Mistral AI. Part of the mistral-medium family. Knowledge cutoff: 2025-05.
+
+Licence: proprietary. Vendor terms https://legal.mistral.ai/terms/commercial-terms-of-service (Mistral AI Terms of Service for Commercial Users), read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

@@ -63,8 +63,8 @@ lineage:
   library_name: vllm
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: other
+  license_url: https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -819,15 +819,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Devstral 2 123B Instruct 2512
 
 Auto-generated from HuggingFace Hub metadata for [mistralai/Devstral-2-123B-Instruct-2512](https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512).
+
+Licence: other. Creator LICENSE file https://huggingface.co/mistralai/Devstral-2-123B-Instruct-2512/raw/main/LICENSE (Modified MIT License) and Hub cardData.license other, read 2026-09-18.

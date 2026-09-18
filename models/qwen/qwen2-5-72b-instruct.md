@@ -63,8 +63,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: qwen
+  license_url: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/raw/main/LICENSE
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -877,19 +877,21 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: ''
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Qwen2.5 72B Instruct
 
 Qwen2.5 72B Instruct is a Llm Chat model from Alibaba / Qwen Team. Part of the qwen family. Knowledge cutoff: 2024-04.
+
+Licence: qwen. Creator LICENSE file https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/raw/main/LICENSE (Qwen LICENSE AGREEMENT) and Hub cardData.license other and license_name qwen, read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

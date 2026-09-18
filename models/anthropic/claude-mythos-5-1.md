@@ -66,8 +66,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: https://www.anthropic.com/legal/terms
+  license_url: https://www.anthropic.com/legal/commercial-terms
+  tos_url: https://www.anthropic.com/legal/commercial-terms
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -836,7 +836,7 @@ sources:
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-10'
+card_updated: '2026-09-18'
 ---
 
 # Claude Mythos 5.1
@@ -844,3 +844,5 @@ card_updated: '2026-09-10'
 Anthropic's current Mythos-class snapshot, introduced 2026-09-01. The [product page](https://www.anthropic.com/claude/mythos) and [Fable/Mythos 5.1 announcement](https://www.anthropic.com/claude-fable-and-mythos-5-1) describe it as the same underlying weights as Claude Fable 5.1, with more permissive safeguards for vetted cyber and life-sciences work. Access remains limited to trusted access programs. Pricing starts at $10 / $50 per million input / output tokens. Weights are closed. Parameter counts are unpublished.
 
 This is a distinct SKU from Claude Mythos 5 (2026-06-09), not a size variant. No ranked primary-source score is attached: the Fable/Mythos 5.1 launch post's Terminal-Bench 4.0 figure is not the ranked `terminal_bench` (v1.0) key, and the cached launch post has no dateline.
+
+Licence: proprietary. Vendor terms https://www.anthropic.com/legal/commercial-terms (Anthropic Commercial Terms of Service), read 2026-09-18.

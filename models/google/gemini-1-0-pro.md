@@ -62,7 +62,7 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
+  license_url: https://ai.google.dev/gemini-api/terms
   tos_url: https://ai.google.dev/gemini-api/terms
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -840,9 +840,11 @@ sources:
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-10'
+card_updated: '2026-09-18'
 ---
 
 # Gemini 1.0 Pro
 
 Google Gemini 1.0 Pro, announced with Gemini 1.0 on 2023-12-06 (https://blog.google/technology/ai/google-gemini-ai/). Closed weights; no Hub safetensors. Catalogue had Gemini 1.5+ but not 1.0 Pro. Parameters unpublished; left null. No benchmark evidence attached.
+
+Licence: proprietary. Vendor terms https://ai.google.dev/gemini-api/terms (Gemini API Additional Terms of Service (effective 23 March 2026)), read 2026-09-18.
