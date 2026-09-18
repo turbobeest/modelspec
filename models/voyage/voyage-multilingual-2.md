@@ -836,6 +836,35 @@ card_schema_version: '3.0'
 card_author: api-model-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: voyage/voyage-multilingual-2
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: For retrieval, set input_type to query or document so Voyage prepends its retrieval
+        prompt. query prepends 'Represent the query for retrieving supporting documents:';
+        document prepends 'Represent the document for retrieval:'.
+      sources:
+      - url: https://docs.voyageai.com/docs/embeddings
+        title: Voyage text embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: voyage-multilingual-2 produces 1024-dimensional embeddings with a 32,000-token
+        context. The current embeddings table does not list a selectable output_dimension
+        for this id.
+      sources:
+      - url: https://docs.voyageai.com/docs/embeddings
+        title: Voyage text embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Voyage Multilingual 2

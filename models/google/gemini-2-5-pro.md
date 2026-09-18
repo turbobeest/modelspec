@@ -990,6 +990,44 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-2-5-pro
+    version: gemini-2.5-pro
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Google shows 2.5 Pro producing substantial programs from a single-line prompt; still state
+        constraints when you need a bounded artefact rather than an expansive one.
+      sources:
+      - url: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/
+        title: 'Gemini 2.5: Our most intelligent AI model'
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Gemini 2.5 Pro is a thinking model: it reasons through the problem before answering, which
+        Google reports as the source of its coding and reasoning gains.'
+      sources:
+      - url: https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/
+        title: 'Gemini 2.5: Our most intelligent AI model'
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/
+        title: Gemini 2.5 Pro and Flash generally available
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: 2.5 models expose a thinking budget so you can trade reasoning tokens for latency and cost;
+        Google made the 06-05 snapshot the stable gemini-2.5-pro id.
+      sources:
+      - url: https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/
+        title: Gemini 2.5 Pro and Flash generally available
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Gemini 2.5 Pro

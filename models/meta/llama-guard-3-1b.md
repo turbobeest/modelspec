@@ -829,6 +829,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-guard-3-1b
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Llama Guard 3-1B classifies LLM inputs (prompt) or outputs (response). It generates
+        text that is safe or unsafe and, if unsafe, lists the violated hazard categories.
+      sources:
+      - url: https://github.com/meta-llama/PurpleLlama/blob/main/Llama-Guard3/1B/MODEL_CARD.md
+        title: Llama Guard 3-1B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Fine-tuned from Llama-3.2-1B for the same MLCommons hazard taxonomy. Meta also
+        documents zero/few-shot prompting as a customization path on this card.
+      sources:
+      - url: https://github.com/meta-llama/PurpleLlama/blob/main/Llama-Guard3/1B/MODEL_CARD.md
+        title: Llama Guard 3-1B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Llama Guard 3 1B

@@ -920,6 +920,40 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-3-7-sonnet-20250219
+    version: claude-3-7-sonnet-20250219
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Anthropic says prompting works similarly in standard and extended-thinking modes.
+        Extended thinking is the self-reflection pass before the answer.
+      sources:
+      - url: https://www.anthropic.com/news/claude-3-7-sonnet
+        title: Claude 3.7 Sonnet and Claude Code
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message: []
+    reasoning_and_tools:
+    - text: 'First hybrid reasoning Claude: near-instant replies, or extended step-by-step
+        thinking that is visible to the user.'
+      sources:
+      - url: https://www.anthropic.com/news/claude-3-7-sonnet
+        title: Claude 3.7 Sonnet and Claude Code
+        accessed: '2026-09-18'
+        kind: release-notes
+    - text: API users set a thinking budget of at most N tokens, up to the 128K output limit,
+        trading speed and cost for answer quality.
+      sources:
+      - url: https://www.anthropic.com/news/claude-3-7-sonnet
+        title: Claude 3.7 Sonnet and Claude Code
+        accessed: '2026-09-18'
+        kind: release-notes
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

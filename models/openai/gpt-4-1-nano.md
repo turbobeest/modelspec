@@ -922,6 +922,57 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-4-1-nano
+    version: gpt-4.1-nano
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: The GPT-4.1 family follows instructions more literally than GPT-4o; a single firm sentence
+        of the desired behaviour is usually enough to steer it.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Not a reasoning model and has no reasoning step. Optional chain-of-thought in the prompt
+        ('think step by step') can help, at the cost of more output tokens.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/gpt-4.1-nano.md
+        title: GPT-4.1 nano
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: For agents, start with persistence (do not yield until the task is done), a tool-use reminder
+        (do not guess file contents), and optional explicit planning between tool calls.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Pass tools via the API tools field, not by stuffing schemas into the prompt.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes:
+    - text: 'Conflicting instructions: it tends to follow the one closer to the end of the prompt.
+        All-caps and ''bribe'' incentives are followed too strictly; start without them.'
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+        title: GPT-4.1 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 # GPT-4.1 nano

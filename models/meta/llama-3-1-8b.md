@@ -843,6 +843,26 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-3-1-8b
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Base (pretrained) completion format: a single begin_of_text then the raw prefix.
+        This is not the instruct chat envelope; end_of_text is generated only by base models.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md
+        title: Llama 3.1 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

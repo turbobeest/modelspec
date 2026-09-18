@@ -838,6 +838,40 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: nvidia/nv-embed-v2
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Each query needs an instruction prefix of the form ''Instruct: <task>\nQuery: ''. Retrieval
+        passages take no instruction.'
+      sources:
+      - url: https://huggingface.co/nvidia/NV-Embed-v2
+        title: NV-Embed-v2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: For MTEB-style retrieval, STS and summarization, use the task templates in the card's instructions.json
+        rather than a generic prefix.
+      sources:
+      - url: https://huggingface.co/nvidia/NV-Embed-v2
+        title: NV-Embed-v2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: L2-normalise embeddings before scoring; NVIDIA's examples multiply the query-passage dot product
+        by 100.
+      sources:
+      - url: https://huggingface.co/nvidia/NV-Embed-v2
+        title: NV-Embed-v2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # NV Embed v2

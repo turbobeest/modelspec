@@ -892,7 +892,41 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-r1-distill-llama-70b
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'DeepSeek''s usage notes for the R1 series, including this distill: put all instructions in
+        the user prompt.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+        title: DeepSeek-R1-Distill-Llama-70B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Avoid adding a system prompt; all instructions should be contained within the user prompt.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+        title: DeepSeek-R1-Distill-Llama-70B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Temperature 0.5-0.7 (0.6 recommended). For math, ask it to reason step by step and box the
+        final answer. If it skips thinking (empty think tags), force the response to start with a think
+        tag.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+        title: DeepSeek-R1-Distill-Llama-70B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

@@ -892,6 +892,48 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-sonnet-4-5
+    version: claude-sonnet-4-5
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Thinking is extended-only: use thinking type enabled with budget_tokens. Adaptive thinking
+        is not available and type adaptive returns a 400.'
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/models/sonnet-4-5/overview
+        title: Claude Sonnet 4.5
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: budget_tokens is a cap, not a target; set max_tokens above the thinking budget so the
+        final answer is not cut off.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: On Claude Sonnet 4.5, prior-turn thinking blocks are stripped from context. The interleaved-thinking-2025-05-14
+        beta header is required for interleaved thinking.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

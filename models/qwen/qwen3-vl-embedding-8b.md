@@ -838,6 +838,40 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: qwen/qwen3-vl-embedding-8b
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Instruction-aware: a task instruction typically gains 1–5% versus none. Write instructions
+        in English even for multilingual tasks.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-VL-Embedding-8B
+        title: Qwen3-VL-Embedding-8B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Default wrapping is the system prompt 'Represent the user's input.' Override per encode
+        with a task prompt such as 'Retrieve relevant documents for the query.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-VL-Embedding-8B
+        title: Qwen3-VL-Embedding-8B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Output dimension is up to 4096 and user-defined from 64 to 4096 (MRL). Inputs may be text,
+        image, video, or mixtures.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-VL-Embedding-8B
+        title: Qwen3-VL-Embedding-8B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Qwen3 VL Embedding 8B

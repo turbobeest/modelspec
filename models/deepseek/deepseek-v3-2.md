@@ -937,8 +937,48 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-v3-2
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Chat template changed versus prior DeepSeek releases: new tool-call encoding and a ''thinking
+        with tools'' path. There is no Jinja template; use the encoding/encoding_dsv32.py helpers.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2
+        title: DeepSeek-V3.2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: A developer role exists only for search-agent scenarios. The official API rejects developer
+        messages.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2
+        title: DeepSeek-V3.2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Assistant turns may carry reasoning_content alongside content. Local sampling recommendation:
+        temperature 1.0, top_p 0.95.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2
+        title: DeepSeek-V3.2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes:
+    - text: The provided output parser only accepts well-formed strings and does not recover from malformed
+        tool calls.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2
+        title: DeepSeek-V3.2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    retry_advice: []
 ---
-
 
 # DeepSeek V3.2
 

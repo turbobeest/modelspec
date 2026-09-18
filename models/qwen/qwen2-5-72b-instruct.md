@@ -884,6 +884,40 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: qwen/qwen2-5-72b-instruct
+    version: qwen2-5-72b-instruct
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Use apply_chat_template with role messages. The card's example system prompt is 'You are Qwen,
+        created by Alibaba Cloud. You are a helpful assistant.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct
+        title: Qwen2.5-72B-Instruct model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Qwen2.5 is documented as more resilient to diverse system prompts, for role-play and chatbot
+        condition-setting.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct
+        title: Qwen2.5-72B-Instruct model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools: []
+    formatting:
+    - text: Improved structured-data understanding and structured outputs, especially JSON. Native context
+        32,768 tokens; YaRN in config.json extends to 131,072. Generation up to 8,192 tokens.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen2.5-72B-Instruct
+        title: Qwen2.5-72B-Instruct model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

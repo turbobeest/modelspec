@@ -888,6 +888,59 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-mythos-preview
+    version: claude-mythos-preview
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: Thinking is always on; omitting the thinking parameter still runs adaptive thinking. Disabling
+        thinking returns a 400.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking
+        title: Thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Supports both adaptive thinking and extended thinking with budget_tokens; Anthropic recommends
+        adaptive where both are available.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/build-with-claude/extended-thinking
+        title: Extended thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: The effort parameter is supported (claude-mythos-preview) and is the recommended control for
+        thinking depth under adaptive thinking.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/effort
+        title: Effort
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking
+        title: Thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes:
+    - text: Prefilling the last assistant turn is not supported on Claude 4.6 models and Claude Mythos
+        Preview; migrate off prefilled responses.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice: []
 ---
 
 

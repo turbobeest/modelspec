@@ -872,6 +872,59 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/o3-mini
+    version: o3-mini
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Keep prompts simple and direct. Avoid 'think step by step' or 'explain your reasoning'; internal
+        reasoning makes those prompts unnecessary and they can hurt.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Try zero-shot first. If you add few-shot examples, keep them tightly aligned with the instructions.
+        State the end goal and constraints explicitly.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: Use developer messages rather than system messages, matching the chain-of-command behaviour
+        in the model spec.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: These models avoid markdown in API replies unless the developer message starts with the line
+        'Formatting re-enabled'.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: On o3-mini (with o1, o1-mini, o1-preview), reasoning items in follow-up requests are ignored
+        even if you send them. That differs from o3 and o4-mini, which keep some reasoning items next
+        to function calls.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/o3-mini.md
+        title: o3-mini
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

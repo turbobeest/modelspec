@@ -917,6 +917,34 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: mistral/mistral-large-2411
+    version: mistral-large-2411
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Instruct template V7: <s>[SYSTEM_PROMPT] ...[/SYSTEM_PROMPT][INST] user [/INST] assistant</s>.
+        Missing or trailing whitespace in the special tokens breaks the template; use mistral-common
+        as the source of truth.'
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-Instruct-2411
+        title: Mistral-Large-Instruct-2411 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Always include a system prompt that states the bot's purpose, even if it is minimal; this
+        release tightened system-prompt adherence.
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-Instruct-2411
+        title: Mistral-Large-Instruct-2411 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools: []
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

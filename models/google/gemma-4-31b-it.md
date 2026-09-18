@@ -924,7 +924,50 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemma-4-31b-it
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Gemma 4 IT uses standard system, user, and assistant roles (native system-prompt support).
+        Use apply_chat_template; libraries handle the special tokens.
+      sources:
+      - url: https://huggingface.co/google/gemma-4-31B-it
+        title: Gemma 4 31B IT model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Thinking is enabled by putting the <|think|> token at the start of the system prompt; omit
+        it to disable. On 31B, a disabled-thinking turn still emits empty thought tags around the final
+        answer.
+      sources:
+      - url: https://huggingface.co/google/gemma-4-31B-it
+        title: Gemma 4 31B IT model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: 'Sampling for this card: temperature 1.0, top_p 0.95, top_k 64. In multi-turn history keep
+        only the final answer, not prior thoughts, except on tool-call turns where thinking should be
+        preserved.'
+      sources:
+      - url: https://huggingface.co/google/gemma-4-31B-it
+        title: Gemma 4 31B IT model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: Put image content before the text. Supported visual token budgets are 70, 140, 280, 560, and
+        1120 (higher for OCR/small text). Audio is documented for E2B/E4B/12B, not this 31B IT checkpoint.
+      sources:
+      - url: https://huggingface.co/google/gemma-4-31B-it
+        title: Gemma 4 31B IT model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

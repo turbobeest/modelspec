@@ -860,6 +860,48 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-2-5-pro-preview-tts
+    version: gemini-2.5-pro-preview-tts
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Google lists Gemini 2.5 Pro Preview TTS as a supported TTS model. TTS is controllable in
+        natural language: style, accent, pace and tone. Text-only input, audio-only output.'
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/speech-generation
+        title: Speech generation (TTS)
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: 'Single-speaker: set the audio response modality and a speech_config voice. Prefix the script
+        with a style line (for example ''Say in a spooky whisper:'') then the spoken text.'
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/speech-generation
+        title: Speech generation (TTS)
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: 'Multi-speaker: name each speaker in the prompt and map speaker to voice in speech_config.
+        You can give per-speaker style (''Make Speaker1 sound tired...'').'
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/speech-generation
+        title: Speech generation (TTS)
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: 'Keep the prompt coherent: script and direction together. A TTS session context window is
+        32k tokens. Streaming is not supported on this 2.5 preview (only the later 3.1 Flash TTS preview
+        streams).'
+      sources:
+      - url: https://ai.google.dev/gemini-api/docs/speech-generation
+        title: Speech generation (TTS)
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Gemini 2.5 Pro Preview TTS

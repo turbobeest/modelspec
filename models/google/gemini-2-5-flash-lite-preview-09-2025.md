@@ -900,6 +900,41 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-2-5-flash-lite-preview-09-2025
+    version: gemini-2.5-flash-lite-preview-09-2025
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Google names this snapshot gemini-2.5-flash-lite-preview-09-2025. It was trained
+        for better following of complex instructions and system prompts, and for more concise
+        answers.
+      sources:
+      - url: https://developers.googleblog.com/continuing-to-bring-you-our-latest-models-with-an-improved-gemini-2-5-flash-and-flash-lite-release/
+        title: Updated Gemini 2.5 Flash and Flash-Lite (Sept 2025)
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message:
+    - text: This preview is described as significantly better at following complex instructions
+        and system prompts than the then-stable Flash-Lite.
+      sources:
+      - url: https://developers.googleblog.com/continuing-to-bring-you-our-latest-models-with-an-improved-gemini-2-5-flash-and-flash-lite-release/
+        title: Updated Gemini 2.5 Flash and Flash-Lite (Sept 2025)
+        accessed: '2026-09-18'
+        kind: release-notes
+    reasoning_and_tools: []
+    formatting:
+    - text: Google reports reduced verbosity (fewer output tokens) versus the prior stable
+        Flash-Lite, aimed at high-throughput use.
+      sources:
+      - url: https://developers.googleblog.com/continuing-to-bring-you-our-latest-models-with-an-improved-gemini-2-5-flash-and-flash-lite-release/
+        title: Updated Gemini 2.5 Flash and Flash-Lite (Sept 2025)
+        accessed: '2026-09-18'
+        kind: release-notes
+    failure_modes: []
+    retry_advice: []
 ---
 
 

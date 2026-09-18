@@ -857,6 +857,37 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/o3-pro
+    version: o3-pro
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'An o-series model: keep prompts simple and direct, and avoid chain-of-thought phrasing.
+        It uses more compute than o3 to think longer.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/reasoning-best-practices.md
+        title: Reasoning best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/o3-pro.md
+        title: o3-pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: Responses API only (Chat Completions is not supported). Some requests take minutes; use
+        background mode to avoid timeouts.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/o3-pro.md
+        title: o3-pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

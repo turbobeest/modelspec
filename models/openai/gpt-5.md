@@ -884,6 +884,56 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5
+    version: gpt-5
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: By default thorough in agentic context-gathering. To reduce eagerness, lower reasoning_effort
+        and give explicit early-stop criteria for exploration (or a tool-call budget with an escape
+        hatch to proceed under uncertainty).
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+        title: GPT-5 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5
+        title: Using GPT-5
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: 'For more autonomy, raise reasoning_effort and add a persistence instruction: keep going
+        until the task is resolved; do not hand back on uncertainty.'
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+        title: GPT-5 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: reasoning.effort supports minimal, low, medium and high. Start at medium, then test a
+        lower or higher setting on representative tasks.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5
+        title: Using GPT-5
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Use the Responses API for tool-calling so reasoning items persist between calls. Steer
+        tool-preamble frequency and style in the prompt.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+        title: GPT-5 prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5
+        title: Using GPT-5
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

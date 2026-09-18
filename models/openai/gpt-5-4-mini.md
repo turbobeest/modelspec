@@ -856,6 +856,55 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-4-mini
+    version: gpt-5.4-mini
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: gpt-5.4-mini is more literal and makes fewer assumptions than the larger 5.4 models. Prompts
+        are often a bit longer and more explicit; put critical rules first.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Specify full execution order when tools or side effects matter. Use numbered steps, decision
+        rules, and explicit action definitions rather than relying on 'you MUST' alone. Separate doing
+        an action from reporting it.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: 'Define ambiguity behaviour (ask, abstain, or proceed). Specify packaging: length, whether
+        to ask a follow-up, citation style, section order. Prefer scoped ''output nothing further'' over
+        a bare ''output nothing else''.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: reasoning.effort supports none (default), low, medium, high and xhigh.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
+        title: GPT-5.4 Mini
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: 'Default prompt pattern: task, critical rule, exact step order, edge cases, output format,
+        one correct example. By default it may ask a follow-up unless you suppress that.'
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes: []
+    retry_advice: []
 ---
 
 
