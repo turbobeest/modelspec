@@ -133,7 +133,7 @@ def test_the_restricted_population_is_the_reason_this_changed() -> None:
         if (front.get("licensing") or {}).get("license_type")
         in {"llama-community", "gemma", "deepseek"}
     ]
-    assert len(restricted_licences) == 165
+    assert len(restricted_licences) == 166
 
 
 # ── a determination needs a source ───────────────────────────────────────────

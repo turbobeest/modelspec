@@ -135,6 +135,14 @@ CLOSED_TERMS: dict[str, tuple[str, str]] = {
         "https://legal.mistral.ai/terms/commercial-terms-of-service",
         "Mistral AI Terms of Service for Commercial Users",
     ),
+    "inception": (
+        "https://www.inceptionlabs.ai/docs/terms-of-use",
+        "Inception Terms of Use (effective 1 September 2025)",
+    ),
+    "upstage": (
+        "https://www.upstage.ai/terms-of-service",
+        "Upstage Terms of Service",
+    ),
 }
 
 # Hub `license` / `license_name` → card LicenseType. Unmapped custom names
@@ -177,6 +185,34 @@ HF_TO_TYPE: dict[str, str] = {
 }
 
 LICENSE_FILES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "license", "licence")
+
+
+def _as_str(value: Any) -> str:
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
+
+
+def _raw_license_url(url: str) -> str | None:
+    """Hub / GitHub blob pages → the file bytes. PDFs stay as-is and are not fetched."""
+    url = url.strip()
+    if not url or url.lower().endswith(".pdf"):
+        return None
+    m = re.match(
+        r"https://huggingface\.co/([\w.-]+/[\w.-]+)/blob/([^/]+)/(.+)$", url
+    )
+    if m:
+        return f"https://huggingface.co/{m.group(1)}/raw/{m.group(2)}/{m.group(3)}"
+    m = re.match(
+        r"https://github\.com/([\w.-]+/[\w.-]+)/blob/([^/]+)/(.+)$", url
+    )
+    if m:
+        return f"https://raw.githubusercontent.com/{m.group(1)}/{m.group(2)}/{m.group(3)}"
+    if url.startswith("https://"):
+        return url
+    return None
 
 
 @dataclass
@@ -271,14 +307,26 @@ def select_batch(suspects: list[Suspect], cap: int = CAP) -> list[Suspect]:
 
 
 def _classify_license_text(text: str) -> tuple[str | None, str]:
-    head = text[:2500]
+    head = text[:4000]
     low = head.lower()
-    if "modified mit" in low:
+    # MiniMax-M2.7 (and similar): MIT-shaped grant that forbids commercial use.
+    # Must beat the generic MIT match below.
+    if "non-commercial license" in low or (
+        "permission is hereby granted" in low and "for non-commercial purposes" in low
+    ):
+        return "other", "Non-commercial License"
+    if "our only modification is" in low or "modified mit license" in low:
         return "other", "Modified MIT License"
+    if "lfm open license" in low:
+        return "other", "LFM Open License v1.0"
+    if "ltx-2 community license" in low:
+        return "other", "LTX-2 Community License Agreement"
     if "apache license" in low and "version 2.0" in low:
         return "apache-2.0", "Apache License Version 2.0, January 2004"
     if re.search(r"\bmit license\b", low) or (
-        "permission is hereby granted, free of charge" in low and "modified mit" not in low
+        "permission is hereby granted, free of charge" in low
+        and "modified mit" not in low
+        and "non-commercial" not in low
     ):
         return "mit", "MIT License"
     if "qwen research license" in low:
@@ -324,11 +372,17 @@ def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
         return info
     card = data.get("cardData") or {}
     info["ok"] = True
-    info["license"] = (data.get("license") or card.get("license") or "") or ""
-    info["license_name"] = card.get("license_name") or ""
-    info["license_link"] = card.get("license_link") or ""
+    declared = _as_str(data.get("license")) or _as_str(card.get("license"))
+    if not declared:
+        for tag in data.get("tags") or []:
+            if isinstance(tag, str) and tag.lower().startswith("license:"):
+                declared = tag.split(":", 1)[1].strip()
+                break
+    info["license"] = declared
+    info["license_name"] = _as_str(card.get("license_name"))
+    info["license_link"] = _as_str(card.get("license_link"))
     info["gated"] = data.get("gated")
-    # LICENSE file, then README frontmatter.
+    # LICENSE file, then the Hub license_link, then README frontmatter.
     for name in LICENSE_FILES:
         try:
             lr = client.get(f"https://huggingface.co/{repo}/raw/main/{name}")
@@ -338,6 +392,22 @@ def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
             info["license_file_url"] = str(lr.url)
             info["license_file_text"] = lr.text
             break
+    if "license_file_text" not in info:
+        raw = _raw_license_url(info["license_link"])
+        if raw:
+            try:
+                lr = client.get(raw)
+            except httpx.HTTPError:
+                lr = None
+            if (
+                lr is not None
+                and lr.status_code == 200
+                and lr.text
+                and "Entry not found" not in lr.text[:40]
+                and not lr.text.lstrip().startswith("%PDF")
+            ):
+                info["license_file_url"] = str(lr.url)
+                info["license_file_text"] = lr.text
     if "license_file_text" not in info:
         try:
             rr = client.get(f"https://huggingface.co/{repo}/raw/main/README.md")
@@ -499,6 +569,10 @@ def decide(s: Suspect, hf: dict[str, Any] | None) -> Decision:
         return decide_closed(s)
     if s.provider == "mistral" and not s.open_weights:
         return decide_closed(s)
+    if not s.open_weights:
+        # Closed API with no terms reading (voyage, stepfun, …): null, do not
+        # keep the provider default.
+        return decide_closed(s)
     return Decision(
         model_id=s.model_id,
         provider=s.provider,
@@ -590,6 +664,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--cap", type=int, default=CAP)
+    parser.add_argument(
+        "--exclude",
+        default="",
+        help="comma-separated providers to skip (other batches own them)",
+    )
     args = parser.parse_args()
 
     suspects = load_suspects()
@@ -597,6 +676,13 @@ def main() -> int:
     print(f"suspect_total {len(suspects)}")
     for prov, n in per.most_common():
         print(f"suspect {prov} {n}")
+
+    exclude = {p.strip().lower() for p in args.exclude.split(",") if p.strip()}
+    if exclude:
+        skipped = [s for s in suspects if s.provider in exclude]
+        suspects = [s for s in suspects if s.provider not in exclude]
+        print(f"excluded {len(skipped)} owned_by_other_batches")
+        print(f"eligible {len(suspects)}")
 
     batch = select_batch(suspects, args.cap)
     remaining = [s for s in suspects if s not in batch]

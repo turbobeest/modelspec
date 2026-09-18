@@ -62,7 +62,7 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: proprietary
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -835,9 +835,11 @@ sources:
 card_schema_version: '3.0'
 card_author: api-model-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Voyage Multilingual 2
 
 API-only model from Voyage AI.
+
+Licence: null. Closed model; no vendor terms document was readable for Voyage on 2026-09-18 (voyageai.com/terms 404; dashboard ToS login-gated; MongoDB Terms of Use do not mention Voyage embeddings). A known-wrong proprietary default is worse than none.

@@ -98,6 +98,10 @@ def test_restricted_readings_state_their_restriction():
         ("tongyi-qianwen-license-agreement", UsePermission.RESTRICTED),
         ("mrl", UsePermission.PROHIBITED),
         ("mnpl", UsePermission.PROHIBITED),
+        ("lfm1.0", UsePermission.RESTRICTED),
+        ("ltx-2-community-license-agreement", UsePermission.RESTRICTED),
+        ("terms:inception", UsePermission.RESTRICTED),
+        ("terms:upstage", UsePermission.RESTRICTED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
@@ -232,8 +236,10 @@ def test_proprietary_resolves_by_provider_terms():
 
 
 def test_a_provider_whose_terms_were_not_found_gets_nothing():
-    """Voyage AI publishes no locatable terms document. Reaching for MongoDB's
-    because MongoDB bought Voyage would be inference."""
+    """Voyage AI still publishes no locatable terms document (re-checked
+    2026-09-18: voyageai.com/terms 404s; MongoDB Terms of Use do not mention
+    Voyage). Reaching for MongoDB's because MongoDB bought Voyage would be
+    inference."""
     r = licence_of_record("proprietary", provider="voyage")
     assert r.licence_key is None
     assert r.reason == "unread-provider-terms"

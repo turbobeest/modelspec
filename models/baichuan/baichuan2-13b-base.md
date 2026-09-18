@@ -62,7 +62,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: other
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -824,9 +824,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Baichuan2 13B Base
 
 Auto-generated from HuggingFace Hub metadata for [baichuan-inc/Baichuan2-13B-Base](https://huggingface.co/baichuan-inc/Baichuan2-13B-Base).
+
+Licence: null. No readable licence at the creator distribution point huggingface.co/baichuan-inc/Baichuan2-13B-Base (Hub cardData.license 'other' license_name None; no LICENSE file), read 2026-09-18. A known-wrong other default is worse than none.

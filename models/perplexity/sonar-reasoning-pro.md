@@ -61,8 +61,8 @@ lineage:
 licensing:
   open_weights: false
   license_type: proprietary
-  license_url: ''
-  tos_url: ''
+  license_url: https://www.perplexity.ai/hub/legal/perplexity-api-terms-of-service
+  tos_url: https://www.perplexity.ai/hub/legal/perplexity-api-terms-of-service
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -823,12 +823,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Sonar Reasoning Pro
 
 Sonar Reasoning Pro is a Llm Reasoning model from Perplexity AI. Part of the sonar-reasoning family. Knowledge cutoff: 2025-09-01.
+
+Licence: proprietary. Vendor terms https://www.perplexity.ai/hub/legal/perplexity-api-terms-of-service (Perplexity API Terms of Service (last updated 23 January 2026)), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

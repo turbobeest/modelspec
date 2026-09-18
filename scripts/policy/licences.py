@@ -452,6 +452,85 @@ _READINGS: dict[str, LicenceReading] = {
             "generation product."
         ),
     ),
+    # ── MODEL-86 batch 4: long-tail providers ───────────────────────────────
+    # Own block so a merge with batch 2 (Qwen / Meta / Microsoft / NVIDIA)
+    # stays a clean append. Read 2026-09-18. Keys are Hub license_name or
+    # terms:<provider>. MiniMax's "modified-mit" is several documents with
+    # different commercial clauses, so it is not keyed here.
+    "lfm1.0": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/LiquidAI/LFM2-1.2B/raw/main/LICENSE",
+            "The rights granted under this License for Commercial Use are "
+            "conditioned upon You or Your Legal Entity not exceeding the "
+            "Threshold.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LFM Open License v1.0 only "
+            "while the licensee's annual revenue is below USD 10 million. "
+            "Commercial use by an entity at or above that threshold is not "
+            "licensed; the threshold does not apply to a qualified non-profit "
+            "using the work for non-commercial or research purposes."
+        ),
+    ),
+    "ltx-2-community-license-agreement": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/unsloth/LTX-2.3-GGUF/raw/main/LICENSE",
+            "Entities with annual revenues of at least $10,000,000 (the "
+            '"Commercial Entities") are required to obtain a paid commercial '
+            "use license in order to use LTX-2 and Derivatives of LTX-2",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the LTX-2 Community License "
+            "Agreement (5 January 2026) below USD 10 million annual revenue. "
+            "Entities at or above that threshold must obtain a separate paid "
+            "commercial-use licence from Lightricks. Attachment A use "
+            "restrictions apply, including a ban on using the model to train "
+            "a competing system."
+        ),
+    ),
+    "terms:inception": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.inceptionlabs.ai/docs/terms-of-use",
+            "Subject to these Terms, we grant each user of the Services a "
+            "worldwide, non-exclusive, non-sublicensable and non-transferable "
+            "license to use (i.e., to download and display locally) Content "
+            "solely for purposes of using the Services.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Access is under the Inception Terms of Use (effective 1 September "
+            "2025). The grant is non-exclusive, non-sublicensable and "
+            "non-transferable. Outputs may be used, modified, reproduced, "
+            "distributed and displayed for any purpose not otherwise "
+            "restricted; the Terms also say the Services may be used only for "
+            "the user's own internal, personal use and not on behalf of a "
+            "third party, and Inception may change the Terms."
+        ),
+    ),
+    "terms:upstage": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://www.upstage.ai/terms-of-service",
+            "When a member agrees to these Terms, the Company grants the "
+            "member a non-transferable, limited license to use the Service, "
+            "and may not be sublicensed. The member may use the Service and "
+            "its outputs only within the scope of the Service's intended "
+            "purpose, as specified in these Terms.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Upstage Terms of Service as "
+            "a non-transferable, limited, non-sublicensable licence. Outputs "
+            "may be used only within the Service's intended purpose. Where "
+            "the Company publishes a Korean and an English version, the "
+            "Korean text prevails."
+        ),
+    ),
 }
 
 # Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
