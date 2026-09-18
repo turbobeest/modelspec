@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import sys
+import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -15,10 +18,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKER_SRC = REPO_ROOT / "api" / "worker" / "src"
 sys.path.insert(0, str(WORKER_SRC))
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import cdp_auth  # noqa: E402
 import credits  # noqa: E402
 import x402  # noqa: E402
-from x402_facilitator import CdpFacilitator, StubFacilitator  # noqa: E402
+from test_cdp_auth import (  # noqa: E402
+    decode_unverified,
+    generate_ed25519,
+    openssl_sign_async,
+)
+from x402_facilitator import CdpFacilitator, FacilitatorError, StubFacilitator  # noqa: E402
 
 PAY_TO = "0x209693bc6afc0c5328ba36faf03c514ef312287c"
 PAYER = "0x857b06519e91e3a54538791bdbb0e22373e36b66"
@@ -431,6 +441,132 @@ def test_facilitator_client_posts_to_the_documented_paths():
     ]
 
 
+def _minting_env(*, mainnet: bool = False, static: str = "",
+                 key_id: str = "", secret: str = "") -> Any:
+    env = type("E", (), {})()
+    env.CDP_API_KEY_ID = key_id
+    env.CDP_API_KEY_SECRET = secret
+    env.CDP_JWT = static
+    env.CDP_SIGN = openssl_sign_async
+    env.X402_MAINNET = "true" if mainnet else "false"
+    return env
+
+
+def _bearer(headers: dict[str, str]) -> str:
+    value = headers.get("Authorization") or headers.get("authorization") or ""
+    assert value.startswith("Bearer ")
+    return value.split(" ", 1)[1]
+
+
+def test_each_facilitator_request_carries_a_fresh_unexpired_jwt_for_that_path():
+    secret, _der, _pub = generate_ed25519()
+    key_id = str(uuid.uuid4())
+    seen: list[tuple[str, str]] = []
+
+    async def post(url: str, payload: dict[str, Any], headers: dict[str, str]):
+        seen.append((url, _bearer(headers)))
+        if url.endswith("/verify"):
+            return 200, {"isValid": True, "payer": PAYER}
+        return 200, {"success": True, "transaction": "0x1", "payer": PAYER,
+                     "network": x402.NETWORK_BASE_SEPOLIA}
+
+    auth = cdp_auth.auth_from_env(
+        _minting_env(key_id=key_id, secret=secret),
+        mainnet=False, sign=openssl_sign_async,
+    )
+    client = CdpFacilitator("https://api.cdp.coinbase.com/platform", post=post, auth=auth)
+    now = int(time.time())
+    _run(client.verify(_payload(), {}))
+    _run(client.settle(_payload(), {}))
+    assert len(seen) == 2
+    nonces = []
+    for url, token in seen:
+        header, claims, _sig = decode_unverified(token)
+        path = url.split("coinbase.com", 1)[1]
+        assert claims["uri"] == f"POST api.cdp.coinbase.com{path}"
+        assert claims["nbf"] <= now + 1
+        assert claims["exp"] > now
+        assert claims["exp"] - claims["nbf"] == 120
+        assert header["kid"] == key_id
+        nonces.append(header["nonce"])
+    assert seen[0][1] != seen[1][1]
+    assert nonces[0] != nonces[1]
+    assert seen[0][0].endswith("/v2/x402/verify")
+    assert seen[1][0].endswith("/v2/x402/settle")
+
+
+def test_static_cdp_jwt_is_refused_when_mainnet_is_on():
+    auth = cdp_auth.auth_from_env(
+        _minting_env(mainnet=True, static="header.payload.sig"),
+        mainnet=True,
+    )
+    async def post(url: str, payload: dict[str, Any], headers: dict[str, str]):
+        raise AssertionError("must not post")
+
+    client = CdpFacilitator(
+        "https://api.cdp.coinbase.com/platform", post=post, auth=auth,
+    )
+    with pytest.raises(FacilitatorError, match="local-testing override"):
+        _run(client.verify(_payload(), {}))
+
+
+def test_static_cdp_jwt_is_a_sepolia_testing_override_only():
+    seen: list[str] = []
+
+    async def post(url: str, payload: dict[str, Any], headers: dict[str, str]):
+        seen.append(_bearer(headers))
+        return 200, {"isValid": True, "payer": PAYER}
+
+    auth = cdp_auth.auth_from_env(
+        _minting_env(static="static.local.test"),
+        mainnet=False,
+    )
+    client = CdpFacilitator("https://api.cdp.coinbase.com/platform", post=post, auth=auth)
+    _run(client.verify(_payload(), {}))
+    assert seen == ["static.local.test"]
+
+
+def test_api_key_minting_wins_over_static_jwt():
+    secret, _der, _pub = generate_ed25519()
+    seen: list[str] = []
+
+    async def post(url: str, payload: dict[str, Any], headers: dict[str, str]):
+        seen.append(_bearer(headers))
+        return 200, {"isValid": True, "payer": PAYER}
+
+    auth = cdp_auth.auth_from_env(
+        _minting_env(key_id="kid", secret=secret, static="static.must.not.be.used"),
+        mainnet=False, sign=openssl_sign_async,
+    )
+    client = CdpFacilitator("https://api.cdp.coinbase.com/platform", post=post, auth=auth)
+    _run(client.verify(_payload(), {}))
+    assert seen[0] != "static.must.not.be.used"
+    _header, claims, _sig = decode_unverified(seen[0])
+    assert claims["uri"].endswith("/v2/x402/verify")
+
+
+def test_secret_and_jwt_do_not_appear_in_facilitator_logs(caplog, capsys):
+    secret, _der, _pub = generate_ed25519()
+    tokens: list[str] = []
+    caplog.set_level(logging.DEBUG)
+
+    async def post(url: str, payload: dict[str, Any], headers: dict[str, str]):
+        tokens.append(_bearer(headers))
+        return 200, {"isValid": True, "payer": PAYER}
+
+    auth = cdp_auth.auth_from_env(
+        _minting_env(key_id="kid", secret=secret),
+        mainnet=False, sign=openssl_sign_async,
+    )
+    client = CdpFacilitator("https://api.cdp.coinbase.com/platform", post=post, auth=auth)
+    _run(client.verify(_payload(), {}))
+    captured = capsys.readouterr()
+    haystack = "\n".join([caplog.text, captured.out, captured.err])
+    assert secret not in haystack
+    assert tokens[0] not in haystack
+    assert "Bearer " not in haystack
+
+
 def test_no_test_calls_the_network():
     """The production post adapter is worker_post (js.fetch). Tests inject `post`."""
     import inspect
@@ -448,6 +584,8 @@ def test_wrangler_ships_the_flag_off_and_sepolia():
     assert '"X402_NETWORK": "eip155:84532"' in live
     assert '"class_name": "CreditsObject"' in live
     assert '"X402_PAY_TO": ""' in live
+    assert "CDP_API_KEY" not in live
+    assert "CDP_JWT" not in live
 
 
 def test_credits_modules_do_not_use_workers_kv():

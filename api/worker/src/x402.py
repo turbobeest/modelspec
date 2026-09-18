@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable
 from urllib.parse import urlparse
 
 import credits
+from cdp_auth import auth_from_env
 from x402_facilitator import (
     DEFAULT_ORIGIN,
     CdpFacilitator,
@@ -588,10 +589,13 @@ def facilitator_from_env(env: Any, config: Config) -> Facilitator:
     if not config.enabled:
         return StubFacilitator()
 
-    async def auth(_method: str, _url: str) -> dict[str, str]:
-        token = str(getattr(env, "CDP_JWT", "") or getattr(env, "CDP_API_KEY_ID", "") or "")
-        if not token:
-            return {}
-        return {"Authorization": f"Bearer {token}"}
-
-    return CdpFacilitator(config.facilitator_url, post=worker_post, auth=auth)
+    sign = getattr(env, "CDP_SIGN", None)
+    return CdpFacilitator(
+        config.facilitator_url,
+        post=worker_post,
+        auth=auth_from_env(
+            env,
+            mainnet=config.mainnet,
+            sign=sign if callable(sign) else None,
+        ),
+    )

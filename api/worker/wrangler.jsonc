@@ -107,6 +107,14 @@
     // Coinbase CDP facilitator origin. Paths /v2/x402/verify and /v2/x402/settle
     // are appended. https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/x402-facilitator
     "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform"
+    // MODEL-88. Facilitator auth is Wrangler secrets, not vars:
+    //   npx wrangler secret put CDP_API_KEY_ID
+    //   npx wrangler secret put CDP_API_KEY_SECRET
+    // The Worker mints a 2-minute JWT per facilitator call (method + host + path).
+    // Docs, read 2026-09-18:
+    // https://docs.cdp.coinbase.com/get-started/authentication/jwt-authentication
+    // CDP_JWT is a local-testing override used only when those two secrets are
+    // absent, and it is refused when X402_MAINNET is on.
   },
   // MODEL-75. One Durable Object for the credit ledger. Workers KV cannot
   // keep a balance non-negative under concurrent requests (no compare-and-set,

@@ -18,6 +18,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Protocol
 
+from cdp_auth import CdpAuthError
+
 #: Production origin. Paths are appended. Overridable via X402_FACILITATOR_URL.
 DEFAULT_ORIGIN = "https://api.cdp.coinbase.com/platform"
 VERIFY_PATH = "/v2/x402/verify"
@@ -129,9 +131,12 @@ class CdpFacilitator:
         }
         headers = {"content-type": "application/json"}
         if self._auth is not None:
-            extra = self._auth("POST", url)
-            if hasattr(extra, "__await__"):
-                extra = await extra  # type: ignore[misc]
+            try:
+                extra = self._auth("POST", url)
+                if hasattr(extra, "__await__"):
+                    extra = await extra  # type: ignore[misc]
+            except CdpAuthError as exc:
+                raise FacilitatorError(str(exc)) from None
             headers.update(extra or {})
         status, body = await self._post(url, payload, headers)
         if status >= 500:
