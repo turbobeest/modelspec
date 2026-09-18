@@ -49,6 +49,7 @@ from scripts.residency.determination import (  # noqa: E402
     dump_store,
     load_store,
     unreached,
+    unresolved_withheld,
     unrecorded,
     withheld,
 )
@@ -464,7 +465,59 @@ def test_a_determination_projects_onto_a_model_as_a_withheld_enrichment_record()
 
 
 def test_nothing_projects_from_an_undetermined_platform():
+    """A no-commitment finding is not a region list, so it is not an EnrichmentRecord."""
     assert undetermined("poe").enrichment_for("some/model") is None
+
+
+def test_withheld_is_exactly_what_the_paid_tier_can_resolve():
+    """No card may publish withheld for a field the paid tier cannot resolve.
+
+    Both withheld shapes must produce a paid answer: a cited region list, or
+    the documents that were read and what they said instead. Unreached is not
+    withheld and has nothing to sell.
+    """
+    listed = determined("google_vertex_ai", ["us-central1", "europe-west4"])
+    negative = undetermined("kaggle_models")
+    blocked = unreachable("poe")
+
+    assert listed.card_disclosure() is DisclosureState.WITHHELD
+    assert negative.card_disclosure() is DisclosureState.WITHHELD
+    assert blocked.card_disclosure() is DisclosureState.UNRESEARCHED
+
+    regions = listed.paid_answer()
+    finding = negative.paid_answer()
+    assert regions is not None and regions["kind"] == "regions"
+    assert regions["regions"] == ["us-central1", "europe-west4"]
+    assert regions["source"]["url"] and regions["source"]["read_on"]
+    assert finding is not None and finding["kind"] == "no_commitment"
+    assert finding["documents"]
+    assert all(d["url"] and d["read_on"] for d in finding["documents"])
+    assert finding["reason"]
+    assert blocked.paid_answer() is None
+    empty_list = determined("groq", []).paid_answer()
+    assert empty_list is not None and empty_list["kind"] == "regions"
+    assert empty_list["regions"] == []
+
+    store = [listed, negative, blocked]
+    assert unresolved_withheld(store) == ()
+    assert set(withheld(store)) == {"google_vertex_ai", "kaggle_models"}
+
+
+def test_every_withheld_shape_in_the_namespace_resolves_at_the_paid_tier():
+    """The production counts, as an arrangement of fixtures, not the private store."""
+    slugs = list(requires_determination())
+    assert len(slugs) == 44
+    store = (
+        [determined(s, ["us-east-1"]) for s in slugs[:14]]
+        + [undetermined(s) for s in slugs[14:42]]
+        + [unreachable(s) for s in slugs[42:]]
+    )
+    assert unresolved_withheld(store) == ()
+    assert len(withheld(store)) == 42
+    answers = [r.paid_answer() for r in store]
+    assert sum(1 for a in answers if a and a["kind"] == "regions") == 14
+    assert sum(1 for a in answers if a and a["kind"] == "no_commitment") == 28
+    assert sum(1 for a in answers if a is None) == 2
 
 
 # ── the store ───────────────────────────────────────────────────────────────

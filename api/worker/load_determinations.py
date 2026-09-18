@@ -167,6 +167,36 @@ def commercial_use_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def _documents(checked: Any, determined_on: str, where: str) -> list[dict[str, str]]:
+    """URLs that were read, each with the date the finding attaches to them.
+
+    The store records `checked` as URL strings and one `determined_on` for the
+    finding. Per-document read dates were not stored; inventing a different
+    day is forbidden, so each document carries `determined_on`.
+    """
+    if checked is None:
+        return []
+    if not isinstance(checked, list):
+        raise LoadError(f"{where}: checked must be a list of URLs")
+    out: list[dict[str, str]] = []
+    for item in checked:
+        if isinstance(item, str):
+            url, read_on = item.strip(), determined_on
+        elif isinstance(item, dict):
+            url = str(item.get("url") or "").strip()
+            read_on = str(item.get("read_on") or determined_on or "").strip()
+        else:
+            raise LoadError(f"{where}: a checked document is not a URL")
+        if not url:
+            raise LoadError(f"{where}: a checked document has no URL")
+        if not read_on:
+            raise LoadError(
+                f"{where}: {url} has no read date. A finding that cannot be "
+                "rechecked on the day it is questioned is not an answer.")
+        out.append({"url": url, "read_on": read_on})
+    return out
+
+
 def residency_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
     """`platform -> determination`, from `PlatformResidency` lines.
 
@@ -174,6 +204,12 @@ def residency_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
     read and none of them publishes a region list" is a researched answer and
     the endpoint reports it as one; dropping those rows would make it
     indistinguishable from a platform nobody has looked at.
+
+    A `no-commitment` finding is the paid-tier answer for a withheld card that
+    has no region list: the documents, the day they were used, and what they
+    said instead. The loader refuses one that cannot name those, because a
+    withheld card with nothing behind it is the product handing a customer
+    silence.
 
     An `unbounded` platform is refused, exactly as `determination.py` refuses to
     write one: a local runtime's residency is a property of the operator's
@@ -194,13 +230,18 @@ def residency_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
             raise LoadError(f"{platform}: unknown residency scope {scope!r}")
         if platform in out:
             raise LoadError(f"{platform}: two residency determinations")
+        determined_on = record.get("determined_on") or ""
+        non_disclosure = record.get("non_disclosure") or None
+        documents = _documents(record.get("checked"), determined_on, f"{platform} residency")
         entry: dict[str, Any] = {
             "scope": scope,
             "regions": None,
             "source": None,
             "reason": (record.get("reason") or "").strip(),
-            "checked": list(record.get("checked") or []),
-            "determined_on": record.get("determined_on") or "",
+            "checked": [d["url"] for d in documents],
+            "documents": documents,
+            "non_disclosure": non_disclosure,
+            "determined_on": determined_on,
             "notes": (record.get("notes") or "").strip(),
         }
         if scope == "determined":
@@ -212,6 +253,12 @@ def residency_blob(records: list[dict[str, Any]]) -> dict[str, Any]:
                     "null is not an answer at all.")
             entry["regions"] = [str(r) for r in regions]
             entry["source"] = _source(record.get("source"), f"{platform} residency")
+        if non_disclosure == "no-commitment":
+            if not documents or not entry["reason"]:
+                raise LoadError(
+                    f"{platform}: a no-commitment finding must name the documents "
+                    "that were read and what they said instead of a region list. "
+                    "A withheld card with nothing behind it is silence.")
         out[platform] = entry
     return out
 
