@@ -60,9 +60,9 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: apache-2.0
-  license_url: ''
-  tos_url: ''
+  license_type: proprietary
+  license_url: https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-product-terms-of-service
+  tos_url: https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-product-terms-of-service
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -825,13 +825,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Qwen-Omni Turbo Realtime
 
 Qwen-Omni Turbo Realtime is a Vlm model from Alibaba / Qwen Team. Part of the qwen family. Knowledge cutoff: 2024-04.
+
+Licence: proprietary. Vendor terms https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-product-terms-of-service (Alibaba Cloud International Website Product Terms of Service §4.48 (Model Studio)), read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

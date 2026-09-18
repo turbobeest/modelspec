@@ -75,7 +75,7 @@ CARD_TYPE_TO_LICENCE: dict[str, str] = {
 #: notice — so its cards get no determination. Assuming MongoDB's terms apply
 #: because MongoDB acquired Voyage would be inference, not a reading.
 PROPRIETARY_PROVIDERS = frozenset(
-    {"openai", "google", "anthropic", "xai", "amazon", "perplexity", "mistral"}
+    {"openai", "google", "anthropic", "xai", "amazon", "perplexity", "mistral", "qwen"}
 )
 
 

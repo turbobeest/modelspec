@@ -93,21 +93,23 @@ PROVIDER_LICENSE: dict[str, str] = {
     "ai21": "proprietary",
 }
 
-# Highest-traffic providers first. Gemma is not in the google default (the
-# special case already typed those `gemma`); remaining google suspects are Gemini.
+# Batch 1 consumed openai, anthropic, google, xai, mistral, and 60 qwen.
+# Batch 2 (this run): meta, microsoft, nvidia, ibm, remaining qwen, then zhipu.
 TRAFFIC_ORDER = (
+    "meta",
+    "microsoft",
+    "nvidia",
+    "ibm",
+    "qwen",
+    "zhipu",
+    "deepseek",
+    "cohere",
+    "perplexity",
     "openai",
     "anthropic",
     "google",
     "xai",
     "mistral",
-    "qwen",
-    "meta",
-    "deepseek",
-    "microsoft",
-    "cohere",
-    "nvidia",
-    "perplexity",
 )
 
 CLOSED_TERMS: dict[str, tuple[str, str]] = {
@@ -134,6 +136,12 @@ CLOSED_TERMS: dict[str, tuple[str, str]] = {
     "mistral": (
         "https://legal.mistral.ai/terms/commercial-terms-of-service",
         "Mistral AI Terms of Service for Commercial Users",
+    ),
+    "qwen": (
+        "https://www.alibabacloud.com/help/en/legal/latest/"
+        "alibaba-cloud-international-website-product-terms-of-service",
+        "Alibaba Cloud International Website Product Terms of Service "
+        "§4.48 (Model Studio)",
     ),
 }
 
@@ -174,9 +182,66 @@ HF_TO_TYPE: dict[str, str] = {
     "mrl": "other",
     "mnpl": "other",
     "proprietary": "proprietary",
+    "nvidia-open-model-license": "other",
+    "nvidia-open-model-agreement": "other",
+    "nvidia-nemotron-open-model-license": "other",
+    "apache-license-2.0": "apache-2.0",
+    "codegeex4": "other",
 }
 
-LICENSE_FILES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "license", "licence")
+LICENSE_FILES = (
+    "LICENSE",
+    "LICENSE.md",
+    "LICENSE.txt",
+    "license",
+    "licence",
+    "MODEL_LICENSE",
+    "MODEL_LICENSE.md",
+    "LICENSE-MODEL",
+)
+
+# Exact Llama community agreements. Hub `license` llama3.1 is not the same
+# document as llama2; the GitHub files are Meta's ungated publication of each.
+LLAMA_DOCS: dict[str, tuple[str, str]] = {
+    "llama2": (
+        "https://raw.githubusercontent.com/meta-llama/llama/main/LICENSE",
+        "Llama 2 Community License Agreement",
+    ),
+    "llama3": (
+        "https://raw.githubusercontent.com/meta-llama/llama3/main/LICENSE",
+        "Meta Llama 3 Community License Agreement",
+    ),
+    "llama3.1": (
+        "https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama3_1/LICENSE",
+        "Llama 3.1 Community License Agreement",
+    ),
+    "llama3.2": (
+        "https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama3_2/LICENSE",
+        "Llama 3.2 Community License Agreement",
+    ),
+    "llama3.3": (
+        "https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama3_3/LICENSE",
+        "Llama 3.3 Community License Agreement",
+    ),
+    "llama4": (
+        "https://raw.githubusercontent.com/meta-llama/llama-models/main/models/llama4/LICENSE",
+        "Llama 4 Community License Agreement",
+    ),
+}
+_LLAMA_ALIASES = {
+    "llama-2": "llama2",
+    "llama-3": "llama3",
+    "llama-3.1": "llama3.1",
+    "llama-3.2": "llama3.2",
+    "llama-3.3": "llama3.3",
+    "llama-4": "llama4",
+    "llama 2": "llama2",
+    "llama 3": "llama3",
+    "llama 3.1": "llama3.1",
+    "llama 3.2": "llama3.2",
+    "llama 3.3": "llama3.3",
+    "llama 4": "llama4",
+}
 
 
 @dataclass
@@ -270,6 +335,36 @@ def select_batch(suspects: list[Suspect], cap: int = CAP) -> list[Suspect]:
     return ordered[:cap]
 
 
+def _llama_key(*parts: str | None) -> str | None:
+    blob = " ".join(p for p in parts if p).lower()
+    for needle, key in (
+        ("llama 3.3", "llama3.3"),
+        ("llama3.3", "llama3.3"),
+        ("llama 3.2", "llama3.2"),
+        ("llama3.2", "llama3.2"),
+        ("llama 3.1", "llama3.1"),
+        ("llama3.1", "llama3.1"),
+        ("llama 4", "llama4"),
+        ("llama4", "llama4"),
+        ("meta llama 3", "llama3"),
+        ("llama 3 ", "llama3"),
+        ("llama3", "llama3"),
+        ("llama 2", "llama2"),
+        ("llama2", "llama2"),
+    ):
+        if needle in blob:
+            return key
+    for raw in parts:
+        if not raw:
+            continue
+        key = raw.strip().lower()
+        if key in LLAMA_DOCS:
+            return key
+        if key in _LLAMA_ALIASES:
+            return _LLAMA_ALIASES[key]
+    return None
+
+
 def _classify_license_text(text: str) -> tuple[str | None, str]:
     head = text[:2500]
     low = head.lower()
@@ -293,8 +388,20 @@ def _classify_license_text(text: str) -> tuple[str | None, str]:
         return "other", "Mistral AI Non-Production License"
     if "gemma" in low and "terms" in low:
         return "gemma", "Gemma Terms of Use"
-    if "llama" in low and "community license" in low:
-        return "llama-community", "Llama Community License"
+    llama_key = _llama_key(head)
+    if llama_key and "community license" in low:
+        return "llama-community", LLAMA_DOCS[llama_key][1]
+    if "nvidia nemotron" in low and "license" in low:
+        return "other", "NVIDIA Nemotron Open Model License"
+    if "nvidia open model agreement" in low:
+        return "other", "NVIDIA Open Model Agreement"
+    if "nvidia open model" in low and "license" in low:
+        return "other", "NVIDIA Open Model License"
+    if "openmdw" in low:
+        return "other", "OpenMDW License Agreement"
+    if "chatglm" in low and "license" in low:
+        title = head.splitlines()[0].strip()[:80] or "ChatGLM License"
+        return "other", title
     return None, head.splitlines()[0][:80] if head.strip() else ""
 
 
@@ -328,8 +435,20 @@ def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
     info["license_name"] = card.get("license_name") or ""
     info["license_link"] = card.get("license_link") or ""
     info["gated"] = data.get("gated")
+    prompt = card.get("extra_gated_prompt") or ""
+    if isinstance(prompt, str) and "license" in prompt.lower():
+        info["gated_license_text"] = prompt
+    names = list(LICENSE_FILES)
+    for sib in data.get("siblings") or []:
+        fname = (sib.get("rfilename") or "").strip()
+        # Root-level only. Nested files (e.g. incl_licenses/LICENSE) are
+        # bundled third-party texts, not the model's governing licence.
+        if "/" in fname:
+            continue
+        if fname.upper() in {n.upper() for n in LICENSE_FILES} and fname not in names:
+            names.append(fname)
     # LICENSE file, then README frontmatter.
-    for name in LICENSE_FILES:
+    for name in names:
         try:
             lr = client.get(f"https://huggingface.co/{repo}/raw/main/{name}")
         except httpx.HTTPError:
@@ -338,6 +457,21 @@ def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
             info["license_file_url"] = str(lr.url)
             info["license_file_text"] = lr.text
             break
+    if "license_file_text" not in info:
+        link = str(info["license_link"])
+        if "huggingface.co" in link and "/resolve/" in link:
+            try:
+                lr = client.get(link)
+            except httpx.HTTPError:
+                lr = None
+            if (
+                lr is not None
+                and lr.status_code == 200
+                and lr.text
+                and "Entry not found" not in lr.text[:40]
+            ):
+                info["license_file_url"] = str(lr.url)
+                info["license_file_text"] = lr.text
     if "license_file_text" not in info:
         try:
             rr = client.get(f"https://huggingface.co/{repo}/raw/main/README.md")
@@ -354,6 +488,7 @@ def decide_from_hf(s: Suspect, info: dict[str, Any]) -> Decision:
     declared_name = (info.get("license_name") or "").strip().lower() or None
     file_url = info.get("license_file_url") or ""
     file_text = info.get("license_file_text") or ""
+    gated_text = info.get("gated_license_text") or ""
     readme_url = info.get("readme_url") or ""
     license_link = (info.get("license_link") or "").strip()
 
@@ -363,6 +498,10 @@ def decide_from_hf(s: Suspect, info: dict[str, Any]) -> Decision:
     if file_text:
         mapped, label = _classify_license_text(file_text)
         cite = file_url
+    if mapped is None and gated_text:
+        mapped, label = _classify_license_text(gated_text)
+        if mapped:
+            cite = f"https://huggingface.co/{info['repo']}"
     if mapped is None:
         mapped = _map_hf(declared, declared_name)
         if mapped:
@@ -375,6 +514,22 @@ def decide_from_hf(s: Suspect, info: dict[str, Any]) -> Decision:
             mapped = "other"
             label = declared_name
             cite = cite or license_link or readme_url
+    if mapped is None and file_url and file_text:
+        # A licence file we read but cannot map onto LicenseType is still
+        # `other` with a citation, not a null.
+        mapped = "other"
+        label = label or file_text.splitlines()[0].strip()[:80] or "custom licence"
+        cite = file_url
+
+    # Llama 2 / 3 / 3.1 / 3.2 / 3.3 / 4 are six documents. Hub repos are gated,
+    # so cite Meta's published LICENSE for the version the Hub actually named.
+    if mapped == "llama-community":
+        llama_key = _llama_key(declared, declared_name, label, gated_text[:400])
+        if llama_key and llama_key in LLAMA_DOCS:
+            github_url, exact = LLAMA_DOCS[llama_key]
+            label = exact
+            if not file_url:
+                cite = github_url
 
     if mapped is None:
         return Decision(
@@ -493,11 +648,11 @@ def decide(s: Suspect, hf: dict[str, Any] | None) -> Decision:
     # No distribution repo. Closed API, or open-weights with no address.
     if s.provider in CLOSED_TERMS and not s.open_weights:
         return decide_closed(s)
-    if s.provider in CLOSED_TERMS and s.provider != "mistral":
-        # Closed-API family (GPT, Claude, Gemini, Grok) even if a card left
-        # open_weights true by mistake: the vendor terms are the document.
-        return decide_closed(s)
-    if s.provider == "mistral" and not s.open_weights:
+    if s.provider in {"openai", "anthropic", "google", "xai", "perplexity"}:
+        # Closed-API family even if a card left open_weights true by mistake:
+        # the vendor terms are the document. Qwen and Mistral also ship
+        # open weights; those without a repo stay null rather than inherit
+        # the API terms.
         return decide_closed(s)
     return Decision(
         model_id=s.model_id,
@@ -557,7 +712,11 @@ def apply_decision(path: Path, d: Decision) -> None:
                 text = _replace_line(text, "tos_url", d.license_url)
             except ValueError:
                 pass
-        if "huggingface.co" in d.license_url:
+        if (
+            "huggingface.co" in d.license_url
+            or "huggingface.co" in d.note
+            or "Hub cardData" in d.note
+        ):
             try:
                 text = _replace_line(text, "last_scraped_huggingface", f"'{READ_ON}'")
             except ValueError:

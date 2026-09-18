@@ -92,12 +92,16 @@ def test_restricted_readings_state_their_restriction():
         ("terms:amazon", UsePermission.RESTRICTED),
         ("terms:perplexity", UsePermission.RESTRICTED),
         ("terms:mistral", UsePermission.RESTRICTED),
+        ("terms:qwen", UsePermission.RESTRICTED),
         ("qwen", UsePermission.RESTRICTED),
         ("qwen-research", UsePermission.PROHIBITED),
         ("tongyi-qianwen", UsePermission.RESTRICTED),
         ("tongyi-qianwen-license-agreement", UsePermission.RESTRICTED),
         ("mrl", UsePermission.PROHIBITED),
         ("mnpl", UsePermission.PROHIBITED),
+        ("nvidia-open-model-license", UsePermission.RESTRICTED),
+        ("nvidia-open-model-agreement", UsePermission.ALLOWED),
+        ("nvidia-nemotron-open-model-license", UsePermission.ALLOWED),
     ],
 )
 def test_each_licence_reads_the_way_its_clause_reads(key, permission):
@@ -121,6 +125,22 @@ def test_the_llama_licences_are_six_documents_not_one():
     urls = {k: READINGS[k].source.url for k in READINGS if k.startswith("llama")}
     assert len(urls) == 6, urls
     assert len(set(urls.values())) == 6, "two Llama versions share a citation"
+
+
+def test_nvidia_open_model_and_nemotron_licences_are_different_documents():
+    """Hub license_name nvidia-open-model-license is not the Nemotron licence
+    and not the April 2026 Open Model Agreement. The Open Models License is
+    revocable and binds Trustworthy AI terms; the other two are Apache-shaped
+    irrevocable grants."""
+    open_models = reading_for("nvidia-open-model-license")
+    agreement = reading_for("nvidia-open-model-agreement")
+    nemotron = reading_for("nvidia-nemotron-open-model-license")
+    assert open_models is not None and agreement is not None and nemotron is not None
+    urls = {open_models.source.url, agreement.source.url, nemotron.source.url}
+    assert len(urls) == 3
+    assert open_models.permission is UsePermission.RESTRICTED
+    assert agreement.permission is UsePermission.ALLOWED
+    assert nemotron.permission is UsePermission.ALLOWED
 
 
 def test_an_unread_licence_produces_no_value_and_never_a_default():
