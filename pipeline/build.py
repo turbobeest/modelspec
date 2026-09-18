@@ -147,13 +147,20 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     return html
 
 
-def _copy_fonts(root: Path, *dests: Path) -> None:
-    """Serve the self-hosted faces from every site that renders through the shell.
+def _ship_instrument(root: Path, *dests: Path) -> None:
+    """Serve the shared stylesheet and its self-hosted faces from every site.
+
+    The generated pages inline `render.CSS`; the hand-written pages (the two
+    landings and the wizard) link `/instrument.css`, which is the same string.
+    Their colours and fonts used to be copied in by hand and had drifted.
 
     Both sites share one stylesheet, so a face missing from either one silently
     falls back to the system sans on that domain only — the kind of difference
     nobody notices until the two sites are compared side by side.
     """
+    for dest in dests:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "instrument.css").write_text(r.CSS, encoding="utf-8")
     src = root / "site/fonts"
     if not src.is_dir():
         return
@@ -218,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
 
     ms = out / "modelspec"
     bg = out / "benchgraph"
-    _copy_fonts(root, ms, bg)
+    _ship_instrument(root, ms, bg)
     ms.mkdir(parents=True, exist_ok=True)
     bg.mkdir(parents=True, exist_ok=True)
 
