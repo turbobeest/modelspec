@@ -839,6 +839,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: nomic/nomic-embed-text-v2-moe
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'The text must include a task-instruction prefix. Use ''search_query: '' before
+        queries and ''search_document: '' before documents.'
+      sources:
+      - url: https://huggingface.co/nomic-ai/nomic-embed-text-v2-moe
+        title: nomic-embed-text-v2-moe model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Matryoshka dimensions from 768 down to 256. Maximum sequence length 512 tokens.
+        Mean pooling in the transformers example.
+      sources:
+      - url: https://huggingface.co/nomic-ai/nomic-embed-text-v2-moe
+        title: nomic-embed-text-v2-moe model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # nomic embed text v2 moe

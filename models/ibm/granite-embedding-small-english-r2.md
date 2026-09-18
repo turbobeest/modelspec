@@ -838,6 +838,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: ibm/granite-embedding-small-english-r2
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: No task-instruction prefix. IBM's examples encode queries and passages the same
+        way, then compare with cosine similarity.
+      sources:
+      - url: https://huggingface.co/ibm-granite/granite-embedding-small-english-r2
+        title: granite-embedding-small-english-r2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: 384-dimensional vectors, context up to 8192 tokens. Vectors are unnormalized unless
+        you pass normalize_embeddings=True. The transformers example pools the CLS token.
+      sources:
+      - url: https://huggingface.co/ibm-granite/granite-embedding-small-english-r2
+        title: granite-embedding-small-english-r2 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # granite embedding small english r2

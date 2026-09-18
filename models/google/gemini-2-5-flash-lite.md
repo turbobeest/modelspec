@@ -900,6 +900,55 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-2-5-flash-lite
+    version: gemini-2.5-flash-lite
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Call it as gemini-2.5-flash-lite. Google says the preview alias was the same underlying
+        model as this stable id.
+      sources:
+      - url: https://developers.googleblog.com/en/gemini-25-flash-lite-is-now-stable-and-generally-available/
+        title: Gemini 2.5 Flash-Lite is now stable and generally available
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message:
+    - text: System instructions are supported on this model id.
+      sources:
+      - url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/2-5-flash-lite
+        title: Gemini 2.5 Flash-Lite
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Thinking is off by default (unlike the other 2.5 models). Toggle it on for harder
+        work; the GA post describes native reasoning that can be optionally enabled.
+      sources:
+      - url: https://developers.googleblog.com/gemini-2-5-thinking-model-updates/
+        title: 'Gemini 2.5: Updates to our family of thinking models'
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://developers.googleblog.com/en/gemini-25-flash-lite-is-now-stable-and-generally-available/
+        title: Gemini 2.5 Flash-Lite is now stable and generally available
+        accessed: '2026-09-18'
+        kind: release-notes
+    - text: 'Thinking is supported with a controllable budget. Native tools: Grounding with
+        Google Search, code execution, URL context, and function calling. 1,048,576-token
+        context.'
+      sources:
+      - url: https://developers.googleblog.com/en/gemini-25-flash-lite-is-now-stable-and-generally-available/
+        title: Gemini 2.5 Flash-Lite is now stable and generally available
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/2-5-flash-lite
+        title: Gemini 2.5 Flash-Lite
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

@@ -927,6 +927,32 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: microsoft/phi-4
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Best suited to chat-format prompts: <|im_start|>system<|im_sep|> ... <|im_end|>
+        then user and assistant turns with the same markers.'
+      sources:
+      - url: https://huggingface.co/microsoft/phi-4
+        title: Phi-4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: The card's example puts the role/persona in the system turn of that chat envelope.
+      sources:
+      - url: https://huggingface.co/microsoft/phi-4
+        title: Phi-4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools: []
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

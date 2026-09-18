@@ -856,6 +856,26 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-mini
+    version: gpt-5-mini
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: OpenAI describes GPT-5 Mini as a faster, cheaper GPT-5 for well-defined tasks
+        and precise prompts.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5-mini.md
+        title: GPT-5 Mini
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

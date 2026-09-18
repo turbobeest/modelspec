@@ -838,6 +838,40 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: qwen/qwen3-embedding-4b
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Each query must carry a one-sentence task instruction: ''Instruct: <task>\nQuery:<query>''.
+        Documents take no instruction.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-Embedding-4B
+        title: Qwen3-Embedding-4B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Write instructions in English even for multilingual tasks; Qwen reports 1–5% gains
+        from task-specific instructions versus none.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-Embedding-4B
+        title: Qwen3-Embedding-4B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Output dimension is up to 2560 and is user-defined from 32 to 2560 (MRL). 32k
+        context. Cosine similarity on the card's example.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-Embedding-4B
+        title: Qwen3-Embedding-4B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Qwen3 Embedding 4B

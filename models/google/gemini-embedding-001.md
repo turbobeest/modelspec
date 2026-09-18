@@ -837,6 +837,42 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: google/gemini-embedding-001
+    version: gemini-embedding-001
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'For gemini-embedding-001, set task_type on embedContent. Retrieval must use different
+        types for the corpus and the query: RETRIEVAL_DOCUMENT on documents, RETRIEVAL_QUERY
+        on queries.'
+      sources:
+      - url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/embeddings/task-types
+        title: Choose an embeddings task type
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Other task_type values named for this model include SEMANTIC_SIMILARITY, CLASSIFICATION,
+        CLUSTERING, QUESTION_ANSWERING, FACT_VERIFICATION, and CODE_RETRIEVAL_QUERY (pair
+        code queries with RETRIEVAL_DOCUMENT on the code).
+      sources:
+      - url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/embeddings/task-types
+        title: Choose an embeddings task type
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Default vector length is 3072. output_dimensionality can shrink it. An optional
+        title applies only with task_type RETRIEVAL_DOCUMENT.
+      sources:
+      - url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/embeddings/get-text-embeddings
+        title: Get text embeddings
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Gemini Embedding 001
