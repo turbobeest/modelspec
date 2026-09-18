@@ -1,7 +1,7 @@
 ---
 model_id: qwen/deepseek-v4-flash-0731
 display_name: DeepSeek V4 Flash 0731
-provider: qwen
+provider: deepseek
 provider_display: DeepSeek
 family: deepseek-flash
 version: deepseek-v4-flash-0731
@@ -509,13 +509,13 @@ availability:
     regions: []
     notes: ''
   qwen_alibaba:
-    available: false
-    model_id: ''
-    url: https://www.alibabacloud.com/en/solutions/generative-ai/qwen
+    available: true
+    model_id: deepseek-v4-flash-0731
+    url: 'https://models.dev/alibaba'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Listed on Alibaba Cloud''s models.dev page, read 2026-09-18.'
   baidu_ernie:
     available: false
     model_id: ''
@@ -897,12 +897,16 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 # DeepSeek V4 Flash 0731
 
 DeepSeek V4 Flash 0731 is a Llm Reasoning model from DeepSeek. Part of the deepseek-flash family. Knowledge cutoff: 2025-05.
+
+Listed by Alibaba Cloud; the host is recorded under availability (MODEL-84).
+
+Creator: DeepSeek. huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731 (author `deepseek-ai`, 304,180,418,494 parameters, the count on this card), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

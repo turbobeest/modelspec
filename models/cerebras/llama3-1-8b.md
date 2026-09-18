@@ -1,8 +1,8 @@
 ---
 model_id: cerebras/llama3-1-8b
 display_name: Llama 3.1 8B
-provider: cerebras
-provider_display: Cerebras
+provider: meta
+provider_display: Meta
 family: llama
 version: llama3.1-8b
 release_date: '2025-01-01'
@@ -42,8 +42,8 @@ architecture:
   vae_type: ''
   total_parameters_source: ''
 lineage:
-  base_model: ''
-  base_model_relation: null
+  base_model: meta/llama-3-1-8b-instruct
+  base_model_relation: repackaged
   merge_models: []
   adapter_type: ''
   adapter_rank: null
@@ -818,7 +818,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/cerebras
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -832,13 +832,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 
 # Llama 3.1 8B
 
-Llama 3.1 8B is a Llm Chat model from Cerebras. Part of the llama family. Knowledge cutoff: 2023-12.
+Llama 3.1 8B is a Llm Chat model from Meta. Part of the llama family. Knowledge cutoff: 2023-12.
+
+This card records Cerebras's hosted offering of the model. It re-hosts `meta/llama-3-1-8b-instruct` (MODEL-84); see that card for the model itself.
+
+Creator: Meta. Cerebras's own model page linked huggingface.co/meta-llama/Llama-3.1-8B-Instruct (https://web.archive.org/web/20260407230937/https://inference-docs.cerebras.ai/models/llama-31-8b, read 2026-09-18). Cerebras deprecated `llama3.1-8b` on 2026-05-27 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use

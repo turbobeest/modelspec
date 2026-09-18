@@ -1,8 +1,8 @@
 ---
 model_id: cerebras/gpt-oss-120b
 display_name: GPT OSS 120B
-provider: cerebras
-provider_display: Cerebras
+provider: openai
+provider_display: OpenAI
 family: gpt-oss
 version: gpt-oss-120b
 release_date: '2025-08-05'
@@ -356,13 +356,13 @@ availability:
     regions: []
     notes: ''
   cerebras:
-    available: false
-    model_id: ''
-    url: https://www.cerebras.ai/
+    available: true
+    model_id: gpt-oss-120b
+    url: 'https://inference-docs.cerebras.ai/models/openai-oss'
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: 'Listed on Cerebras''s model catalogue, read 2026-09-18.'
   sambanova:
     available: false
     model_id: ''
@@ -842,13 +842,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 
 # GPT OSS 120B
 
-GPT OSS 120B is a Llm Reasoning model from Cerebras. Part of the gpt-oss family.
+GPT OSS 120B is a Llm Reasoning model from OpenAI. Part of the gpt-oss family.
+
+Served by Cerebras's inference API; the host is recorded under availability (MODEL-84).
+
+Creator: OpenAI. huggingface.co/openai/gpt-oss-120b (author `openai`, 116,829,156,672 parameters, the count on this card), read 2026-09-18.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

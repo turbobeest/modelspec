@@ -1,8 +1,8 @@
 ---
 model_id: cerebras/zai-glm-4-7
 display_name: Z.AI GLM-4.7
-provider: cerebras
-provider_display: Cerebras
+provider: zhipu
+provider_display: Zhipu AI
 family: ''
 version: zai-glm-4.7
 release_date: '2026-01-10'
@@ -42,8 +42,8 @@ architecture:
   vae_type: ''
   total_parameters_source: safetensors
 lineage:
-  base_model: ''
-  base_model_relation: null
+  base_model: zhipu/glm-4-7
+  base_model_relation: repackaged
   merge_models: []
   adapter_type: ''
   adapter_rank: null
@@ -809,7 +809,7 @@ downselect:
 sources:
   models_dev_url: https://models.dev/cerebras
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/zai-org/GLM-4.7
   arxiv_url: ''
   paper_url: ''
   github_url: ''
@@ -823,13 +823,17 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-17'
 ---
 
 
 # Z.AI GLM-4.7
 
-Z.AI GLM-4.7 is a Llm Chat model from Cerebras.
+Z.AI GLM-4.7 is a Llm Chat model from Zhipu AI (Z.ai).
+
+This card records Cerebras's hosted offering of the model. It re-hosts `zhipu/glm-4-7` (MODEL-84); see that card for the model itself.
+
+Creator: Zhipu AI (Z.ai). Cerebras's own model page linked huggingface.co/zai-org/GLM-4.7 (https://web.archive.org/web/20260409170547/https://inference-docs.cerebras.ai/models/zai-glm-47, read 2026-09-18); 358,337,791,296 parameters on both this card and the repository. Cerebras deprecated `zai-glm-4.7` on 2026-08-17 (https://inference-docs.cerebras.ai/support/deprecation, read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use
