@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: other
-  license_url: ''
+  license_url: https://raw.githubusercontent.com/Tencent-Hunyuan/HunyuanWorld-Mirror/main/License.txt
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -824,10 +824,12 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # HunyuanWorld Mirror
 
 Auto-generated from HuggingFace Hub metadata for [tencent/HunyuanWorld-Mirror](https://huggingface.co/tencent/HunyuanWorld-Mirror).
+
+Licence: other. Creator LICENSE file https://raw.githubusercontent.com/Tencent-Hunyuan/HunyuanWorld-Mirror/main/License.txt (Tencent Hunyuan Community License Agreement) and Hub cardData.license other and license_name tencent-hunyuanworld-mirror-community, read 2026-09-18.

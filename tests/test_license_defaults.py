@@ -184,3 +184,64 @@ def test_mistral_api_alias_without_a_distribution_point_is_nulled() -> None:
     lic = _front("mistral/codestral-latest")["licensing"]
     assert lic["license_type"] is None
     assert not (lic.get("license_url") or "").strip()
+
+
+# ── MODEL-86 batch 3 (allen-ai … black-forest-labs) ─────────────────────────
+
+
+def test_olmo2_apache_is_cited_from_the_creator_license() -> None:
+    lic = _front("allen-ai/olmo-2-0325-32b-instruct")["licensing"]
+    assert lic["license_type"] == "apache-2.0"
+    assert "OLMo-2-0325-32B-Instruct" in lic["license_url"]
+
+
+def test_unsourced_allenai_card_without_a_hub_licence_is_nulled() -> None:
+    lic = _front("allen-ai/biomed-roberta-base")["licensing"]
+    assert lic["license_type"] is None
+    assert not (lic.get("license_url") or "").strip()
+
+
+def test_deepseek_r1_is_mit_not_the_deepseek_model_licence() -> None:
+    lic = _front("deepseek/deepseek-r1")["licensing"]
+    assert lic["license_type"] == "mit"
+    assert lic["license_url"].startswith("https://huggingface.co/deepseek-ai/DeepSeek-R1")
+
+
+def test_deepseek_api_aliases_cite_open_platform_terms() -> None:
+    url = (
+        "https://cdn.deepseek.com/policies/en-US/"
+        "deepseek-open-platform-terms-of-service.html"
+    )
+    for model_id in ("deepseek/deepseek-chat", "deepseek/deepseek-reasoner"):
+        lic = _front(model_id)["licensing"]
+        assert lic["license_type"] == "proprietary", model_id
+        assert lic["license_url"] == url, model_id
+
+
+def test_salesforce_xlam_is_cc_by_nc_not_apache() -> None:
+    lic = _front("salesforce/xlam-7b-r")["licensing"]
+    assert lic["license_type"] == "cc-by-nc-4.0"
+
+
+def test_baai_gemma2_embedder_carries_gemma_terms() -> None:
+    lic = _front("baai/bge-multilingual-gemma2")["licensing"]
+    assert lic["license_type"] == "gemma"
+
+
+def test_flux_schnell_is_apache_and_flux_dev_is_not() -> None:
+    schnell = _front("black-forest-labs/flux-1-schnell")["licensing"]
+    dev = _front("black-forest-labs/flux-1-dev")["licensing"]
+    assert schnell["license_type"] == "apache-2.0"
+    assert dev["license_type"] == "other"
+    assert "http" in (dev.get("license_url") or "")
+
+
+def test_sdxl_base_is_openrail() -> None:
+    lic = _front("stability/stable-diffusion-xl-base-1-0")["licensing"]
+    assert lic["license_type"] == "openrail"
+
+
+def test_yi_34b_is_cited_apache() -> None:
+    lic = _front("01-ai/yi-34b")["licensing"]
+    assert lic["license_type"] == "apache-2.0"
+    assert "01-ai/Yi-34B" in lic["license_url"]

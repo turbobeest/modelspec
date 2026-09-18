@@ -452,11 +452,81 @@ _READINGS: dict[str, LicenceReading] = {
             "generation product."
         ),
     ),
+    # ── MODEL-86 batch 3: DeepSeek API, OpenRAIL++, Stability Community, FLUX.1 [dev]
+    # Read 2026-09-18. Appended as its own block so a merge with batch 2
+    # (qwen/meta/microsoft/nvidia/ibm/zhipu) stays a clean append.
+    # FLUX.2's Hub name `flux-non-commercial-license` is a different
+    # identifier; it is deliberately not aliased onto the FLUX.1 [dev]
+    # document.
+    "terms:deepseek": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_terms(
+            "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
+            "We grant you a right to access and use the Services provided by "
+            "the Open Platform in accordance with these Terms: API services "
+            "based on the DeepSeek Chat models, as well as other new service "
+            "types which will be developed by DeepSeek.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the DeepSeek Open Platform Terms "
+            "of Service (effective 29 April 2026). DeepSeek assigns any rights "
+            "it has in Outputs to the customer. Use is bound by the DeepSeek "
+            "Terms of Use and by applicable export-control and sanctions law."
+        ),
+    ),
+    "stabilityai-ai-community": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/sd-turbo/raw/main/LICENSE.md",
+            "If at any time You or Your Affiliate(s), either individually or "
+            "in aggregate, generate more than USD $1,000,000 in annual revenue "
+            "(or the equivalent thereof in Your local currency), regardless of "
+            "whether that revenue is generated directly or indirectly from the "
+            "Stability AI Materials or Derivative Works, any licenses granted "
+            "to You under this Agreement shall terminate as of such date.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted under the Stability AI Community "
+            "License Agreement (last updated 5 July 2024), but the licence "
+            "terminates if the licensee or its affiliates generate more than "
+            "USD $1,000,000 in annual revenue; above that threshold a separate "
+            "enterprise licence must be requested from Stability AI."
+        ),
+    ),
+    "openrail++": LicenceReading(
+        permission=UsePermission.RESTRICTED,
+        source=_licence(
+            "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/main/LICENSE.md",
+            "Use-based restrictions. The restrictions set forth in Attachment A "
+            "are considered Use-based restrictions. Therefore You cannot use "
+            "the Model and the Derivatives of the Model for the specified "
+            "restricted uses.",
+            read_on="2026-09-18",
+        ),
+        conditions=(
+            "Commercial use is granted, including hosting for third-party "
+            "remote access, but the Attachment A use-based restrictions apply "
+            "and must be included as an enforceable provision in any agreement "
+            "governing a derivative or redistribution."
+        ),
+    ),
+    "flux-1-dev-non-commercial-license": LicenceReading(
+        permission=UsePermission.PROHIBITED,
+        source=_licence(
+            "https://raw.githubusercontent.com/black-forest-labs/flux/main/model_licenses/LICENSE-FLUX1-dev",
+            "You may only access, use, Distribute, or create Derivatives of "
+            "the FLUX.1 [dev] Model or Derivatives for Non-Commercial Purposes.",
+            read_on="2026-09-18",
+        ),
+    ),
 }
 
 # Hub `license_name` for the 2023 Tongyi Qianwen agreement is sometimes the
 # longer spelling. Same document, same reading.
 _READINGS["tongyi-qianwen-license-agreement"] = _READINGS["tongyi-qianwen"]
+_READINGS["deepseek-license"] = _READINGS["deepseek"]
 
 #: The licence readings, by licence identifier. Read-only on purpose: a caller
 #: that wants a new licence answered has to add it here, with a document and a

@@ -92,6 +92,11 @@ def test_restricted_readings_state_their_restriction():
         ("terms:amazon", UsePermission.RESTRICTED),
         ("terms:perplexity", UsePermission.RESTRICTED),
         ("terms:mistral", UsePermission.RESTRICTED),
+        ("terms:deepseek", UsePermission.RESTRICTED),
+        ("stabilityai-ai-community", UsePermission.RESTRICTED),
+        ("openrail++", UsePermission.RESTRICTED),
+        ("flux-1-dev-non-commercial-license", UsePermission.PROHIBITED),
+        ("deepseek-license", UsePermission.RESTRICTED),
         ("qwen", UsePermission.RESTRICTED),
         ("qwen-research", UsePermission.PROHIBITED),
         ("tongyi-qianwen", UsePermission.RESTRICTED),
@@ -124,8 +129,18 @@ def test_the_llama_licences_are_six_documents_not_one():
 
 
 def test_an_unread_licence_produces_no_value_and_never_a_default():
-    for unknown in ("openrail", "gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
+    for unknown in ("gpl-3.0", "cc-by-4.0", "", None, "APACHE-3.0"):
         assert reading_for(unknown) is None
+
+
+def test_flux1_dev_noncommercial_is_not_the_flux2_name():
+    """FLUX.1 [dev] was read. FLUX.2's Hub identifier is a different string
+    and must not inherit that document."""
+    flux1 = reading_for("flux-1-dev-non-commercial-license")
+    assert flux1 is not None
+    assert flux1.permission is UsePermission.PROHIBITED
+    assert reading_for("flux-non-commercial-license") is None
+    assert reading_for("flux-dev-non-commercial-license") is None
 
 
 def test_the_table_cannot_be_mutated_into_a_default():
