@@ -145,7 +145,11 @@ jobs:
         # answers with this value as `service_commit`, so an old deployment
         # cannot pass for the one this run pushed. CLI vars are merged over the
         # config vars, so EXPORT_ORIGIN is unaffected.
-        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
+        # TIER_POLICY (MODEL-69) is the tier table, which the isolate has no
+        # filesystem to read. Without it a presented key is refused
+        # `access_not_configured` rather than metered against invented limits;
+        # anonymous requests do not need it.
+        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}" --var "TIER_POLICY:$(jq -c . tiers.json)"
 
       - name: Smoke-test api.modelspec.dev
         run: |

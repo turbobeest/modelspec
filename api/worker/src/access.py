@@ -5,14 +5,10 @@ classified, metered and either answered or refused, and the Worker's entry point
 supplies the two things this module deliberately does not know: how to build a
 live answer, and how to build a sandbox one.
 
-    outcome = await access.serve(
-        api_key=keys.extract(request.headers.get),
-        kv=access_kv.CloudflareKV(env.API_KEYS),
-        policy=access_config.load_policy(env),
-        envelope=service._envelope({}, service_commit, origin),
-        live=lambda record: self._rank(request_payload),
-        sandbox=lambda: access_sandbox.rank_response(parsed, envelope=envelope),
-    )
+The Worker calls `gate`, which is `serve` behind the `ACCESS_ENFORCED` switch:
+with enforcement off an unkeyed request is answered as it was before this layer
+existed, and a presented key still goes through `serve` in full. See
+`entry.py` and `docs/api-access.md`.
 
 Three properties this file exists to keep, each with a test that fails if it
 stops being true:
@@ -38,8 +34,9 @@ from typing import Any
 
 import access_keys as keys
 import access_limits as limits
-from access_config import AccessPolicy, PolicyError
+from access_config import AccessPolicy, PolicyError, TierLimits
 from access_keys import KeyRecord
+from access_kv import StoreNotConfigured
 
 HTTP_OK = 200
 #: No key, or a key that is not ours. 401 rather than 403: the caller may
@@ -51,12 +48,39 @@ HTTP_FORBIDDEN = 403
 HTTP_RATE_LIMITED = 429
 #: The key is fine and the configuration is not. Ours, not the caller's.
 HTTP_MISCONFIGURED = 500
+#: A key was presented and the Worker has no key store to check it against.
+#: Ours, not the caller's, and temporary — which is what 503 says.
+HTTP_STORE_UNAVAILABLE = 503
+#: A sandbox key on an endpoint the sandbox does not answer.
+HTTP_BAD_REQUEST = 400
 
 MISSING_KEY = "missing_api_key"
 INVALID_KEY = "invalid_api_key"
 REVOKED_KEY = "key_revoked"
 RATE_LIMITED = "rate_limited"
 TIER_NOT_CONFIGURED = "tier_not_configured"
+STORE_NOT_CONFIGURED = "access_store_not_configured"
+ACCESS_NOT_CONFIGURED = "access_not_configured"
+SANDBOX_NOT_AVAILABLE = "sandbox_not_available"
+
+#: Every refusal this layer can produce, with its status. The OpenAPI generator
+#: and the references are checked against this table, so a new refusal here is
+#: an undocumented one until the docs name it.
+REFUSALS: dict[str, int] = {
+    MISSING_KEY: HTTP_UNAUTHORIZED,
+    INVALID_KEY: HTTP_UNAUTHORIZED,
+    REVOKED_KEY: HTTP_FORBIDDEN,
+    RATE_LIMITED: HTTP_RATE_LIMITED,
+    TIER_NOT_CONFIGURED: HTTP_MISCONFIGURED,
+    ACCESS_NOT_CONFIGURED: HTTP_MISCONFIGURED,
+    STORE_NOT_CONFIGURED: HTTP_STORE_UNAVAILABLE,
+    SANDBOX_NOT_AVAILABLE: HTTP_BAD_REQUEST,
+}
+
+#: The values of the enforcement switch that mean each thing. Anything else is
+#: read as ON: a typo made while switching enforcement on must not leave it
+#: off, and the default in `wrangler.jsonc` is an explicit "false".
+_SWITCH_OFF = frozenset({"", "0", "false", "no", "off"})
 
 
 @dataclass
@@ -93,6 +117,26 @@ def _refusal(status: int, code: str, message: str, *, envelope: dict[str, Any],
     body = {**envelope, "error": {"code": code, "message": message, **(detail or {})},
             "result": []}
     return status, body
+
+
+def refusal(code: str, message: str, *, envelope: dict[str, Any],
+            detail: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
+    """A refusal from the `REFUSALS` table, status looked up rather than passed."""
+    return _refusal(REFUSALS[code], code, message, envelope=envelope, detail=detail)
+
+
+def enforcement(raw: Any) -> bool:
+    """Read the `ACCESS_ENFORCED` switch. Off only when it says off.
+
+    `None` (unset) and the documented off spellings are off; the documented on
+    spellings are on; anything else — a typo — is on, because the switch is
+    flipped to turn enforcement on and a typo then must not silently fail open.
+    """
+    if raw is None or raw is False:
+        return False
+    if raw is True:
+        return True
+    return str(raw).strip().lower() not in _SWITCH_OFF
 
 
 def _rate_limit_headers(meter: limits.MeterOutcome, now: datetime) -> dict[str, str]:
@@ -229,3 +273,65 @@ async def serve(
     status, body = await live(record)
     return Outcome(status, body, headers, tuple(trace), tier=tier.name,
                    key_id=record.key_id, meter=meter)
+
+
+async def gate(
+    *,
+    api_key: str | None,
+    enforced: bool,
+    kv: Any,
+    load_policy: Callable[[], AccessPolicy],
+    anonymous: Callable[[], Awaitable[tuple[int, dict[str, Any]]]],
+    live: Callable[[KeyRecord, TierLimits], Awaitable[tuple[int, dict[str, Any]]]],
+    sandbox: Callable[[], tuple[int, dict[str, Any]]],
+    envelope: dict[str, Any] | None = None,
+    now: datetime | None = None,
+    log: Callable[[str, dict[str, Any]], None] | None = None,
+) -> Outcome:
+    """The Worker's one call into this package: `serve`, behind the switch.
+
+    **Enforcement off** (the shipped default, until keys can be obtained): a
+    request with no key is answered by `anonymous` exactly as it was before this
+    layer was wired — no store read, no meter, no policy load. A request that
+    *presents* a key goes through `serve` in full: `test_` keys get the
+    sandbox, a known key is metered and served per its tier, and an unknown or
+    revoked key is refused. Presenting a bad key is an error even while
+    anonymous access is allowed; it is never quietly downgraded to anonymous,
+    or a caller who believes they are on a paid key would never find out.
+
+    **Enforcement on**: every request goes through `serve`, so no key is a 401
+    naming where to get one.
+
+    With no key store bound the Worker passes `access_kv.UnboundKV`, which
+    raises on any read. Presented live keys are then refused with 503
+    `access_store_not_configured`; the sandbox and anonymous requests are
+    unaffected, because neither reads the store.
+    """
+    shell = dict(envelope or {})
+    if keys.normalise(api_key) is None and not enforced:
+        status, body = await anonymous()
+        return Outcome(status, body, {}, ("key.absent", "serve.anonymous"))
+
+    try:
+        policy = load_policy()
+    except PolicyError as exc:
+        status, body = refusal(
+            ACCESS_NOT_CONFIGURED,
+            f"the access layer is not configured on this deployment: {exc}",
+            envelope=shell)
+        return Outcome(status, body, {}, ("policy.missing",))
+
+    async def live_for(record: KeyRecord) -> tuple[int, dict[str, Any]]:
+        return await live(record, policy.tier(record.tier))
+
+    try:
+        return await serve(api_key=api_key, kv=kv, policy=policy, live=live_for,
+                           sandbox=sandbox, envelope=shell, now=now, log=log)
+    except StoreNotConfigured as exc:
+        status, body = refusal(
+            STORE_NOT_CONFIGURED,
+            f"{exc}. The key could not be checked, so it is refused rather than "
+            "served as anonymous. Sandbox keys still work.",
+            envelope=shell, detail=_how_to_get_a_key(policy))
+        return Outcome(status, body, {}, ("key.lookup", "store.unbound"),
+                       key_id=keys.key_id(keys.normalise(api_key) or ""))

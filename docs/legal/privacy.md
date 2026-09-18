@@ -36,15 +36,38 @@ A body is capped at 16 KB and larger ones are refused unread past that point.
 
 ## What we store
 
-**Nothing from your request.** The endpoints are stateless: each one reads your
-request, computes an answer, returns it and forgets it.
+**Nothing from the content of your request.** The endpoints compute each answer
+from your request, return it and forget the request: no body, no field of it and
+no answer is written anywhere.
 
-The Worker binds exactly one store, a Cloudflare KV namespace called
+The Worker binds exactly one store today, a Cloudflare KV namespace called
 `DETERMINATIONS` (`api/worker/wrangler.jsonc`). It holds **our own research** —
 the licence and data-residency determinations the paid tier serves — and the
-Worker only ever reads from it. There is no code path that writes to it, and
-nothing from your request is written anywhere: no database, no object storage,
-no queue and no analytics dataset is bound at all.
+Worker only ever reads from it. There is no code path that writes to it. No
+database, no object storage, no queue and no analytics dataset is bound at all.
+
+### The API-key store: configured, not yet active
+
+A second KV namespace, `ACCESS`, is written into the Worker's configuration for
+API keys (MODEL-69) and is **commented out**: the namespace has not been created
+and the Worker does not bind it, so today nothing is written to it and it holds
+nothing. When it is bound, it will hold exactly two kinds of record, and this is
+what each holds (`api/worker/src/access_keys.py`, `access_limits.py`):
+
+- **A key record per issued key.** Stored under the SHA-256 hash of the key,
+  never under the key, and the key value itself is never stored, logged or
+  returned. The record holds the key's tier, who it was issued to, an optional
+  label, when it was created, whether it is active, and a 12-character
+  fingerprint (the start of that hash) that identifies the key in support and
+  cannot be turned back into it.
+- **Two counters per key.** How many calls that key made in the current UTC day
+  and in the current minute, named by the key's fingerprint and the window and
+  holding a single number. They expire on their own: the minute counter after a
+  minute, the daily one after two days.
+
+It holds no prompt, no request body, no field of a request, no answer, no IP
+address and no user-agent: our code reads none of those into it. A request that
+presents no key, or a `test_` sandbox key, writes nothing to it at all.
 
 The only other thing held between requests is a short-lived copy of our own
 published catalogue, which is public data and contains nothing of yours
@@ -97,13 +120,14 @@ are present in your environment and never their values. The keys stay with you.
 Named so that this statement can be checked against the code, and so that
 nothing below is read as describing the service today:
 
-- **API keys, tiers and rate limits.** The code exists
-  (`api/worker/src/access*.py`, MODEL-69) but is **not wired into the deployed
-  Worker**: the entry point does not call it. No key is required and none is
-  issued today. When it is switched on, this statement must say what a key
-  record holds before that happens. As designed, a key is stored as the SHA-256
-  of its own bytes and identified in logs by a 12-character fingerprint, so the
-  key value itself is never written down.
+- **API keys, tiers and rate limits.** The code is wired into the Worker's
+  entry point (`api/worker/src/entry.py`, MODEL-69) with **enforcement off**: no
+  key is required, and a request without one is answered as it always was,
+  unmetered and with nothing written. No key has been issued, and the key store
+  described above is not bound, so a live key cannot yet be checked and is
+  refused. What a key record and its counters hold is set out under
+  [What we store](#the-api-key-store-configured-not-yet-active), before any of
+  it is written.
 - **Payment.** No payment rail, checkout or billing is in operation, so no
   payment or billing data is collected or held. Payments would be handled by a
   payment processor, and that arrangement is not yet made.
@@ -112,7 +136,6 @@ nothing below is read as describing the service today:
   one. When it is built it will record the profile, the recommendation and the
   outcome — never prompt text — and this statement will be updated before it
   ships, not after.
-- **A policy-check endpoint.** Not merged.
 
 ## Your requests about your data
 

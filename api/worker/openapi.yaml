@@ -14,14 +14,19 @@ info:
     against a licence, origin, residency and commercial-use policy, citing the document behind each verdict.
 
 
-    One call, no state, no key today. Each answer is computed per request from the current public export;
+    One call, and no state on your side. Each answer is computed per request from the current public export;
     `build.commit` on every response names the catalogue it was computed from. A request carries a profile
     or a policy — never a prompt.
 
 
-    policy-check is answered from the public export today (the free tier). Every check it cannot settle
-    is `undetermined` with `why: tier`, and `determinations.undetermined_for_lack_of_entitlement` counts
-    them. It is never a pass.
+    A key is optional today (see x-modelspec-access): without one you get the free tier, unmetered; a
+    key you present is checked, and a bad one is refused rather than ignored. Any key starting `test_`
+    is the sandbox: unlimited, synthetic rows from the real scorer, /v1/rank only.
+
+
+    Without a paid-tier key, policy-check answers from the public export (the free tier). Every check
+    it cannot settle is `undetermined` with `why: tier`, and `determinations.undetermined_for_lack_of_entitlement`
+    counts them. It is never a pass.
 
 
     Send a real `User-Agent`. The host is behind Cloudflare, and the standard-library default (`Python-urllib/*`)
@@ -33,14 +38,22 @@ info:
     name: MIT
     url: https://github.com/turbobeest/modelspec
   x-error-codes:
+  - access_not_configured
+  - access_store_not_configured
   - determinations_unavailable
   - export_unavailable
   - insufficient_evidence
+  - invalid_api_key
   - invalid_request
+  - key_revoked
   - method_not_allowed
+  - missing_api_key
   - no_match
   - not_found
   - payload_too_large
+  - rate_limited
+  - sandbox_not_available
+  - tier_not_configured
   - undetermined_present
   - unknown_hardware
   - unknown_hosting
@@ -56,49 +69,70 @@ info:
   x-max-request-bytes:
     /v1/rank: 16384
     /v1/policy-check: 262144
-x-modelspec-not-yet-live:
-  status: implemented but NOT wired into the deployed Worker
+x-modelspec-access:
+  status: wired; enforcement off
   ticket: MODEL-69
-  effect_today: Neither endpoint takes a key, meters anything or ever returns 401, 403 or 429. Do not
-    build a client that depends on those statuses yet; do build one that tolerates them.
+  enforced: false
+  switch: ACCESS_ENFORCED in api/worker/wrangler.jsonc
+  key_store_bound: false
+  effect_today: 'A key is optional. A request without one is answered as the free tier, unmetered, and
+    never gets 401, 403 or 429. A request that presents one is checked: a test_ key gets the sandbox,
+    a known key is metered and served per its tier, and an unknown or revoked key is refused (401 or 403),
+    never served as anonymous. No key store is bound yet and no key has been issued, so a live key is
+    refused 503 access_store_not_configured; test_ keys work.'
   policy_check_paid_entitlement:
-    status: specified, implemented and tested, and granted to no request
+    status: granted to a presented key whose tier is paid
     granted_by: entry.py::_entitlement
-    effect_today: 'every /v1/policy-check answer has determinations.entitlement public_export. commercial_use
-      and residency checks it cannot settle come back undetermined with why: tier and available_in_tier:
-      paid. HTTP 503 determinations_unavailable cannot occur yet.'
-  when_wired:
-    present_key_as:
-    - 'Authorization: Bearer <key>'
-    - 'X-API-Key: <key>'
-    never: a key in the query string
-    policy_version: access-v1
-    sandbox_prefix: test_
-    timezone: UTC
-    tiers:
-      dpf:
-        daily_limit: null
-        burst_limit_per_minute: null
-        live_data: true
-        description: 'Unlimited, and deliberately on the same handler as a paid key: null limits, not
-          a bypass.'
-      free:
-        daily_limit: 10
-        burst_limit_per_minute: 5
-        live_data: true
-        description: Live rankings. Enough for a genuine decision, not for a build loop.
-      paid:
-        daily_limit: 1000
-        burst_limit_per_minute: 60
-        live_data: true
-        description: Placeholder for the by-plan rows MODEL-73 provisions. Limits are a starting point,
-          not a commitment.
-      sandbox:
-        daily_limit: null
-        burst_limit_per_minute: null
-        live_data: false
-        description: Fixed, obviously synthetic results. Unlimited, no signup, no live data.
-    documented_in: docs/api-access.md
+    effect_today: 'anonymous and free-tier answers have determinations.entitlement public_export; checks
+      they cannot settle come back undetermined with why: tier and available_in_tier: paid. A paid-tier
+      key reads the determinations, or gets HTTP 503 determinations_unavailable when the store cannot
+      be read. No paid key has been issued yet.'
+  present_key_as:
+  - 'Authorization: Bearer <key>'
+  - 'X-API-Key: <key>'
+  never: a key in the query string
+  policy_version: access-v1
+  sandbox_prefix: test_
+  sandbox_endpoints:
+  - POST /v1/rank
+  timezone: UTC
+  tiers:
+    dpf:
+      daily_limit: null
+      burst_limit_per_minute: null
+      live_data: true
+      description: 'Unlimited, and deliberately on the same handler as a paid key: null limits, not a
+        bypass.'
+    free:
+      daily_limit: 10
+      burst_limit_per_minute: 5
+      live_data: true
+      description: Live rankings. Enough for a genuine decision, not for a build loop.
+    paid:
+      daily_limit: 1000
+      burst_limit_per_minute: 60
+      live_data: true
+      description: Placeholder for the by-plan rows MODEL-73 provisions. Limits are a starting point,
+        not a commitment.
+    sandbox:
+      daily_limit: null
+      burst_limit_per_minute: null
+      live_data: false
+      description: Fixed, obviously synthetic results. Unlimited, no signup, no live data.
+  refusals:
+    access_not_configured: 500
+    access_store_not_configured: 503
+    invalid_api_key: 401
+    key_revoked: 403
+    missing_api_key: 401
+    rate_limited: 429
+    sandbox_not_available: 400
+    tier_not_configured: 500
+  documented_in: docs/api-access.md
+security:
+- {}
+- bearer: []
+- apiKey: []
 servers:
 - url: https://api.modelspec.dev
   description: production
@@ -188,6 +222,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '503':
+          description: 'access_store_not_configured: a live key was presented and this deployment has
+            no key store to check it against. Sandbox keys and anonymous requests are unaffected.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -216,11 +284,13 @@ paths:
                 $ref: '#/components/schemas/PolicyCheckResponse'
         '400':
           description: 'Refused: a malformed body, an empty policy, or an unknown model or platform. Never
-            answered as a clean pass.'
+            answered as a clean pass. Or sandbox_not_available: a test_ key, which answers /v1/rank only.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PolicyRequestRefused'
+                oneOf:
+                - $ref: '#/components/schemas/PolicyRequestRefused'
+                - $ref: '#/components/schemas/AccessRefused'
         '404': *id001
         '405':
           description: /v1/policy-check takes POST.
@@ -247,15 +317,145 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
-        '503':
-          description: 'Entitled to the determinations, and the store could not be read. Never downgraded
-            to the free answer. Cannot occur yet: no request is entitled (x-modelspec-not-yet-live).'
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeterminationsUnavailable'
+                $ref: '#/components/schemas/AccessRefused'
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '503':
+          description: 'determinations_unavailable: entitled to the determinations by a paid-tier key,
+            and the store could not be read. Never downgraded to the free answer. Or access_store_not_configured:
+            a live key was presented and there is no key store to check it against.'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/DeterminationsUnavailable'
+                - $ref: '#/components/schemas/AccessRefused'
 components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: 'Authorization: Bearer <key>. Takes precedence.'
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: 'X-API-Key: <key>. Never in the query string.'
   schemas:
+    AccessRefused:
+      type: object
+      required:
+      - schema_version
+      - error
+      - result
+      properties:
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+              - access_not_configured
+              - access_store_not_configured
+              - invalid_api_key
+              - key_revoked
+              - missing_api_key
+              - rate_limited
+              - sandbox_not_available
+              - tier_not_configured
+            docs:
+              type: string
+            how_to_get_a_key:
+              type: string
+            limit:
+              type: integer
+            message:
+              type: string
+            remaining:
+              type: integer
+            resets_at:
+              type: string
+            retry_after_seconds:
+              type: integer
+            sandbox:
+              type: string
+            scope:
+              type: string
+            tier:
+              type: string
+            upgrade:
+              type: string
+            used:
+              type: integer
+            window:
+              type: string
+            window_seconds:
+              type: integer
+            windows:
+              type: array
+              items:
+                type: object
+                properties:
+                  limit:
+                    type: integer
+                  remaining:
+                    type: integer
+                  resets_at:
+                    type: string
+                  retry_after_seconds:
+                    type: integer
+                  scope:
+                    type: string
+                  used:
+                    type: integer
+                  window:
+                    type: string
+                  window_seconds:
+                    type: integer
+                required:
+                - limit
+                - remaining
+                - resets_at
+                - retry_after_seconds
+                - scope
+                - used
+                - window
+                - window_seconds
+          required:
+          - code
+          - message
+        result:
+          type: array
+          items: {}
+          maxItems: 0
     RankRequest:
       type: object
       additionalProperties: false
@@ -1203,8 +1403,8 @@ components:
             answered_from:
               type: string
             entitlement:
-              description: 'public_export (free: the public export only) or determinations (paid). No
-                request is granted determinations yet: see x-modelspec-not-yet-live.'
+              description: 'public_export (free: the public export only) or determinations (paid). Granted
+                by the tier of a presented key: see x-modelspec-access.'
               type: string
               enum:
               - public_export

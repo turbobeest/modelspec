@@ -17,10 +17,11 @@ Every assertion is between a document and the implementation:
 * the policy verdicts are a tagged union in the spec: a check or row carrying a
   sibling variant's key is invalid, which is what stops a spec-driven client
   reading `undetermined` as a pass;
-* the quotas in the reference must be the numbers in `tiers.json`, and the claims
-  that the access gate and the paid policy-check entitlement are **not live**
-  must remain true — the tests fail the day either is wired, which is the day
-  the references have to change;
+* the quotas in the reference must be the numbers in `tiers.json`, and what the
+  references say about keys must match the deployed switch: the access gate is
+  wired with `ACCESS_ENFORCED` off, so a key is optional and a presented one is
+  checked. The tests fail the day the switch or the key store binding changes,
+  which is the day the references have to change;
 * the neutrality commitment (MODEL-70) is live as data and linked; the terms
   are drafts and are not presented as in force. Each of those flips a test the
   day it stops being true.
@@ -348,27 +349,58 @@ def test_the_quotas_in_the_reference_are_the_numbers_in_tiers_json(reference: st
         "the reference must name the sandbox key prefix tiers.json actually uses")
 
 
-def test_the_access_gate_is_still_unwired_so_the_not_live_warning_is_true() -> None:
-    """The day someone wires MODEL-69 in, this fails and the docs must change."""
+def test_the_access_gate_is_wired_and_the_reference_says_it_is_not_enforced(
+        reference: str) -> None:
+    """The day someone flips ACCESS_ENFORCED, this fails and the docs must change."""
     entry = ENTRY.read_text(encoding="utf-8")
-    assert "import access" not in entry and "access.serve" not in entry, (
-        "entry.py now uses the access layer. docs/api.md and openapi.yaml still say keys, "
-        "quotas and the sandbox are not live — update both.")
-    reference = REFERENCE.read_text(encoding="utf-8")
-    assert "not live yet" in reference.lower()
-    assert "takes no key and meters nothing" in reference
+    assert "access.gate(" in entry, "entry.py no longer calls the access gate"
+    assert not generator.access_enforced(), (
+        "ACCESS_ENFORCED is on in wrangler.jsonc. docs/api.md still says a key is "
+        "optional — update it, and regenerate openapi.yaml.")
+    prose = _prose(reference)
+    assert "not live yet" not in prose.lower()
+    assert "takes no key and meters nothing" not in prose
+    assert "**A key is optional today.**" in prose
+    assert "`ACCESS_ENFORCED`" in prose
+    assert not generator.access_store_bound(), (
+        "the ACCESS key store is bound now. docs/api.md still says a live key is refused "
+        "access_store_not_configured — update it.")
+    assert "access_store_not_configured" in prose
 
 
-def test_the_paid_policy_entitlement_is_still_unwired_so_the_free_only_claim_is_true(
+def test_every_access_refusal_is_documented_in_both_references(
+        reference: str, policy_reference: str) -> None:
+    """The gate stands in front of both endpoints, so both references name its refusals."""
+    for text, name in ((reference, "docs/api.md"),
+                       (policy_reference, "docs/api-policy-check.md")):
+        fixes = _error_table(text)
+        missing = sorted(set(generator.access.REFUSALS) - set(fixes))
+        if name == "docs/api.md":
+            # The sandbox answers /v1/rank, so rank never refuses a test_ key.
+            missing = sorted(set(missing) - {"sandbox_not_available"})
+        else:
+            # Its reference points at api.md's table for the shared ones.
+            missing = sorted(set(missing) - {"missing_api_key", "invalid_api_key",
+                                             "key_revoked", "rate_limited",
+                                             "tier_not_configured", "access_not_configured",
+                                             "access_store_not_configured"})
+        assert missing == [], f"{name} does not tell a caller what to do about: {missing}"
+        for code, fix in fixes.items():
+            assert len(fix.split()) >= 3, f"{name}: {code} has no usable fix: {fix!r}"
+    for status in {str(s) for s in generator.access.REFUSALS.values()}:
+        assert f"| {status} |" in reference, f"docs/api.md does not list status {status}"
+
+
+def test_the_paid_policy_entitlement_follows_the_tier_and_the_reference_says_so(
         spec: dict[str, Any], policy_reference: str) -> None:
-    """The day `_entitlement` can grant the store, this fails and the docs must change."""
-    assert generator.entitlement_is_unwired(), (
-        "entry.py::_entitlement can now grant the determinations. docs/api-policy-check.md "
-        "and openapi.yaml still say every answer is the free tier — update both.")
-    assert "The paid tier is not live." in policy_reference
-    assert "every answer is the free tier" in policy_reference
-    block = spec["x-modelspec-not-yet-live"]["policy_check_paid_entitlement"]
-    assert "granted to no request" in block["status"]
+    """The day `_entitlement` grants the store any other way, this fails."""
+    assert generator.entitlement_follows_tier(), (
+        "entry.py::_entitlement no longer grants the determinations by a tier's paid flag. "
+        "docs/api-policy-check.md and openapi.yaml say it does — update both.")
+    assert "The paid tier is not live." not in policy_reference
+    assert "a key whose tier is paid" in policy_reference
+    block = spec["x-modelspec-access"]["policy_check_paid_entitlement"]
+    assert "whose tier is paid" in block["status"]
 
 
 NEUTRALITY_URL = "https://modelspec.dev/api/rank/profiles.json"
@@ -425,16 +457,34 @@ def test_the_linked_neutrality_commitment_resolves() -> None:
     assert published["ranking_policy"]["neutrality"] == neutrality_commitment()
 
 
-def test_the_spec_records_the_unwired_access_layer(spec: dict[str, Any]) -> None:
+def test_the_spec_records_the_access_layer_as_wired_and_not_enforced(
+        spec: dict[str, Any]) -> None:
     import json
 
-    block = spec["x-modelspec-not-yet-live"]
-    assert "NOT wired" in block["status"]
+    block = spec["x-modelspec-access"]
+    assert block["status"] == "wired; enforcement off"
+    assert block["enforced"] is False and block["key_store_bound"] is False
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
-    assert block["when_wired"]["sandbox_prefix"] == tiers["sandbox_prefix"]
-    assert block["when_wired"]["tiers"]["sandbox"]["daily_limit"] is None
-    assert "401" in block["effect_today"]
-    assert "security" not in spec, "the live endpoint requires no credential"
+    assert block["sandbox_prefix"] == tiers["sandbox_prefix"]
+    assert block["tiers"]["sandbox"]["daily_limit"] is None
+    assert block["refusals"] == dict(sorted(generator.access.REFUSALS.items()))
+    # A key is optional: the anonymous requirement `{}` is listed beside the schemes.
+    assert spec["security"][0] == {}
+    assert {"bearer", "apiKey"} <= set(spec["components"]["securitySchemes"])
+    for path in ("/v1/rank", "/v1/policy-check"):
+        responses = spec["paths"][path]["post"]["responses"]
+        for status in {str(s) for s in generator.access.REFUSALS.values()}:
+            if path == "/v1/rank" and status == "400":
+                continue  # sandbox_not_available is policy-check's only
+            assert status in responses, f"{path} does not describe {status}"
+
+
+def test_every_access_refusal_the_gate_produces_validates_against_the_spec(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["AccessRefused"]
+    for code, (status, body) in generator._access_refusals().items():
+        assert generator._validate(body, schema, spec) == [], code
+        assert status == generator.access.REFUSALS[code]
 
 
 # ── the gate stays in CI ─────────────────────────────────────────────────────

@@ -551,3 +551,174 @@ def test_two_keys_meter_separately(policy):
         assert run(_serve("live_one", kv, policy, now=T0 + timedelta(seconds=i))).status == 200
     assert run(_serve("live_one", kv, policy, now=T0 + timedelta(seconds=5))).status == 429
     assert run(_serve("live_two", kv, policy, now=T0 + timedelta(seconds=5))).status == 200
+
+
+# ── a missing key, however KV spells it, is refused (the jsnull bug) ─────────
+
+class JsNull:
+    """Stands in for `pyodide.ffi.jsnull`, which is what Workers KV's `null`
+    becomes in a Python Worker. Its `str()` is not JSON and not empty — the
+    shape that turned a mistyped key into the stored record `"jsnull"`."""
+
+    def __str__(self) -> str:
+        return "jsnull"
+
+
+class RawBinding:
+    """A Workers KV binding as the isolate presents it: a missing key reads
+    as `missing`, never as a Python `None` unless that is what is asked for."""
+
+    def __init__(self, missing: Any) -> None:
+        self.missing = missing
+        self.values: dict[str, str] = {}
+
+    async def get(self, name: str) -> Any:
+        return self.values.get(name, self.missing)
+
+    async def put(self, name: str, value: str, options: Any = None) -> None:
+        self.values[name] = value
+
+    async def delete(self, name: str) -> None:
+        self.values.pop(name, None)
+
+
+MISSING_SHAPES = pytest.mark.parametrize(
+    "missing", [JsNull(), "", None], ids=["jsnull", "empty-string", "none"])
+
+
+@MISSING_SHAPES
+def test_the_kv_adapter_reports_a_missing_key_as_none(missing):
+    from access_kv import CloudflareKV
+    assert run(CloudflareKV(RawBinding(missing)).get("key:nothing-here")) is None
+
+
+@MISSING_SHAPES
+def test_an_unknown_key_is_cleanly_refused_whatever_kv_returns_for_missing(policy, missing):
+    """Before the fix, `jsnull` became the string "jsnull" and `from_json` raised."""
+    from access_kv import CloudflareKV
+    kv = CloudflareKV(RawBinding(missing))
+    assert run(keys.lookup(kv, "live_mistyped")) is None
+    outcome = run(_serve("live_mistyped", kv, policy, live=_never_live))
+    assert outcome.status == access.HTTP_UNAUTHORIZED
+    assert outcome.body["error"]["code"] == access.INVALID_KEY
+    assert outcome.trace == ("key.lookup", "key.unknown")
+
+
+@MISSING_SHAPES
+def test_a_fresh_window_counts_from_zero_whatever_kv_returns_for_missing(policy, missing):
+    """The counters read through the same adapter: an absent counter is 0, not
+    'corrupt, so treat the window as spent'."""
+    from access_kv import CloudflareKV
+    binding = RawBinding(missing)
+    kv = CloudflareKV(binding)
+    run(_issue(kv, "free", policy, "live_counted"))
+    outcome = run(_serve("live_counted", kv, policy))
+    assert outcome.status == 200
+    assert outcome.meter.window(limits.DAY).used == 1
+
+
+def test_the_shared_absent_rule_is_the_one_the_determination_store_uses():
+    """One definition (#104's), not a second copy that could disagree."""
+    import kv_value
+    source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
+    assert "_absent = kv_value.absent" in source
+    assert "def _absent(" not in source
+    assert "from kv_value import absent" in (WORKER_SRC / "access_kv.py").read_text()
+    for value in (None, JsNull(), "", "   "):
+        assert kv_value.absent(value)
+    assert not kv_value.absent("0")
+
+
+# ── the gate: the enforcement switch around serve() ──────────────────────────
+
+@pytest.mark.parametrize("raw, expected", [
+    (None, False), ("false", False), ("0", False), ("no", False), ("off", False),
+    ("", False), (" False ", False), (False, False),
+    ("true", True), ("1", True), ("on", True), ("yes", True), (True, True),
+    ("ture", True), ("enabled", True),
+])
+def test_the_switch_is_off_only_when_it_says_off(raw, expected):
+    assert access.enforcement(raw) is expected
+
+
+async def _anonymous() -> tuple[int, dict[str, Any]]:
+    return 200, {**ENVELOPE, "tier_served": "anonymous", "result": [{"rank": 1}]}
+
+
+async def _gate(key, kv, policy, *, enforced, live=None, load_policy=None):
+    async def live_with_tier(record, tier):
+        return await (live or _live_answer())(record)
+    return await access.gate(
+        api_key=key, enforced=enforced, kv=kv,
+        load_policy=load_policy or (lambda: policy),
+        anonymous=_anonymous, live=live_with_tier, sandbox=_sandbox_answer,
+        envelope=dict(ENVELOPE), now=T0)
+
+
+def test_off_an_unkeyed_request_is_served_without_touching_anything(policy):
+    def no_policy():
+        raise AssertionError("the policy was loaded for an anonymous request")
+    outcome = run(_gate(None, ExplodingKV(), policy, enforced=False, load_policy=no_policy))
+    assert outcome.status == 200
+    assert outcome.body["tier_served"] == "anonymous"
+    assert outcome.headers == {}
+
+
+def test_on_an_unkeyed_request_is_refused_and_told_where_to_get_a_key(policy):
+    outcome = run(_gate(None, ExplodingKV(), policy, enforced=True))
+    assert outcome.status == 401
+    assert outcome.body["error"]["code"] == access.MISSING_KEY
+    assert outcome.body["error"]["how_to_get_a_key"] == policy.url("get_a_key")
+
+
+@pytest.mark.parametrize("enforced", [False, True], ids=["off", "on"])
+def test_a_presented_key_is_checked_in_both_modes(policy, enforced):
+    kv = MemoryKV()
+    run(_issue(kv, "free", policy, "live_real"))
+    served = run(_gate("live_real", kv, policy, enforced=enforced))
+    assert served.status == 200 and served.body["tier_served"] == "free"
+    assert served.meter.window(limits.DAY).used == 1
+
+    unknown = run(_gate("live_bogus", kv, policy, enforced=enforced, live=_never_live))
+    assert unknown.status == 401 and unknown.body["error"]["code"] == access.INVALID_KEY
+
+    run(keys.revoke(kv, "live_real"))
+    revoked = run(_gate("live_real", kv, policy, enforced=enforced, live=_never_live))
+    assert revoked.status == 403 and revoked.body["error"]["code"] == access.REVOKED_KEY
+
+    sandboxed = run(_gate("test_anything", ExplodingKV(), policy, enforced=enforced,
+                          live=_never_live))
+    assert sandboxed.status == 200 and sandboxed.body["sandbox"] is True
+
+
+@pytest.mark.parametrize("enforced", [False, True], ids=["off", "on"])
+def test_with_no_key_store_a_live_key_is_refused_not_downgraded(policy, enforced):
+    from access_kv import UnboundKV
+    outcome = run(_gate("live_whoever", UnboundKV("ACCESS"), policy, enforced=enforced,
+                        live=_never_live))
+    assert outcome.status == 503
+    assert outcome.body["error"]["code"] == access.STORE_NOT_CONFIGURED
+    assert "access store not configured" in outcome.body["error"]["message"]
+    assert "live_whoever" not in json.dumps(outcome.body)
+    # The sandbox never needed the store.
+    sandboxed = run(_gate("test_x", UnboundKV("ACCESS"), policy, enforced=enforced))
+    assert sandboxed.status == 200 and sandboxed.body["sandbox"] is True
+
+
+def test_a_presented_key_with_no_tier_table_is_our_fault_and_anonymous_is_unaffected(policy):
+    def missing():
+        raise access_config.PolicyError("no tier table")
+    keyed = run(_gate("live_x", MemoryKV(), policy, enforced=False, load_policy=missing,
+                      live=_never_live))
+    assert keyed.status == 500
+    assert keyed.body["error"]["code"] == access.ACCESS_NOT_CONFIGURED
+    anonymous = run(_gate(None, MemoryKV(), policy, enforced=False, load_policy=missing))
+    assert anonymous.status == 200
+
+
+def test_every_refusal_code_has_a_status():
+    for code in (access.MISSING_KEY, access.INVALID_KEY, access.REVOKED_KEY,
+                 access.RATE_LIMITED, access.TIER_NOT_CONFIGURED,
+                 access.ACCESS_NOT_CONFIGURED, access.STORE_NOT_CONFIGURED,
+                 access.SANDBOX_NOT_AVAILABLE):
+        assert access.REFUSALS[code] >= 400

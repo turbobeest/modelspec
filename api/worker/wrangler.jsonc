@@ -43,13 +43,22 @@
   // Binding it does not by itself publish anything: the store is empty until
   // someone holding the private enrichment checkout runs
   // api/worker/load_determinations.py, and `_entitlement()` in src/entry.py
-  // grants the store to nobody until MODEL-69's tier lands. So today this
+  // grants the store only to a paid-tier key (MODEL-69), and none is issued. So today this
   // changes no answer — every request is still served from the public export,
   // which is the free tier's complete and labelled answer
   // (`determinations.included: false`), not a degraded one.
   //
+  // MODEL-69. ACCESS holds API-key records (stored under the SHA-256 of the
+  // key, never the key) and per-key daily and per-minute counters. It is a
+  // separate namespace from DETERMINATIONS on purpose: that one holds our
+  // research and is only ever read; this one is written on every keyed call.
+  // Not created yet. Until it is, a presented live key is refused
+  // `access_store_not_configured`; anonymous and `test_` requests are unaffected.
+  // To enable: `npx wrangler kv namespace create ACCESS`, paste its id below and
+  // uncomment the line.
   "kv_namespaces": [
     { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" }
+    // , { "binding": "ACCESS", "id": "<paste the id from `wrangler kv namespace create ACCESS`>" }
   ],
   "observability": { "enabled": true },
   "vars": {
@@ -61,6 +70,15 @@
     // vars are merged over the config vars, so EXPORT_ORIGIN survives), and the
     // smoke test refuses to pass until /v1/health reports the sha it pushed.
     // "dev" is the local-development placeholder.
-    "BUILD_COMMIT": "dev"
+    "BUILD_COMMIT": "dev",
+    // MODEL-69. The access gate's switch, and it ships OFF. Off: a request with
+    // no key is served exactly as before (the free tier, unmetered), and a
+    // request that presents a key is checked — `test_` keys get the sandbox, a
+    // known key is metered and served per its tier, an unknown or revoked key
+    // is refused. On: a request with no key is a 401 naming where to get one.
+    // Flip to "true" only once keys can be obtained (MODEL-73); enforcing
+    // before then refuses every anonymous caller. Any value other than
+    // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
+    "ACCESS_ENFORCED": "false"
   }
 }

@@ -30,7 +30,13 @@ from typing import Any
 
 #: The committed tier table. `Path` is used by the tests and the build step;
 #: the Worker gets the same bytes through `TIER_POLICY`.
-DEFAULT_POLICY_PATH = Path(__file__).resolve().parents[1] / "tiers.json"
+try:
+    DEFAULT_POLICY_PATH = Path(__file__).resolve().parents[1] / "tiers.json"
+except (IndexError, NameError):  # pragma: no cover - an isolate laid out flat
+    # Imported by the Worker at startup, so this must never raise. The isolate
+    # reads the table from `TIER_POLICY`; a path that does not exist only means
+    # the fallback refuses, as it should.
+    DEFAULT_POLICY_PATH = Path("tiers.json")
 
 #: The `env` variable the Worker reads the table from.
 POLICY_ENV_VAR = "TIER_POLICY"

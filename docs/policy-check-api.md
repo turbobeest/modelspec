@@ -260,12 +260,13 @@ answer would have turned into a `fail`.
 
 ### Who is entitled
 
-`_entitlement()` in `entry.py`, and nothing else. It is a single function and it
-returns the free tier for every request today, on purpose: keys, tiers and rate
-limits are **MODEL-69's**, and a second opinion about who a caller is would be a
-second place for the two to disagree. MODEL-69 replaces that function's body and
-nothing else in the endpoint changes — `policy_service.check` already takes the
-entitlement as a parameter and the paid path is fully implemented and tested.
+`_entitlement()` in `entry.py`, and nothing else. It takes the tier MODEL-69's
+access gate resolved from a presented key and grants the determinations to a
+tier that is `paid` and serves live data (the paid rows and the exempt DPF row,
+by the flag in `tiers.json`, not by name); an anonymous or free-tier request
+gets the free answer. Who a caller is stays **MODEL-69's** decision
+(`docs/api-access.md`) — this function only reads it. No paid key has been
+issued yet, so in practice every answer is still the free tier.
 
 **Saved org policies** (in the ticket's scope) are not built here for the same
 reason: a saved policy belongs to an org, and org identity arrives with
@@ -374,7 +375,7 @@ store included, and the error names the state as `store_state`.
    wrangler refuses a deploy naming a namespace that does not exist, and a
    broken deploy on `main` is worse than a binding that arrives a day later.
    Nothing answers differently until it lands: `_entitlement()` grants the store
-   to nobody until MODEL-69.
+   only to a paid-tier key, and none has been issued.
 2. **Run the first load** from the private checkout, and confirm
    `GET /v1/health` reports `determinations.state: loaded` with the expected
    `generated_on`. Health reports the bundle's version and date only — never

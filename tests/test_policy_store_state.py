@@ -212,13 +212,14 @@ def test_a_manifest_that_is_not_json_is_broken(entry):
 # ── the MODEL-80 rule: an entitled request never gets the free answer ────────
 
 def _entitled_check(entry, monkeypatch, env):
+    # The entitlement the access gate grants a paid or exempt key (MODEL-69),
+    # passed straight in: these tests are about the store, not about keys.
     policy_service = sys.modules["policy_service"]
-    monkeypatch.setattr(entry, "_entitlement",
-                        lambda request, env: policy_service.ENTITLEMENT_DETERMINATIONS)
     worker = entry.Default()
     worker.env = env
     payload = {"policy": {"licence": {"prohibited": ["cc-by-nc-4.0"]}}}
-    response = asyncio.run(worker._policy_check(payload, "c0ffee", "https://modelspec.test"))
+    response = asyncio.run(worker._policy_check(payload, "c0ffee", "https://modelspec.test",
+                                                policy_service.ENTITLEMENT_DETERMINATIONS))
     return response.status, response.json()
 
 

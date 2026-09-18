@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
+from kv_value import absent
+
 #: Workers KV refuses a shorter expiry than this.
 MIN_EXPIRATION_TTL = 60
 
@@ -81,8 +83,15 @@ class CloudflareKV:
         self._binding = binding
 
     async def get(self, name: str) -> str | None:
+        """The stored text, or `None` — and nothing else — when there is none.
+
+        Normalised here, at the boundary, so no caller ever sees Pyodide's
+        `jsnull`. Before this, a missing key came back as the string
+        `"jsnull"`, and `access_keys.lookup` parsed it as a key record: an
+        unknown or mistyped key crashed instead of being refused.
+        """
         value = await self._binding.get(name)
-        return None if value is None else str(value)
+        return None if absent(value) else str(value)
 
     async def put(self, name: str, value: str, *,
                   expiration_ttl: int | None = None) -> None:
@@ -94,6 +103,38 @@ class CloudflareKV:
 
     async def delete(self, name: str) -> None:
         await self._binding.delete(name)
+
+
+class StoreNotConfigured(RuntimeError):
+    """The Worker has no key store bound, and a request needed one."""
+
+
+class UnboundKV:
+    """The key store when no namespace is bound: every operation refuses.
+
+    A presented live key cannot be looked up without a store, so it must be
+    refused — never waved through as anonymous, never crashed on. The gateway
+    turns this exception into `access_store_not_configured`. A sandbox key never
+    reaches it, because the sandbox never reads the store.
+    """
+
+    def __init__(self, binding_name: str) -> None:
+        self.binding_name = binding_name
+
+    def _refuse(self) -> StoreNotConfigured:
+        return StoreNotConfigured(
+            f"access store not configured: no {self.binding_name} KV binding on this "
+            "deployment")
+
+    async def get(self, name: str) -> str | None:
+        raise self._refuse()
+
+    async def put(self, name: str, value: str, *,
+                  expiration_ttl: int | None = None) -> None:
+        raise self._refuse()
+
+    async def delete(self, name: str) -> None:
+        raise self._refuse()
 
 
 def _options(**fields: Any) -> Any:

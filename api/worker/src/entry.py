@@ -14,8 +14,14 @@ public export *plus*, for an entitled caller, the policy determinations — whic
 are the paid product, are never in this repository, and reach the Worker only
 through Workers KV, staged by `api/worker/load_determinations.py`. See
 `docs/policy-check-api.md` for the trust boundary. `_entitlement()` below is the
-one place a request is granted the private store, and it is the seam MODEL-69
-fills.
+one place a request is granted the private store, and it grants it by the tier
+MODEL-69's access gate resolved from a presented key.
+
+Both POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
+after the body is read and before any export is fetched. It ships with
+enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
+before, a presented key is checked, metered and served per its tier, and a bad
+key is refused rather than downgraded to anonymous.
 
 The export is the same static JSON the sites and the CLI read
 (`https://modelspec.dev/api/rank/...`). There is no database and no private
@@ -41,6 +47,12 @@ from workers import Response, WorkerEntrypoint
 
 import hashlib
 
+import access
+import access_config
+import access_keys
+import access_kv
+import access_sandbox
+import kv_value
 import policy_service
 import rank_service as service
 
@@ -60,6 +72,16 @@ POLICY_PATH = "/api/policy/catalogue.json"
 KV_MANIFEST = "determinations/manifest"
 KV_COMMERCIAL_USE = "determinations/commercial_use"
 KV_RESIDENCY = "determinations/residency"
+
+#: MODEL-69. The KV binding that holds key records and their counters — not
+#: `DETERMINATIONS`, which holds our research and is only ever read. Staged
+#: commented out in `wrangler.jsonc` until the namespace exists; without it a
+#: presented live key is refused `access_store_not_configured`.
+ACCESS_BINDING = "ACCESS"
+#: The enforcement switch. Off: an unkeyed request is served as the free tier,
+#: exactly as before MODEL-69, and a presented key is checked. On: an unkeyed
+#: request is a 401. Flipped in `wrangler.jsonc` once keys can be obtained.
+ACCESS_ENFORCED_VAR = "ACCESS_ENFORCED"
 
 #: Everything this Worker serves. Named back to the caller by every 404, so an
 #: unrouted path — the bare root included — is a usable answer rather than a
@@ -165,30 +187,9 @@ STORE_MESSAGES = {
                   "namespace; run api/worker/load_determinations.py"),
 }
 
-try:  # Pyodide's JS `null`. Absent under CPython, where tests stub KV.
-    from pyodide.ffi import jsnull as _JSNULL  # type: ignore[import-not-found]
-except Exception:  # noqa: BLE001 - optional import; `_absent` also checks the type name
-    _JSNULL = None
-
-
-def _absent(value) -> bool:
-    """Whether a `kv.get()` result means "no such key".
-
-    Workers KV resolves a missing key to JS `null`. Pyodide converts JS `null`
-    to `pyodide.ffi.jsnull`, **not** to `None` (only `undefined` becomes
-    `None`), so an `is None` test lets it through, and `str()` of it is not
-    JSON. That is the bug this guards: an empty namespace was reported as
-    `JSONDecodeError`, i.e. as corrupt data. An empty or blank string is
-    treated as absent too — no loader writes one, and parsing it proves
-    nothing but that it is empty.
-    """
-    if value is None:
-        return True
-    if _JSNULL is not None and value is _JSNULL:
-        return True
-    if type(value).__name__ in ("JsNull", "JsUndefined"):
-        return True
-    return isinstance(value, str) and not value.strip()
+#: "No such key", whichever way KV and Pyodide spell it. Shared with the access
+#: store's adapter so the two cannot disagree (`kv_value.py`, #104).
+_absent = kv_value.absent
 
 
 def _store_state(state: str, *, error: str | None = None) -> None:
@@ -261,28 +262,52 @@ async def _load_determinations(env):
     return store
 
 
-def _entitlement(request, env) -> str:
-    """Which store this request may read. **The single seam MODEL-69 fills.**
+def _entitlement(tier) -> str:
+    """Which store this request may read. The one place the private store is granted.
 
-    Nothing here authenticates anything, on purpose: keys, tiers and rate limits
-    are MODEL-69's, and a second opinion about who a caller is would be a second
-    place for them to disagree. Until that lands, every request is the free
-    tier, which is a complete and honest answer — `determinations.included` says
-    `false` on it and every check it could not settle says `available_in_tier:
-    paid` — and not a degraded one.
-
-    MODEL-69 replaces the body of this function with its own tier lookup and
-    returns `policy_service.ENTITLEMENT_DETERMINATIONS` for a paid key. Nothing
-    else in this file or in `policy_service.py` changes.
+    `tier` is the caller's row of the tier table (`access_config.TierLimits`),
+    handed over by the access gate after the key was looked up and metered, or
+    `None` for an anonymous request. A tier that is `paid` and serves live data
+    reads the determinations — the paid rows and the exempt row alike, because
+    the exempt tier is data (`tiers.json`), not a branch. Everything else,
+    anonymous included, is the free tier: a complete and labelled answer
+    (`determinations.included: false`), not a degraded one.
     """
+    if tier is not None and tier.paid and tier.live_data:
+        return policy_service.ENTITLEMENT_DETERMINATIONS
     return policy_service.ENTITLEMENT_PUBLIC
 
 
-def _json_response(status: int, body: dict) -> Response:
+def _access_store(env):
+    """The key store, or a stand-in that refuses every read when none is bound."""
+    binding = getattr(env, ACCESS_BINDING, None)
+    if binding is None:
+        return access_kv.UnboundKV(ACCESS_BINDING)
+    return access_kv.CloudflareKV(binding)
+
+
+def _known_hardware_for_sandbox(payload) -> set[str]:
+    """The sandbox reads no hardware vocabulary, so it cannot refuse a device id.
+
+    It accepts whichever id was sent, filters nothing by it, and says so by
+    echoing it with `applied.hardware_id: null`. Every other field is validated
+    by the live parser, so an integrator's error handling meets the same
+    refusals it will meet with a live key.
+    """
+    environment = payload.get("environment") if isinstance(payload, dict) else None
+    hardware = environment.get("hardware") if isinstance(environment, dict) else None
+    return {hardware} if isinstance(hardware, str) else set()
+
+
+def _json_response(status: int, body: dict, extra_headers: dict | None = None) -> Response:
     return Response(
         json.dumps(body, indent=2, default=str),
         status=status,
         headers={
+            # The access gate's headers first, so none of them can replace the
+            # three below: rate-limit state, the tier and the key's fingerprint
+            # (never the key).
+            **(extra_headers or {}),
             "content-type": "application/json; charset=utf-8",
             # A ranking is computed per request from data that changes on every
             # site deploy. Caching it at the edge would hand callers an answer
@@ -346,26 +371,70 @@ class Default(WorkerEntrypoint):
                     None, service_commit, origin)
             return _json_response(status, body)
 
+        # MODEL-69. Everything above is transport and costs no data; from here
+        # on the access gate decides. It runs before either export is fetched,
+        # so the sandbox never reaches data and a refused key costs nothing.
         if path == "/v1/policy-check":
-            return await self._policy_check(payload, service_commit, origin)
+            envelope = policy_service._envelope({}, service_commit, origin)
 
+            async def anonymous():
+                return await self._policy_answer(payload, service_commit, origin,
+                                                 _entitlement(None))
+
+            async def live(record, tier):
+                return await self._policy_answer(payload, service_commit, origin,
+                                                 _entitlement(tier))
+
+            def sandbox():
+                return access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "the sandbox answers POST /v1/rank only; it holds no synthetic "
+                    "policy data. Call /v1/policy-check with a live key.",
+                    envelope=envelope)
+        else:
+            envelope = service._envelope({}, service_commit, origin)
+
+            async def anonymous():
+                return await self._rank(payload, service_commit, origin)
+
+            async def live(record, tier):
+                return await self._rank(payload, service_commit, origin)
+
+            def sandbox():
+                try:
+                    parsed = service.parse_request(payload,
+                                                   _known_hardware_for_sandbox(payload))
+                except service.RequestError as exc:
+                    return service.error_response(exc, None, service_commit, origin)
+                return access_sandbox.rank_response(parsed, envelope=envelope)
+
+        outcome = await access.gate(
+            api_key=access_keys.extract(lambda name: request.headers.get(name)),
+            enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+            kv=_access_store(self.env),
+            load_policy=lambda: access_config.load_policy(self.env),
+            anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
+        )
+        return _json_response(outcome.status, outcome.body, outcome.headers)
+
+    async def _rank(self, payload, service_commit: str, origin: str):
+        """`POST /v1/rank` from the published export. `(status, body)`."""
         try:
             candidates, hardware = await _load_export(origin)
         except Exception as exc:  # noqa: BLE001 - reported, with the origin named
-            return _json_response(service.HTTP_BAD_GATEWAY, {
+            return service.HTTP_BAD_GATEWAY, {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "export_origin": origin,
                 "error": {"code": "export_unavailable",
                           "message": f"could not read the published export: {exc}"},
                 "result": [],
-            })
+            }
 
         try:
-            status, body = service.rank(payload, candidates, hardware, service_commit, origin)
+            return service.rank(payload, candidates, hardware, service_commit, origin)
         except service.RequestError as exc:
-            status, body = service.error_response(exc, candidates, service_commit, origin)
-        return _json_response(status, body)
+            return service.error_response(exc, candidates, service_commit, origin)
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:
@@ -383,19 +452,27 @@ class Default(WorkerEntrypoint):
             "result": [],
         })
 
-    async def _policy_check(self, payload, service_commit: str, origin: str) -> Response:
-        """`POST /v1/policy-check` (MODEL-80).
+    async def _policy_check(self, payload, service_commit: str, origin: str,
+                            entitlement: str = policy_service.ENTITLEMENT_PUBLIC) -> Response:
+        """`_policy_answer` as a response, for callers that hold an entitlement."""
+        return _json_response(*await self._policy_answer(payload, service_commit, origin,
+                                                         entitlement))
 
-        The entitlement is decided first and the store is read only when the
-        request is entitled to it, so the free path never touches KV. When an
-        entitled request cannot read the store, `policy_service.check` refuses
-        with 503 rather than answering from the public export alone — a paid
-        caller cannot tell that answer from a real one.
+    async def _policy_answer(self, payload, service_commit: str, origin: str,
+                             entitlement: str):
+        """`POST /v1/policy-check` (MODEL-80). `(status, body)`.
+
+        The entitlement arrives decided — by `_entitlement`, from the tier the
+        access gate resolved — and the store is read only when the request is
+        entitled to it, so the free path never touches KV. When an entitled
+        request cannot read the store, `policy_service.check` refuses with 503
+        rather than answering from the public export alone — a paid caller
+        cannot tell that answer from a real one.
         """
         try:
             catalogue = await _load_policy_catalogue(origin)
         except Exception as exc:  # noqa: BLE001 - reported, with the origin named
-            return _json_response(service.HTTP_BAD_GATEWAY, {
+            return service.HTTP_BAD_GATEWAY, {
                 "schema_version": policy_service.SCHEMA_VERSION,
                 "endpoint": "policy-check",
                 "service_commit": service_commit,
@@ -403,9 +480,8 @@ class Default(WorkerEntrypoint):
                 "error": {"code": "export_unavailable",
                           "message": f"could not read the policy export: {exc}"},
                 "result": [],
-            })
+            }
 
-        entitlement = _entitlement(None, self.env)
         store = None
         if entitlement == policy_service.ENTITLEMENT_DETERMINATIONS:
             store = await _load_determinations(self.env)
@@ -422,7 +498,7 @@ class Default(WorkerEntrypoint):
                 exc.detail.setdefault("last_error", _store_cache.get("error"))
             status, body = policy_service.error_response(exc, catalogue, service_commit,
                                                          origin)
-        return _json_response(status, body)
+        return status, body
 
     async def _health(self, service_commit: str, origin: str) -> Response:
         """What version is running, and can it read the catalogue.
