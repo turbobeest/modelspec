@@ -323,6 +323,36 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
     }
 
 
+#: Guide `status` values the export will carry. Anything else is dropped rather
+#: than published as current: MODEL-65 marks version drift `stale`, and a
+#: missing status is not a guide.
+_EXPORTED_GUIDE_STATUSES = frozenset({"current", "stale"})
+
+
+def authoring_guides_from_cards(cards: list[Any]) -> dict[str, dict[str, Any]]:
+    """Card authoring guides as JSON, keyed by `model_id`.
+
+    Cards with no guide are omitted — never an empty string, never invented
+    text. The dump is what the card already holds (MODEL-8 sources and dates);
+    this function does not generate claims. Build-time only: the Worker reads
+    the map from `candidates.json` and must not import pydantic to do it.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for card in cards:
+        ident = getattr(card, "identity", None)
+        model_id = getattr(ident, "model_id", None) if ident is not None else None
+        if not model_id:
+            continue
+        guide = getattr(card, "authoring_guide", None)
+        if guide is None:
+            continue
+        dump = getattr(guide, "model_dump", None)
+        payload = dump(mode="json") if callable(dump) else None
+        if isinstance(payload, dict) and payload.get("status") in _EXPORTED_GUIDE_STATUSES:
+            out[str(model_id)] = payload
+    return out
+
+
 def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
                  build_json: dict[str, Any]) -> dict[str, Any]:
     """Emit the tables the browser needs, plus precomputed rankings."""
@@ -345,10 +375,14 @@ def write_export(out_dir: Any, cards: list[Any], sink: CollectingSink,
         "benchmark_ranges": {k: list(v) for k, v in BENCHMARK_RANGES.items()},
         "ranking_policy": RANKING_POLICY,
     })
+    # `authoring_guides` is additive on this file (MODEL-81). Scoring rows stay
+    # the shape they were; a consumer that does not read the new key is unchanged.
+    # No `export_schema_version` bump: new optional map, not a widened field.
     dump("candidates.json", {
         "build": build_json,
         "count": len(candidates),
         "candidates": [c.to_json() for c in candidates],
+        "authoring_guides": authoring_guides_from_cards(cards),
     })
 
     # The device vocabulary, without the 7 MB of FITS_ON edges that the graph

@@ -183,5 +183,14 @@ def rank_response(request: dict[str, Any], *, envelope: dict[str, Any],
         "unranked_count": report["unranked_count"],
         "candidates_considered": len(pool),
         "result": report["ranked"],
+        # Sandbox fixtures are not catalogue cards; they have no authoring
+        # guide. Same envelope key as the live endpoint (MODEL-81), documented
+        # absent state, never an empty string.
+        "authoring_guide": {
+            "state": "absent",
+            "model_id": report["ranked"][0]["model_id"] if report["ranked"] else None,
+            "why": "no_guide" if report["ranked"] else "no_recommendation",
+            "guide": None,
+        },
     }
     return 200, body

@@ -48,6 +48,7 @@ from api.ranking.engine import (  # noqa: E402
 from cli.modelspec import snapshot  # noqa: E402
 from pipeline import hardware as hardware_module  # noqa: E402
 from pipeline import ranking  # noqa: E402
+from pipeline.ranking import authoring_guides_from_cards  # noqa: E402
 from schema.card import ModelCard  # noqa: E402
 from schema.graph import derive_graph  # noqa: E402
 
@@ -102,7 +103,8 @@ def _catalogue() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
                     if label == "Hardware"),
                    key=lambda d: str(d.get("id", "")))
     candidates_json = {"build": build, "count": len(candidates),
-                       "candidates": [c.to_json() for c in candidates]}
+                       "candidates": [c.to_json() for c in candidates],
+                       "authoring_guides": authoring_guides_from_cards(cards)}
     hardware_json = {"build": build, "count": len(nodes), "hardware": nodes}
     graph_nodes = {"nodes": [{**node, "label": "Hardware"} for node in nodes]}
     return candidates_json, hardware_json, graph_nodes
@@ -496,3 +498,147 @@ def test_the_export_publishes_the_device_vocabulary_the_worker_needs(tmp_path: P
     # And the writer really does emit the file, not just this fixture.
     source = (REPO_ROOT / "pipeline" / "ranking.py").read_text(encoding="utf-8")
     assert 'dump("hardware.json"' in source
+    assert 'authoring_guides' in source
+
+
+# ── authoring guide (MODEL-81) ───────────────────────────────────────────────
+
+_GUIDE_SOURCE = {
+    "url": "https://docs.acme.example/prompting",
+    "title": "Prompting",
+    "accessed": "2026-09-15",
+    "kind": "provider-guidance",
+}
+
+
+def _rankable_row(model_id: str = "acme/guided") -> dict[str, Any]:
+    scores = {bench: 80.0 for bench in USE_CASE_PROFILES["coding"]["benchmark_weights"]}
+    return {
+        "model_id": model_id, "display_name": "Guided", "provider": "Acme",
+        "model_type": "llm-chat", "benchmark_scores": scores,
+        "open_weights": True, "verified_benchmarks": list(scores),
+    }
+
+
+def _guide(status: str = "current", model_id: str = "acme/guided") -> dict[str, Any]:
+    return {
+        "applies_to": {"model_id": model_id, "version": "1.0"},
+        "as_of": "2026-09-15",
+        "status": status,
+        "sections": {
+            "prompt_shape": [{"text": "Give the full task up front.",
+                              "sources": [_GUIDE_SOURCE]}],
+        },
+    }
+
+
+def _guided_export(status: str = "current") -> dict[str, Any]:
+    guide = _guide(status)
+    return {
+        "build": {"commit": "abc", "export_schema_version": "2.0"},
+        "candidates": [_rankable_row()],
+        "authoring_guides": {"acme/guided": guide},
+    }
+
+
+def test_the_recommended_models_current_guide_is_served_with_its_sources() -> None:
+    export = _guided_export("current")
+    status, answer = service.rank({"use_case": "coding", "limit": 1}, export, None,
+                                  SERVICE_COMMIT, ORIGIN)
+    assert status == service.HTTP_OK
+    assert answer["result"][0]["model_id"] == "acme/guided"
+    assert "authoring_guide" not in answer["result"][0]
+    block = answer["authoring_guide"]
+    assert block["state"] == "current"
+    assert block["model_id"] == "acme/guided"
+    assert block["why"] is None
+    assert block["guide"] is export["authoring_guides"]["acme/guided"]
+    source = block["guide"]["sections"]["prompt_shape"][0]["sources"][0]
+    assert source["url"] == _GUIDE_SOURCE["url"]
+    assert source["accessed"] == _GUIDE_SOURCE["accessed"]
+    assert source["kind"] == _GUIDE_SOURCE["kind"]
+
+
+def test_a_stale_guide_is_marked_stale_not_served_as_current() -> None:
+    status, answer = service.rank({"use_case": "coding", "limit": 1},
+                                  _guided_export("stale"), None,
+                                  SERVICE_COMMIT, ORIGIN)
+    assert status == service.HTTP_OK
+    block = answer["authoring_guide"]
+    assert block["state"] == "stale"
+    assert block["guide"]["status"] == "stale"
+    assert block["state"] != "current"
+    assert block["guide"]["status"] != "current"
+
+
+def test_a_model_with_no_guide_returns_the_documented_absent_state() -> None:
+    export = {"build": {"commit": "abc", "export_schema_version": "2.0"},
+              "candidates": [_rankable_row("acme/plain")],
+              "authoring_guides": {}}
+    status, answer = service.rank({"use_case": "coding", "limit": 1}, export, None,
+                                  SERVICE_COMMIT, ORIGIN)
+    assert status == service.HTTP_OK
+    block = answer["authoring_guide"]
+    assert block == {
+        "state": "absent", "model_id": "acme/plain",
+        "why": "no_guide", "guide": None,
+    }
+    assert block["guide"] != ""
+
+
+def test_no_recommendation_is_absent_not_an_empty_guide() -> None:
+    export = {"build": {"commit": "abc", "export_schema_version": "2.0"},
+              "candidates": []}
+    status, answer = service.rank({"use_case": "coding"}, export, None,
+                                  SERVICE_COMMIT, ORIGIN)
+    assert status == service.HTTP_NO_MATCH
+    block = answer["authoring_guide"]
+    assert block["state"] == "absent"
+    assert block["model_id"] is None
+    assert block["why"] == "no_recommendation"
+    assert block["guide"] is None
+
+
+def test_an_unrecognised_guide_status_is_not_served_as_current() -> None:
+    export = _guided_export("current")
+    export["authoring_guides"]["acme/guided"] = {
+        **_guide("current"), "status": "fresh",
+    }
+    status, answer = service.rank({"use_case": "coding", "limit": 1}, export, None,
+                                  SERVICE_COMMIT, ORIGIN)
+    assert status == service.HTTP_OK
+    assert answer["authoring_guide"]["state"] == "absent"
+    assert answer["authoring_guide"]["guide"] is None
+
+
+def test_the_guide_is_not_generated_at_request_time() -> None:
+    """The Worker copies the export; it does not invent claims."""
+    source = (WORKER_SRC / "rank_service.py").read_text(encoding="utf-8")
+    assert "authoring_guides" in source
+    assert "Give the full task" not in source
+    export = _guided_export("current")
+    _status, answer = service.rank({"use_case": "coding", "limit": 1}, export, None,
+                                   SERVICE_COMMIT, ORIGIN)
+    assert answer["authoring_guide"]["guide"]["sections"]["prompt_shape"][0]["text"] == (
+        export["authoring_guides"]["acme/guided"]["sections"]["prompt_shape"][0]["text"])
+
+
+def test_every_ranking_response_carries_authoring_guide() -> None:
+    for name in VECTOR_NAMES:
+        _status, answer = _worker_rank(_vector(name)[1])
+        block = answer["authoring_guide"]
+        assert block["state"] in service.AUTHORING_GUIDE_STATES, name
+        if block["state"] == "absent":
+            assert block["guide"] is None, name
+            assert block["why"] in service.AUTHORING_GUIDE_WHYS, name
+        else:
+            assert block["why"] is None, name
+            assert isinstance(block["guide"], dict), name
+            assert block["guide"]["status"] == block["state"], name
+            assert block["guide"]["status"] != "current" or block["state"] == "current", name
+            for section in (block["guide"].get("sections") or {}).values():
+                for claim in section or []:
+                    assert claim.get("text"), name
+                    for src in claim.get("sources") or []:
+                        assert str(src.get("url", "")).startswith(("http://", "https://")), name
+                        assert src.get("accessed"), name

@@ -44,7 +44,24 @@ from pipeline.ranking import Candidate, rank_report
 #: `build.export_schema_version` (the published JSON tree) and from the CLI's
 #: own `schema_version`, which this deliberately mirrors at 1.0 because the
 #: ranked rows inside `result` are the same rows.
+#:
+#: MODEL-81 added `authoring_guide` as an always-present envelope field (the
+#: recommended model's card guide, or a documented absent state). That is a
+#: new field, not a widening of an existing one, so this stays 1.0 under
+#: MODEL-59. `result` rows are unchanged. A bump here would also bump
+#: policy-check: the two endpoints share one OpenAPI `info.version`.
 SCHEMA_VERSION = "1.0"
+
+#: Serving states for `authoring_guide.state`. `absent` is a state, never an
+#: omitted field, an empty string, or generated text. `stale` is served as
+#: stale (MODEL-65); it is never rewritten to `current`.
+AUTHORING_GUIDE_STATES = ("absent", "current", "stale")
+AUTHORING_GUIDE_WHYS = ("no_guide", "no_recommendation")
+GUIDE_STATE_ABSENT = "absent"
+GUIDE_STATE_CURRENT = "current"
+GUIDE_STATE_STALE = "stale"
+GUIDE_WHY_NO_GUIDE = "no_guide"
+GUIDE_WHY_NO_RECOMMENDATION = "no_recommendation"
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
@@ -404,6 +421,49 @@ def _envelope(export: dict[str, Any], service_commit: str, origin: str) -> dict[
     }
 
 
+def authoring_guide_block(model_id: str | None, export: dict[str, Any]) -> dict[str, Any]:
+    """The recommended model's card guide, or a documented absent state.
+
+    Reads `/api/rank/candidates.json`.`authoring_guides` (MODEL-81). Serves the
+    card payload as exported — sources and `accessed` dates included. Does not
+    generate claims. A stale guide is labelled `stale`, never `current`.
+    """
+    if not model_id:
+        return {
+            "state": GUIDE_STATE_ABSENT,
+            "model_id": None,
+            "why": GUIDE_WHY_NO_RECOMMENDATION,
+            "guide": None,
+        }
+    guides = export.get("authoring_guides")
+    raw = guides.get(model_id) if isinstance(guides, dict) else None
+    if not isinstance(raw, dict):
+        return {
+            "state": GUIDE_STATE_ABSENT,
+            "model_id": model_id,
+            "why": GUIDE_WHY_NO_GUIDE,
+            "guide": None,
+        }
+    status = raw.get("status")
+    if status == GUIDE_STATE_STALE:
+        state = GUIDE_STATE_STALE
+    elif status == GUIDE_STATE_CURRENT:
+        state = GUIDE_STATE_CURRENT
+    else:
+        return {
+            "state": GUIDE_STATE_ABSENT,
+            "model_id": model_id,
+            "why": GUIDE_WHY_NO_GUIDE,
+            "guide": None,
+        }
+    return {
+        "state": state,
+        "model_id": model_id,
+        "why": None,
+        "guide": raw,
+    }
+
+
 def error_response(error: RequestError, export: dict[str, Any] | None,
                    service_commit: str, origin: str) -> tuple[int, dict[str, Any]]:
     envelope = _envelope(export or {}, service_commit, origin)
@@ -463,6 +523,8 @@ def rank(payload: Any, export: dict[str, Any], hardware_export: dict[str, Any] |
         "ranked_count": report["ranked_count"],
         "unranked_count": report["unranked_count"],
         "candidates_considered": total,
+        "authoring_guide": authoring_guide_block(
+            report["ranked"][0]["model_id"] if report["ranked"] else None, export),
     }
 
     if report["ranking_status"] in {"empty", "unavailable"}:

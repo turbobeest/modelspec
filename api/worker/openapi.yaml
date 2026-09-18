@@ -428,6 +428,7 @@ components:
           properties:
             cost_weight:
               type: number
+              nullable: true
             hardware_id:
               type: string
               nullable: true
@@ -466,6 +467,106 @@ components:
           - open_weights_only
           - open_weights_required_by
           - unbound
+        authoring_guide:
+          description: 'The recommended model''s authoring guide, copied from the public card. Always
+            present. Free: it is public catalogue data, not a paid enrichment.'
+          type: object
+          properties:
+            guide:
+              description: The card's guide, including source URL and accessed date on every claim. Null
+                when absent. Never generated at request time.
+              type: object
+              nullable: true
+              properties:
+                applies_to:
+                  type: object
+                  properties:
+                    model_id:
+                      type: string
+                    version:
+                      type: string
+                  required:
+                  - model_id
+                  - version
+                as_of:
+                  type: string
+                sections:
+                  type: object
+                  properties:
+                    failure_modes:
+                      type: array
+                      items: {}
+                    formatting:
+                      type: array
+                      items: {}
+                    prompt_shape:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          sources:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                accessed:
+                                  type: string
+                                kind:
+                                  type: string
+                                title:
+                                  type: string
+                                url:
+                                  type: string
+                              required:
+                              - accessed
+                              - kind
+                              - title
+                              - url
+                          text:
+                            type: string
+                        required:
+                        - sources
+                        - text
+                    reasoning_and_tools:
+                      type: array
+                      items: {}
+                    retry_advice:
+                      type: array
+                      items: {}
+                    system_message:
+                      type: array
+                      items: {}
+                  required:
+                  - failure_modes
+                  - formatting
+                  - prompt_shape
+                  - reasoning_and_tools
+                  - retry_advice
+                  - system_message
+                status:
+                  type: string
+            model_id:
+              description: The recommended model this block is about. Null when the shortlist is empty.
+              type: string
+              nullable: true
+            state:
+              description: current, stale, or absent. A stale guide is served as stale, never rewritten
+                to current. Absent is a state, not an empty string.
+              type: string
+              enum:
+              - absent
+              - current
+              - stale
+            why:
+              description: 'Why the guide is absent: no_guide (the card has none) or no_recommendation
+                (nothing was ranked). Null when a guide is served.'
+              type: string
+              nullable: true
+          required:
+          - guide
+          - model_id
+          - state
+          - why
         build:
           description: The published export this answer was computed from.
           type: object
@@ -623,6 +724,7 @@ components:
                   nullable: true
                 hosting:
                   type: string
+                  nullable: true
                 runtime:
                   type: string
                   nullable: true
@@ -786,6 +888,7 @@ components:
           type: integer
       required:
       - applied
+      - authoring_guide
       - build
       - candidates_considered
       - endpoint

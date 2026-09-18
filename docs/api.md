@@ -132,6 +132,12 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
   "ranked_count": 30,
   "unranked_count": 280,
   "candidates_considered": 1339,
+  "authoring_guide": {
+    "state": "absent",
+    "model_id": "deepseek/deepseek-v3-2",
+    "why": "no_guide",
+    "guide": null
+  },
   "result": [
     {
       "model_id": "deepseek/deepseek-v3-2",

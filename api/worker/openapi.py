@@ -169,6 +169,25 @@ DESCRIPTIONS: dict[str, str] = {
         "catalogue, not a degraded answer."
     ),
     "RankResponse.result": "The shortlist, best first. Never empty on a 200.",
+    "RankResponse.authoring_guide": (
+        "The recommended model's authoring guide, copied from the public card. Always "
+        "present. Free: it is public catalogue data, not a paid enrichment."
+    ),
+    "RankResponse.authoring_guide.state": (
+        "current, stale, or absent. A stale guide is served as stale, never rewritten "
+        "to current. Absent is a state, not an empty string."
+    ),
+    "RankResponse.authoring_guide.model_id": (
+        "The recommended model this block is about. Null when the shortlist is empty."
+    ),
+    "RankResponse.authoring_guide.why": (
+        "Why the guide is absent: no_guide (the card has none) or no_recommendation "
+        "(nothing was ranked). Null when a guide is served."
+    ),
+    "RankResponse.authoring_guide.guide": (
+        "The card's guide, including source URL and accessed date on every claim. Null "
+        "when absent. Never generated at request time."
+    ),
     "RankedModel.score": "Composite, 0–100, on the conservative lower bound.",
     "RankedModel.evidence_basis": (
         "Provenance of the benchmark inputs — none, unverified-legacy, mixed, "
@@ -262,6 +281,33 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
     pool = sandbox._candidates(use_case)
     if only_unrated:
         pool = [c for c in pool if not c.benchmark_scores]
+
+    def guide_for(model_id: str) -> dict[str, Any]:
+        return {
+            "applies_to": {"model_id": model_id, "version": "fixture-1"},
+            "as_of": "2026-01-01",
+            "status": "current",
+            "sections": {
+                "prompt_shape": [{
+                    "text": "State the task up front.",
+                    "sources": [{
+                        "url": "https://example.test/sandbox-guide",
+                        "title": "Sandbox prompting",
+                        "accessed": "2026-01-01",
+                        "kind": "provider-guidance",
+                    }],
+                }],
+                "system_message": [],
+                "reasoning_and_tools": [],
+                "formatting": [],
+                "failure_modes": [],
+                "retry_advice": [],
+            },
+        }
+
+    # Guides on the models the spec examples actually rank (flagship when cost
+    # is unweighted, fixture-open when price_sensitivity or local hosting binds).
+    # Unguided fixtures plus limit=0 keep state=absent / guide=null in the merge.
     return {
         "build": {
             "commit": "0" * 40,
@@ -283,6 +329,10 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
             }
             for c in pool
         ],
+        "authoring_guides": {
+            "sandbox/fixture-flagship": guide_for("sandbox/fixture-flagship"),
+            "sandbox/fixture-open": guide_for("sandbox/fixture-open"),
+        },
     }
 
 
@@ -568,6 +618,9 @@ VOCABULARIES: dict[str, Any] = {
     "ranking_status": lambda: returned_strings(_ENGINE, "_ranking_status"),
     "evidence_basis": lambda: returned_strings(REPO_ROOT / "pipeline" / "ranking.py", "_basis"),
     "rank_status": lambda: dict_key_strings(_ENGINE, "_benchmark_evidence", "rank_status"),
+    # `state` is unique on RankResponse (authoring_guide.state). Do not add
+    # `why` here: applied.unbound[].why is free-text, not this enum.
+    "state": lambda: list(service.AUTHORING_GUIDE_STATES),
 }
 
 
@@ -1082,13 +1135,16 @@ def build_spec() -> dict[str, Any]:
                         "include_rehosts": True},
         "limit": 2,
     })
+    # limit=0 is still a 200; authoring_guide.model_id is null (no recommended row).
+    empty_shortlist = _answer({"use_case": "coding", "limit": 0})
     errors = _probe_errors()
     _check_every_code_is_probed(errors, _probe_policy_errors())
     entry_codes = entry_error_codes()
 
     used: set[str] = set()
     response_schema = _apply_vocabularies(
-        _describe(_merge(_infer(ranked), _infer(constrained)), "RankResponse", used))
+        _describe(_merge(_merge(_infer(ranked), _infer(constrained)),
+                         _infer(empty_shortlist)), "RankResponse", used))
     row_schema = response_schema["properties"]["result"]["items"]
     response_schema["properties"]["result"]["items"] = _describe(row_schema, "RankedModel", used)
 
