@@ -1,15 +1,19 @@
-# ModelSpec rank API — reference
+# ModelSpec API — reference
 
 **Use when** choosing, switching, or checking a model before a task or deploy.
 Ranks AI models you can actually run, given your hardware, providers, use case
 and policy rules. Returns ranked models with scores, cost and reasons; on
 failure, returns which constraint eliminated every option.
 
-One `POST`, computed per request from the current public export. No state, no
-signup, and today no key.
+Computed per request from the current public export. No state, no signup, and
+today no key.
 
 * `POST https://api.modelspec.dev/v1/rank` — a shortlist for one profile.
-* `GET /v1/health` — the deployed version, and whether it can read the export.
+  Below.
+* `POST /v1/policy-check` — pass, fail or undetermined per model and platform
+  against a compliance policy:
+  [`api-policy-check.md`](api-policy-check.md).
+* `GET /v1/health` — the deployed version, and whether it can read the exports.
 * Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
   the implementation. Build your client from it.
 * Send a real `User-Agent`: Cloudflare refuses the standard-library default
@@ -18,7 +22,7 @@ signup, and today no key.
 ## Request
 
 Only `use_case` is required. An unknown field is refused, never ignored, so you
-never believe a constraint was applied when it was not. `null` means "not
+never mistake an unapplied constraint for an applied one. `null` means "not
 stated". At most 16384 bytes.
 
 | Field | Values |
@@ -33,8 +37,7 @@ stated". At most 16384 bytes.
 | `constraints.include_rehosts` | boolean, default false |
 | `limit` | 0–100, default 10; caps the ranked list, not the pool |
 
-`local`, `self_hosted` and any local runtime imply open weights: you can
-self-host only weights you can download.
+`local`, `self_hosted` and any local runtime imply open weights.
 
 ## Response
 
@@ -67,12 +70,12 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
   "schema_version": "1.0",
   "endpoint": "rank",
   "build": {
-    "commit": "7b0fd8fc03d2b6f151f965f493991d9056971325",
-    "built_at": "2026-09-17T22:52:52+00:00",
+    "commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
+    "built_at": "2026-09-18T01:44:51+00:00",
     "eligibility_as_of": "2026-09-09",
     "export_schema_version": "2.0"
   },
-  "service_commit": "7b0fd8fc03d2b6f151f965f493991d9056971325",
+  "service_commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
   "export_origin": "https://modelspec.dev",
   "request": {
     "use_case": "coding",
@@ -102,7 +105,27 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
     "wizard_min_benchmark_coverage": 0.25,
     "min_benchmark_count": 2,
     "limit_applies_to": "ranked_only",
-    "uncertainty": "missing-benchmark bounds, not statistical confidence intervals"
+    "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+    "neutrality": {
+      "version": "neutrality-v1",
+      "operator": "Sparks & Sawdust LLC",
+      "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
+      "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
+      "permanent": true,
+      "assertions": {
+        "accepts_referral_fees": false,
+        "accepts_paid_placement": false,
+        "accepts_provider_paid_visibility": false,
+        "proxies_inference_tokens": false,
+        "stores_customer_prompts": false
+      },
+      "source_neutral_at": ["ranking", "tie_breaks", "hosting_suggestions", "route_advice"],
+      "charges": "the consumer of a recommendation, never its subjects",
+      "method_source": "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py",
+      "terms_url": "https://modelspec.dev/legal/terms/",
+      "neutrality_url": "https://modelspec.dev/legal/neutrality/",
+      "privacy_url": "https://modelspec.dev/legal/privacy/"
+    }
   },
   "profile": "coding",
   "ranking_status": "partial",
@@ -134,8 +157,12 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
       "benchmark_lower_bound": 25.00593650793651,
       "benchmark_upper_bound": 33.00593650793651,
       "benchmark_contributions": {
-        "humaneval": 13.96, "swe_bench_verified": 9.71, "live_code_bench": 11.86,
-        "aider_polyglot": 7.8, "arena_elo_coding": 10.5, "arena_elo_overall": 6.8,
+        "humaneval": 13.96,
+        "swe_bench_verified": 9.71,
+        "live_code_bench": 11.86,
+        "aider_polyglot": 7.8,
+        "arena_elo_coding": 10.5,
+        "arena_elo_overall": 6.8,
         "terminal_bench": 1.89
       },
       "context_window": 131072,
@@ -164,7 +191,7 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 400 | `unknown_hosting` | not `local`, `self_hosted` or `managed_api` | pick one from `error.accepted` |
 | 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it: only local runtimes filter |
 | 404 | `not_found` | no endpoint there | use a path from `error.accepted`; paths are versioned |
-| 405 | `method_not_allowed` | `/v1/rank` takes `POST` | send `POST` with a JSON body |
+| 405 | `method_not_allowed` | wrong verb for the path | `POST` to `/v1/rank`, `GET` to `/v1/health` |
 | 413 | `payload_too_large` | body over 16384 bytes | a rank request is a few hundred bytes |
 | 422 | `no_match` | a filter eliminated every candidate | relax `error.relax`. `error.eliminated_by` has the survivor counts, `error.elimination_trace` every filter in order |
 | 422 | `insufficient_evidence` | candidates survived, none has the coverage to be ordered | relaxing constraints will not help; try a broader `use_case` |
@@ -190,7 +217,7 @@ A no-match is an answer, not an empty list:
 
 ## Keys, rate limits and the sandbox — **not live yet**
 
-**Today the endpoint takes no key and meters nothing.** It never returns 401,
+**Today the API takes no key and meters nothing.** It never returns 401,
 403 or 429. Do not build a client that depends on those statuses; do build one
 that tolerates them.
 
@@ -206,15 +233,18 @@ wired into the deployed Worker. When it is, from `api/worker/tiers.json`:
 
 Keys go in `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
 The daily window is a UTC calendar day, the burst window a UTC minute; a 429
-will state `limit`, `used`, `resets_at` and `retry_after_seconds`. The pricing
-page a key would come from does not exist yet.
+will state `limit`, `used`, `resets_at` and `retry_after_seconds`. No pricing
+page exists yet. No request is granted policy-check's paid tier either:
+[`api-policy-check.md`](api-policy-check.md#free-and-paid).
 
-## Gaps, stated rather than linked
+## Neutrality, and what is not in force
 
-* **No terms of use and no machine-readable neutrality commitment exist**
-  (MODEL-70); linking either today would link a 404. ModelSpec takes no referral
-  fees and sells no placement, but that is not yet published in a form a program
-  can check.
+* **The neutrality commitment is live, as data:**
+  [`profiles.json`](https://modelspec.dev/api/rank/profiles.json) →
+  `.ranking_policy.neutrality`, and `policy.neutrality` on every `/v1/rank`
+  answer. No referral fees, no paid placement, no provider-paid visibility.
+* **No terms of use are in force.** The MODEL-70 terms and privacy pages are
+  unadopted drafts, not linked here; they bind nobody yet.
 * **No landing page** — MODEL-24.
 
 ## Stability

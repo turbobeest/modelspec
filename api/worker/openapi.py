@@ -1,21 +1,32 @@
-"""Generate `api/worker/openapi.yaml` from the rank endpoint's own code (MODEL-72).
+"""Generate `api/worker/openapi.yaml` from the Worker's own code (MODEL-72).
 
 The spec is **not** written by hand. Everything a caller could build a wrong
 request from — the accepted fields, the enums, the limits, the status codes, the
-error codes, the shape of a ranked row — is read out of the implementation:
+error codes, the shape of a ranked row or a policy verdict — is read out of the
+implementation. It covers both endpoints the Worker serves: `POST /v1/rank`
+(MODEL-68) and `POST /v1/policy-check` (MODEL-80).
 
-* the request vocabulary comes from `rank_service` and `api.ranking.engine`
-  (`USE_CASE_PROFILES`, `HOSTING_MODES`, `KNOWN_RUNTIMES`, `MAX_LIMIT`,
-  `MAX_BODY_BYTES`, the `HTTP_*` constants);
+* the request vocabulary comes from `rank_service`, `policy_service` and
+  `api.ranking.engine` (`USE_CASE_PROFILES`, `HOSTING_MODES`, `KNOWN_RUNTIMES`,
+  `MAX_LIMIT`, `MAX_BODY_BYTES`, the `HTTP_*` constants, and the field sets
+  `policy_service._reject_unknown` is called with, read from its syntax tree);
 * every response schema is **inferred from a real response**: this module builds
-  a small synthetic export, calls `rank_service.rank` and
-  `rank_service.error_response`, and describes the bodies that come back. The
-  ranked rows are `pipeline.ranking.rank_report` rows, so a field added to the
-  scorer appears in the spec on the next generation with nobody editing YAML;
-* the error codes are cross-checked against the source. `_probe_errors` walks
-  the syntax tree of `rank_service.py` and `entry.py` for every code either file
-  can emit, and generation **fails** if one of them is not exercised here. A new
-  refusal cannot be added to the Worker without appearing in the spec.
+  small synthetic exports, calls `rank_service.rank`, `policy_service.check` and
+  both `error_response`s, and describes the bodies that come back. The ranked
+  rows are `pipeline.ranking.rank_report` rows and the policy catalogue is
+  built by `pipeline.policy_export` from real `ModelCard`s, so a field added to
+  either appears in the spec on the next generation with nobody editing YAML;
+* the policy verdicts are a **tagged union** in the spec as in the code: a
+  check carries exactly one of `satisfied`, `violated`, `undetermined`, and a
+  row exactly one of `passed`, `failed`, `undetermined`. Each variant is
+  inferred from the real checks and rows of that state, and each forbids its
+  siblings' keys, so a spec-driven client cannot read an `undetermined` check
+  as a pass;
+* the error codes are cross-checked against the source. `source_error_codes`
+  walks the syntax tree of `rank_service.py`, `policy_service.py` and
+  `entry.py` for every code any of them can emit, and generation **fails** if
+  one is not exercised here. A new refusal cannot be added to the Worker
+  without appearing in the spec.
 
 Only prose is hand-written, in `DESCRIPTIONS`, keyed by the path of the field it
 describes. A description that names a field the implementation no longer has
@@ -24,8 +35,9 @@ also fails generation.
     python api/worker/openapi.py              # write api/worker/openapi.yaml
     python api/worker/openapi.py --check      # fail if the committed file drifted
     python api/worker/openapi.py --probe https://api.modelspec.dev
-        # build a request from the committed spec ALONE, send it to a live
-        # service, and validate the answer against the spec's own schemas
+        # build a request for every operation from the committed spec ALONE,
+        # send it to a live service, and validate each answer against the
+        # spec's own schemas
 
 `--probe` deliberately imports nothing from this repository once the YAML is
 loaded: it is the proof that a caller holding only the spec can make a call that
@@ -33,10 +45,14 @@ works. CI runs `--check` on every pull request and `--probe` against
 api.modelspec.dev after a deploy.
 
 The access layer (MODEL-69: keys, tiers, quotas, the `test_` sandbox) is *not*
-in the spec. It is built but not yet wired into the Worker, and a spec that
-required an `Authorization` header would describe a service that does not exist.
-`x-modelspec-not-yet-live` records that, sourced from `tiers.json`, so the gap is
-machine-readable rather than merely absent.
+in the spec as a requirement. It is built but not yet wired into the Worker, and
+a spec that required an `Authorization` header would describe a service that
+does not exist. The same holds for the paid policy-check entitlement: the
+response shape for it is specified (it is implemented and tested), but no
+request is granted it until MODEL-69 fills `entry.py::_entitlement`.
+`x-modelspec-not-yet-live` records both, read from `tiers.json` and from
+`entry.py`'s syntax tree, so the gap is machine-readable rather than merely
+absent.
 """
 
 from __future__ import annotations
@@ -93,7 +109,15 @@ def _load(name: str):
 
 
 service = _load("rank_service")
+policy = _load("policy_service")
 sandbox = _load("access_sandbox")
+
+if policy.SCHEMA_VERSION != service.SCHEMA_VERSION:
+    # One document, one `info.version`. Two endpoints on two envelope versions
+    # would need two documents, and this generator would have to say so.
+    raise SystemExit(f"rank_service.SCHEMA_VERSION is {service.SCHEMA_VERSION!r} and "
+                     f"policy_service.SCHEMA_VERSION is {policy.SCHEMA_VERSION!r}; one "
+                     "openapi.yaml cannot version both")
 
 
 # ── prose, the only hand-written part ────────────────────────────────────────
@@ -134,6 +158,12 @@ DESCRIPTIONS: dict[str, str] = {
         "An empty list means every field you sent bound."
     ),
     "RankResponse.policy": "The evidence floors this answer was ordered under.",
+    "RankResponse.policy.neutrality": (
+        "The honest-broker commitment, as data: what ModelSpec takes no money for. The "
+        "same object as https://modelspec.dev/api/rank/profiles.json .ranking_policy"
+        ".neutrality. The terms and privacy pages it links are unadopted drafts, not "
+        "terms in force."
+    ),
     "RankResponse.ranking_status": (
         "Whether every candidate could be ordered. `partial` is the normal state of the "
         "catalogue, not a degraded answer."
@@ -154,6 +184,68 @@ DESCRIPTIONS: dict[str, str] = {
     "NoMatchError.elimination_trace": "Every filter, in the order the scorer applies them.",
     "NoMatchError.relax": "The field to change. Acting on this is the whole point of the 422.",
     "RequestRefusedError.accepted": "The values this field does accept.",
+    # ── POST /v1/policy-check ──
+    "PolicyCheckRequest.policy": (
+        "The constraints to check. State at least one of licence, origin, residency, "
+        "commercial_use: an empty policy is a 400, never a clean pass."
+    ),
+    "PolicyCheckRequest.policy.name": "Optional label, echoed back.",
+    "PolicyCheckRequest.policy.licence": (
+        "Matched against the card's license_type. A card naming no licence is "
+        "undetermined, never allowed."
+    ),
+    "PolicyCheckRequest.policy.origin": (
+        "Country codes, as the card records origin_country. A blank country is "
+        "undetermined, never allowed."
+    ),
+    "PolicyCheckRequest.policy.residency": (
+        "Regions spelled as the platform publishes them. Matched literally: no country "
+        "is mapped onto a cloud region."
+    ),
+    "PolicyCheckRequest.policy.commercial_use": (
+        "`required: false` is a 400; omit the block instead. A conditional grant fails "
+        "unless accept_restricted is true, and carries its condition text either way."
+    ),
+    "PolicyCheckRequest.require_no_undetermined": (
+        "true turns any undetermined row into a 422 undetermined_present instead of a 200."
+    ),
+    "PolicyCheckRequest.models": "Model ids to check; omit for the catalogue. Unknown is a 400.",
+    "PolicyCheckRequest.platforms": "Platform ids to check on; omit for every listed one.",
+    "PolicyCheckRequest.verdicts": "Filters the rows returned. summary still counts every row.",
+    "PolicyCheckRequest.limit": "Pages result only; summary is never paged.",
+    "PolicyCheckResponse.policy": "The policy as parsed, which is the policy that was checked.",
+    "PolicyCheckResponse.determinations": (
+        "Which tier answered. undetermined_for_lack_of_entitlement is the whole free/paid "
+        "difference, as a count, on every response."
+    ),
+    "PolicyCheckResponse.determinations.entitlement": (
+        "public_export (free: the public export only) or determinations (paid). No request "
+        "is granted determinations yet: see x-modelspec-not-yet-live."
+    ),
+    "PolicyCheckResponse.summary": (
+        "Always every row the request selects, whatever limit, offset and verdicts say."
+    ),
+    "PolicyCheckResponse.summary.models_with_a_passing_platform": (
+        "Counted over models, not rows: passes somewhere, not everywhere."
+    ),
+    "PolicyCheckResponse.provenance": "Every read date this answer rests on.",
+    "PolicyCheckResponse.result": (
+        "One row per (model, platform) pair. Branch on verdict: each row carries exactly "
+        "one of passed, failed, undetermined."
+    ),
+    "UndeterminedCheck.undetermined.why": "Why nobody knows. Each value leads somewhere different.",
+    "UndeterminedCheck.undetermined.available_in_tier": (
+        "paid when a paid entitlement would settle this; null when nothing can."
+    ),
+    "FailRow.failed.also_undetermined": (
+        "Constraints still unknown on this row. They stay unknown if you relax the one "
+        "that eliminated it."
+    ),
+    "PassRow.passed.conditions": (
+        "The condition text of every conditional grant. A pass with conditions is not a "
+        "bare yes."
+    ),
+    "UndeterminedPresentError.examples": "Up to ten of the undetermined rows.",
 }
 
 
@@ -209,6 +301,123 @@ def _answer(payload: dict[str, Any], **kw: Any) -> dict[str, Any]:
     return body
 
 
+# ── a policy catalogue to answer from ────────────────────────────────────────
+
+#: The policy-check request used as the spec's example, and what `--probe`
+#: sends. Free tier, so it is answerable today with no determinations loaded.
+EXAMPLE_POLICY_REQUEST: dict[str, Any] = {
+    "policy": {
+        "origin": {"permitted_countries": ["US"]},
+        "commercial_use": {"required": True},
+    },
+    "limit": 3,
+}
+
+_CITED = {"kind": "license", "url": "https://example.test/LICENSE",
+          "read_on": "2026-01-01", "quote": "the operative clause"}
+
+
+def _policy_export() -> dict[str, Any]:
+    """`/api/policy/catalogue.json` as `pipeline.policy_export` builds it.
+
+    From real `ModelCard`s rather than hand-shaped rows, so the policy rows the
+    endpoint reads here are the rows it reads in production. One card per shape
+    worth seeing: cited, conditional, unnamed, uncited, and served both from a
+    cloud platform and from a local runtime.
+    """
+    from pipeline.policy_export import build_catalogue
+    from schema.card import ModelCard
+
+    def card(model_id: str, licensing: dict[str, Any],
+             platforms: dict[str, list[str]]) -> ModelCard:
+        return ModelCard.model_validate({
+            "identity": {"model_id": model_id, "display_name": model_id.split("/")[1],
+                         "provider": "example"},
+            "licensing": licensing,
+            "availability": {name: {"available": True, "regions": regions}
+                             for name, regions in platforms.items()},
+        })
+
+    cards = [
+        card("example/cited", {"license_url": "https://example.test/licence",
+                                "license_type": "apache-2.0", "origin_country": "US",
+                                "origin_org_type": "private", "commercial_use": "allowed",
+                                "commercial_use_source": _CITED},
+             {"aws_bedrock": ["us-east-1"], "ollama": []}),
+        card("example/conditional", {"license_url": "https://example.test/licence",
+                                "license_type": "llama-community",
+                                     "origin_country": "US", "commercial_use": "restricted",
+                                     "commercial_use_conditions": "below 700M monthly users",
+                                     "commercial_use_source": _CITED},
+             {"aws_bedrock": [], "groq": []}),
+        card("example/unnamed", {}, {}),
+        card("example/uncited", {"license_url": "https://example.test/licence",
+                                "license_type": "mit", "origin_country": "CN",
+                                 "commercial_use": "allowed",
+                                 "commercial_use_source": {"kind": "legacy-import"}},
+             {"huggingface": []}),
+    ]
+    return build_catalogue(cards, _export()["build"])
+
+
+def _policy_store() -> dict[str, Any]:
+    """A determination store in the shape `entry._load_determinations` returns."""
+    def residency(regions: list[str] | None, scope: str = "determined") -> dict[str, Any]:
+        return {"scope": scope, "regions": regions, "reason": "" if regions is not None
+                else "no region list is published", "checked": [] if regions is not None
+                else ["https://example.test/terms"], "determined_on": "2026-01-01",
+                "notes": "", "source": ({"kind": "provider_documentation",
+                                         "url": "https://example.test/regions",
+                                         "read_on": "2026-01-01", "quote": ""}
+                                        if scope == "determined" else None)}
+    grant = {"determined_on": "2026-01-01", "source": _CITED}
+    return {
+        "bundle_version": "1", "generated_on": "2026-01-01",
+        "commercial_use": {
+            "example/cited": {"value": "allowed", "conditions": "", **grant},
+            "example/conditional": {"value": "restricted",
+                                    "conditions": "below 700M monthly users", **grant},
+        },
+        "residency": {
+            "aws_bedrock": residency(["us-east-1", "eu-west-1"]),
+            "groq": residency([]),
+            "huggingface": residency(None, scope="undetermined"),
+        },
+    }
+
+
+#: Every field the policy-check request accepts, with a value the endpoint takes.
+#: `_policy_request_schema` must describe exactly these paths, and this request
+#: must validate against it and be answered 200 — which is what holds the
+#: hand-typed request schema to the parser.
+_FULL_POLICY_REQUEST: dict[str, Any] = {
+    "policy": {
+        "name": "example",
+        "licence": {"allowed": ["apache-2.0", "llama-community"], "prohibited": ["mit"]},
+        "origin": {"permitted_countries": ["US"], "prohibited_countries": ["XX"]},
+        "residency": {"required_regions": ["eu-west-1"], "match": "any"},
+        "commercial_use": {"required": True, "accept_restricted": True},
+    },
+    "require_no_undetermined": False,
+    "models": [],
+    "platforms": [],
+    "verdicts": ["pass", "fail", "undetermined"],
+    "limit": 50,
+    "offset": 0,
+}
+
+
+def _policy_answer(payload: dict[str, Any], *, paid: bool = False) -> tuple[int, dict[str, Any]]:
+    """One policy-check body, produced by the endpoint's own code."""
+    export = _policy_export()
+    entitlement = policy.ENTITLEMENT_DETERMINATIONS if paid else policy.ENTITLEMENT_PUBLIC
+    store = _policy_store() if paid else None
+    try:
+        return policy.check(payload, export, store, entitlement, _COMMIT, _ORIGIN)
+    except policy.RequestError as exc:
+        return policy.error_response(exc, export, _COMMIT, _ORIGIN)
+
+
 # ── every refusal, cross-checked against the source ──────────────────────────
 
 #: One payload per error code `rank_service` can raise. `_probe_errors` fails if
@@ -224,6 +433,21 @@ _ERROR_PROBES: dict[str, dict[str, Any]] = {
     "insufficient_evidence": {"use_case": "coding"},
 }
 
+#: One payload per error code `policy_service` can raise, and whether the
+#: request is entitled to the determinations. `determinations_unavailable` can
+#: only happen to an entitled request, so it is probed as one with no store.
+_POLICY_ERROR_PROBES: dict[str, tuple[dict[str, Any], bool]] = {
+    "invalid_request": ({"policy": {}}, False),
+    "unknown_platform": ({"policy": {"origin": {"permitted_countries": ["US"]}},
+                          "platforms": ["not_a_platform"]}, False),
+    "unknown_model": ({"policy": {"origin": {"permitted_countries": ["US"]}},
+                       "models": ["example/not-a-model"]}, False),
+    "undetermined_present": ({"policy": {"commercial_use": {"required": True}},
+                              "require_no_undetermined": True}, False),
+    "determinations_unavailable": ({"policy": {"origin": {"permitted_countries": ["US"]}}},
+                                   True),
+}
+
 #: Codes raised by the transport in `entry.py`, which cannot be driven from
 #: CPython (it imports the Workers runtime). Their statuses are read out of its
 #: syntax tree by `entry_error_codes`, not asserted here.
@@ -231,13 +455,13 @@ _ENTRY_ONLY = {"not_found", "method_not_allowed", "payload_too_large", "export_u
 
 
 def source_error_codes() -> set[str]:
-    """Every `error.code` string either Worker module can emit.
+    """Every `error.code` string any Worker module can emit.
 
     Read from the syntax tree rather than from a list kept beside it, so that
     adding a refusal to the Worker and forgetting the docs is a failed build.
     """
     codes: set[str] = set()
-    for path in (SRC / "rank_service.py", SRC / "entry.py"):
+    for path in (SRC / "rank_service.py", SRC / "policy_service.py", SRC / "entry.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             # RequestError("code", "message", ...)
@@ -279,6 +503,22 @@ def entry_error_codes() -> dict[str, int]:
     return found
 
 
+def _value_literals(node: ast.AST) -> set[str]:
+    """The string literals an expression can *evaluate to*.
+
+    Only the branches of a conditional count, never its test: in
+    `"paid" if why == "tier" else None`, "tier" is compared against, not
+    returned, and must not become a permitted value.
+    """
+    if isinstance(node, ast.Constant):
+        return {node.value} if isinstance(node.value, str) else set()
+    if isinstance(node, ast.IfExp):
+        return _value_literals(node.body) | _value_literals(node.orelse)
+    if isinstance(node, ast.BoolOp):
+        return set().union(*(_value_literals(v) for v in node.values))
+    return set()
+
+
 def returned_strings(path: Path, function: str) -> list[str]:
     """Every string literal `function` can return, read from its syntax tree.
 
@@ -291,11 +531,10 @@ def returned_strings(path: Path, function: str) -> list[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == function:
             found = {
-                literal.value
+                literal
                 for child in ast.walk(node) if isinstance(child, ast.Return) and child.value
-                for literal in ast.walk(child.value)
                 # `return "partial" if ranked else "unavailable"` is two of them.
-                if isinstance(literal, ast.Constant) and isinstance(literal.value, str)
+                for literal in _value_literals(child.value)
             }
             if found:
                 return sorted(found)
@@ -315,8 +554,7 @@ def dict_key_strings(path: Path, function: str, key: str) -> list[str]:
             for dict_key, dict_value in zip(child.keys, child.values):
                 if not (isinstance(dict_key, ast.Constant) and dict_key.value == key):
                     continue
-                found = {literal.value for literal in ast.walk(dict_value)
-                         if isinstance(literal, ast.Constant) and isinstance(literal.value, str)}
+                found = _value_literals(dict_value)
                 if found:
                     return sorted(found)
     raise SystemExit(f"{function} in {path.name} no longer builds a {key!r} entry from string "
@@ -333,19 +571,21 @@ VOCABULARIES: dict[str, Any] = {
 }
 
 
-def _apply_vocabularies(schema: dict[str, Any], name: str | None = None) -> dict[str, Any]:
+def _apply_vocabularies(schema: dict[str, Any], name: str | None = None,
+                        vocab: dict[str, Any] | None = None) -> dict[str, Any]:
     """Attach the derived enums wherever those field names appear."""
-    if name in VOCABULARIES and schema.get("type") == "string":
-        schema = {**schema, "enum": VOCABULARIES[name]()}
+    vocab = VOCABULARIES if vocab is None else vocab
+    if name in vocab and schema.get("type") == "string":
+        schema = {**schema, "enum": vocab[name]()}
     for key, child in (schema.get("properties") or {}).items():
-        schema["properties"][key] = _apply_vocabularies(child, key)
+        schema["properties"][key] = _apply_vocabularies(child, key, vocab)
     if isinstance(schema.get("items"), dict):
-        schema["items"] = _apply_vocabularies(schema["items"], None)
+        schema["items"] = _apply_vocabularies(schema["items"], None, vocab)
     return schema
 
 
 def _probe_errors() -> dict[str, tuple[int, dict[str, Any]]]:
-    """Run every refusal and keep what came back. Nothing here is written down."""
+    """Run every rank refusal and keep what came back. Nothing here is written down."""
     out: dict[str, tuple[int, dict[str, Any]]] = {}
     for code, payload in _ERROR_PROBES.items():
         kw = {"only_unrated": True} if code == "insufficient_evidence" else {}
@@ -360,14 +600,40 @@ def _probe_errors() -> dict[str, tuple[int, dict[str, Any]]]:
                 f"the probe for {code!r} produced {got!r} instead; fix _ERROR_PROBES "
                 f"in {Path(__file__).name} before regenerating the spec")
         out[code] = (status, body)
+    return out
 
-    missing = source_error_codes() - set(out) - _ENTRY_ONLY
+
+def _probe_policy_errors() -> dict[str, tuple[int, dict[str, Any]]]:
+    """Run every policy-check refusal, the same way."""
+    out: dict[str, tuple[int, dict[str, Any]]] = {}
+    for code, (payload, paid) in _POLICY_ERROR_PROBES.items():
+        if code == "determinations_unavailable":
+            export = _policy_export()
+            try:
+                status, body = policy.check(payload, export, None,
+                                            policy.ENTITLEMENT_DETERMINATIONS, _COMMIT, _ORIGIN)
+            except policy.RequestError as exc:
+                status, body = policy.error_response(exc, export, _COMMIT, _ORIGIN)
+        else:
+            status, body = _policy_answer(payload, paid=paid)
+        got = (body.get("error") or {}).get("code")
+        if got != code:
+            raise SystemExit(
+                f"the policy probe for {code!r} produced {got!r} instead; fix "
+                f"_POLICY_ERROR_PROBES in {Path(__file__).name} before regenerating the spec")
+        out[code] = (status, body)
+    return out
+
+
+def _check_every_code_is_probed(rank_errors: dict[str, Any],
+                                policy_errors: dict[str, Any]) -> None:
+    missing = source_error_codes() - set(rank_errors) - set(policy_errors) - _ENTRY_ONLY
     if missing:
         raise SystemExit(
             "the Worker can return error code(s) the spec would not document: "
             + ", ".join(sorted(missing))
-            + f". Add a payload to _ERROR_PROBES in {Path(__file__).name}.")
-    return out
+            + f". Add a payload to _ERROR_PROBES or _POLICY_ERROR_PROBES in "
+            f"{Path(__file__).name}.")
 
 
 # ── schema inference ─────────────────────────────────────────────────────────
@@ -491,17 +757,161 @@ def _request_schema() -> dict[str, Any]:
     }
 
 
+def _reject_unknown_sets() -> dict[str, list[str]]:
+    """`where -> accepted fields`, from every `_reject_unknown(block, {...}, "where")`.
+
+    `policy_service` refuses an unknown field at every level of the request, and
+    the set it accepts at each level is a literal in the call. Reading those
+    literals is what stops the policy-check request schema from being a second
+    list that drifts from the parser.
+    """
+    tree = ast.parse((SRC / "policy_service.py").read_text(encoding="utf-8"))
+    found: dict[str, list[str]] = {}
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == "_reject_unknown" and len(node.args) == 3
+                and isinstance(node.args[1], ast.Set)
+                and isinstance(node.args[2], ast.Constant)):
+            found[str(node.args[2].value)] = sorted(
+                str(elt.value) for elt in node.args[1].elts if isinstance(elt, ast.Constant))
+    if not found:
+        raise SystemExit("policy_service no longer calls _reject_unknown with literal field "
+                         f"sets; the request schema in {Path(__file__).name} cannot be checked")
+    return found
+
+
+def membership_literals(path: Path, function: str, name: str) -> list[str]:
+    """The literals in `<name> not in (...)` inside `function`: a closed vocabulary."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.FunctionDef) and node.name == function):
+            continue
+        for child in ast.walk(node):
+            if (isinstance(child, ast.Compare) and isinstance(child.left, ast.Name)
+                    and child.left.id == name and isinstance(child.ops[0], ast.NotIn)
+                    and isinstance(child.comparators[0], (ast.Tuple, ast.List, ast.Set))):
+                return [str(elt.value) for elt in child.comparators[0].elts
+                        if isinstance(elt, ast.Constant)]
+    raise SystemExit(f"{function} in {path.name} no longer checks {name!r} against literals; "
+                     f"the enum in {Path(__file__).name} cannot be derived")
+
+
+def _policy_request_schema() -> dict[str, Any]:
+    """The policy-check request. Field sets are checked against the parser's own."""
+    from pipeline.policy_export import platform_classes
+
+    def strings(**extra: Any) -> dict[str, Any]:
+        return {"type": "array", "nullable": True,
+                "items": {"type": "string", "minLength": 1}, **extra}
+
+    def block(properties: dict[str, Any], **extra: Any) -> dict[str, Any]:
+        return {"type": "object", "additionalProperties": False, **extra,
+                "properties": properties}
+
+    schema = block({
+        "policy": block({
+            "name": {"type": "string", "nullable": True},
+            "licence": block({"allowed": strings(), "prohibited": strings()}),
+            "origin": block({"permitted_countries": strings(),
+                             "prohibited_countries": strings()}),
+            "residency": block({
+                "required_regions": {"type": "array", "minItems": 1,
+                                     "items": {"type": "string", "minLength": 1}},
+                "match": {"type": "string",
+                          "enum": membership_literals(SRC / "policy_service.py",
+                                                      "parse_policy", "match"),
+                          "default": "any"},
+            }, required=["required_regions"]),
+            "commercial_use": block({
+                # `false` is refused: it states no requirement.
+                "required": {"type": "boolean", "nullable": True, "enum": [True, None],
+                             "default": True},
+                "accept_restricted": {"type": "boolean", "nullable": True, "default": False},
+            }),
+        }),
+        "require_no_undetermined": {"type": "boolean", "nullable": True, "default": False},
+        "models": strings(maxItems=policy.MAX_NAMED_MODELS),
+        "platforms": {"type": "array", "nullable": True,
+                      "items": {"type": "string", "enum": platform_classes()["all"]}},
+        "verdicts": {"type": "array", "nullable": True,
+                     "items": {"type": "string", "enum": list(policy.VERDICTS)}},
+        "limit": {"type": "integer", "minimum": 0, "maximum": policy.MAX_LIMIT,
+                  "default": policy.DEFAULT_LIMIT},
+        "offset": {"type": "integer", "minimum": 0, "default": 0},
+    }, required=["policy"])
+
+    for where, accepted in _reject_unknown_sets().items():
+        node = schema
+        for part in ([] if where == "top-level" else where.split(".")):
+            node = node["properties"].get(part) or {}
+        described = sorted(node.get("properties") or {})
+        if described != accepted:
+            raise SystemExit(
+                f"policy_service accepts {accepted} at {where}; the spec describes "
+                f"{described}. Update _policy_request_schema in {Path(__file__).name}.")
+
+    # Every described field, sent at once, must validate and be answered 200.
+    def paths(node: dict[str, Any], prefix: str = "") -> set[str]:
+        out: set[str] = set()
+        for key, child in (node.get("properties") or {}).items():
+            out |= {f"{prefix}{key}"} | paths(child, f"{prefix}{key}.")
+        return out
+
+    def sent(value: Any, prefix: str = "") -> set[str]:
+        if not isinstance(value, dict):
+            return set()
+        return {p for key, child in value.items()
+                for p in {f"{prefix}{key}"} | sent(child, f"{prefix}{key}.")}
+
+    if paths(schema) != sent(_FULL_POLICY_REQUEST):
+        raise SystemExit("_FULL_POLICY_REQUEST no longer exercises every field the spec "
+                         "describes: " + ", ".join(sorted(paths(schema) ^ sent(_FULL_POLICY_REQUEST))))
+    problems = _validate(_FULL_POLICY_REQUEST, schema, {})
+    status, body = _policy_answer(_FULL_POLICY_REQUEST, paid=True)
+    if problems or status != policy.HTTP_OK:
+        raise SystemExit(f"a request using every described field is not accepted: "
+                         f"{problems or body.get('error')}")
+    return schema
+
+
+def entitlement_is_unwired() -> bool:
+    """True while `entry.py::_entitlement` can only ever return the free tier."""
+    tree = ast.parse((SRC / "entry.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "_entitlement":
+            returns = [r.value for r in ast.walk(node) if isinstance(r, ast.Return)]
+            return bool(returns) and all(
+                isinstance(v, ast.Attribute) and v.attr == "ENTITLEMENT_PUBLIC" for v in returns)
+    return False
+
+
 def _not_yet_live() -> dict[str, Any]:
     """The access layer, recorded as built-but-unwired rather than promised."""
+    if not entitlement_is_unwired():
+        raise SystemExit(
+            "entry.py::_entitlement can now grant the paid policy-check entitlement. "
+            "x-modelspec-not-yet-live, the 503 description and docs/api-policy-check.md "
+            f"still say it cannot; update them in {Path(__file__).name} and the docs.")
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     return {
         "status": "implemented but NOT wired into the deployed Worker",
         "ticket": "MODEL-69",
         "effect_today": (
-            "/v1/rank takes no key, meters nothing and never returns 401, 403 or 429. "
+            "Neither endpoint takes a key, meters anything or ever returns 401, 403 or 429. "
             "Do not build a client that depends on those statuses yet; do build one that "
             "tolerates them."
         ),
+        "policy_check_paid_entitlement": {
+            "status": "specified, implemented and tested, and granted to no request",
+            "granted_by": "entry.py::_entitlement",
+            "effect_today": (
+                f"every /v1/policy-check answer has determinations.entitlement "
+                f"{policy.ENTITLEMENT_PUBLIC}. commercial_use and residency checks it cannot "
+                "settle come back undetermined with why: tier and available_in_tier: paid. "
+                f"HTTP {policy.HTTP_DETERMINATIONS_UNAVAILABLE} determinations_unavailable "
+                "cannot occur yet."
+            ),
+        },
         "when_wired": {
             "present_key_as": ["Authorization: Bearer <key>", "X-API-Key: <key>"],
             "never": "a key in the query string",
@@ -522,6 +932,144 @@ def _not_yet_live() -> dict[str, Any]:
     }
 
 
+# ── the policy verdicts: a tagged union, inferred per variant ────────────────
+
+def _tag_key(sample: dict[str, Any], common: set[str]) -> str:
+    """The one key that says which variant this is. Exactly one, or generation fails."""
+    extra = sorted(set(sample) - common)
+    if len(extra) != 1:
+        raise SystemExit(f"expected exactly one variant key beside {sorted(common)}, found "
+                         f"{extra}; the tagged union in policy_service changed shape")
+    return extra[0]
+
+
+def _union(samples: list[dict[str, Any]], tag_field: str, tags: list[str],
+           names: dict[str, str], used: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """`(the oneOf schema, {variant name: variant schema})` for one tagged union.
+
+    Each variant is inferred from the real samples carrying that tag, pins the
+    tag to its one value, and forbids its siblings' keys — so "no `satisfied`
+    key on an undetermined check" is in the spec, not only in the prose.
+    """
+    common = set.intersection(*(set(s) for s in samples))
+    by_tag: dict[str, list[dict[str, Any]]] = {}
+    key_of: dict[str, str] = {}
+    for sample in samples:
+        by_tag.setdefault(sample[tag_field], []).append(sample)
+        key_of[sample[tag_field]] = _tag_key(sample, common)
+    unseen = sorted(set(tags) - set(by_tag))
+    if unseen:
+        raise SystemExit(f"no sample produced {tag_field}={unseen}; widen the policy "
+                         f"fixtures in {Path(__file__).name}")
+    variants: dict[str, Any] = {}
+    for tag in tags:
+        schema: dict[str, Any] = {}
+        for sample in by_tag[tag]:
+            schema = _merge(schema, _infer(sample))
+        schema["properties"][tag_field]["enum"] = [tag]
+        siblings = [key_of[other] for other in tags if other != tag]
+        schema["not"] = {"anyOf": [{"required": [key]} for key in siblings]}
+        variants[names[tag]] = _describe(schema, names[tag], used)
+    union = {
+        "oneOf": [{"$ref": f"#/components/schemas/{names[tag]}"} for tag in tags],
+        "discriminator": {"propertyName": tag_field, "mapping": {
+            tag: f"#/components/schemas/{names[tag]}" for tag in tags}},
+    }
+    return union, variants
+
+
+def _policy_schemas(used: set[str]) -> dict[str, Any]:
+    """Every policy-check schema, from answers the endpoint's own code gave."""
+    free = [_policy_answer(EXAMPLE_POLICY_REQUEST),
+            _policy_answer({"policy": {"licence": {"prohibited": ["mit"]}}})]
+    paid = [_policy_answer(_FULL_POLICY_REQUEST, paid=True)]
+    for status, body in free + paid:
+        if status != policy.HTTP_OK:
+            raise SystemExit(f"a policy sample was refused: {body.get('error')}")
+    errors = _probe_policy_errors()
+    present = [errors["undetermined_present"],
+               _policy_answer({"policy": {"residency": {"required_regions": ["eu-west-1"]}},
+                               "require_no_undetermined": True})]
+
+    rows = [row for _, body in free + paid for row in body["result"]]
+    rows += [row for _, body in present for row in body["error"]["examples"]]
+    checks = [check for row in rows for check in row["checks"]]
+
+    states = list(policy._blank_tally())
+    check_union, check_variants = _union(
+        checks, "state", states,
+        {state: f"{state.capitalize()}Check" for state in states}, used)
+    row_union, row_variants = _union(
+        rows, "verdict", list(policy.VERDICTS),
+        {"pass": "PassRow", "fail": "FailRow", "undetermined": "UndeterminedRow"}, used)
+
+    constraint = {"constraint": lambda: list(policy.CONSTRAINT_ORDER)}
+    for schema in check_variants.values():
+        _apply_vocabularies(schema, vocab=constraint)
+    why = check_variants["UndeterminedCheck"]["properties"]["undetermined"]["properties"]
+    why["why"]["enum"] = sorted(policy.WHY)
+    why["available_in_tier"] = {
+        **why["available_in_tier"], "type": "string", "nullable": True,
+        "enum": [*dict_key_strings(SRC / "policy_service.py", "_undetermined",
+                                   "available_in_tier"), None]}
+
+    check_ref = {"$ref": "#/components/schemas/PolicyCheck"}
+    for schema in row_variants.values():
+        schema["properties"]["checks"]["items"] = check_ref
+    row_variants["FailRow"]["properties"]["failed"]["properties"]["eliminated_by"] = {
+        "$ref": "#/components/schemas/ViolatedCheck"}
+    row_variants["FailRow"]["properties"]["failed"]["properties"]["constraint"]["enum"] = list(
+        policy.CONSTRAINT_ORDER)
+    row_variants["UndeterminedRow"]["properties"]["undetermined"]["properties"]["checks"][
+        "items"] = {"$ref": "#/components/schemas/UndeterminedCheck"}
+
+    response: dict[str, Any] = {}
+    for _, body in free + paid:
+        response = _merge(response, _infer(body))
+    response = _describe(response, "PolicyCheckResponse", used)
+    response["properties"]["result"]["items"] = {"$ref": "#/components/schemas/PolicyRow"}
+    response["properties"]["determinations"]["properties"]["entitlement"]["enum"] = list(
+        policy.ENTITLEMENTS)
+    response["properties"]["page"]["properties"]["verdicts_shown"]["items"]["enum"] = list(
+        policy.VERDICTS)
+
+    def envelope(bodies: list[dict[str, Any]], prefix: str, codes: list[str]) -> dict[str, Any]:
+        schema: dict[str, Any] = {}
+        for body in bodies:
+            schema = _merge(schema, _infer(body))
+        schema["properties"]["error"] = _describe(schema["properties"]["error"], prefix, used)
+        schema["properties"]["error"]["properties"]["code"]["enum"] = codes
+        schema["properties"]["result"] = {"type": "array", "items": {}, "maxItems": 0}
+        return schema
+
+    refused_codes = sorted(code for code, (status, _) in errors.items()
+                           if status == policy.HTTP_BAD_REQUEST)
+    # A body that is not JSON is refused by `entry.py` before any export is
+    # read, through this same `error_response` with no export: `build` is null.
+    unparsed = policy.error_response(
+        policy.RequestError("invalid_request", "the body is not valid JSON"), None,
+        _COMMIT, _ORIGIN)[1]
+    undetermined = envelope([body for _, body in present], "UndeterminedPresentError",
+                            ["undetermined_present"])
+    undetermined["properties"]["error"]["properties"]["examples"]["items"] = {
+        "$ref": "#/components/schemas/UndeterminedRow"}
+
+    return {
+        "PolicyCheckRequest": _describe(_policy_request_schema(), "PolicyCheckRequest", used),
+        "PolicyCheckResponse": response,
+        "PolicyRow": row_union,
+        **row_variants,
+        "PolicyCheck": check_union,
+        **check_variants,
+        "PolicyRequestRefused": envelope([errors[c][1] for c in refused_codes] + [unparsed],
+                                         "PolicyRequestRefusedError", refused_codes),
+        "UndeterminedPresent": undetermined,
+        "DeterminationsUnavailable": envelope([errors["determinations_unavailable"][1]],
+                                              "DeterminationsUnavailableError",
+                                              ["determinations_unavailable"]),
+    }
+
+
 def build_spec() -> dict[str, Any]:
     # Two real answers, merged: the example request (whose `managed_api` hosting
     # populates `applied.unbound`) and a fully constrained one (which binds every
@@ -535,6 +1083,7 @@ def build_spec() -> dict[str, Any]:
         "limit": 2,
     })
     errors = _probe_errors()
+    _check_every_code_is_probed(errors, _probe_policy_errors())
     entry_codes = entry_error_codes()
 
     used: set[str] = set()
@@ -559,7 +1108,10 @@ def build_spec() -> dict[str, Any]:
         {errors[code][1]["error"]["code"] for code in refused_codes})
 
     request_schema = _describe(_request_schema(), "RankRequest", used)
-    health_schema = _infer(_health_sample())
+    health_schema: dict[str, Any] = {}
+    for sample in _health_samples():
+        health_schema = _merge(health_schema, _infer(sample))
+    policy_schemas = _policy_schemas(used)
 
     stray = sorted(set(DESCRIPTIONS) - used)
     if stray:
@@ -579,35 +1131,49 @@ def build_spec() -> dict[str, Any]:
             },
         }
 
+    def transport(status: int, description: str) -> tuple[str, dict[str, Any]]:
+        return str(status), _json_body(description,
+                                       {"$ref": "#/components/schemas/TransportError"})
+
+    not_found = transport(service.HTTP_NOT_FOUND,
+                          "No endpoint at that path. `error.accepted` names the versioned paths.")
     codes = sorted(source_error_codes())
     return {
         "openapi": "3.0.3",
         "info": {
-            "title": "ModelSpec rank API",
+            "title": "ModelSpec API",
             "version": service.SCHEMA_VERSION,
             "summary": (
                 "Ranks AI models you can actually run, given your hardware, providers, use "
-                "case and policy rules."
+                "case and policy rules, and checks them against a compliance policy."
             ),
             "description": (
                 "Use when choosing, switching, or checking a model before a task or deploy. "
-                "Returns ranked models with scores, cost and reasons; on failure, returns "
-                "which constraint eliminated every option.\n\n"
-                "One call, no state, no key today. The answer is computed per request from "
+                "POST /v1/rank returns ranked models with scores, cost and reasons; on "
+                "failure, it returns which constraint eliminated every option. "
+                "POST /v1/policy-check returns, per model and per platform, pass, fail or "
+                "undetermined against a licence, origin, residency and commercial-use "
+                "policy, citing the document behind each verdict.\n\n"
+                "One call, no state, no key today. Each answer is computed per request from "
                 "the current public export; `build.commit` on every response names the "
-                "catalogue it was computed from. A request carries a profile — use case, "
-                "environment, constraints — never a prompt.\n\n"
+                "catalogue it was computed from. A request carries a profile or a policy — "
+                "never a prompt.\n\n"
+                "policy-check is answered from the public export today (the free tier). "
+                "Every check it cannot settle is `undetermined` with `why: tier`, and "
+                "`determinations.undetermined_for_lack_of_entitlement` counts them. It is "
+                "never a pass.\n\n"
                 "Send a real `User-Agent`. The host is behind Cloudflare, and the "
                 "standard-library default (`Python-urllib/*`) is refused at the edge with a "
                 "403 and a non-JSON body that never reaches this service.\n\n"
-                "Reference: docs/api.md. Generated from the implementation by "
-                "api/worker/openapi.py."
+                "Reference: docs/api.md and docs/api-policy-check.md. Generated from the "
+                "implementation by api/worker/openapi.py."
             ),
             "license": {"name": "MIT", "url": "https://github.com/turbobeest/modelspec"},
             "x-error-codes": codes,
             "x-transport-error-statuses": {code: entry_codes[code]
                                            for code in sorted(entry_codes)},
-            "x-max-request-bytes": service.MAX_BODY_BYTES,
+            "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
+                                    "/v1/policy-check": policy.MAX_BODY_BYTES},
         },
         "x-modelspec-not-yet-live": _not_yet_live(),
         "servers": [{"url": SERVER_URL, "description": "production"}],
@@ -615,17 +1181,17 @@ def build_spec() -> dict[str, Any]:
             "/v1/health": {
                 "get": {
                     "operationId": "health",
-                    "summary": "The deployed version, and whether it can read the export.",
+                    "summary": "The deployed version, and whether it can read both exports.",
                     "responses": {
                         "200": _json_body("Serving.", {"$ref": "#/components/schemas/Health"}),
                         str(service.HTTP_BAD_GATEWAY): _json_body(
-                            "The published export could not be read. `last_error` says why.",
+                            "An export could not be read. `last_error` says why.",
                             {"$ref": "#/components/schemas/Health"}),
-                        # Reachable from either operation: the router answers any
+                        # Reachable from every operation: the router answers any
                         # unrecognised path this way, including a mistyped one.
-                        str(service.HTTP_NOT_FOUND): _json_body(
-                            "No endpoint at that path. `error.accepted` names the versioned "
-                            "paths.", {"$ref": "#/components/schemas/TransportError"}),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/health takes GET.")[1],
                     },
                 },
             },
@@ -646,22 +1212,61 @@ def build_spec() -> dict[str, Any]:
                         str(service.HTTP_BAD_REQUEST): _json_body(
                             "Refused. `error.accepted` lists the values this field takes.",
                             {"$ref": "#/components/schemas/RequestRefused"}),
-                        str(service.HTTP_NOT_FOUND): _json_body(
-                            "No endpoint at that path. `error.accepted` names the versioned "
-                            "paths.", {"$ref": "#/components/schemas/TransportError"}),
-                        str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
-                            "/v1/rank takes POST.",
-                            {"$ref": "#/components/schemas/TransportError"}),
-                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
-                            f"The body is over {service.MAX_BODY_BYTES} bytes.",
-                            {"$ref": "#/components/schemas/TransportError"}),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/rank takes POST.")[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): transport(
+                            service.HTTP_PAYLOAD_TOO_LARGE,
+                            f"The body is over {service.MAX_BODY_BYTES} bytes.")[1],
                         str(service.HTTP_NO_MATCH): _json_body(
                             "No model survives the request. `error.relax` names what to "
                             "change. Never a 200 with an empty list.",
                             {"$ref": "#/components/schemas/NoMatch"}),
-                        str(service.HTTP_BAD_GATEWAY): _json_body(
-                            "The published export could not be read. Retry.",
-                            {"$ref": "#/components/schemas/TransportError"}),
+                        str(service.HTTP_BAD_GATEWAY): transport(
+                            service.HTTP_BAD_GATEWAY,
+                            "The published export could not be read. Retry.")[1],
+                    },
+                },
+            },
+            "/v1/policy-check": {
+                "post": {
+                    "operationId": "policyCheck",
+                    "summary": "Check the catalogue, per model and per platform, against a "
+                               "policy.",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/PolicyCheckRequest"},
+                            "example": EXAMPLE_POLICY_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": _json_body(
+                            "Verdicts, possibly including undetermined rows. `summary` counts "
+                            "every row; `result` is one page of them.",
+                            {"$ref": "#/components/schemas/PolicyCheckResponse"}),
+                        str(policy.HTTP_BAD_REQUEST): _json_body(
+                            "Refused: a malformed body, an empty policy, or an unknown model "
+                            "or platform. Never answered as a clean pass.",
+                            {"$ref": "#/components/schemas/PolicyRequestRefused"}),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/policy-check takes POST.")[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): transport(
+                            service.HTTP_PAYLOAD_TOO_LARGE,
+                            f"The body is over {policy.MAX_BODY_BYTES} bytes.")[1],
+                        str(policy.HTTP_UNDETERMINED_PRESENT): _json_body(
+                            "`require_no_undetermined` was true and some rows are "
+                            "undetermined. A documented hard failure, never a 200 to audit.",
+                            {"$ref": "#/components/schemas/UndeterminedPresent"}),
+                        str(service.HTTP_BAD_GATEWAY): transport(
+                            service.HTTP_BAD_GATEWAY,
+                            "The published policy export could not be read. Retry.")[1],
+                        str(policy.HTTP_DETERMINATIONS_UNAVAILABLE): _json_body(
+                            "Entitled to the determinations, and the store could not be "
+                            "read. Never downgraded to the free answer. Cannot occur yet: no "
+                            "request is entitled (x-modelspec-not-yet-live).",
+                            {"$ref": "#/components/schemas/DeterminationsUnavailable"}),
                     },
                 },
             },
@@ -673,6 +1278,7 @@ def build_spec() -> dict[str, Any]:
                 "Health": health_schema,
                 "NoMatch": error_envelope(no_match_schema),
                 "RequestRefused": error_envelope(refused_schema),
+                **policy_schemas,
                 "TransportError": error_envelope({
                     "type": "object",
                     "required": ["code", "message"],
@@ -692,21 +1298,67 @@ def _json_body(description: str, schema: dict[str, Any]) -> dict[str, Any]:
     return {"description": description, "content": {"application/json": {"schema": schema}}}
 
 
-def _health_sample() -> dict[str, Any]:
-    """`/v1/health`'s body, in the shape `entry.py::_health` writes it."""
+def _entry_body_keys(function: str) -> set[str]:
+    """Keys of every dict literal `function` in entry.py writes as a body or returns."""
+    tree = ast.parse((SRC / "entry.py").read_text(encoding="utf-8"))
+    keys: set[str] = set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == function):
+            continue
+        for child in ast.walk(node):
+            body = None
+            if (isinstance(child, ast.Call) and isinstance(child.func, ast.Name)
+                    and child.func.id == "_json_response" and len(child.args) == 2):
+                body = child.args[1]
+            elif isinstance(child, ast.Return):
+                body = child.value
+            if isinstance(body, ast.Dict):
+                keys |= {k.value for k in body.keys if isinstance(k, ast.Constant)}
+    return keys
+
+
+def _health_samples() -> list[dict[str, Any]]:
+    """`/v1/health`'s body, in the shapes `entry.py::_health` writes it.
+
+    `entry.py` imports the Workers runtime, so the body cannot be produced here
+    by calling it. Its keys are read out of the syntax tree instead, and a
+    sample that has drifted from them fails generation — the health body was
+    the one schema in this file that could otherwise go stale unnoticed.
+    """
     export = _export()
     build = export["build"]
-    return {
+    base = {
         "schema_version": service.SCHEMA_VERSION,
         "endpoint": "health",
         "service_commit": _COMMIT,
         "export_origin": _ORIGIN,
         "export_loaded": True,
+        "policy_export_loaded": True,
         "build": {"commit": build["commit"], "built_at": build["built_at"],
                   "export_schema_version": build["export_schema_version"]},
         "model_count": len(export["candidates"]),
+        "policy_model_count": _policy_export()["count"],
         "last_error": None,
     }
+    samples = [
+        {**base, "determinations": {"bound": False, "loaded": False, "bundle_version": None,
+                                    "generated_on": None, "last_error": None}},
+        {**base, "determinations": {"bound": True, "loaded": True, "bundle_version": "1",
+                                    "generated_on": "2026-01-01", "last_error": None}},
+        {**base, "last_error": "RuntimeError: example",
+         "determinations": {"bound": True, "loaded": False, "bundle_version": None,
+                            "generated_on": None, "last_error": "RuntimeError: example"}},
+    ]
+    for name, keys, sample in (("_health", _entry_body_keys("_health"), samples[0]),
+                               ("_determinations_health",
+                                _entry_body_keys("_determinations_health"),
+                                samples[0]["determinations"])):
+        if set(sample) != keys:
+            raise SystemExit(
+                f"entry.py::{name} writes {sorted(keys)}; the health sample in "
+                f"{Path(__file__).name} has {sorted(sample)}. Update _health_samples.")
+    return samples
 
 
 def render() -> str:
@@ -717,11 +1369,7 @@ def render() -> str:
 
 def _example_from_schema(schema: dict[str, Any], spec: dict[str, Any]) -> Any:
     """Build a value from the spec alone. No knowledge of the implementation."""
-    while "$ref" in schema:
-        node: Any = spec
-        for part in schema["$ref"].lstrip("#/").split("/"):
-            node = node[part]
-        schema = node
+    schema = _resolve(schema, spec)
     if "example" in schema:
         return schema["example"]
     if "enum" in schema:
@@ -741,15 +1389,42 @@ def _example_from_schema(schema: dict[str, Any], spec: dict[str, Any]) -> Any:
     return schema.get("default", "")
 
 
-def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
-              path: str = "$") -> list[str]:
-    """Check a response against the spec's schema. Enough of JSON Schema to bite."""
+def _resolve(schema: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
     while "$ref" in schema:
         node: Any = spec
         for part in schema["$ref"].lstrip("#/").split("/"):
             node = node[part]
         schema = node
+    return schema
+
+
+def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
+              path: str = "$") -> list[str]:
+    """Check a value against the spec's schema. Enough of JSON Schema to bite.
+
+    Covers what this spec uses: types, nullable, enum, required, nested
+    properties and items, maxItems, `oneOf` with a discriminator (the policy
+    verdicts), and `not`/`anyOf` (a variant forbidding its siblings' keys).
+    """
+    schema = _resolve(schema, spec)
+    if "oneOf" in schema:
+        discriminator = schema.get("discriminator") or {}
+        field = discriminator.get("propertyName")
+        if field and isinstance(value, dict):
+            target = (discriminator.get("mapping") or {}).get(value.get(field))
+            if target is None:
+                return [f"{path}.{field}: {value.get(field)!r} names no variant"]
+            return _validate(value, {"$ref": target}, spec, path)
+        matching = [s for s in schema["oneOf"] if not _validate(value, s, spec, path)]
+        return [] if len(matching) == 1 else [
+            f"{path}: matches {len(matching)} of the spec's oneOf variants, not exactly 1"]
+    if "anyOf" in schema:
+        if all(_validate(value, s, spec, path) for s in schema["anyOf"]):
+            return [f"{path}: matches none of the spec's anyOf"]
+        return []
     problems: list[str] = []
+    if "not" in schema and not _validate(value, schema["not"], spec, path):
+        problems.append(f"{path}: carries a key the spec forbids on this variant")
     if value is None:
         if not schema.get("nullable") and schema.get("type"):
             problems.append(f"{path}: null, but the spec says {schema['type']}")
@@ -760,12 +1435,12 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
         "integer": int, "number": (int, float),
     }
     if kind in checks and not isinstance(value, checks[kind]):
-        return [f"{path}: {type(value).__name__}, but the spec says {kind}"]
+        return problems + [f"{path}: {type(value).__name__}, but the spec says {kind}"]
     if kind in {"integer", "number"} and isinstance(value, bool):
-        return [f"{path}: boolean, but the spec says {kind}"]
+        return problems + [f"{path}: boolean, but the spec says {kind}"]
     if "enum" in schema and value not in schema["enum"]:
         problems.append(f"{path}: {value!r} is not one of the spec's {len(schema['enum'])} values")
-    if kind == "object":
+    if kind == "object" or (kind is None and isinstance(value, dict)):
         for name in schema.get("required", []):
             if name not in value:
                 problems.append(f"{path}.{name}: required by the spec, absent from the response")
@@ -781,69 +1456,79 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
 
 
 def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
-    """Send a request built from the spec alone, and check the answer against it.
+    """Call every operation the spec describes, using the spec alone.
 
     This is the acceptance criterion made executable: if a caller can only read
-    `openapi.yaml`, can they call the service and parse what comes back.
+    `openapi.yaml`, can they call each endpoint and parse what comes back. The
+    operations are read out of the document, not listed here, so an endpoint
+    added to the spec is probed without anyone remembering to add it.
     """
     spec = spec or yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
     base = base_url.rstrip("/")
     failures: list[str] = []
+    probed: list[str] = []
 
-    for path, method in (("/v1/health", "get"), ("/v1/rank", "post")):
-        operation = spec["paths"][path][method]
-        data = None
-        if method == "post":
-            schema = operation["requestBody"]["content"]["application/json"]["schema"]
-            body = _example_from_schema(
-                operation["requestBody"]["content"]["application/json"].get("schema", schema), spec)
-            example = operation["requestBody"]["content"]["application/json"].get("example")
-            body = example if example is not None else body
-            data = json.dumps(body).encode()
-            print(f"POST {base}{path} {json.dumps(body)}")
-        else:
-            print(f"GET {base}{path}")
-        headers = {"user-agent": USER_AGENT}
-        if data:
-            headers["content-type"] = "application/json"
-        request = urllib.request.Request(base + path, data=data, method=method.upper(),
-                                         headers=headers)
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                status, raw = response.status, response.read()
-        except urllib.error.HTTPError as exc:  # documented statuses arrive here
-            status, raw = exc.code, exc.read() or b""
-        except OSError as exc:
-            failures.append(f"{path}: {exc}")
-            continue
-        try:
-            payload = json.loads(raw or b"{}")
-        except ValueError:
-            # Cloudflare's own refusals are not this service's envelope. 1010 is
-            # the default-library user agent being blocked at the edge.
-            failures.append(f"{path}: HTTP {status} with a non-JSON body "
-                            f"({raw[:60]!r}) — that answer is not from the Worker")
-            continue
+    for path, operations in spec["paths"].items():
+        for method, operation in operations.items():
+            data = None
+            if "requestBody" in operation:
+                content = operation["requestBody"]["content"]["application/json"]
+                body = content.get("example")
+                if body is None:
+                    body = _example_from_schema(content["schema"], spec)
+                data = json.dumps(body).encode()
+                print(f"{method.upper()} {base}{path} {json.dumps(body)}")
+            else:
+                print(f"{method.upper()} {base}{path}")
+            headers = {"user-agent": USER_AGENT}
+            if data:
+                headers["content-type"] = "application/json"
+            request = urllib.request.Request(base + path, data=data, method=method.upper(),
+                                             headers=headers)
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    status, raw = response.status, response.read()
+            except urllib.error.HTTPError as exc:  # documented statuses arrive here
+                status, raw = exc.code, exc.read() or b""
+            except OSError as exc:
+                failures.append(f"{path}: {exc}")
+                continue
+            try:
+                payload = json.loads(raw or b"{}")
+            except ValueError:
+                # Cloudflare's own refusals are not this service's envelope. 1010
+                # is the default-library user agent being blocked at the edge.
+                failures.append(f"{path}: HTTP {status} with a non-JSON body "
+                                f"({raw[:60]!r}) — that answer is not from the Worker")
+                continue
 
-        print(f"  -> HTTP {status}")
-        if str(status) not in operation["responses"]:
-            failures.append(f"{path}: HTTP {status} is not in the spec")
-            continue
-        if method == "post" and status != 200:
-            failures.append(f"{path}: the spec's own example returned HTTP {status}, not 200")
-        schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]
-        problems = _validate(payload, schema, spec, path)
-        failures += [f"{path}: {problem}" for problem in problems]
-        if method == "post" and status == 200:
-            print(f"  -> {len(payload.get('result', []))} ranked row(s), "
-                  f"build.commit={payload.get('build', {}).get('commit')}")
+            print(f"  -> HTTP {status}")
+            if str(status) not in operation["responses"]:
+                failures.append(f"{path}: HTTP {status} is not in the spec")
+                continue
+            if data is not None and status != 200:
+                failures.append(f"{path}: the spec's own example returned HTTP {status}, "
+                                "not 200")
+            schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]
+            problems = _validate(payload, schema, spec, path)
+            failures += [f"{path}: {problem}" for problem in problems]
+            probed.append(f"{method.upper()} {path}")
+            if data is not None and status == 200:
+                summary = f"  -> {len(payload.get('result', []))} row(s), " \
+                          f"build.commit={payload.get('build', {}).get('commit')}"
+                if "determinations" in payload:
+                    summary += (f", entitlement={payload['determinations'].get('entitlement')}"
+                                f", verdicts={payload.get('summary', {}).get('verdicts')}")
+                print(summary)
+            print(f"  -> {'valid' if not problems else f'{len(problems)} problem(s)'} "
+                  "against the spec")
 
     for failure in failures:
         print(f"::error::{failure}")
     if failures:
         return 1
-    print(f"a request built only from {SPEC_PATH.name} succeeds against {base}, "
-          "and both answers validate against it")
+    print(f"requests built only from {SPEC_PATH.name} succeed against {base} for "
+          f"{', '.join(probed)}, and every answer validates against it")
     return 0
 
 

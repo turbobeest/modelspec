@@ -4,17 +4,26 @@ Documentation rots silently, so nothing here reads the prose for plausibility.
 Every assertion is between a document and the implementation:
 
 * `api/worker/openapi.yaml` must be exactly what `api/worker/openapi.py`
-  generates from `rank_service`, `entry.py` and the scorer — so a field added to
-  a response, a new enum value or a new refusal fails the build until the spec
-  is regenerated;
-* every `error.code` the two Worker modules can emit must appear in
-  `docs/api.md` with a stated fix, and every `HTTP_*` status with it;
-* the request in the spec must be one the parser accepts and the endpoint
-  answers with a 200, so the documented example cannot become a request that
-  fails;
-* the quotas in the reference must be the numbers in `tiers.json`, and the claim
-  that the access gate is **not live** must remain true — the test fails the day
-  the gate is wired, which is the day the reference has to change.
+  generates from `rank_service`, `policy_service`, `entry.py` and the scorer —
+  so a field added to a response, a new enum value or a new refusal fails the
+  build until the spec is regenerated;
+* the spec's operations must be exactly the endpoints `entry.py` routes;
+* every `error.code` each endpoint can emit must appear in its reference
+  (`docs/api.md` for rank, `docs/api-policy-check.md` for policy-check) with a
+  stated fix, and every `HTTP_*` status with it;
+* the requests in the spec must be ones the parsers accept and the endpoints
+  answer with a 200, and the worked responses pasted in the references must
+  validate against the spec — they are real captures, not illustrations;
+* the policy verdicts are a tagged union in the spec: a check or row carrying a
+  sibling variant's key is invalid, which is what stops a spec-driven client
+  reading `undetermined` as a pass;
+* the quotas in the reference must be the numbers in `tiers.json`, and the claims
+  that the access gate and the paid policy-check entitlement are **not live**
+  must remain true — the tests fail the day either is wired, which is the day
+  the references have to change;
+* the neutrality commitment (MODEL-70) is live as data and linked; the terms
+  are drafts and are not presented as in force. Each of those flips a test the
+  day it stops being true.
 
 The live endpoint is exercised by `api/worker/openapi.py --probe`, which CI runs
 after a deploy. It is opt-in here (`MODELSPEC_LIVE_API=1`) so the suite needs no
@@ -44,13 +53,18 @@ from api.ranking.engine import (  # noqa: E402
 )
 
 REFERENCE = REPO_ROOT / "docs" / "api.md"
+POLICY_REFERENCE = REPO_ROOT / "docs" / "api-policy-check.md"
 SPEC_PATH = REPO_ROOT / "api" / "worker" / "openapi.yaml"
 TIERS_PATH = REPO_ROOT / "api" / "worker" / "tiers.json"
 ENTRY = REPO_ROOT / "api" / "worker" / "src" / "entry.py"
 
 #: The reference's own budget, from the ticket. Fenced blocks are the worked
-#: example and the OpenAPI document, which the ticket excludes.
+#: example and the OpenAPI document, which the ticket excludes. It applies per
+#: reference: one endpoint's reference did not fit twice in 800 words, so
+#: policy-check has its own page under the same budget rather than an
+#: overrun one (MODEL-72, after MODEL-80 landed).
 WORD_BUDGET = 800
+REFERENCES = (REFERENCE, POLICY_REFERENCE)
 
 
 def _load(path: Path, name: str):
@@ -62,6 +76,7 @@ def _load(path: Path, name: str):
 
 generator = _load(REPO_ROOT / "api" / "worker" / "openapi.py", "modelspec_openapi_generator")
 service = generator.service
+policy = generator.policy
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +87,24 @@ def spec() -> dict[str, Any]:
 @pytest.fixture(scope="module")
 def reference() -> str:
     return REFERENCE.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def policy_reference() -> str:
+    return POLICY_REFERENCE.read_text(encoding="utf-8")
+
+
+def _statuses(module: Any, floor: int = 0) -> set[int]:
+    return {value for name, value in vars(module).items()
+            if name.startswith("HTTP_") and isinstance(value, int) and value >= floor}
+
+
+def _worked_response(text: str) -> dict[str, Any]:
+    import json
+
+    blocks = re.findall(r"```json\n(.*?)```", text, flags=re.S)
+    assert blocks, "the reference has no worked response"
+    return json.loads(blocks[0])
 
 
 def _prose(text: str) -> str:
@@ -99,11 +132,22 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
-def test_the_spec_names_this_service_and_its_paths(spec: dict[str, Any]) -> None:
+def test_the_spec_describes_exactly_the_endpoints_the_worker_routes(spec: dict[str, Any]) -> None:
+    """Read from `entry.ACCEPTED_ENDPOINTS`, the list every 404 names back."""
+    import ast
+
+    tree = ast.parse(ENTRY.read_text(encoding="utf-8"))
+    routed = next(
+        {elt.value for elt in node.value.elts}
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "ACCEPTED_ENDPOINTS")
+    described = {f"{method.upper()} {path}"
+                 for path, operations in spec["paths"].items() for method in operations}
+    assert described == routed, (
+        f"entry.py routes {sorted(routed)}; the spec describes {sorted(described)}")
     assert spec["openapi"].startswith("3.")
     assert spec["servers"][0]["url"] == "https://api.modelspec.dev"
-    assert set(spec["paths"]) == {"/v1/rank", "/v1/health"}
-    assert spec["info"]["version"] == service.SCHEMA_VERSION
+    assert spec["info"]["version"] == service.SCHEMA_VERSION == policy.SCHEMA_VERSION
 
 
 def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
@@ -114,17 +158,33 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
     assert environment["runtime"]["enum"] == [
         *sorted(LOCAL_PLATFORMS | CLOUD_PLATFORMS | PROVIDER_PLATFORMS), None]
     assert properties["limit"]["maximum"] == service.MAX_LIMIT
-    assert spec["info"]["x-max-request-bytes"] == service.MAX_BODY_BYTES
+    assert spec["info"]["x-max-request-bytes"] == {
+        "/v1/rank": service.MAX_BODY_BYTES, "/v1/policy-check": policy.MAX_BODY_BYTES}
+
+
+def test_the_policy_request_vocabulary_is_the_parsers(spec: dict[str, Any]) -> None:
+    from pipeline.policy_export import platform_classes
+
+    properties = spec["components"]["schemas"]["PolicyCheckRequest"]["properties"]
+    assert properties["verdicts"]["items"]["enum"] == list(policy.VERDICTS)
+    assert properties["platforms"]["items"]["enum"] == platform_classes()["all"]
+    assert properties["limit"]["maximum"] == policy.MAX_LIMIT
+    assert properties["limit"]["default"] == policy.DEFAULT_LIMIT
+    assert properties["models"]["maxItems"] == policy.MAX_NAMED_MODELS
+    accepted = generator._reject_unknown_sets()
+    assert sorted(properties) == accepted["top-level"]
+    assert sorted(properties["policy"]["properties"]) == accepted["policy"]
 
 
 def test_every_status_the_worker_can_return_is_in_the_spec(spec: dict[str, Any]) -> None:
-    documented = set(spec["paths"]["/v1/rank"]["post"]["responses"])
-    documented |= set(spec["paths"]["/v1/health"]["get"]["responses"])
-    emitted = {str(value) for name, value in vars(service).items()
-               if name.startswith("HTTP_") and isinstance(value, int)}
-    assert emitted - documented == set(), (
-        "the Worker has a status the spec does not describe: "
-        f"{sorted(emitted - documented)}")
+    rank = set(spec["paths"]["/v1/rank"]["post"]["responses"])
+    rank |= set(spec["paths"]["/v1/health"]["get"]["responses"])
+    missing = {str(s) for s in _statuses(service)} - rank
+    assert missing == set(), f"the rank Worker has a status the spec does not describe: {missing}"
+
+    checked = set(spec["paths"]["/v1/policy-check"]["post"]["responses"])
+    missing = {str(s) for s in _statuses(policy)} - checked
+    assert missing == set(), f"policy-check has a status the spec does not describe: {missing}"
 
 
 # ── the documented request works ─────────────────────────────────────────────
@@ -144,38 +204,105 @@ def test_the_spec_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]
     assert problems == [], problems
 
 
-def test_the_worked_example_in_the_reference_is_the_documented_shape(reference: str) -> None:
-    """The pasted response must still be a body this spec would accept."""
-    import json
+def test_the_policy_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]) -> None:
+    content = spec["paths"]["/v1/policy-check"]["post"]["requestBody"]["content"][
+        "application/json"]
+    example = generator._example_from_schema(content, spec)
+    assert example == content["example"]
+    assert generator._validate(example, content["schema"], spec) == []
 
-    blocks = re.findall(r"```json\n(.*?)```", reference, flags=re.S)
-    assert blocks, "the reference has no worked response"
-    body = json.loads(blocks[0])
-    assert body["schema_version"] == service.SCHEMA_VERSION
-    assert set(body) >= {"build", "service_commit", "applied", "policy", "result"}
-    row = body["result"][0]
-    assert row["evidence_basis"] in generator.VOCABULARIES["evidence_basis"]()
-    assert body["ranking_status"] in generator.VOCABULARIES["ranking_status"]()
+    status, body = generator._policy_answer(example)
+    assert status == policy.HTTP_OK, body
+    assert body["determinations"]["entitlement"] == policy.ENTITLEMENT_PUBLIC
+    problems = generator._validate(
+        body, spec["components"]["schemas"]["PolicyCheckResponse"], spec)
+    assert problems == [], problems
+
+
+def test_both_worked_responses_validate_against_the_spec(
+        spec: dict[str, Any], reference: str, policy_reference: str) -> None:
+    """The pasted responses are real captures, so they must be bodies the spec accepts."""
+    schemas = spec["components"]["schemas"]
+    rank = _worked_response(reference)
+    assert rank["schema_version"] == service.SCHEMA_VERSION
+    assert generator._validate(rank, schemas["RankResponse"], spec) == []
+
+    checked = _worked_response(policy_reference)
+    assert checked["endpoint"] == "policy-check"
+    assert generator._validate(checked, schemas["PolicyCheckResponse"], spec) == []
+
+
+def test_the_spec_will_not_let_undetermined_pass_for_a_pass(spec: dict[str, Any]) -> None:
+    """The tagged union holds in the spec, not only in the prose."""
+    import copy
+
+    status, body = generator._policy_answer(generator._FULL_POLICY_REQUEST, paid=True)
+    assert status == policy.HTTP_OK
+    rows = {row["verdict"]: row for row in body["result"]}
+    assert set(rows) == set(policy.VERDICTS), "the fixtures must produce every verdict"
+    row_schema = {"$ref": "#/components/schemas/PolicyRow"}
+    for row in rows.values():
+        assert generator._validate(row, row_schema, spec) == []
+
+    smuggled = copy.deepcopy(rows["undetermined"])
+    check = next(c for c in smuggled["checks"] if c["state"] == "undetermined")
+    check["satisfied"] = {}
+    assert generator._validate(smuggled, row_schema, spec), (
+        "an undetermined check carrying a `satisfied` key validated")
+
+    relabelled = copy.deepcopy(rows["fail"])
+    relabelled["passed"] = {"constraints": [], "conditions": []}
+    assert generator._validate(relabelled, row_schema, spec), (
+        "a failed row carrying a `passed` key validated")
 
 
 # ── every error, with its fix ────────────────────────────────────────────────
 
-def test_every_error_code_the_worker_emits_has_a_documented_fix(reference: str) -> None:
-    fixes = _error_table(reference)
-    missing = sorted(generator.source_error_codes() - set(fixes))
-    assert missing == [], (
-        f"docs/api.md does not tell a caller what to do about: {missing}")
-    for code, fix in fixes.items():
-        assert len(fix.split()) >= 3, f"{code} has no usable fix: {fix!r}"
+def _codes_of(*modules: str) -> set[str]:
+    import ast
+
+    codes: set[str] = set()
+    for name in modules:
+        tree = ast.parse((ENTRY.parent / f"{name}.py").read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "RequestError"
+                    and node.args and isinstance(node.args[0], ast.Constant)):
+                codes.add(node.args[0].value)
+            if isinstance(node, ast.Dict):
+                codes |= {v.value for k, v in zip(node.keys, node.values)
+                          if isinstance(k, ast.Constant) and k.value == "code"
+                          and isinstance(v, ast.Constant) and isinstance(v.value, str)}
+    return codes
 
 
-def test_every_refusal_status_is_documented(reference: str) -> None:
-    statuses = {int(line.strip().strip("|").split("|")[0].strip())
-                for line in reference.splitlines()
-                if line.strip().startswith("| 4") or line.strip().startswith("| 5")}
-    emitted = {value for name, value in vars(service).items()
-               if name.startswith("HTTP_") and isinstance(value, int) and value >= 400}
-    assert emitted <= statuses, f"undocumented status(es): {sorted(emitted - statuses)}"
+def test_every_error_code_the_worker_emits_has_a_documented_fix(
+        reference: str, policy_reference: str) -> None:
+    assert _codes_of("rank_service", "policy_service", "entry") == generator.source_error_codes()
+    transport = set(generator.entry_error_codes())
+    for text, name, modules in ((reference, "docs/api.md", ("rank_service",)),
+                                (policy_reference, "docs/api-policy-check.md",
+                                 ("policy_service",))):
+        fixes = _error_table(text)
+        missing = sorted((_codes_of(*modules) | transport) - set(fixes))
+        assert missing == [], f"{name} does not tell a caller what to do about: {missing}"
+        for code, fix in fixes.items():
+            assert len(fix.split()) >= 3, f"{name}: {code} has no usable fix: {fix!r}"
+
+
+def test_every_refusal_status_is_documented(reference: str, policy_reference: str) -> None:
+    for text, module in ((reference, service), (policy_reference, policy)):
+        statuses = {int(line.strip().strip("|").split("|")[0].strip())
+                    for line in text.splitlines()
+                    if line.strip().startswith("| 4") or line.strip().startswith("| 5")}
+        emitted = _statuses(module, 400)
+        assert emitted <= statuses, f"undocumented status(es): {sorted(emitted - statuses)}"
+
+
+def test_the_policy_reference_states_the_parsers_limits(policy_reference: str) -> None:
+    assert str(policy.MAX_BODY_BYTES) in policy_reference
+    assert f"0–{policy.MAX_LIMIT}, default {policy.DEFAULT_LIMIT}" in policy_reference
+    for why in policy.WHY:
+        assert f"`{why}`" in policy_reference, f"undetermined.why={why} is not explained"
 
 
 def test_a_no_match_names_the_constraint_to_relax(reference: str) -> None:
@@ -193,14 +320,16 @@ def test_a_no_match_names_the_constraint_to_relax(reference: str) -> None:
 
 # ── the reference's own budget, and its honesty ──────────────────────────────
 
-def test_the_reference_is_under_the_word_budget(reference: str) -> None:
-    words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'`_./-]*", _prose(reference))
+@pytest.mark.parametrize("path", REFERENCES, ids=lambda p: p.name)
+def test_each_reference_is_under_the_word_budget(path: Path) -> None:
+    words = re.findall(r"[A-Za-z0-9][A-Za-z0-9'`_./-]*", _prose(path.read_text(encoding="utf-8")))
     assert len(words) < WORD_BUDGET, (
-        f"docs/api.md is {len(words)} words of prose; the budget is {WORD_BUDGET}")
+        f"{path.name} is {len(words)} words of prose; the budget is {WORD_BUDGET}")
 
 
-def test_the_reference_starts_with_a_use_when_sentence(reference: str) -> None:
-    head = reference.split("\n\n", 2)[1]
+@pytest.mark.parametrize("path", REFERENCES, ids=lambda p: p.name)
+def test_each_reference_starts_with_a_use_when_sentence(path: Path) -> None:
+    head = path.read_text(encoding="utf-8").split("\n\n", 2)[1]
     assert head.startswith("**Use when**"), head
 
 
@@ -230,13 +359,70 @@ def test_the_access_gate_is_still_unwired_so_the_not_live_warning_is_true() -> N
     assert "takes no key and meters nothing" in reference
 
 
-def test_nothing_links_a_page_that_does_not_exist(reference: str) -> None:
-    """MODEL-70 has not published terms or the neutrality commitment."""
-    for absent in ("modelspec.dev/terms", "modelspec.dev/pricing",
-                   "modelspec.dev/docs/api", "neutrality.json"):
-        assert f"](https://{absent}" not in reference, (
-            f"docs/api.md links {absent}, which returns 404 until MODEL-70 ships")
-    assert "MODEL-70" in reference, "the missing terms and neutrality commitment must be stated"
+def test_the_paid_policy_entitlement_is_still_unwired_so_the_free_only_claim_is_true(
+        spec: dict[str, Any], policy_reference: str) -> None:
+    """The day `_entitlement` can grant the store, this fails and the docs must change."""
+    assert generator.entitlement_is_unwired(), (
+        "entry.py::_entitlement can now grant the determinations. docs/api-policy-check.md "
+        "and openapi.yaml still say every answer is the free tier — update both.")
+    assert "The paid tier is not live." in policy_reference
+    assert "every answer is the free tier" in policy_reference
+    block = spec["x-modelspec-not-yet-live"]["policy_check_paid_entitlement"]
+    assert "granted to no request" in block["status"]
+
+
+NEUTRALITY_URL = "https://modelspec.dev/api/rank/profiles.json"
+
+
+def test_the_live_neutrality_commitment_is_linked(reference: str) -> None:
+    """MODEL-70 published the commitment as data; the reference links where it lives.
+
+    This used to assert the opposite — that nothing was linked, because nothing
+    existed. The commitment is now written into `profiles.json` by the build and
+    into every `/v1/rank` answer, so the link must be there and must point at it.
+    """
+    from api.ranking.engine import neutrality_commitment
+    from pipeline.ranking import RANKING_POLICY
+
+    assert f"]({NEUTRALITY_URL})" in reference
+    assert "`.ranking_policy.neutrality`" in reference
+    # What the link serves is what the build writes, and what a rank answer carries.
+    assert RANKING_POLICY["neutrality"] == neutrality_commitment()
+    assert generator._answer(generator.EXAMPLE_REQUEST)["policy"]["neutrality"] == (
+        neutrality_commitment())
+    assert neutrality_commitment()["pledge"].split(",")[0] in reference
+
+
+def test_the_draft_terms_are_not_presented_as_in_force(reference: str) -> None:
+    """The legal pages are unadopted drafts. The day `pipeline.legal.DRAFT` flips,
+    this fails, and the reference has to start linking them as terms."""
+    from pipeline import legal
+
+    assert legal.DRAFT is True, (
+        "the MODEL-70 legal pages are adopted now. docs/api.md still says no terms are in "
+        "force and deliberately does not link them — update it.")
+    assert "No terms of use are in force." in reference
+    for draft in ("modelspec.dev/legal/terms", "modelspec.dev/legal/privacy",
+                  "modelspec.dev/legal/neutrality"):
+        assert f"](https://{draft}" not in reference, (
+            f"docs/api.md links {draft}, an unadopted draft, as if it were in force")
+
+
+@pytest.mark.skipif(os.environ.get("MODELSPEC_LIVE_API") != "1",
+                    reason="set MODELSPEC_LIVE_API=1 to fetch modelspec.dev")
+def test_the_linked_neutrality_commitment_resolves() -> None:
+    """The link in the reference answers, and answers with the commitment."""
+    import json
+    import urllib.request
+
+    from api.ranking.engine import neutrality_commitment
+
+    request = urllib.request.Request(NEUTRALITY_URL,
+                                     headers={"user-agent": generator.USER_AGENT})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        assert response.status == 200
+        published = json.loads(response.read())
+    assert published["ranking_policy"]["neutrality"] == neutrality_commitment()
 
 
 def test_the_spec_records_the_unwired_access_layer(spec: dict[str, Any]) -> None:
@@ -262,6 +448,14 @@ def test_ci_checks_the_spec_and_probes_it_after_a_deploy() -> None:
     bundle, deploy = workflow.split("\n  deploy:", 1)
     assert "--check" in bundle, "the drift check must run on pull requests, not only on main"
     assert "--probe" in deploy, "the live proof belongs after the deploy"
+    # #97: nothing in the smoke step may be able to abort it before the retry
+    # loop has run. The probe comes after the loop and cannot exit on its own.
+    loop = deploy.index('while [ "$SECONDS" -lt "$deadline" ]')
+    probe_line = next(line for line in deploy.splitlines()
+                      if "python3 api/worker/openapi.py --probe" in line)
+    assert deploy.index(probe_line) > loop, "the spec probe must run after the retry loop"
+    after = deploy[deploy.index(probe_line):].split("\n", 2)[1]
+    assert "|| fail" in probe_line + after, "the spec probe must report through fail()"
 
 
 # ── the live proof, opt-in ───────────────────────────────────────────────────

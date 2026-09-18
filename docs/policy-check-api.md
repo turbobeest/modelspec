@@ -17,6 +17,8 @@ The third one is the product. See [the third state](#the-third-state-is-the-prod
 - KV loader: [`api/worker/load_determinations.py`](../api/worker/load_determinations.py)
 - Tests: [`tests/test_policy_check.py`](../tests/test_policy_check.py)
 - The rank endpoint it shares a Worker with: [`rank-api.md`](rank-api.md)
+- Caller-facing reference: [`api-policy-check.md`](api-policy-check.md), and the
+  generated spec [`api/worker/openapi.yaml`](../api/worker/openapi.yaml)
 
 ---
 
