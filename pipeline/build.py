@@ -286,6 +286,15 @@ def main(argv: list[str] | None = None) -> int:
         (ms / "p" / slug / "index.html").write_text(r.provider_page(slug, group, build), encoding="utf-8")
         ms_paths.append(f"/p/{slug}/")
 
+    # Terms, the neutrality commitment and the privacy statement (MODEL-70), at
+    # stable URLs from the first build. While they are drafts they are published
+    # `noindex` and contribute nothing to the sitemap, so the URL is dependable
+    # before the documents are adopted without a crawler presenting an unadopted
+    # draft as terms in force. `legal.DRAFT` is the single switch.
+    from pipeline import legal
+    legal_counts = legal.write(ms, root, build)
+    ms_paths.extend(legal_counts["sitemap_paths"])
+
     # benchgraph.dev
     bg_paths = ["/", "/benchmarks/"]
     for bench in benchmarks:
@@ -355,6 +364,7 @@ def main(argv: list[str] | None = None) -> int:
         **counts,
         "graph": graph_counts,
         "ranking": ranking_counts,
+        "legal": legal_counts,
         "commit": build.commit[:12],
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),

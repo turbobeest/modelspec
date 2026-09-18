@@ -56,6 +56,14 @@ In `api/ranking/engine.py`:
 Live `https://modelspec.dev/api/rank/profiles.json` publishes the same policy.
 Do not change a floor without Jamie.
 
+`ranking_policy()` also carries `neutrality` — the honest-broker rule and the
+permanent refusal of referral fees, paid placement and provider-paid visibility,
+published as data beside the floors so an agent can check it rather than trust
+it (MODEL-70). Single source: `neutrality_commitment()` in
+`api/ranking/engine.py`; drafts in `docs/legal/`, still unadopted. Editing those
+strings edits the published terms, and `tests/test_legal.py` fails if the prose
+and the JSON drift. Neither is a routine edit.
+
 ## Provenance
 
 Ranked rows report `evidence_basis`: `none`, `unverified-legacy`, `mixed`,
