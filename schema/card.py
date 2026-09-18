@@ -1137,6 +1137,19 @@ class ModelCard(BaseModel):
             return True
         return bool(self._coverage_types() & applicable)
 
+    def warnings(self) -> list[str]:
+        """Non-fatal catalogue checks. CI reports these; they do not invalidate the card."""
+        out: list[str] = []
+        if (
+            self.licensing.open_weights is True
+            and self.licensing.license_type is LicenseType.PROPRIETARY
+        ):
+            out.append(
+                "open_weights is true with license_type proprietary: "
+                "a proprietary licence does not distribute downloadable weights"
+            )
+        return out
+
     @computed_field
     @property
     def applicable_field_coverage(self) -> float:

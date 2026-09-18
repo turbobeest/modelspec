@@ -61,7 +61,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: proprietary
   license_url: https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html
   tos_url: https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html

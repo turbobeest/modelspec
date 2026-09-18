@@ -60,7 +60,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''
@@ -841,6 +841,8 @@ card_updated: '2026-09-18'
 Ministral 3B (latest) is a Llm Chat model from Mistral AI. Part of the ministral family. Knowledge cutoff: 2024-10.
 
 Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
+
+open_weights: false. Floating API alias, not a weight distribution. Current open Ministral 3 3B weights are on mistral/ministral-3-3b-instruct-2512 (https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512 read 2026-09-18).
 
 ## Key Features
 - Function calling / tool use

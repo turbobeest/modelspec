@@ -59,7 +59,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: null
   license_url: ''
   tos_url: ''
@@ -828,12 +828,14 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Kimi K2.7 Code HighSpeed
 
 Kimi K2.7 Code HighSpeed is a Llm Reasoning model from Moonshot AI. Part of the kimi-k2 family. Knowledge cutoff: 2025-01.
+
+open_weights: false. API speed tier of Kimi K2.7 Code, not a separate weight distribution. Weights are on moonshot/kimi-k2-7-code (https://huggingface.co/moonshotai/Kimi-K2.7-Code read 2026-09-18). No Kimi-K2.7-Code-highspeed Hub repo.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

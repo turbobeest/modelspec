@@ -60,7 +60,7 @@ lineage:
   energy_kwh: null
   library_name: ''
 licensing:
-  open_weights: true
+  open_weights: false
   license_type: other
   license_url: ''
   tos_url: ''
@@ -827,13 +827,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Kimi K2 Thinking Turbo
 
 Kimi K2 Thinking Turbo is a Llm Reasoning model from Moonshot AI. Part of the kimi-thinking family. Knowledge cutoff: 2024-08.
+
+open_weights: false. API speed tier of Kimi K2 Thinking, not a separate weight distribution. Creator Hub: native INT4 serving is the same K2 Thinking checkpoint (https://huggingface.co/moonshotai/Kimi-K2-Thinking read 2026-09-18). Weights are on moonshot/kimi-k2-thinking. No Kimi-K2-Thinking-Turbo Hub repo.
 
 ## Key Features
 - Extended reasoning / chain-of-thought

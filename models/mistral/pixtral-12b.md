@@ -845,6 +845,8 @@ Pixtral 12B is a Vlm model from Mistral AI. Part of the pixtral family. Knowledg
 
 Licence: null. No creator distribution point on the card, read 2026-09-18. A known-wrong apache-2.0 default is worse than none.
 
+open_weights: true. Creator Hub repo https://huggingface.co/mistralai/Pixtral-12B-2409 lists downloadable safetensors (apache-2.0, read 2026-09-18).
+
 ## Key Features
 - Function calling / tool use
 - Open weights
