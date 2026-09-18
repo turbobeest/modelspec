@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Enrich existing ModelSpec YAML cards with inferred data.
 
-Post-processing script that loads each existing card, fills in missing
-license_type and capability flags based on provider defaults and model_type,
-then writes the card back. Does not create new cards or re-scrape anything.
+Post-processing script that loads each existing card and fills missing
+capability flags from model_type, then writes the card back. It does not
+create new cards, re-scrape anything, or guess a licence: a missing
+license_type stays null (MODEL-85).
 
 Usage:
     source .venv/bin/activate && python scripts/enrich_cards.py
@@ -30,122 +31,31 @@ MODELS_DIR = PROJECT_ROOT / "models"
 
 
 # ═══════════════════════════════════════════════════════════════
-# Provider → License defaults
+# License: never guess
 # ═══════════════════════════════════════════════════════════════
-
-PROVIDER_LICENSE: dict[str, LicenseType] = {
-    "anthropic": LicenseType.PROPRIETARY,
-    "openai": LicenseType.PROPRIETARY,
-    "google": LicenseType.PROPRIETARY,  # except Gemma — handled as special case
-    "mistral": LicenseType.APACHE_2_0,
-    "meta": LicenseType.LLAMA_COMMUNITY,
-    "qwen": LicenseType.APACHE_2_0,
-    "deepseek": LicenseType.DEEPSEEK,
-    "cohere": LicenseType.OTHER,
-    "xai": LicenseType.PROPRIETARY,
-    "stability": LicenseType.OTHER,
-    "tii": LicenseType.APACHE_2_0,       # Falcon
-    "microsoft": LicenseType.MIT,         # Phi models
-    "ibm": LicenseType.APACHE_2_0,       # Granite
-    "nvidia": LicenseType.OTHER,
-    "allen-ai": LicenseType.APACHE_2_0,
-    "baai": LicenseType.MIT,
-    "sentence-transformers": LicenseType.APACHE_2_0,
-    # Additional providers
-    "voyage": LicenseType.PROPRIETARY,
-    "perplexity": LicenseType.PROPRIETARY,
-    "01-ai": LicenseType.APACHE_2_0,     # Yi models
-    "snowflake": LicenseType.APACHE_2_0,
-    "salesforce": LicenseType.APACHE_2_0,
-    "together": LicenseType.APACHE_2_0,
-    "nomic": LicenseType.APACHE_2_0,
-    "jina": LicenseType.APACHE_2_0,
-    "intfloat": LicenseType.MIT,
-    "cerebras": LicenseType.LLAMA_COMMUNITY,  # They host Llama
-    "upstage": LicenseType.APACHE_2_0,
-    "minimax": LicenseType.OTHER,
-    "moonshot": LicenseType.PROPRIETARY,
-    "tencent": LicenseType.OTHER,
-    "zhipu": LicenseType.OTHER,
-    "baichuan": LicenseType.OTHER,
-    "samsung": LicenseType.OTHER,
-    "kakao": LicenseType.OTHER,
-    "inception": LicenseType.APACHE_2_0,
-    "rwkv": LicenseType.APACHE_2_0,
-    "skywork": LicenseType.OTHER,
-    "stepfun": LicenseType.OTHER,
-    "openbmb": LicenseType.APACHE_2_0,
-    "liquid": LicenseType.OTHER,
-    "moondream": LicenseType.APACHE_2_0,
-    "nous-research": LicenseType.APACHE_2_0,
-    "teknium": LicenseType.APACHE_2_0,
-    "unsloth": LicenseType.APACHE_2_0,
-    "black-forest-labs": LicenseType.OTHER,  # FLUX
-    "ai21": LicenseType.PROPRIETARY,
-}
-
-
-# ═══════════════════════════════════════════════════════════════
-# Fix 1 & 3: License inference
-# ═══════════════════════════════════════════════════════════════
-
-def _is_gemma_model(card: ModelCard) -> bool:
-    """Check if this is a Google Gemma-family model (not Gemini)."""
-    model_id = card.identity.model_id.lower()
-    family = card.identity.family.lower() if card.identity.family else ""
-    display = card.identity.display_name.lower()
-    return "gemma" in model_id or "gemma" in family or "gemma" in display
-
 
 def infer_license(card: ModelCard) -> LicenseType | None:
-    """Infer license_type from provider, model name, open_weights flag, and tags."""
-    provider = card.identity.provider.lower()
-    tags = [t.lower() for t in card.identity.tags]
+    """A licence is a reading, not a guess (MODEL-85).
 
-    # Special case: Google Gemma → gemma license
-    if provider == "google" and _is_gemma_model(card):
-        return LicenseType.GEMMA
-
-    # Special case: Cerebras hosts Llama models
-    if provider == "cerebras":
-        model_id = card.identity.model_id.lower()
-        if "llama" in model_id:
-            return LicenseType.LLAMA_COMMUNITY
-
-    # Special case: models with "llama" in name from any provider
-    model_id = card.identity.model_id.lower()
-    family = (card.identity.family or "").lower()
-    if "llama" in model_id or family == "llama":
-        return LicenseType.LLAMA_COMMUNITY
-
-    # Check tags for license hints
-    for tag in tags:
-        if "apache" in tag:
-            return LicenseType.APACHE_2_0
-        if "mit" in tag:
-            return LicenseType.MIT
-
-    # Provider default
-    if provider in PROVIDER_LICENSE:
-        return PROVIDER_LICENSE[provider]
-
-    # Fallback: if closed-weights, assume proprietary
-    if not card.licensing.open_weights:
-        return LicenseType.PROPRIETARY
-
-    # Open-weights model from unknown provider → other
-    return LicenseType.OTHER
+    Provider, name, tags, and open_weights are not a licence document. The
+    previous provider table defaulted Cerebras-hosted cards to
+    ``llama-community`` because Cerebras also hosts Llama; that wrote
+    Llama's licence onto GPT-OSS, Qwen, and GLM. A missing ``license_type``
+    stays ``None``.
+    """
+    return None
 
 
 def enrich_license(card: ModelCard) -> bool:
-    """Fill in license_type if missing. Returns True if changed."""
+    """Do not fill ``license_type``. Returns False always.
+
+    Kept so a scheduled enrich pass cannot recreate the MODEL-85 default.
+    """
     if card.licensing.license_type is not None:
         return False
-
     license_type = infer_license(card)
     if license_type is None:
         return False
-
     card.licensing.license_type = license_type
     return True
 

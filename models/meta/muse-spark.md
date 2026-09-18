@@ -63,7 +63,7 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: false
-  license_type: llama-community
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -907,10 +907,12 @@ sources:
 card_schema_version: '3.0'
 card_author: manual
 card_created: '2026-04-08'
-card_updated: '2026-04-08'
+card_updated: '2026-09-18'
 ---
 
 
 # Muse Spark
 
 Meta's first model from Meta Superintelligence Labs (MSL), led by Alexandr Wang. Natively multimodal reasoning model with tool-use, visual chain of thought, and multi-agent orchestration. Accepts voice, text, and image input; text-only output. Features Instant, Thinking, and Contemplating modes. Powers Meta AI across 3B+ users. First closed-source model from Meta, departing from the Llama open-weights strategy.
+
+Licence: null. The card's Hugging Face URL is meta-llama/Llama-2-70b-chat-hf, which is not this model, and no Muse Spark licence document was found (read 2026-09-18). A known-wrong llama-community default is worse than none.

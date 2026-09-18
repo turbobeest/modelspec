@@ -4,7 +4,7 @@ Three defects, one shape:
 
 * `commercial_use` was a `bool | None` and could not hold `restricted`, which
   is the correct answer for every llama-community, gemma and deepseek card —
-  169 of them, measured on this corpus.
+  165 of them, measured on this corpus.
 * there was nowhere to cite the licence the answer was read from, so standing
   rule 1 made an honest determination impossible to write down;
 * and a public `null` would start lying the moment determinations were made and
@@ -126,14 +126,14 @@ def test_every_card_still_validates_against_the_new_schema() -> None:
 
 
 def test_the_restricted_population_is_the_reason_this_changed() -> None:
-    """169 cards whose licence grants commercial use up to a threshold. None
+    """165 cards whose licence grants commercial use up to a threshold. None
     gains a value here — but `restricted` now exists for them to gain."""
     restricted_licences = [
         model_id for model_id, front in CARDS
         if (front.get("licensing") or {}).get("license_type")
         in {"llama-community", "gemma", "deepseek"}
     ]
-    assert len(restricted_licences) == 169
+    assert len(restricted_licences) == 165
 
 
 # ── a determination needs a source ───────────────────────────────────────────
