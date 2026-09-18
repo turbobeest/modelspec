@@ -297,7 +297,7 @@ def _compute_gap_info(card: Any) -> dict[str, Any]:
     return {
         "model_id": card.identity.model_id,
         "display_name": card.identity.display_name,
-        "completeness": card.card_completeness,
+        "applicable_field_coverage": card.applicable_field_coverage,
         "missing": missing,
         "missing_count": len(missing),
         "priority": round(priority, 1),
@@ -422,7 +422,9 @@ def info(
     ]
     if tags:
         identity_lines.append(f"  Tags:     {', '.join(tags)}")
-    identity_lines.append(f"  Complete: {_fmt_float(m.get('card_completeness'), '%')}")
+    identity_lines.append(
+        f"  Applicable field coverage: {_fmt_float(m.get('applicable_field_coverage'), '%')}"
+    )
 
     console.print(Panel("\n".join(identity_lines), title="Identity", border_style="blue"))
 
@@ -1028,11 +1030,11 @@ def stats(
         count_r = graph.query(f"MATCH ()-[r:{rtype}]->() RETURN count(r)")
         edge_counts[rtype] = count_r.result_set[0][0]
 
-    # Model completeness
+    # Type-applicable field coverage
     comp_result = graph.query(
         "MATCH (m:Model) "
-        "RETURN m.id, m.display_name, m.model_type, m.card_completeness "
-        "ORDER BY m.card_completeness DESC"
+        "RETURN m.id, m.display_name, m.model_type, m.applicable_field_coverage "
+        "ORDER BY m.applicable_field_coverage DESC"
     )
 
     # Type breakdown
@@ -1047,7 +1049,7 @@ def stats(
             "node_counts": node_counts,
             "edge_counts": edge_counts,
             "models": [
-                {"id": r[0], "name": r[1], "type": r[2], "completeness": r[3]}
+                {"id": r[0], "name": r[1], "type": r[2], "applicable_field_coverage": r[3]}
                 for r in comp_result.result_set
             ],
             "type_breakdown": [
@@ -1096,10 +1098,10 @@ def stats(
 
     # Completeness
     if comp_result.result_set:
-        comp_table = Table(title="Card Completeness", show_header=True, header_style="bold yellow")
+        comp_table = Table(title="Applicable field coverage", show_header=True, header_style="bold yellow")
         comp_table.add_column("Model", style="bold", min_width=30)
         comp_table.add_column("Type", style="dim")
-        comp_table.add_column("Completeness", justify="right")
+        comp_table.add_column("Coverage", justify="right")
         for row in comp_result.result_set:
             pct = row[3]
             if pct is not None:
@@ -1251,12 +1253,12 @@ def gaps(
     table.add_column("#", justify="right", style="dim", width=4)
     table.add_column("Model", style="bold white", min_width=30)
     table.add_column("Provider", style="dim", min_width=10)
-    table.add_column("Complete", justify="right", min_width=9)
+    table.add_column("Coverage", justify="right", min_width=9)
     table.add_column("Missing Fields", style="yellow", min_width=35)
     table.add_column("Priority", justify="right", style="bold magenta")
 
     for i, row in enumerate(gap_rows, 1):
-        pct = row["completeness"]
+        pct = row["applicable_field_coverage"]
         if pct >= 50:
             comp_str = f"[green]{pct:.1f}%[/]"
         elif pct >= 25:
@@ -1571,7 +1573,10 @@ def contribute(
         card_path = _PROJECT_ROOT / f
         try:
             card = ModelCard.from_yaml_file(card_path)
-            pr_body_lines.append(f"- **{card.identity.display_name}** (`{card.identity.model_id}`): {card.card_completeness:.1f}% complete")
+            pr_body_lines.append(
+                f"- **{card.identity.display_name}** (`{card.identity.model_id}`): "
+                f"{card.applicable_field_coverage:.1f}% applicable field coverage"
+            )
         except Exception:
             pr_body_lines.append(f"- `{f}`")
 
@@ -1756,16 +1761,16 @@ def validate(
             fix_table.add_row(rel_path, msg)
         console.print(fix_table)
 
-    # Completeness distribution
+    # Applicable field coverage distribution
     if valid_cards:
-        completeness_values = [c.card_completeness for c in valid_cards]
+        completeness_values = [c.applicable_field_coverage for c in valid_cards]
         avg = sum(completeness_values) / len(completeness_values)
         high = len([v for v in completeness_values if v >= 50])
         mid = len([v for v in completeness_values if 25 <= v < 50])
         low = len([v for v in completeness_values if v < 25])
 
         dist_table = Table(
-            title="Completeness Distribution",
+            title="Applicable field coverage",
             show_header=True,
             header_style="bold cyan",
         )
@@ -1795,7 +1800,7 @@ def validate(
 
         console.print(
             f"\n[bold]Summary:[/] {len(valid_cards)} valid / {len(card_files)} total cards | "
-            f"Average completeness: [bold]{avg:.1f}%[/]"
+            f"Average applicable field coverage: [bold]{avg:.1f}%[/]"
         )
 
     if errors and not fix:

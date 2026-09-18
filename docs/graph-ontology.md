@@ -78,7 +78,7 @@ Properties:
   arena_elo_math        Integer
   arena_elo_vision      Integer
   custom_score          Float     INDEXED              # 0-100, institution-specific
-  card_completeness     Float                          # 0-100, % of fields filled
+  applicable_field_coverage Float                      # 0-100, % of type-applicable fields filled
   
   # Lineage
   base_model_id         String                         # parent model ID

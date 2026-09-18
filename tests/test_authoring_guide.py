@@ -117,7 +117,7 @@ def test_card_without_guide_is_unchanged():
     guided = _card(GUIDE)
     assert plain.authoring_guide is None
     assert "authoring_guide" not in plain.to_yaml()
-    assert plain.card_completeness == guided.card_completeness
+    assert plain.applicable_field_coverage == guided.applicable_field_coverage
 
 
 def test_repo_guides_are_valid():
