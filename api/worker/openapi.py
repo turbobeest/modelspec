@@ -117,6 +117,7 @@ sandbox = _load("access_sandbox")
 #: imports (`access_keys`, `access_kv`, …) resolve through `sys.modules`, which
 #: `_load` put `src/` on the path for.
 access = importlib.import_module("access")
+billing_mod = importlib.import_module("billing")
 
 if policy.SCHEMA_VERSION != service.SCHEMA_VERSION:
     # One document, one `info.version`. Two endpoints on two envelope versions
@@ -966,6 +967,13 @@ def access_enforced() -> bool:
     return access.enforcement(found.group(1) if found else None)
 
 
+def billing_enabled() -> bool:
+    """The shipped value of `BILLING_ENABLED`."""
+    import re
+    found = re.search(r'"BILLING_ENABLED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return access.enforcement(found.group(1) if found else None)
+
+
 def access_store_bound() -> bool:
     """Whether the `ACCESS` KV binding is live (not staged as a comment)."""
     return '"binding": "ACCESS"' in _wrangler_live_lines()
@@ -1118,6 +1126,231 @@ def _access_refusals() -> dict[str, tuple[int, dict[str, Any]]]:
     if missing:
         raise SystemExit(f"access refusal(s) not exercised by the spec: {sorted(missing)}")
     return out
+
+
+def _billing_paths() -> dict[str, Any]:
+    """Checkout, webhook, claim, rotate — from the handlers' own responses."""
+    import asyncio
+    from datetime import UTC, datetime
+
+    import access_config
+    import access_kv
+    import billing_stripe as stripe_sig
+
+    policy = access_config.load_policy(path=TIERS_PATH)
+    now = datetime(2026, 9, 17, 14, 30, tzinfo=UTC)
+    secret = "whsec_openapi_fixture"
+    price = next(iter(policy.billing.prices))
+    body = json.dumps({
+        "id": "evt_spec", "object": "event", "type": "checkout.session.completed",
+        "data": {"object": {
+            "id": "cs_spec", "mode": "subscription", "payment_status": "paid",
+            "customer": "cus_spec", "subscription": "sub_spec",
+            "metadata": {"modelspec_price_id": price},
+        }},
+    }, separators=(",", ":"))
+    header = stripe_sig.sign_header(body, secret, int(now.timestamp()))
+
+    class _Stripe:
+        async def __call__(self, url, *, method, headers, body):
+            class _Resp:
+                ok = True
+                status = 200
+
+                async def text(self):
+                    return json.dumps({"id": "cs_spec",
+                                       "url": "https://checkout.stripe.com/c/pay/cs_spec"})
+            return _Resp()
+
+    async def samples():
+        kv = access_kv.MemoryKV()
+        hook_ok = await billing_mod.webhook(
+            payload=body, signature=header, secret=secret, flag=True, kv=kv,
+            policy=policy, now=now, service_commit=_COMMIT)
+        hook_bad = await billing_mod.webhook(
+            payload=body, signature="", secret=secret, flag=True, kv=kv,
+            policy=policy, now=now, service_commit=_COMMIT)
+        hook_off = await billing_mod.webhook(
+            payload=body, signature=header, secret=secret, flag=False, kv=kv,
+            policy=policy, now=now, service_commit=_COMMIT)
+        claimed = await billing_mod.claim(
+            session_id="cs_spec", flag=True, kv=kv, policy=policy, now=now,
+            service_commit=_COMMIT)
+        gone = await billing_mod.claim(
+            session_id="cs_spec", flag=True, kv=kv, policy=policy, now=now,
+            service_commit=_COMMIT)
+        empty = await billing_mod.claim(
+            session_id="", flag=True, kv=kv, policy=policy, now=now,
+            service_commit=_COMMIT)
+        not_ready = await billing_mod.claim(
+            session_id="cs_unknown", flag=True, kv=kv, policy=policy, now=now,
+            service_commit=_COMMIT)
+        check = await billing_mod.checkout(
+            payload={}, flag=True, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe())
+        rot_missing = await billing_mod.rotate(
+            api_key=None, flag=True, kv=kv, policy=policy, now=now,
+            service_commit=_COMMIT)
+        return (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check, rot_missing)
+
+    (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check,
+     rot_missing) = asyncio.run(samples())
+    for name, outcome, code in (
+            ("webhook ok", hook_ok, None),
+            ("webhook bad", hook_bad, billing_mod.INVALID_SIGNATURE),
+            ("webhook off", hook_off, billing_mod.BILLING_NOT_ENABLED),
+            ("claim", claimed, None),
+            ("claim gone", gone, billing_mod.CLAIM_CONSUMED),
+            ("claim empty", empty, billing_mod.INVALID_REQUEST),
+            ("claim not ready", not_ready, billing_mod.CLAIM_NOT_READY),
+            ("checkout", check, None),
+            ("rotate missing", rot_missing, billing_mod.MISSING_KEY)):
+        got = (outcome.body.get("error") or {}).get("code")
+        if code is None:
+            if outcome.status != billing_mod.HTTP_OK:
+                raise SystemExit(f"billing spec sample {name!r} was {outcome.status} {got}")
+        elif got != code:
+            raise SystemExit(f"billing spec sample {name!r} produced {got!r}, not {code!r}")
+
+    def envelope(outcome, description: str) -> dict[str, Any]:
+        return _json_body(description, _infer(outcome.body))
+
+    skip = {"x-modelspec-probe": "skip"}
+    off = "BILLING_ENABLED is off."
+    return {
+        "/v1/billing/checkout": {
+            "post": {
+                "operationId": "billingCheckout",
+                "summary": "Create a Stripe-hosted Checkout Session for a monthly key.",
+                "description": (
+                    "Redirect the browser to `url`. What is sold is live rank access at the "
+                    "mapped tier's limits, not policy-check determinations. Flag off: 503."
+                ),
+                **skip,
+                "requestBody": {
+                    "required": False,
+                    "content": {"application/json": {
+                        "schema": {
+                            "type": "object", "additionalProperties": False,
+                            "properties": {"price_id": {"type": "string"}},
+                        },
+                        "example": {},
+                    }},
+                },
+                "responses": {
+                    "200": envelope(check, "Hosted Checkout URL. Open it in a browser."),
+                    str(billing_mod.HTTP_BAD_REQUEST): envelope(
+                        empty, "Unknown field, or more than one price and none sent."),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(service.HTTP_NOT_FOUND): _json_body(
+                        "No endpoint at that path.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                    str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
+                        "/v1/billing/checkout takes POST.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                },
+            },
+        },
+        "/v1/billing/stripe-webhook": {
+            "post": {
+                "operationId": "billingStripeWebhook",
+                "summary": "Stripe webhook. HMAC-SHA256 over t.payload; no SDK.",
+                **skip,
+                "parameters": [{
+                    "name": "Stripe-Signature", "in": "header", "required": True,
+                    "schema": {"type": "string"},
+                }],
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": {"type": "object"}}},
+                },
+                "responses": {
+                    "200": envelope(hook_ok, "Received. duplicate is true on a replay."),
+                    str(billing_mod.HTTP_BAD_REQUEST): envelope(
+                        hook_bad, "Missing, wrong, or stale Stripe-Signature."),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(service.HTTP_NOT_FOUND): _json_body(
+                        "No endpoint at that path.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                    str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
+                        "/v1/billing/stripe-webhook takes POST.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                },
+            },
+        },
+        "/v1/billing/claim": {
+            "get": {
+                "operationId": "billingClaimGet",
+                "summary": "Mint the key and show it once. Checkout success_url lands here.",
+                "parameters": [{
+                    "name": "session_id", "in": "query", "required": True,
+                    "schema": {"type": "string"},
+                }],
+                "responses": {
+                    "200": envelope(claimed, "The key, shown once."),
+                    str(billing_mod.HTTP_BAD_REQUEST): envelope(
+                        empty, "session_id missing."),
+                    str(billing_mod.HTTP_CONFLICT): envelope(
+                        not_ready, "Payment received, key not ready. Retry in a few seconds."),
+                    str(billing_mod.HTTP_GONE): envelope(
+                        gone, "Already shown. Rotate if you still hold the key."),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(service.HTTP_NOT_FOUND): _json_body(
+                        "No endpoint at that path.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                    str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
+                        "/v1/billing/claim takes GET or POST.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                },
+            },
+            "post": {
+                "operationId": "billingClaimPost",
+                "summary": "Mint the key and show it once, with session_id in the JSON body.",
+                **skip,
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"type": "object", "properties": {
+                            "session_id": {"type": "string"}}, "required": ["session_id"]},
+                    }},
+                },
+                "responses": {
+                    "200": envelope(claimed, "The key, shown once."),
+                    str(billing_mod.HTTP_BAD_REQUEST): envelope(
+                        empty, "session_id missing."),
+                    str(billing_mod.HTTP_CONFLICT): envelope(
+                        not_ready, "Payment received, key not ready. Retry in a few seconds."),
+                    str(billing_mod.HTTP_GONE): envelope(gone, "Already shown."),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(service.HTTP_NOT_FOUND): _json_body(
+                        "No endpoint at that path.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                    str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
+                        "/v1/billing/claim takes GET or POST.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                },
+            },
+        },
+        "/v1/billing/rotate": {
+            "post": {
+                "operationId": "billingRotate",
+                "summary": "Issue a new key; revoke the one presented.",
+                **skip,
+                "responses": {
+                    str(billing_mod.HTTP_UNAUTHORIZED): envelope(
+                        rot_missing, "No current key presented."),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(service.HTTP_NOT_FOUND): _json_body(
+                        "No endpoint at that path.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                    str(service.HTTP_METHOD_NOT_ALLOWED): _json_body(
+                        "/v1/billing/rotate takes POST.",
+                        {"$ref": "#/components/schemas/TransportError"}),
+                },
+            },
+        },
+    }
 
 
 # ── the policy verdicts: a tagged union, inferred per variant ────────────────
@@ -1415,6 +1648,14 @@ def build_spec() -> dict[str, Any]:
                                     "/v1/policy-check": policy.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
+        "x-modelspec-billing": {
+            "status": ("wired; enabled" if billing_enabled() else "wired; flag off"),
+            "ticket": "MODEL-73",
+            "enabled": billing_enabled(),
+            "switch": "BILLING_ENABLED in api/worker/wrangler.jsonc",
+            "what_is_sold": billing_mod.WHAT_YOU_BUY,
+            "documented_in": "docs/billing.md",
+        },
         "security": security,
         "servers": [{"url": SERVER_URL, "description": "production"}],
         "paths": {
@@ -1518,6 +1759,7 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            **_billing_paths(),
         },
         "components": {
             "securitySchemes": security_schemes,
@@ -1731,6 +1973,11 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
 
     for path, operations in spec["paths"].items():
         for method, operation in operations.items():
+            if not isinstance(operation, dict):
+                continue
+            if operation.get("x-modelspec-probe") == "skip":
+                print(f"skip {method.upper()} {path} (x-modelspec-probe=skip)")
+                continue
             data = None
             if "requestBody" in operation:
                 content = operation["requestBody"]["content"]["application/json"]

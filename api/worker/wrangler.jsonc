@@ -80,6 +80,10 @@
     // Flip to "true" only once keys can be obtained (MODEL-73); enforcing
     // before then refuses every anonymous caller. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
-    "ACCESS_ENFORCED": "false"
+    "ACCESS_ENFORCED": "false",
+    // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
+    // Ships OFF. Secrets (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are
+    // Wrangler secrets, test mode only, never in this file. See docs/billing.md.
+    "BILLING_ENABLED": "false"
   }
 }

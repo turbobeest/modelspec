@@ -107,9 +107,14 @@ def key_id(key: str) -> str:
     return fingerprint(key)[:KEY_ID_LENGTH]
 
 
+def storage_name_from_fingerprint(fingerprint_hex: str) -> str:
+    """The KV name a key's record lives under, given the hash we already stored."""
+    return _STORE_PREFIX + fingerprint_hex
+
+
 def storage_name(key: str) -> str:
     """The KV name a key's record lives under."""
-    return _STORE_PREFIX + fingerprint(key)
+    return storage_name_from_fingerprint(fingerprint(key))
 
 
 def is_sandbox(key: str, policy: AccessPolicy) -> bool:
@@ -173,3 +178,29 @@ async def revoke(kv: Any, key: str) -> bool:
     disabled = replace(record, active=False)
     await kv.put(storage_name(key), json.dumps(disabled.to_json()))
     return True
+
+
+async def lookup_fingerprint(kv: Any, fingerprint_hex: str) -> KeyRecord | None:
+    """The record stored under a fingerprint, or `None` if there is not one."""
+    stored = await kv.get(storage_name_from_fingerprint(fingerprint_hex))
+    if stored is None:
+        return None
+    return KeyRecord.from_json(stored)
+
+
+async def set_tier(kv: Any, fingerprint_hex: str, tier: str, *,
+                   policy: AccessPolicy) -> KeyRecord | None:
+    """Move an issued key onto another row of the tier table.
+
+    Used to downgrade a cancelled or failed subscription to free limits, and to
+    restore the mapped tier after a later successful invoice. The key value
+    does not change; only the record's `tier` does.
+    """
+    policy.tier(tier)
+    record = await lookup_fingerprint(kv, fingerprint_hex)
+    if record is None:
+        return None
+    updated = replace(record, tier=tier)
+    await kv.put(storage_name_from_fingerprint(fingerprint_hex),
+                 json.dumps(updated.to_json()))
+    return updated

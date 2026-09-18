@@ -51,23 +51,36 @@ queue and no analytics dataset is bound at all.
 A second KV namespace, `ACCESS`, is bound for API keys (MODEL-69). Enforcement
 is still off: no key is required. Keys can be presented and are checked against
 the store; none are issued yet (issuance is MODEL-73), so a presented live key
-is unknown. It holds exactly two kinds of record, and this is what each holds
-(`api/worker/src/access_keys.py`, `access_limits.py`):
+is unknown. It holds these kinds of record
+(`api/worker/src/access_keys.py`, `access_limits.py`, `access_billing.py`):
 
 - **A key record per issued key.** Stored under the SHA-256 hash of the key,
   never under the key, and the key value itself is never stored, logged or
   returned. The record holds the key's tier, who it was issued to, an optional
   label, when it was created, whether it is active, and a 12-character
   fingerprint (the start of that hash) that identifies the key in support and
-  cannot be turned back into it.
+  cannot be turned back into it. A billed key is minted at claim, shown once,
+  and only this hash is written — never the key, including before claim.
 - **Two counters per key.** How many calls that key made in the current UTC day
   and in the current minute, named by the key's fingerprint and the window and
   holding a single number. They expire on their own: the minute counter after a
   minute, the daily one after two days.
+- **A Stripe event id** (`event:<id>`). The event's id, type, the action we took
+  and when, so a replayed webhook is a no-op. The event payload itself is not
+  stored.
+- **A subscription record** (`sub:<id>`). Stripe subscription id, customer id,
+  Price id, the mapped tier, status, and — after claim — the key's fingerprint
+  (never the key). No card number, no expiry, no CVC.
+- **A Checkout session pointer** (`session:<id>`). Session id → subscription id,
+  and whether that session has already claimed. No key material.
+- **A keyref** (`keyref:<fingerprint>`). Fingerprint → subscription id, so
+  rotation can find the billing row.
 
-It holds no prompt, no request body, no field of a request, no answer, no IP
-address and no user-agent: our code reads none of those into it. A request that
-presents no key, or a `test_` sandbox key, writes nothing to it at all.
+It holds no prompt, no request body, no field of a rank or policy-check
+request, no answer, no IP address and no user-agent: our code reads none of
+those into it. A request that presents no key, or a `test_` sandbox key, writes
+nothing to it at all. Card data never reaches this store: Checkout is hosted on
+Stripe.
 
 The only other thing held between requests is a short-lived copy of our own
 published catalogue, which is public data and contains nothing of yours
@@ -126,9 +139,15 @@ nothing below is read as describing the service today:
   unmetered and with nothing written. The ACCESS store is bound; no key has
   been issued (issuance is MODEL-73). What a key record and its counters hold
   is set out under [What we store](#the-api-key-store).
-- **Payment.** No payment rail, checkout or billing is in operation, so no
-  payment or billing data is collected or held. Payments would be handled by a
-  payment processor, and that arrangement is not yet made.
+- **Payment.** Stripe Checkout and the entitlement webhook are wired
+  (`api/worker/src/billing.py`, MODEL-73) with **`BILLING_ENABLED` off**: no
+  Checkout Session is created and a valid webhook is refused rather than
+  applied. No payment rail is in operation, so no payment is collected. When
+  the flag flips, Stripe hosts the card form; we never receive card numbers.
+  ACCESS then holds the Stripe event ids and subscription/customer/Price ids
+  described under [What we store](#the-api-key-store). The key is minted when
+  the buyer claims, returned once, and stored only as its SHA-256 hash. The
+  terms Checkout links are still an unadopted draft.
 - **Outcome logging.** Not built. The service does not record what you chose,
   whether a recommendation worked, or anything about the result of acting on
   one. When it is built it will record the profile, the recommendation and the

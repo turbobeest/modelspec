@@ -83,6 +83,50 @@ class TierLimits:
 
 
 @dataclass(frozen=True)
+class PriceMapping:
+    """One Stripe Price id and the tier it buys. Configuration, not code."""
+
+    price_id: str
+    tier: str
+    interval: str
+    placeholder: bool
+    description: str
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "price_id": self.price_id,
+            "tier": self.tier,
+            "interval": self.interval,
+            "placeholder": self.placeholder,
+            "description": self.description,
+        }
+
+
+@dataclass(frozen=True)
+class BillingConfig:
+    """Stripe Checkout mapping and windows. Every number lives in `tiers.json`."""
+
+    downgrade_tier: str
+    terms_url: str
+    cancel_url: str
+    success_path: str
+    signature_tolerance_seconds: int
+    event_ttl_seconds: int
+    prices: Mapping[str, PriceMapping]
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "downgrade_tier": self.downgrade_tier,
+            "terms_url": self.terms_url,
+            "cancel_url": self.cancel_url,
+            "success_path": self.success_path,
+            "signature_tolerance_seconds": self.signature_tolerance_seconds,
+            "event_ttl_seconds": self.event_ttl_seconds,
+            "prices": {price_id: row.to_json() for price_id, row in self.prices.items()},
+        }
+
+
+@dataclass(frozen=True)
 class AccessPolicy:
     """The whole table, plus the two strings that classify a key."""
 
@@ -93,6 +137,7 @@ class AccessPolicy:
     live_prefix: str
     urls: Mapping[str, str]
     tiers: Mapping[str, TierLimits]
+    billing: BillingConfig
 
     def tier(self, name: str) -> TierLimits:
         try:
@@ -103,6 +148,21 @@ class AccessPolicy:
     def url(self, name: str) -> str:
         return self.urls.get(name, "")
 
+    def tier_for_price(self, price_id: str) -> str:
+        """The tier a Stripe Price buys. Unknown prices are a configuration error."""
+        row = self.billing.prices.get(price_id)
+        if row is None:
+            raise PolicyError(f"no tier mapped for Stripe price {price_id!r}")
+        self.tier(row.tier)
+        return row.tier
+
+    def default_price_id(self) -> str:
+        ids = list(self.billing.prices)
+        if len(ids) == 1:
+            return ids[0]
+        raise PolicyError(
+            "send price_id; the tier table maps more than one Stripe price, or none")
+
     def to_json(self) -> dict[str, Any]:
         return {
             "policy_version": self.version,
@@ -110,6 +170,7 @@ class AccessPolicy:
             "sandbox_prefix": self.sandbox_prefix,
             "urls": dict(self.urls),
             "tiers": {name: row.to_json() for name, row in self.tiers.items()},
+            "billing": self.billing.to_json(),
         }
 
 
@@ -173,6 +234,59 @@ def policy_from_mapping(data: Mapping[str, Any]) -> AccessPolicy:
         live_prefix=str(data.get("live_prefix") or ""),
         urls={str(k): str(v) for k, v in urls.items()},
         tiers=tiers,
+        billing=_billing(data.get("billing"), tiers),
+    )
+
+
+def _nonneg_int(row: Mapping[str, Any], field: str, *, where: str) -> int:
+    if field not in row:
+        raise PolicyError(f"{where} does not set {field}")
+    value = row[field]
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise PolicyError(f"{where}: {field} must be a nonnegative integer")
+    return value
+
+
+def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
+    """Stripe price mapping and windows. Absent means 'not configured', not defaults."""
+    if raw is None:
+        return BillingConfig(
+            downgrade_tier="free" if "free" in tiers else next(iter(tiers)),
+            terms_url="", cancel_url="", success_path="/v1/billing/claim",
+            signature_tolerance_seconds=0, event_ttl_seconds=0, prices={},
+        )
+    if not isinstance(raw, Mapping):
+        raise PolicyError("billing must be a JSON object")
+    downgrade = str(raw.get("downgrade_tier") or "")
+    if not downgrade or downgrade not in tiers:
+        raise PolicyError(f"billing.downgrade_tier {downgrade!r} is not a row in the tier table")
+    raw_prices = raw.get("prices")
+    if not isinstance(raw_prices, Mapping):
+        raise PolicyError("billing.prices must be an object (empty is allowed)")
+    prices: dict[str, PriceMapping] = {}
+    for price_id, row in raw_prices.items():
+        if not isinstance(row, Mapping):
+            raise PolicyError(f"billing.prices[{price_id!r}] must be an object")
+        tier = str(row.get("tier") or "")
+        if tier not in tiers:
+            raise PolicyError(
+                f"billing.prices[{price_id!r}] names tier {tier!r}, which is not in the table")
+        prices[str(price_id)] = PriceMapping(
+            price_id=str(price_id),
+            tier=tier,
+            interval=str(row.get("interval") or "month"),
+            placeholder=bool(row.get("placeholder", False)),
+            description=str(row.get("description") or ""),
+        )
+    return BillingConfig(
+        downgrade_tier=downgrade,
+        terms_url=str(raw.get("terms_url") or ""),
+        cancel_url=str(raw.get("cancel_url") or ""),
+        success_path=str(raw.get("success_path") or "/v1/billing/claim"),
+        signature_tolerance_seconds=_nonneg_int(
+            raw, "signature_tolerance_seconds", where="billing"),
+        event_ttl_seconds=_nonneg_int(raw, "event_ttl_seconds", where="billing"),
+        prices=prices,
     )
 
 
