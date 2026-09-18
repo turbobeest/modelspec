@@ -945,8 +945,47 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-r1-0528
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Unlike earlier R1, a system prompt is supported. It is not required to prepend <think>
+        to force the thinking pattern.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-0528
+        title: DeepSeek-R1-0528 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: The official web/app system prompt names the assistant as DeepSeek-R1 and includes today's
+        date.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-0528
+        title: DeepSeek-R1-0528 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Temperature in the official web and app environments is 0.6.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-0528
+        title: DeepSeek-R1-0528 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: File-upload prompts should wrap the file as [file name] / [file content begin] ... [file
+        content end] then the question.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1-0528
+        title: DeepSeek-R1-0528 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
-
 
 # DeepSeek R1 0528
 

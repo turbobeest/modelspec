@@ -853,6 +853,32 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-pro
+    version: gpt-5-pro
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: Defaults to and only supports reasoning.effort high. Responses API only. Long jobs can
+        take minutes; use background mode to avoid timeouts.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5-pro.md
+        title: GPT-5 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Does not support code interpreter.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5-pro.md
+        title: GPT-5 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

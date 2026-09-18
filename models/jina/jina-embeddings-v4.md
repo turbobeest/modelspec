@@ -839,6 +839,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: jina/jina-embeddings-v4
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Select a task adapter at encode time: retrieval, text-matching, or code. For retrieval,
+        encode queries with prompt_name query and passages with prompt_name passage.'
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v4
+        title: jina-embeddings-v4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Dense vectors default to 2048 dimensions and can be truncated as low as 128 (Matryoshka).
+        Mean pooling.
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v4
+        title: jina-embeddings-v4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # jina embeddings v4

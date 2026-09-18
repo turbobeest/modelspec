@@ -838,6 +838,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: snowflake/snowflake-arctic-embed-l-v2-0
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'For retrieval, prefix queries with ''query: '' and leave documents unprefixed. sentence-transformers:
+        encode queries with prompt_name query.'
+      sources:
+      - url: https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0
+        title: snowflake-arctic-embed-l-v2.0 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Use the CLS token as the embedding. Snowflake documents this as required for optimal retrieval
+        quality.
+      sources:
+      - url: https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0
+        title: snowflake-arctic-embed-l-v2.0 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # snowflake arctic embed l v2.0
