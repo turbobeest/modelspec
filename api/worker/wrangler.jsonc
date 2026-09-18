@@ -37,23 +37,20 @@
   ],
   // MODEL-80. The policy determinations reach the Worker through Workers KV and
   // through nothing else: they are the paid product and are never committed to
-  // this repository (docs/business/decision-record.md §2.2). The binding is
-  // commented out because the namespace does not exist yet and wrangler refuses
-  // a deploy that names a missing one — creating it is a console/CLI step for
-  // whoever holds the Cloudflare account:
+  // this repository (docs/business/decision-record.md §2.2).
   //
-  //     npx wrangler kv namespace create DETERMINATIONS
+  // The namespace was created 2026-09-17 on the Sparks and Sawdust LLC account.
+  // Binding it does not by itself publish anything: the store is empty until
+  // someone holding the private enrichment checkout runs
+  // api/worker/load_determinations.py, and `_entitlement()` in src/entry.py
+  // grants the store to nobody until MODEL-69's tier lands. So today this
+  // changes no answer — every request is still served from the public export,
+  // which is the free tier's complete and labelled answer
+  // (`determinations.included: false`), not a degraded one.
   //
-  // then paste the printed id below and uncomment. Until then the endpoint
-  // answers every request from the public export, which is the free tier's
-  // complete and labelled answer — `determinations.included: false` — not a
-  // degraded one. `_entitlement()` in src/entry.py grants the store, and it
-  // grants it to nobody until MODEL-69 supplies the tier, so an unbound
-  // namespace changes no answer today.
-  //
-  // "kv_namespaces": [
-  //   { "binding": "DETERMINATIONS", "id": "<paste the id here>" }
-  // ],
+  "kv_namespaces": [
+    { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" }
+  ],
   "observability": { "enabled": true },
   "vars": {
     // Where the published static export is read from. The Worker holds no data

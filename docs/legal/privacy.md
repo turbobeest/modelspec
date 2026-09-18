@@ -36,12 +36,19 @@ A body is capped at 16 KB and larger ones are refused unread past that point.
 
 ## What we store
 
-**Nothing from your request.** The rank endpoint is stateless. It has no
-database, no key-value store, no object storage and no queue — the Worker's
-configuration (`api/worker/wrangler.jsonc`) binds none, so there is nowhere for
-a request to be written even by accident. The only thing held between requests
-is a short-lived copy of our own published catalogue, which is public data and
-contains nothing of yours (`api/worker/src/entry.py`).
+**Nothing from your request.** The endpoints are stateless: each one reads your
+request, computes an answer, returns it and forgets it.
+
+The Worker binds exactly one store, a Cloudflare KV namespace called
+`DETERMINATIONS` (`api/worker/wrangler.jsonc`). It holds **our own research** —
+the licence and data-residency determinations the paid tier serves — and the
+Worker only ever reads from it. There is no code path that writes to it, and
+nothing from your request is written anywhere: no database, no object storage,
+no queue and no analytics dataset is bound at all.
+
+The only other thing held between requests is a short-lived copy of our own
+published catalogue, which is public data and contains nothing of yours
+(`api/worker/src/entry.py`).
 
 Our own code writes no log line about your request. There is no analytics call,
 no telemetry beacon and no third-party tag on the API path.
