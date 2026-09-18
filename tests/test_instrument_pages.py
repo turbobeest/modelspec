@@ -28,6 +28,7 @@ STATIC_PAGES = {
     "benchgraph landing": ROOT / "site/benchgraph/index.html",
     "benchgraph landing template": ROOT / "site/benchgraph/build/index.tpl.html",
     "wizard": ROOT / "web3d/downselect.v2.html",
+    "graph explorer": ROOT / "web3d/explorer.html",
 }
 
 
@@ -204,7 +205,8 @@ def test_a_page_with_no_long_facts_has_no_notes_section() -> None:
 # ── one nav per site ─────────────────────────────────────────────────────────
 
 STATIC_NAV_PAGES = ("site/holding/index.html", "site/benchgraph/build/index.tpl.html",
-                    "site/benchgraph/index.html", "web3d/downselect.v2.html")
+                    "site/benchgraph/index.html", "web3d/downselect.v2.html",
+                    "web3d/explorer.html")
 
 
 def test_static_pages_hold_the_placeholder_and_no_nav_of_their_own() -> None:
