@@ -853,6 +853,51 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-4-pro
+    version: gpt-5.4-pro
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: OpenAI positions gpt-5.4-pro for tougher problems that need more compute; the GPT-5.4 prompting
+        patterns (output contract, follow-through, completeness) still apply.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4-pro
+        title: GPT-5.4 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: Available on the Responses API only. reasoning.effort supports medium (default), high and
+        xhigh — not none or low. Some requests take minutes; use background mode to avoid timeouts.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4-pro
+        title: GPT-5.4 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: Preserve assistant phase and pass chain-of-thought between turns on the Responses API, same
+        as gpt-5.4.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/latest-model/gpt-5.4
+        title: Using GPT-5.4
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice:
+    - text: If a request times out, switch to background mode rather than lowering the problem statement;
+        the model is meant to think longer on hard items.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.4-pro
+        title: GPT-5.4 Pro
+        accessed: '2026-09-18'
+        kind: model-docs
 ---
 
 

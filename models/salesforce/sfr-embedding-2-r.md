@@ -838,6 +838,32 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: salesforce/sfr-embedding-2-r
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Each query must carry a one-sentence task instruction: ''Instruct: <task>\nQuery:
+        <query>''. Documents take no instruction.'
+      sources:
+      - url: https://huggingface.co/Salesforce/SFR-Embedding-2_R
+        title: SFR-Embedding-2_R model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Last-token pooling, then L2-normalize. The card's example uses max_length 4096.
+      sources:
+      - url: https://huggingface.co/Salesforce/SFR-Embedding-2_R
+        title: SFR-Embedding-2_R model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # SFR Embedding 2 R

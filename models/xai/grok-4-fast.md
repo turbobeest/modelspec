@@ -891,6 +891,33 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4-fast
+    version: grok-4-fast
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: xAI describes a unified architecture that blends reasoning and non-reasoning modes in
+        one model, with a 2M-token context window.
+      sources:
+      - url: https://x.ai/news/grok-4-fast
+        title: Grok 4 Fast
+        accessed: '2026-09-18'
+        kind: release-notes
+    - text: xAI reports about 40% fewer thinking tokens than Grok 4 on the same benchmarks, from large-scale
+        RL for token efficiency.
+      sources:
+      - url: https://x.ai/news/grok-4-fast
+        title: Grok 4 Fast
+        accessed: '2026-09-18'
+        kind: release-notes
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

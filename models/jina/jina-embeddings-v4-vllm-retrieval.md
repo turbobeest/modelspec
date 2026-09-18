@@ -838,6 +838,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: jina/jina-embeddings-v4-vllm-retrieval
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'This vLLM packaging merges the retrieval adapter. Prefix text queries with ''Query: ''
+        and passages with ''Passage: ''.'
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v4-vllm-retrieval
+        title: jina-embeddings-v4-vllm-retrieval model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Image prompts use the Qwen2.5-VL vision token span; embeddings should be pooled only over
+        the vision tokens, then L2-normalised.
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v4-vllm-retrieval
+        title: jina-embeddings-v4-vllm-retrieval model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # jina embeddings v4 vllm retrieval

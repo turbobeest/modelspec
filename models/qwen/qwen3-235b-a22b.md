@@ -927,6 +927,56 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: qwen/qwen3-235b-a22b
+    version: qwen3-235b-a22b
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Thinking is on by default (enable_thinking=True). Hard-disable with enable_thinking=False.
+        With thinking on, /think and /no_think in user or system messages switch mode turn by turn;
+        the latest instruction wins.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B
+        title: Qwen3-235B-A22B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: For math benchmarks, include a step-by-step instruction and put the final answer in LaTeX
+        boxed notation.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B
+        title: Qwen3-235B-A22B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Thinking mode: Temperature 0.6, TopP 0.95, TopK 20, MinP 0. Do not use greedy decoding.
+        Non-thinking: Temperature 0.7, TopP 0.8, TopK 20, MinP 0.'
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B
+        title: Qwen3-235B-A22B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: In multi-turn history, keep only the final answer, not the thinking block. Recommended
+        max output 32768 tokens, 38912 for hard contest problems.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B
+        title: Qwen3-235B-A22B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: When enable_thinking=True the model still emits a <think>...</think> block even for /no_think
+        (it may be empty). When enable_thinking=False, /think has no effect and no think block is
+        emitted.
+      sources:
+      - url: https://huggingface.co/Qwen/Qwen3-235B-A22B
+        title: Qwen3-235B-A22B model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

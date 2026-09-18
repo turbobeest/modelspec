@@ -839,6 +839,32 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: jina/jina-embeddings-v3
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Pass a task LoRA when encoding: retrieval.query for queries, retrieval.passage for passages,
+        plus separation, classification, or text-matching. Omitting task uses no adapter.'
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v3
+        title: jina-embeddings-v3 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: Matryoshka sizes 32 through 1024. Sequence length up to 8192 tokens.
+      sources:
+      - url: https://huggingface.co/jinaai/jina-embeddings-v3
+        title: jina-embeddings-v3 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # jina embeddings v3

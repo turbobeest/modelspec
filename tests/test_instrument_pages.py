@@ -48,6 +48,8 @@ def test_instrument_css_is_written_to_both_sites_and_matches_the_inlined_sheet(t
         assert "--accent:#f5b342;" in sheet
         assert '[data-site="benchgraph"]{--accent:#38bdf8}' in sheet
         assert (site / "fonts" / "archivo-latin.woff2").is_file()
+        assert (site / "fonts" / "jetbrains-mono-latin.woff2").is_file()
+        assert (site / "fonts" / "JetBrainsMono-OFL.txt").is_file()
 
 
 def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
@@ -99,14 +101,16 @@ def test_no_static_page_requests_space_grotesk() -> None:
         assert "Space Grotesk" not in _styles(page), name
 
 
-def test_jetbrains_mono_is_the_only_cdn_font() -> None:
+def test_no_static_page_loads_a_font_from_a_cdn() -> None:
     for name, path in STATIC_PAGES.items():
         page = path.read_text(encoding="utf-8")
         remote = [href for pair in _stylesheets(page) for href in pair
                   if href.startswith(("http:", "https:", "//"))]
-        assert remote == ["https://fonts.googleapis.com/css2?family=JetBrains+Mono:"
-                          "wght@400;500;700&display=swap"], (name, remote)
+        assert remote == [], (name, remote)
         assert "@font-face" not in page, name
+        assert "fonts.googleapis.com" not in page, name
+        assert "fonts.gstatic.com" not in page, name
+        assert "/fonts/jetbrains-mono-latin.woff2" in page, name
 
 
 def test_static_page_styles_take_every_colour_and_family_from_a_token() -> None:
@@ -131,6 +135,55 @@ def test_the_benchgraph_landing_matches_its_template_outside_the_placeholders() 
     pattern = "".join(".*?" if re.fullmatch(r"\{\{[A-Z_]+\}\}", part) else re.escape(part)
                       for part in literal)
     assert re.fullmatch(pattern, page, re.S), "index.html has drifted from index.tpl.html"
+
+
+def _today(page: str) -> str:
+    match = re.search(r'<p class="today">.*?</p>', page)
+    assert match, "landing has no p.today"
+    return match.group(0)
+
+
+def test_the_benchgraph_landing_does_not_hardcode_headline_counts() -> None:
+    """Baked 164/549/10,887 read as the page count and went stale in git."""
+    for key in ("benchgraph landing", "benchgraph landing template"):
+        today = _today(STATIC_PAGES[key].read_text(encoding="utf-8"))
+        assert "{{N_PAGES}}" in today and "{{N_BENCH}}" in today, key
+        assert "{{N_MODELS}}" in today and "{{N_SCORES}}" in today, key
+        assert "benchmark pages" in today and "benchmarks with reported scores" in today, key
+        assert re.search(r"\d", today) is None, key
+
+
+def test_benchgraph_landing_statistics_come_from_the_build() -> None:
+    html = builder.wire_benchgraph_landing(
+        '<p class="today">Today the graph holds <b>164</b> benchmarks across '
+        '<b>549</b> scored models, <b>10,887</b> scores in all, each carrying '
+        "the date it was taken.</p>",
+        {"pages": 1200, "scored_benchmarks": 3, "scored_models": 5, "scores": 9000},
+    )
+    assert html == (
+        '<p class="today">Today the graph holds <b>1,200</b> benchmark pages and '
+        '<b>3</b> benchmarks with reported scores, across <b>5</b> scored models, '
+        '<b>9,000</b> scores in all, each carrying the date it was taken.</p>'
+    )
+    assert "164" not in html and "549" not in html and "10,887" not in html
+
+
+def test_a_benchgraph_landing_that_lost_its_today_line_fails_the_build() -> None:
+    try:
+        builder.wire_benchgraph_landing("<body>no figures</body>", {
+            "pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1})
+    except ValueError as err:
+        assert "p.today" in str(err)
+    else:
+        raise AssertionError("a landing without p.today must not build")
+
+
+def test_benchgraph_asset_script_does_not_import_pillow_until_png() -> None:
+    src = (ROOT / "site/benchgraph/build/build.py").read_text(encoding="utf-8")
+    before, sep, _after = src.partition("def write_png_assets")
+    assert sep, "PNG rendering must live in write_png_assets"
+    assert "PIL" not in before
+    assert "from PIL import" in _after
 
 
 # ── the landing's calls to action ────────────────────────────────────────────

@@ -883,6 +883,47 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-2
+    version: gpt-5.2
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Give clear length constraints. It is more concise than GPT-5.1 but still prompt-sensitive;
+        say the wanted verbosity.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-2_prompting_guide
+        title: GPT-5.2 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: To stop scope drift on frontend work, forbid extra features and uncontrolled styling;
+        if a request is ambiguous, take the simplest valid reading.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-2_prompting_guide
+        title: GPT-5.2 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: On long inputs, outline the relevant sections first and re-state constraints before answering;
+        anchor claims to sections.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-2_prompting_guide
+        title: GPT-5.2 Prompting Guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: Default reasoning.effort is none. At none, ask it to think or outline steps before answering.
+        Raise toward medium, then higher, if evals need it. xhigh is new in 5.2.
+      sources:
+      - url: https://developers.openai.com/api/docs/guides/prompt-guidance.md?model=gpt-5.2
+        title: Using GPT-5.2
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

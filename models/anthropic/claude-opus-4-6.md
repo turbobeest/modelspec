@@ -993,6 +993,98 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-opus-4-6
+    version: claude-opus-4-6
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Give the complete task up front with explicit scope; Opus 4.6 tends to overengineer (extra
+        files, unused abstractions, unrequested flexibility).
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: XML tags still help this model parse mixed instructions, context and examples.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: A short system-prompt role still focuses tone; pair it with sequential, specific instructions
+        rather than implied 'above and beyond' behaviour.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Thinking defaults off. Set thinking type adaptive; extended thinking with budget_tokens still
+        works but is deprecated. Effort default is high.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://platform.claude.com/docs/en/models/opus-4-6/overview
+        title: Claude Opus 4.6
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://platform.claude.com/docs/en/build-with-claude/effort
+        title: Effort
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: If it overthinks simple tasks, lower effort from high to medium rather than adding more 'think
+        harder' instructions.
+      sources:
+      - url: https://www.anthropic.com/news/claude-opus-4-6
+        title: Introducing Claude Opus 4.6
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://platform.claude.com/docs/en/build-with-claude/effort
+        title: Effort
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: After tool results, prompt it to reflect before the next action; if adaptive thinking fires
+        too often on a large system prompt, add a 'think only when it improves quality' rule.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting:
+    - text: Latest Claude models (this page names Opus 4.6) are more concise by default and may skip post-tool
+        summaries; ask for a short summary if you need it.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    failure_modes:
+    - text: Prefilling the last assistant turn is not supported starting with Claude 4.6.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Anti-laziness prompts written for earlier models can overtrigger; 4.6 is more proactive, so
+        dial those instructions back.
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    retry_advice:
+    - text: 'Keep solutions minimal: no extra features, comments, or error handling beyond what was asked.'
+      sources:
+      - url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+        title: Prompting best practices
+        accessed: '2026-09-18'
+        kind: provider-guidance
 ---
 
 # Claude Opus 4.6

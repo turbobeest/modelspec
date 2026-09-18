@@ -944,6 +944,48 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-3-3-70b-instruct
+    version: llama-3.3-70b-instruct
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Instruct format: begin_of_text, start_header_id/end_header_id around system|user|assistant|ipython|tool,
+        eot_id at each turn. eom_id marks a tool-call stop when Environment: ipython is in the system
+        prompt.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/prompt_format.md
+        title: Llama 3.3 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message:
+    - text: system sets rules; a new tool role carries tool output back. Meta recommends zero-shot function
+        calling over the built-in tools for this 70B instruct model.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/prompt_format.md
+        title: Llama 3.3 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Zero-shot function calling continues the Llama 3.2 format. python_tag in the model output
+        marks a tool call.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/prompt_format.md
+        title: Llama 3.3 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting:
+    - text: Instruction-tuned for multilingual dialogue; 128k context. Supported languages are the eight
+        listed on the model card.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/MODEL_CARD.md
+        title: Llama 3.3 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

@@ -922,8 +922,41 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-v3-1
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Hybrid thinking: the chat template prefix selects the mode. Non-thinking first turn ends
+        the assistant header with </think>; thinking first turn uses <think> instead (R1-like).'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1
+        title: DeepSeek-V3.1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message: []
+    reasoning_and_tools:
+    - text: In multi-turn context, drop the previous thinking span but keep </think> on every turn. Tool-calling
+        is documented for non-thinking mode, with tool descriptions in the system prompt.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1
+        title: DeepSeek-V3.1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: Unlike V3, non-thinking mode on V3.1 inserts an extra </think> after the assistant header.
+        apply_chat_template takes thinking=True/False.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1
+        title: DeepSeek-V3.1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
-
 
 # DeepSeek V3.1
 

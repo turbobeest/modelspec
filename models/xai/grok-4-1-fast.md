@@ -894,6 +894,45 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4-1-fast
+    version: grok-4-1-fast
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Trained for long-horizon, multi-turn tool-calling agents (customer support, finance). Pair
+        it with xAI's Agent Tools API rather than a custom tool harness when you want web, X, code execution,
+        files or MCP.
+      sources:
+      - url: https://x.ai/news/grok-4-1-fast
+        title: Grok 4.1 Fast
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://docs.x.ai/developers/release-notes
+        title: xAI release notes
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message: []
+    reasoning_and_tools:
+    - text: xAI reports it invokes multiple server-side tools in parallel and holds tool-calling quality
+        as context grows; give it the real tools for the domain instead of describing them in prose.
+      sources:
+      - url: https://x.ai/news/grok-4-1-fast
+        title: Grok 4.1 Fast
+        accessed: '2026-09-18'
+        kind: release-notes
+    formatting: []
+    failure_modes:
+    - text: xAI positions 4.1 Fast against context-length degradation that hits other agentic models;
+        still keep the live tools enabled — the model has no realtime knowledge without search.
+      sources:
+      - url: https://x.ai/news/grok-4-1-fast
+        title: Grok 4.1 Fast
+        accessed: '2026-09-18'
+        kind: release-notes
+    retry_advice: []
 ---
 
 

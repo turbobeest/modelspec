@@ -971,8 +971,47 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-r1
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Put all instructions in the user prompt. DeepSeek recommends against a system prompt for
+        this series.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: 'For math, include a directive such as: please reason step by step and put the final answer
+        in LaTeX boxed notation.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Avoid adding a system prompt; all instructions should be contained within the user prompt.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Temperature 0.5–0.7 (0.6 recommended) to avoid repetition or incoherent output. The model
+        sometimes skips thinking (empty think tags); force a response start of <think> when that happens.
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-R1
+        title: DeepSeek-R1 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
-
 
 # DeepSeek R1
 

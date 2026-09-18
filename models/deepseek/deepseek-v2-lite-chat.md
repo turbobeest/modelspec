@@ -846,6 +846,33 @@ card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: deepseek/deepseek-v2-lite-chat
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Chat template: begin_of_sentence, then User: / Assistant: turns, end_of_sentence
+        after an assistant turn. Use tokenizer.apply_chat_template with add_generation_prompt.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite-Chat
+        title: DeepSeek-V2-Lite-Chat model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: 'An optional system message sits immediately after begin_of_sentence, before the
+        first User: turn.'
+      sources:
+      - url: https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite-Chat
+        title: DeepSeek-V2-Lite-Chat model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools: []
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

@@ -963,6 +963,43 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: anthropic/claude-sonnet-4-20250514
+    version: claude-sonnet-4-20250514
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Anthropic describes Sonnet 4 as more steerable than 3.7 and more precise at following complex
+        instructions; state implementation constraints explicitly.
+      sources:
+      - url: https://www.anthropic.com/news/claude-4
+        title: Introducing Claude 4
+        accessed: '2026-09-18'
+        kind: release-notes
+    system_message: []
+    reasoning_and_tools:
+    - text: 'Hybrid model: near-instant or extended thinking. Earlier Claude 4 models (including Sonnet
+        4) support extended thinking only, not adaptive.'
+      sources:
+      - url: https://www.anthropic.com/news/claude-4
+        title: Introducing Claude 4
+        accessed: '2026-09-18'
+        kind: release-notes
+      - url: https://platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting
+        title: Troubleshooting thinking
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    - text: Can use tools in parallel. Extended thinking can interleave reasoning with tool calls.
+      sources:
+      - url: https://www.anthropic.com/news/claude-4
+        title: Introducing Claude 4
+        accessed: '2026-09-18'
+        kind: release-notes
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

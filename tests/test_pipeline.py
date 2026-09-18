@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -204,6 +205,24 @@ def test_landing_injects_catalogue_freshness() -> None:
     )
     assert "2026-09-01" in html
     assert html.index("2026-09-01") < html.index("<footer>")
+
+
+def test_benchgraph_headline_counts_pages_apart_from_scored_keys() -> None:
+    """164 scored keys used to ship as '164 benchmarks' against 1,000+ pages."""
+    stats = builder.benchgraph_headline_stats(_models(), _benchmarks(), _coverage())
+    assert stats["pages"] == len(_benchmarks())
+    assert stats["scored_benchmarks"] == len(_coverage())
+    assert stats["scored_models"] == sum(1 for m in _models() if m.scores)
+    assert stats["scores"] == sum(len(rows) for rows in _coverage().values())
+    assert stats["pages"] > stats["scored_benchmarks"]
+    source = (REPO_ROOT / "site/benchgraph/index.html").read_text(encoding="utf-8")
+    html = builder.wire_benchgraph_landing(source, stats)
+    today = re.search(r'<p class="today">.*?</p>', html).group(0)
+    assert "benchmarks with reported scores" in today
+    assert "benchmark pages" in today
+    assert f'<b>{stats["pages"]:,}</b>' in today
+    assert f'<b>{stats["scored_benchmarks"]:,}</b>' in today
+    assert "{{N_PAGES}}" not in today and "{{N_BENCH}}" not in today
 
 
 def _bench_html(front: dict) -> str:

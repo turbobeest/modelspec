@@ -974,6 +974,47 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: mistral/mistral-large-2512
+    version: mistral-large-2512
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: Mistral Large 3 Instruct 2512 is the instruct post-train of Large 3 (FP8). Strong system-prompt
+        adherence; define a clear environment and how to use tools.
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512
+        title: Mistral Large 3 675B Instruct 2512 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: Always set a system prompt that states the environment and use case, including how to leverage
+        tools in agentic systems.
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512
+        title: Mistral Large 3 675B Instruct 2512 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    reasoning_and_tools:
+    - text: Temperature below 0.1 for daily-driver and production; higher only for creative experiments.
+        Keep the tool set small and well-defined. Native function calling and JSON output.
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512
+        title: Mistral Large 3 675B Instruct 2512 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    formatting:
+    - text: When using vision, keep image aspect ratio close to 1:1; crop overly thin or wide images.
+        256k context. Not a dedicated reasoning model.
+      sources:
+      - url: https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512
+        title: Mistral Large 3 675B Instruct 2512 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 

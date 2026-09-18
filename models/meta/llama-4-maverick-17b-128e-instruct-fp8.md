@@ -858,6 +858,52 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: meta/llama-4-maverick-17b-128e-instruct-fp8
+    version: llama-4-maverick-17b-128e-instruct-fp8
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: 'Meta released Maverick as both BF16 and FP8 weights. Use the Llama 4 instruct envelope: begin_of_text,
+        header_start/header_end around system|user|assistant, eot at each turn. Image spans use image_start/image_end
+        and patch tokens.'
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md
+        title: Llama 4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    system_message:
+    - text: System role still sets rules. For zero-shot tools, list functions in the system or user message;
+        never mix prose and a function call in the same assistant turn.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    reasoning_and_tools:
+    - text: Zero-shot function calls use the [name(param=value), ...] form and support multiple parallel
+        calls.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/prompt_format.md
+        title: Llama 4 prompt formats
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting:
+    - text: Maverick (17Bx128E) is documented at a 1M token context. The FP8 quantized weights are Meta's
+        official Maverick release and are described as fitting a single H100 DGX host.
+      sources:
+      - url: https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md
+        title: Llama 4 model card
+        accessed: '2026-09-18'
+        kind: model-docs
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Llama-4-Maverick-17B-128E-Instruct-FP8
