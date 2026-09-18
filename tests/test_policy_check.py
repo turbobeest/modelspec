@@ -384,15 +384,35 @@ def test_a_no_commitment_finding_without_documents_is_not_a_silent_fail():
     assert row["checks"][0]["undetermined"]["why"] == "not_determined"
 
 
-def test_a_local_runtime_is_unbounded_and_is_not_for_sale():
-    """No region list can be true of Ollama, at any tier, for any money."""
+@pytest.mark.parametrize("slug", sorted(LOCAL_RUNTIMES))
+def test_a_local_runtime_is_unbounded_and_is_not_for_sale(slug):
+    """No region list can be true of a local runtime, at any tier, for any money."""
     status, body = check(
         {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
-        [_model("acme/x", platforms=["ollama"])], store(),
+        [_model("acme/x", platforms=[slug])], store(),
         service.ENTITLEMENT_DETERMINATIONS)
     row = body["result"][0]
     assert row["verdict"] == "undetermined"
     undetermined = row["checks"][0]["undetermined"]
+    assert undetermined["why"] == "unbounded"
+    assert undetermined["available_in_tier"] is None
+
+
+@pytest.mark.parametrize("slug", ["samsung_gauss", "tii_falcon", "zero_one_ai"])
+def test_weights_only_publishers_stay_unbounded_even_if_kv_still_has_a_finding(slug):
+    """The export class wins. A leftover no-commitment row must not become a fail."""
+    st = store(residency={slug: {
+        "scope": "undetermined", "regions": None, "source": None,
+        "non_disclosure": "no-commitment",
+        "reason": "stale finding from before they were classified unbounded",
+        "checked": ["https://example.test/privacy"],
+        "determined_on": "2026-09-16", "notes": ""}})
+    status, body = check(
+        {"policy": {"residency": {"required_regions": ["eu-west-1"]}}},
+        [_model("acme/x", platforms=[slug])], st,
+        service.ENTITLEMENT_DETERMINATIONS)
+    assert status == service.HTTP_OK
+    undetermined = body["result"][0]["checks"][0]["undetermined"]
     assert undetermined["why"] == "unbounded"
     assert undetermined["available_in_tier"] is None
 
@@ -606,6 +626,8 @@ def test_platform_classes_are_derived_not_copied():
     classes = policy_export.platform_classes()
     assert classes["all"] == sorted(platform_slugs())
     assert classes["unbounded"] == sorted(LOCAL_RUNTIMES)
+    assert len(classes["unbounded"]) == 9
+    assert {"samsung_gauss", "tii_falcon", "zero_one_ai"} <= set(classes["unbounded"])
     # The Worker reads the classification from the export rather than holding a
     # second list, so a new local runtime cannot go unnoticed in the endpoint.
     assert "LOCAL_RUNTIMES" not in (WORKER_ROOT / "src" / "policy_service.py").read_text()
@@ -730,6 +752,11 @@ def test_the_loader_builds_a_manifest_that_verifies_the_blobs(tmp_path):
 
 @pytest.mark.parametrize("record,fragment", [
     ({"platform": "ollama", "scope": "unbounded", "regions": None},
+     "no region list can be true of it"),
+    ({"platform": "samsung_gauss", "scope": "undetermined",
+      "non_disclosure": "no-commitment",
+      "checked": ["https://example.test/privacy"],
+      "reason": "weights only", "determined_on": "2026-09-16"},
      "no region list can be true of it"),
     ({"platform": "aws_bedrock", "scope": "determined", "regions": None},
      "null is not an answer"),

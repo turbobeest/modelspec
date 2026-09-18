@@ -110,16 +110,24 @@ class NonDisclosure(str, Enum):
     UNREACHED = "unreached"
 
 
-#: Platforms that ship the weights and run them on hardware the operator
-#: controls. Their residency is not unknown and not unpublished — it is
-#: **unanswerable as a region list**, because the answer is "wherever you put
-#: the machine", which is different for every operator.
+#: Platforms whose residency is **unanswerable as a region list**. The answer
+#: is "wherever you put the machine", which is different for every operator.
+#: Two kinds sit in this set, and they are the same finding:
+#:
+#: * local runtimes (`ollama`, `lm_studio`, `gpt4all`, `jan_ai`,
+#:   `mlx_community`, `open_webui`) — the software runs on hardware the
+#:   operator controls;
+#: * weights-only publishers (`samsung_gauss`, `tii_falcon`, `zero_one_ai`) —
+#:   they ship model weights and run no hosted inference, so the same
+#:   "wherever you run it" answer applies. Jamie, 2026-09-18: `withheld`
+#:   would claim a provider declined to say; these have no inference
+#:   platform to locate.
 #:
 #: This is not research and it does not belong in the enrichment store: it
-#: follows from what the software *is*, and `determination.py` refuses a record
-#: for any slug in this set precisely so that a plausible-looking country list
-#: can never be attached to one. That refusal is the mechanical half of
-#: standing rule 2.
+#: follows from what the platform *is*, and `determination.py` refuses a
+#: record for any slug in this set precisely so that a plausible-looking
+#: country list can never be attached to one. That refusal is the mechanical
+#: half of standing rule 2.
 LOCAL_RUNTIMES = frozenset(
     {
         "ollama",
@@ -128,6 +136,9 @@ LOCAL_RUNTIMES = frozenset(
         "jan_ai",
         "mlx_community",
         "open_webui",
+        "samsung_gauss",
+        "tii_falcon",
+        "zero_one_ai",
     }
 )
 

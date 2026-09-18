@@ -504,20 +504,45 @@ def test_withheld_is_exactly_what_the_paid_tier_can_resolve():
 
 
 def test_every_withheld_shape_in_the_namespace_resolves_at_the_paid_tier():
-    """The production counts, as an arrangement of fixtures, not the private store."""
+    """The production counts, as an arrangement of fixtures, not the private store.
+
+    41 platforms need a determination (50 minus 9 unbounded). Of those, 14
+    carry a cited region list, 25 a no-commitment finding, 2 are unreached.
+    `withheld` is the first two: 39. A withheld card is a promise the paid
+    tier can resolve, and every one of those 39 does.
+    """
     slugs = list(requires_determination())
-    assert len(slugs) == 44
+    assert len(slugs) == 41
+    assert len(LOCAL_RUNTIMES) == 9
     store = (
         [determined(s, ["us-east-1"]) for s in slugs[:14]]
-        + [undetermined(s) for s in slugs[14:42]]
-        + [unreachable(s) for s in slugs[42:]]
+        + [undetermined(s) for s in slugs[14:39]]
+        + [unreachable(s) for s in slugs[39:]]
     )
     assert unresolved_withheld(store) == ()
-    assert len(withheld(store)) == 42
+    assert len(withheld(store)) == 39
     answers = [r.paid_answer() for r in store]
     assert sum(1 for a in answers if a and a["kind"] == "regions") == 14
-    assert sum(1 for a in answers if a and a["kind"] == "no_commitment") == 28
+    assert sum(1 for a in answers if a and a["kind"] == "no_commitment") == 25
     assert sum(1 for a in answers if a is None) == 2
+
+
+def test_weights_only_publishers_are_unbounded_not_withheld():
+    """Jamie, 2026-09-18: these publish weights and host no inference.
+
+    Their residency is the operator's, the same as Ollama: unbounded by
+    construction. `withheld` would claim a provider declined to say.
+    Cards publish `unresearched`. No store record is legal.
+    """
+    moved = ("samsung_gauss", "tii_falcon", "zero_one_ai")
+    assert set(moved) <= LOCAL_RUNTIMES
+    states = disclosures([])
+    scopes = classify([])
+    for slug in moved:
+        assert is_local_runtime(slug)
+        assert states[slug] is DisclosureState.UNRESEARCHED
+        assert scopes[slug] is ResidencyScope.UNBOUNDED
+        assert slug not in withheld([])
 
 
 # ── the store ───────────────────────────────────────────────────────────────
