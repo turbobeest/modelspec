@@ -907,6 +907,33 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: xai/grok-4
+    version: grok-4
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape: []
+    system_message: []
+    reasoning_and_tools:
+    - text: Grok 4 was trained with reinforcement learning to use tools. xAI says it can call a code
+        interpreter and web browsing while thinking, on tasks that usually challenge language models.
+      sources:
+      - url: https://x.ai/news/grok-4
+        title: Grok 4
+        accessed: '2026-09-18'
+        kind: release-notes
+    - text: For real-time or deep research questions it chooses its own search queries (web and X,
+        including keyword, semantic search, and media).
+      sources:
+      - url: https://x.ai/news/grok-4
+        title: Grok 4
+        accessed: '2026-09-18'
+        kind: release-notes
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

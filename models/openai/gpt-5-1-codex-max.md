@@ -881,6 +881,45 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-1-codex-max
+    version: gpt-5.1-codex-max
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: OpenAI describes GPT-5.1-Codex-Max as purpose-built for agentic coding and
+        optimized for long-running tasks. It is Responses API only.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.1-codex-max.md
+        title: GPT-5.1-Codex-Max
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: The model page points at the Codex prompting guide. That guide's starter prompt
+        began as the default GPT-5.1-Codex-Max prompt, then was further tuned on internal evals.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.1-codex-max.md
+        title: GPT-5.1-Codex-Max
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide.md
+        title: Codex prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: The guide says to drop requests for an upfront plan, preambles, or status updates
+        during the rollout, which can stop the model before the work is done, and to prefer
+        dedicated tools over a raw shell command.
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide.md
+        title: Codex prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 

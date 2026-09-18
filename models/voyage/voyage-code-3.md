@@ -836,6 +836,38 @@ card_schema_version: '3.0'
 card_author: api-model-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: voyage/voyage-code-3
+    version: ''
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: For retrieval, set input_type to query or document so Voyage prepends its retrieval prompt.
+        query prepends 'Represent the query for retrieving supporting documents:'; document prepends
+        'Represent the document for retrieval:'.
+      sources:
+      - url: https://docs.voyageai.com/docs/embeddings
+        title: Voyage text embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools: []
+    formatting:
+    - text: voyage-code-3 is the older code-retrieval model on that page. 32,000-token context; default
+        1024 dimensions with 256/512/2048 via output_dimension; int8/uint8/binary/ubinary quantization.
+      sources:
+      - url: https://docs.voyageai.com/docs/embeddings
+        title: Voyage text embeddings
+        accessed: '2026-09-18'
+        kind: provider-guidance
+      - url: https://blog.voyageai.com/2024/12/04/voyage-code-3/
+        title: 'voyage-code-3: more accurate code retrieval'
+        accessed: '2026-09-18'
+        kind: release-notes
+    failure_modes: []
+    retry_advice: []
 ---
 
 # Voyage Code 3

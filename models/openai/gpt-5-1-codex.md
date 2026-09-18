@@ -856,6 +856,45 @@ card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
 card_updated: '2026-09-18'
+authoring_guide:
+  applies_to:
+    model_id: openai/gpt-5-1-codex
+    version: gpt-5.1-codex
+  as_of: '2026-09-18'
+  status: current
+  sections:
+    prompt_shape:
+    - text: OpenAI describes GPT-5.1-Codex as a GPT-5.1 variant for agentic coding in Codex
+        or similar environments. It is Responses API only.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.1-codex.md
+        title: GPT-5.1-Codex
+        accessed: '2026-09-18'
+        kind: model-docs
+    - text: The model page points at OpenAI's Codex prompting guide. That guide says to drop
+        requests for an upfront plan, preambles, or status updates during the rollout, which
+        can stop the model before the work is done.
+      sources:
+      - url: https://developers.openai.com/api/docs/models/gpt-5.1-codex.md
+        title: GPT-5.1-Codex
+        accessed: '2026-09-18'
+        kind: model-docs
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide.md
+        title: Codex prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    system_message: []
+    reasoning_and_tools:
+    - text: The same guide says if a dedicated tool exists, use it instead of a raw shell
+        command (read_file over cat).
+      sources:
+      - url: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide.md
+        title: Codex prompting guide
+        accessed: '2026-09-18'
+        kind: provider-guidance
+    formatting: []
+    failure_modes: []
+    retry_advice: []
 ---
 
 
