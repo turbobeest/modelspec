@@ -184,3 +184,111 @@ def test_mistral_api_alias_without_a_distribution_point_is_nulled() -> None:
     lic = _front("mistral/codestral-latest")["licensing"]
     assert lic["license_type"] is None
     assert not (lic.get("license_url") or "").strip()
+
+
+# ── MODEL-86 batch 3 (allen-ai … black-forest-labs) ─────────────────────────
+
+
+def test_olmo2_apache_is_cited_from_the_creator_license() -> None:
+    lic = _front("allen-ai/olmo-2-0325-32b-instruct")["licensing"]
+    assert lic["license_type"] == "apache-2.0"
+    assert "OLMo-2-0325-32B-Instruct" in lic["license_url"]
+
+
+def test_unsourced_allenai_card_without_a_hub_licence_is_nulled() -> None:
+    lic = _front("allen-ai/biomed-roberta-base")["licensing"]
+    assert lic["license_type"] is None
+    assert not (lic.get("license_url") or "").strip()
+
+
+def test_deepseek_r1_is_mit_not_the_deepseek_model_licence() -> None:
+    lic = _front("deepseek/deepseek-r1")["licensing"]
+    assert lic["license_type"] == "mit"
+    assert lic["license_url"].startswith("https://huggingface.co/deepseek-ai/DeepSeek-R1")
+
+
+def test_deepseek_api_aliases_cite_open_platform_terms() -> None:
+    url = (
+        "https://cdn.deepseek.com/policies/en-US/"
+        "deepseek-open-platform-terms-of-service.html"
+    )
+    for model_id in ("deepseek/deepseek-chat", "deepseek/deepseek-reasoner"):
+        lic = _front(model_id)["licensing"]
+        assert lic["license_type"] == "proprietary", model_id
+        assert lic["license_url"] == url, model_id
+
+
+def test_salesforce_xlam_is_cc_by_nc_not_apache() -> None:
+    lic = _front("salesforce/xlam-7b-r")["licensing"]
+    assert lic["license_type"] == "cc-by-nc-4.0"
+
+
+def test_baai_gemma2_embedder_carries_gemma_terms() -> None:
+    lic = _front("baai/bge-multilingual-gemma2")["licensing"]
+    assert lic["license_type"] == "gemma"
+
+
+def test_flux_schnell_is_apache_and_flux_dev_is_not() -> None:
+    schnell = _front("black-forest-labs/flux-1-schnell")["licensing"]
+    dev = _front("black-forest-labs/flux-1-dev")["licensing"]
+    assert schnell["license_type"] == "apache-2.0"
+    assert dev["license_type"] == "other"
+    assert "http" in (dev.get("license_url") or "")
+
+
+def test_sdxl_base_is_openrail() -> None:
+    lic = _front("stability/stable-diffusion-xl-base-1-0")["licensing"]
+    assert lic["license_type"] == "openrail"
+
+
+def test_yi_34b_is_cited_apache() -> None:
+    lic = _front("01-ai/yi-34b")["licensing"]
+    assert lic["license_type"] == "apache-2.0"
+    assert "01-ai/Yi-34B" in lic["license_url"]
+
+
+# ── MODEL-86 batch 4: long-tail providers ───────────────────────────────────
+
+
+def test_cohere_open_weights_are_cc_by_nc_not_other() -> None:
+    lic = _front("cohere/c4ai-aya-expanse-8b")["licensing"]
+    assert lic["license_type"] == "cc-by-nc-4.0"
+    assert "CohereLabs/aya-expanse-8b" in lic["license_url"]
+
+
+def test_minimax_m27_noncommercial_is_not_mit() -> None:
+    lic = _front("minimax/minimax-m2-7")["licensing"]
+    assert lic["license_type"] == "other"
+    assert "MiniMax-M2.7" in lic["license_url"]
+    assert "LICENSE" in lic["license_url"]
+
+
+def test_liquid_lfm_stays_other_and_cites_the_license_file() -> None:
+    lic = _front("liquid/lfm2-1-2b")["licensing"]
+    assert lic["license_type"] == "other"
+    assert lic["license_url"] == (
+        "https://huggingface.co/LiquidAI/LFM2-1.2B/raw/main/LICENSE"
+    )
+
+
+def test_hermes_4_70b_fp8_is_llama_community_not_apache() -> None:
+    lic = _front("nous-research/hermes-4-70b-fp8")["licensing"]
+    assert lic["license_type"] == "llama-community"
+
+
+def test_inception_mercury_cites_vendor_terms() -> None:
+    lic = _front("inception/mercury")["licensing"]
+    assert lic["license_type"] == "proprietary"
+    assert lic["license_url"] == "https://www.inceptionlabs.ai/docs/terms-of-use"
+
+
+def test_upstage_solar_pro2_cites_vendor_terms() -> None:
+    lic = _front("upstage/solar-pro2")["licensing"]
+    assert lic["license_type"] == "proprietary"
+    assert lic["license_url"] == "https://www.upstage.ai/terms-of-service"
+
+
+def test_voyage_stays_nulled_when_terms_are_unreadable() -> None:
+    lic = _front("voyage/voyage-3")["licensing"]
+    assert lic["license_type"] is None
+    assert not (lic.get("license_url") or "").strip()

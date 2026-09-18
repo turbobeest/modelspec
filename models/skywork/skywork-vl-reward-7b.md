@@ -62,8 +62,8 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: other
-  license_url: ''
+  license_type: mit
+  license_url: https://huggingface.co/Skywork/Skywork-VL-Reward-7B
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -819,15 +819,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Skywork VL Reward 7B
 
 Auto-generated from HuggingFace Hub metadata for [Skywork/Skywork-VL-Reward-7B](https://huggingface.co/Skywork/Skywork-VL-Reward-7B).
+
+Licence: mit. Creator distribution https://huggingface.co/Skywork/Skywork-VL-Reward-7B (mit) and Hub cardData.license mit, read 2026-09-18.

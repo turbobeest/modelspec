@@ -18,6 +18,7 @@ import argparse
 import json
 import re
 import sys
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
@@ -143,6 +144,18 @@ CLOSED_TERMS: dict[str, tuple[str, str]] = {
         "Alibaba Cloud International Website Product Terms of Service "
         "§4.48 (Model Studio)",
     ),
+    "deepseek": (
+        "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
+        "DeepSeek Open Platform Terms of Service (effective 29 April 2026)",
+    ),
+    "inception": (
+        "https://www.inceptionlabs.ai/docs/terms-of-use",
+        "Inception Terms of Use (effective 1 September 2025)",
+    ),
+    "upstage": (
+        "https://www.upstage.ai/terms-of-service",
+        "Upstage Terms of Service",
+    ),
 }
 
 # Hub `license` / `license_name` → card LicenseType. Unmapped custom names
@@ -187,17 +200,44 @@ HF_TO_TYPE: dict[str, str] = {
     "nvidia-nemotron-open-model-license": "other",
     "apache-license-2.0": "apache-2.0",
     "codegeex4": "other",
+    "stabilityai-ai-community": "other",
+    "sai-nc-community": "other",
+    "flux-1-dev-non-commercial-license": "other",
+    "flux-non-commercial-license": "other",
+    "flux-dev-non-commercial-license": "other",
+    "deepseek-license": "deepseek",
+    "falcon-llm-license": "other",
+    "falcon-mamba-7b-license": "other",
+    "falcon-mamba-license": "other",
+    "tencent-hunyuan-community": "other",
+    "tencent-hunyuan-a13b": "other",
+    "tencent-hunyuanworld-1.0-community": "other",
+    "tencent-hunyuanworld-mirror-community": "other",
+    "youtu-llm": "other",
+    "stable-audio-community": "other",
+    "stable-cascade-nc-community": "other",
+    "stable-video-diffusion-community": "other",
+    "stable-video-diffusion-1-1-community": "other",
+    "stabilityai-nc-research-community": "other",
+    "stabilityai-ai-non-commercial": "other",
+    "tencent-kalm-embedding-community": "other",
+    "cc-by-sa-4.0": "other",
+    "artistic-2.0": "other",
+    "mpl-2.0": "other",
+    "lgpl-3.0": "other",
+    "lgpl-2.1": "other",
 }
 
 LICENSE_FILES = (
     "LICENSE",
     "LICENSE.md",
     "LICENSE.txt",
+    "LICENSE-MODEL",
+    "LICENSE-MODEL.txt",
     "license",
     "licence",
     "MODEL_LICENSE",
     "MODEL_LICENSE.md",
-    "LICENSE-MODEL",
 )
 
 # Exact Llama community agreements. Hub `license` llama3.1 is not the same
@@ -242,6 +282,26 @@ _LLAMA_ALIASES = {
     "llama 3.3": "llama3.3",
     "llama 4": "llama4",
 }
+
+
+def _raw_license_url(url: str) -> str | None:
+    """Hub / GitHub blob pages → the file bytes. PDFs stay as-is and are not fetched."""
+    url = url.strip()
+    if not url or url.lower().endswith(".pdf"):
+        return None
+    m = re.match(
+        r"https://huggingface\.co/([\w.-]+/[\w.-]+)/blob/([^/]+)/(.+)$", url
+    )
+    if m:
+        return f"https://huggingface.co/{m.group(1)}/raw/{m.group(2)}/{m.group(3)}"
+    m = re.match(
+        r"https://github\.com/([\w.-]+/[\w.-]+)/blob/([^/]+)/(.+)$", url
+    )
+    if m:
+        return f"https://raw.githubusercontent.com/{m.group(1)}/{m.group(2)}/{m.group(3)}"
+    if url.startswith("https://"):
+        return url
+    return None
 
 
 @dataclass
@@ -322,12 +382,18 @@ def load_suspects() -> list[Suspect]:
     return out
 
 
-def select_batch(suspects: list[Suspect], cap: int = CAP) -> list[Suspect]:
-    rank = {p: i for i, p in enumerate(TRAFFIC_ORDER)}
+def select_batch(
+    suspects: list[Suspect],
+    cap: int = CAP,
+    providers: list[str] | None = None,
+) -> list[Suspect]:
+    order = providers if providers else list(TRAFFIC_ORDER)
+    rank = {p: i for i, p in enumerate(order)}
+    pool = [s for s in suspects if s.provider in rank] if providers else suspects
     ordered = sorted(
-        suspects,
+        pool,
         key=lambda s: (
-            rank.get(s.provider, len(TRAFFIC_ORDER)),
+            rank.get(s.provider, len(order)),
             0 if s.hf_repo else 1,
             s.model_id,
         ),
@@ -366,14 +432,26 @@ def _llama_key(*parts: str | None) -> str | None:
 
 
 def _classify_license_text(text: str) -> tuple[str | None, str]:
-    head = text[:2500]
+    head = text[:4000]
     low = head.lower()
-    if "modified mit" in low:
+    # MiniMax-M2.7 (and similar): MIT-shaped grant that forbids commercial use.
+    # Must beat the generic MIT match below.
+    if "non-commercial license" in low or (
+        "permission is hereby granted" in low and "for non-commercial purposes" in low
+    ):
+        return "other", "Non-commercial License"
+    if "our only modification is" in low or "modified mit license" in low:
         return "other", "Modified MIT License"
+    if "lfm open license" in low:
+        return "other", "LFM Open License v1.0"
+    if "ltx-2 community license" in low:
+        return "other", "LTX-2 Community License Agreement"
     if "apache license" in low and "version 2.0" in low:
         return "apache-2.0", "Apache License Version 2.0, January 2004"
     if re.search(r"\bmit license\b", low) or (
-        "permission is hereby granted, free of charge" in low and "modified mit" not in low
+        "permission is hereby granted, free of charge" in low
+        and "modified mit" not in low
+        and "non-commercial" not in low
     ):
         return "mit", "MIT License"
     if "qwen research license" in low:
@@ -382,9 +460,13 @@ def _classify_license_text(text: str) -> tuple[str | None, str]:
         return "qwen", "Qwen LICENSE AGREEMENT"
     if "tongyi qianwen license agreement" in low:
         return "qwen", "Tongyi Qianwen LICENSE AGREEMENT"
-    if "mistral ai research license" in low or "for research purposes" in low:
+    if "mistral ai research license" in low or (
+        "mistral" in low and "for research purposes" in low
+    ):
         return "other", "Mistral AI Research License"
-    if "mistral ai non-production license" in low or "non-production environments" in low:
+    if "mistral ai non-production license" in low or (
+        "mistral" in low and "non-production environments" in low
+    ):
         return "other", "Mistral AI Non-Production License"
     if "gemma" in low and "terms" in low:
         return "gemma", "Gemma Terms of Use"
@@ -402,7 +484,68 @@ def _classify_license_text(text: str) -> tuple[str | None, str]:
     if "chatglm" in low and "license" in low:
         title = head.splitlines()[0].strip()[:80] or "ChatGLM License"
         return "other", title
+    if "deepseek license agreement" in low or "deepseek model license" in low:
+        return "deepseek", "DeepSeek License Agreement"
+    if "creativeml open rail" in low or "open rail-m" in low or "openrail-m" in low:
+        return "openrail", "CreativeML Open RAIL-M License"
+    if "stability ai community license" in low:
+        return "other", "Stability AI Community License Agreement"
+    if "non-commercial research community license" in low:
+        return "other", "Stability AI Non-Commercial Research Community License"
+    if "flux" in low and "non-commercial" in low:
+        return "other", "FLUX Non-Commercial License"
+    if "falcon llm license" in low or "technology innovation institute" in low and "falcon" in low:
+        return "other", "TII Falcon LLM License"
+    if "yi series models community license" in low:
+        return "other", "Yi Series Models Community License Agreement"
+    if "tencent hunyuan" in low and "license" in low:
+        return "other", "Tencent Hunyuan Community License Agreement"
     return None, head.splitlines()[0][:80] if head.strip() else ""
+
+
+def _as_str(value: Any) -> str:
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _absolute_license_url(repo: str, link: str) -> str:
+    """Turn a Hub license_link into a fetchable URL, or ''."""
+    link = (link or "").strip()
+    if not link:
+        return ""
+    blob = re.match(
+        r"https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.*)$",
+        link,
+    )
+    if blob:
+        return (
+            f"https://raw.githubusercontent.com/{blob.group(1)}/"
+            f"{blob.group(2)}/{blob.group(3)}/{blob.group(4)}"
+        )
+    if link.startswith("http://") or link.startswith("https://"):
+        return link
+    link = link.lstrip("./")
+    return f"https://huggingface.co/{repo}/raw/main/{link}"
+
+
+def _hf_get(client: httpx.Client, url: str) -> httpx.Response | None:
+    delay = 1.5
+    last: httpx.Response | None = None
+    for _ in range(5):
+        try:
+            last = client.get(url)
+        except httpx.HTTPError:
+            time.sleep(delay)
+            delay = min(delay * 2, 16)
+            continue
+        if last.status_code != 429:
+            return last
+        time.sleep(delay)
+        delay = min(delay * 2, 16)
+    return last
 
 
 def _map_hf(license_key: str | None, license_name: str | None) -> str | None:
@@ -420,20 +563,29 @@ def _map_hf(license_key: str | None, license_name: str | None) -> str | None:
 
 def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
     info: dict[str, Any] = {"repo": repo, "ok": False}
+    r = _hf_get(client, f"{HF_API}/{repo}")
+    if r is None:
+        info["error"] = "no response"
+        return info
+    if r.status_code != 200:
+        info["api_status"] = r.status_code
+        return info
     try:
-        r = client.get(f"{HF_API}/{repo}")
-        if r.status_code != 200:
-            info["api_status"] = r.status_code
-            return info
         data = r.json()
-    except httpx.HTTPError as exc:
+    except ValueError as exc:
         info["error"] = str(exc)
         return info
     card = data.get("cardData") or {}
     info["ok"] = True
-    info["license"] = (data.get("license") or card.get("license") or "") or ""
-    info["license_name"] = card.get("license_name") or ""
-    info["license_link"] = card.get("license_link") or ""
+    declared = _as_str(data.get("license") or card.get("license") or "")
+    if not declared:
+        for tag in data.get("tags") or []:
+            if isinstance(tag, str) and tag.lower().startswith("license:"):
+                declared = tag.split(":", 1)[1].strip()
+                break
+    info["license"] = declared
+    info["license_name"] = _as_str(card.get("license_name") or "")
+    info["license_link"] = _as_str(card.get("license_link") or "")
     info["gated"] = data.get("gated")
     prompt = card.get("extra_gated_prompt") or ""
     if isinstance(prompt, str) and "license" in prompt.lower():
@@ -447,50 +599,60 @@ def fetch_hf(client: httpx.Client, repo: str) -> dict[str, Any]:
             continue
         if fname.upper() in {n.upper() for n in LICENSE_FILES} and fname not in names:
             names.append(fname)
-    # LICENSE file, then README frontmatter.
-    for name in names:
-        try:
-            lr = client.get(f"https://huggingface.co/{repo}/raw/main/{name}")
-        except httpx.HTTPError:
+    # LICENSE file, then the declared license_link, then README frontmatter.
+    candidates = [f"https://huggingface.co/{repo}/raw/main/{name}" for name in names]
+    abs_link = _absolute_license_url(repo, info["license_link"])
+    if abs_link and abs_link not in candidates:
+        candidates.append(abs_link)
+    raw = _raw_license_url(info["license_link"])
+    if raw and raw not in candidates:
+        candidates.append(raw)
+    for url in candidates:
+        lr = _hf_get(client, url)
+        if lr is None or lr.status_code != 200 or not lr.text:
             continue
-        if lr.status_code == 200 and lr.text and "Entry not found" not in lr.text[:40]:
-            info["license_file_url"] = str(lr.url)
-            info["license_file_text"] = lr.text
-            break
+        if "Entry not found" in lr.text[:40]:
+            continue
+        if lr.text.lstrip()[:15].lower().startswith("<!doctype html") or lr.text.lstrip()[:6].lower() == "<html":
+            continue
+        if lr.text.lstrip().startswith("%PDF"):
+            continue
+        info["license_file_url"] = str(lr.url)
+        info["license_file_text"] = lr.text
+        break
     if "license_file_text" not in info:
         link = str(info["license_link"])
         if "huggingface.co" in link and "/resolve/" in link:
-            try:
-                lr = client.get(link)
-            except httpx.HTTPError:
-                lr = None
+            lr = _hf_get(client, link)
             if (
                 lr is not None
                 and lr.status_code == 200
                 and lr.text
                 and "Entry not found" not in lr.text[:40]
+                and not lr.text.lstrip().startswith("%PDF")
             ):
                 info["license_file_url"] = str(lr.url)
                 info["license_file_text"] = lr.text
     if "license_file_text" not in info:
-        try:
-            rr = client.get(f"https://huggingface.co/{repo}/raw/main/README.md")
-            if rr.status_code == 200 and rr.text.startswith("---"):
-                info["readme_url"] = str(rr.url)
-                info["readme_text"] = rr.text[:8000]
-        except httpx.HTTPError:
-            pass
+        rr = _hf_get(client, f"https://huggingface.co/{repo}/raw/main/README.md")
+        if rr is not None and rr.status_code == 200 and rr.text.startswith("---"):
+            info["readme_url"] = str(rr.url)
+            info["readme_text"] = rr.text[:8000]
     return info
 
 
 def decide_from_hf(s: Suspect, info: dict[str, Any]) -> Decision:
-    declared = (info.get("license") or "").strip().lower() or None
-    declared_name = (info.get("license_name") or "").strip().lower() or None
+    declared = _as_str(info.get("license")).lower() or None
+    declared_name = _as_str(info.get("license_name")).lower() or None
     file_url = info.get("license_file_url") or ""
     file_text = info.get("license_file_text") or ""
     gated_text = info.get("gated_license_text") or ""
     readme_url = info.get("readme_url") or ""
-    license_link = (info.get("license_link") or "").strip()
+    license_link = _as_str(info.get("license_link"))
+
+    repo = str(info.get("repo") or "")
+    abs_link = _absolute_license_url(repo, license_link)
+    hub_page = f"https://huggingface.co/{repo}" if repo else ""
 
     mapped = None
     label = ""
@@ -506,14 +668,14 @@ def decide_from_hf(s: Suspect, info: dict[str, Any]) -> Decision:
         mapped = _map_hf(declared, declared_name)
         if mapped:
             label = declared_name or declared or mapped
-            cite = file_url or license_link or readme_url or f"https://huggingface.co/{info['repo']}"
+            cite = file_url or abs_link or readme_url or hub_page
     if mapped is None and declared in {"other", None} and declared_name:
         # Known custom name we refuse to invent a LicenseType for: still `other`
-        # if we have a URL, else null.
-        if cite or license_link or readme_url:
+        # if we have a URL, else null. The Hub model page is a URL.
+        if cite or abs_link or readme_url or hub_page:
             mapped = "other"
             label = declared_name
-            cite = cite or license_link or readme_url
+            cite = cite or abs_link or readme_url or hub_page
     if mapped is None and file_url and file_text:
         # A licence file we read but cannot map onto LicenseType is still
         # `other` with a citation, not a null.
@@ -648,11 +810,26 @@ def decide(s: Suspect, hf: dict[str, Any] | None) -> Decision:
     # No distribution repo. Closed API, or open-weights with no address.
     if s.provider in CLOSED_TERMS and not s.open_weights:
         return decide_closed(s)
-    if s.provider in {"openai", "anthropic", "google", "xai", "perplexity"}:
+    if s.provider in {
+        "openai",
+        "anthropic",
+        "google",
+        "xai",
+        "perplexity",
+        "inception",
+        "upstage",
+    }:
         # Closed-API family even if a card left open_weights true by mistake:
         # the vendor terms are the document. Qwen and Mistral also ship
         # open weights; those without a repo stay null rather than inherit
         # the API terms.
+        return decide_closed(s)
+    if s.provider == "deepseek" and not s.hf_repo:
+        # API aliases (deepseek-chat, deepseek-reasoner) with no weights repo.
+        return decide_closed(s)
+    if not s.open_weights:
+        # Closed API with no terms reading (voyage, stepfun, …): null, do not
+        # keep the provider default.
         return decide_closed(s)
     return Decision(
         model_id=s.model_id,
@@ -749,7 +926,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--cap", type=int, default=CAP)
+    parser.add_argument(
+        "--providers",
+        default="",
+        help="comma-separated providers, in selection order (omit for traffic order)",
+    )
+    parser.add_argument(
+        "--exclude",
+        default="",
+        help="comma-separated providers to skip (other batches own them)",
+    )
     args = parser.parse_args()
+    providers = [p.strip() for p in args.providers.split(",") if p.strip()] or None
 
     suspects = load_suspects()
     per = Counter(s.provider for s in suspects)
@@ -757,7 +945,14 @@ def main() -> int:
     for prov, n in per.most_common():
         print(f"suspect {prov} {n}")
 
-    batch = select_batch(suspects, args.cap)
+    exclude = {p.strip().lower() for p in args.exclude.split(",") if p.strip()}
+    if exclude:
+        skipped = [s for s in suspects if s.provider in exclude]
+        suspects = [s for s in suspects if s.provider not in exclude]
+        print(f"excluded {len(skipped)} owned_by_other_batches")
+        print(f"eligible {len(suspects)}")
+
+    batch = select_batch(suspects, args.cap, providers=providers)
     remaining = [s for s in suspects if s not in batch]
     print(f"batch {len(batch)}")
     print(f"remaining {len(remaining)}")
@@ -769,9 +964,9 @@ def main() -> int:
     hf_needed = [s for s in batch if s.hf_repo]
     hf_results: dict[str, dict[str, Any]] = {}
     if hf_needed:
-        limits = httpx.Limits(max_connections=8, max_keepalive_connections=8)
+        limits = httpx.Limits(max_connections=4, max_keepalive_connections=4)
         with httpx.Client(timeout=30.0, headers={"User-Agent": UA}, follow_redirects=True, limits=limits) as client:
-            with ThreadPoolExecutor(max_workers=8) as pool:
+            with ThreadPoolExecutor(max_workers=4) as pool:
                 futs = {pool.submit(fetch_hf, client, s.hf_repo): s for s in hf_needed if s.hf_repo}
                 for fut in as_completed(futs):
                     s = futs[fut]

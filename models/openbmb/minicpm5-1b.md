@@ -63,7 +63,7 @@ lineage:
 licensing:
   open_weights: true
   license_type: apache-2.0
-  license_url: ''
+  license_url: https://huggingface.co/openbmb/MiniCPM5-1B/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -861,15 +861,17 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-09-10'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-10'
+card_updated: '2026-09-18'
 ---
 
 # MiniCPM5-1B
 
 Carded from Hugging Face Hub [openbmb/MiniCPM5-1B](https://huggingface.co/openbmb/MiniCPM5-1B) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 1,080,632,832. No benchmark evidence attached.
+
+Licence: apache-2.0. Creator distribution https://huggingface.co/openbmb/MiniCPM5-1B/raw/main/README.md (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.

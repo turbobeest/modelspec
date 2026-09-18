@@ -61,8 +61,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: other
-  license_url: ''
+  license_type: apache-2.0
+  license_url: https://huggingface.co/baichuan-inc/Baichuan-Omni-1d5/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -817,16 +817,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Baichuan Omni 1d5
 
 Auto-generated from HuggingFace Hub metadata for [baichuan-inc/Baichuan-Omni-1d5](https://huggingface.co/baichuan-inc/Baichuan-Omni-1d5).
+
+Licence: apache-2.0. Creator distribution https://huggingface.co/baichuan-inc/Baichuan-Omni-1d5/raw/main/README.md (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.

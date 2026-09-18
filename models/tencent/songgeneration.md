@@ -61,7 +61,7 @@ lineage:
   library_name: tencent-song-generation
 licensing:
   open_weights: true
-  license_type: other
+  license_type: null
   license_url: ''
   tos_url: ''
   acceptable_use_policy_url: ''
@@ -823,10 +823,12 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # SongGeneration
 
 Auto-generated from HuggingFace Hub metadata for [tencent/SongGeneration](https://huggingface.co/tencent/SongGeneration).
+
+Licence: null. Creator Hub repository tencent/SongGeneration was not readable (401), read 2026-09-18. A known-wrong other default is worse than none.

@@ -61,8 +61,8 @@ lineage:
   library_name: ''
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: other
+  license_url: https://falconllm.tii.ae/falcon-mamba-7b-terms-and-conditions.html
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -832,10 +832,12 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # falcon mamba 7B instruct Q4 K M GGUF
 
 Auto-generated from HuggingFace Hub metadata for [tiiuae/falcon-mamba-7b-instruct-Q4_K_M-GGUF](https://huggingface.co/tiiuae/falcon-mamba-7b-instruct-Q4_K_M-GGUF).
+
+Licence: other. Creator distribution https://falconllm.tii.ae/falcon-mamba-7b-terms-and-conditions.html (falcon-mamba-license) and Hub cardData.license other and license_name falcon-mamba-license, read 2026-09-18.

@@ -62,8 +62,8 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: other
+  license_url: https://falconllm.tii.ae/falcon-terms-and-conditions.html
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -832,9 +832,11 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 # Falcon3 10B Base
 
 Auto-generated from HuggingFace Hub metadata for [tiiuae/Falcon3-10B-Base](https://huggingface.co/tiiuae/Falcon3-10B-Base).
+
+Licence: other. Creator distribution https://falconllm.tii.ae/falcon-terms-and-conditions.html (falcon-llm-license) and Hub cardData.license other and license_name falcon-llm-license, read 2026-09-18.

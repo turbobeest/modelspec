@@ -61,9 +61,9 @@ lineage:
   library_name: ''
 licensing:
   open_weights: false
-  license_type: apache-2.0
-  license_url: ''
-  tos_url: ''
+  license_type: proprietary
+  license_url: https://www.upstage.ai/terms-of-service
+  tos_url: https://www.upstage.ai/terms-of-service
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
   commercial_use: unspecified
@@ -823,13 +823,15 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # solar-mini
 
 solar-mini is a Llm Chat model from Upstage. Part of the solar-mini family. Knowledge cutoff: 2024-09.
+
+Licence: proprietary. Vendor terms https://www.upstage.ai/terms-of-service (Upstage Terms of Service), read 2026-09-18.
 
 ## Key Features
 - Function calling / tool use

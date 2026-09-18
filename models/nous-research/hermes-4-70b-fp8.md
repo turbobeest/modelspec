@@ -62,8 +62,8 @@ lineage:
   library_name: transformers
 licensing:
   open_weights: true
-  license_type: apache-2.0
-  license_url: ''
+  license_type: llama-community
+  license_url: https://huggingface.co/NousResearch/Hermes-4-70B-FP8/raw/main/README.md
   tos_url: ''
   acceptable_use_policy_url: ''
   not_for_all_audiences: false
@@ -818,16 +818,18 @@ sources:
   artificial_analysis_url: ''
   arena_url: ''
   last_scraped_models_dev: ''
-  last_scraped_huggingface: '2026-04-05'
+  last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-18'
 ---
 
 
 # Hermes 4 70B FP8
 
 Auto-generated from HuggingFace Hub metadata for [NousResearch/Hermes-4-70B-FP8](https://huggingface.co/NousResearch/Hermes-4-70B-FP8).
+
+Licence: llama-community. Creator distribution https://huggingface.co/NousResearch/Hermes-4-70B-FP8/raw/main/README.md (llama3) and Hub cardData.license llama3, read 2026-09-18.
