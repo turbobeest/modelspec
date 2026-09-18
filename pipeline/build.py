@@ -133,6 +133,26 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
     return html.replace(r.NAV_PLACEHOLDER, nav, 1)
 
 
+def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
+    """Write the graph explorer to /graph/ with the site nav and its vendored libraries.
+
+    A full-viewport canvas app, so it is copied rather than rendered through the
+    document shell. Its libraries are vendored so the page does not depend on a
+    CDN at runtime.
+    """
+    explorer = root / "web3d/explorer.html"
+    if not explorer.is_file():
+        return False
+    page = ms / "graph/index.html"
+    _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
+    page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
+                                  "web3d/explorer.html"), encoding="utf-8")
+    vendor = root / "web3d/vendor"
+    if vendor.is_dir():
+        shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    return True
+
+
 def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
@@ -366,9 +386,6 @@ def main(argv: list[str] | None = None) -> int:
                          relations.for_model(model.model_id), pages=pages),
             encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
-    # The graph explorer: a full-viewport canvas app, so it is copied rather
-    # than rendered through the document shell. Its libraries are vendored so
-    # the page does not depend on a CDN at runtime.
     wizard = root / "web3d/downselect.v2.html"
     if wizard.is_file():
         _inject(wizard, ms / "downselect/index.html",
@@ -378,13 +395,7 @@ def main(argv: list[str] | None = None) -> int:
                                       "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
 
-    explorer = root / "web3d/explorer.html"
-    if explorer.is_file():
-        _inject(explorer, ms / "graph/index.html",
-                "<!-- catalogue-freshness -->", freshness)
-        vendor = root / "web3d/vendor"
-        if vendor.is_dir():
-            shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    if ship_explorer(root, ms, freshness):
         ms_paths.append("/graph/")
 
     (ms / "models").mkdir(exist_ok=True)

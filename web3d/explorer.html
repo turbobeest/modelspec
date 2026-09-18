@@ -1,96 +1,112 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-site="modelspec">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Graph explorer — ModelSpec</title>
 <meta name="description" content="The ModelSpec knowledge graph: every model, provider, benchmark and platform, and the relationships between them.">
 <link rel="canonical" href="https://modelspec.dev/graph/">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#07080a">
+<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/instrument.css">
 <style>
-:root{
-  --ground:#04060a; --panel:rgba(10,14,20,.82); --line:rgba(120,140,170,.16);
-  --ink:#e8edf5; --mute:#8d99ab; --dim:#5a6474; --amber:#f5b342;
-}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--ground);color:var(--ink);
-  font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:inherit}
+html,body{height:100%;overflow:hidden}
 #scene{position:fixed;inset:0}
-/* A faint vignette gives the volume a floor without adding geometry. */
 #vignette{position:fixed;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 45%,transparent 35%,rgba(0,0,0,.55) 100%)}
-.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+background:radial-gradient(ellipse at 50% 48%,transparent 45%,var(--ground) 125%)}
 
-header{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;
-  padding:14px 20px;z-index:10;pointer-events:none}
-header>*{pointer-events:auto}
-.brand{font-weight:700;letter-spacing:-.02em;text-decoration:none;font-size:17px}
-.brand span{color:var(--amber)}
-select,input{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:7px;padding:7px 11px;font:inherit;font-size:14px;backdrop-filter:blur(9px)}
-input{width:210px}
-select:focus,input:focus{outline:none;border-color:var(--amber)}
-.spacer{flex:1}
-.hint{color:var(--dim);font-size:12.5px;letter-spacing:.02em}
+#chrome{position:fixed;top:0;left:0;right:0;z-index:10;padding:0 20px;pointer-events:none;
+background:linear-gradient(var(--ground) 55%,transparent)}
+#chrome>*{pointer-events:auto}
+#chrome nav{margin:0;padding:13px 0 12px}
+.controls{display:flex;align-items:center;gap:10px;padding:12px 0 6px;flex-wrap:wrap}
+select,input{background:var(--surface);color:var(--ink);border:1px solid var(--line);
+padding:7px 10px;font-family:var(--mono);font-size:12.5px;min-width:0;max-width:100%}
+input{flex:0 1 240px}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+#counts{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--dim)}
+#question{font-family:var(--sans);font-size:13px;color:var(--mute);margin:0 0 6px;max-width:60ch}
 
-.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:11px;
-  backdrop-filter:blur(11px);z-index:10}
-#legend{left:20px;bottom:20px;padding:13px 15px;min-width:186px}
-#legend h4{margin:0 0 9px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);font-weight:500}
-.row{display:flex;align-items:center;gap:9px;font-size:13px;padding:2.5px 0;cursor:pointer;opacity:.95}
-.row:hover{opacity:1}
-.row.off{opacity:.3}
-.dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 7px currentColor}
-.row .n{margin-left:auto;color:var(--dim);font-size:11.5px}
+.panel{position:fixed;z-index:10;border:1px solid var(--line);
+background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(8px)}
+#legend{left:20px;bottom:20px;padding:12px 14px;min-width:180px}
+#legend .lab{display:block;margin-bottom:8px}
+.row{display:flex;align-items:center;gap:9px;font-family:var(--sans);font-size:13px;
+padding:2px 0;cursor:pointer;color:var(--body)}
+.row:hover{color:var(--ink)}
+.row.off{opacity:.35}
+.row .n{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.glyph{width:9px;height:9px;flex:none}
+.glyph[data-shape="round"]{border-radius:50%}
+.glyph[data-shape="diamond"]{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.glyph[data-shape="triangle"]{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.glyph[data-shape="pentagon"]{clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)}
+#edgeKey{display:none;margin-top:9px;padding-top:8px;border-top:1px solid var(--line);
+font-family:var(--mono);font-size:10.5px;color:var(--dim);max-width:190px;line-height:1.45}
 
-#detail{right:20px;top:66px;width:312px;max-height:calc(100vh - 110px);overflow:auto;padding:16px 18px;display:none}
-#detail h3{margin:0 0 3px;font-size:17px;letter-spacing:-.01em}
-#detail .kind{color:var(--amber);font-size:11px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:11px}
-#detail table{width:100%;border-collapse:collapse;font-size:13px}
-#detail th{text-align:left;color:var(--mute);font-weight:400;padding:3px 9px 3px 0;vertical-align:top;white-space:nowrap}
-#detail td{padding:3px 0;word-break:break-word}
-#detail .go{display:inline-block;margin-top:13px;font-size:13px;color:var(--amber);text-decoration:none}
-#detail .go:hover{text-decoration:underline}
-#close{position:absolute;top:11px;right:13px;cursor:pointer;color:var(--dim);font-size:17px;line-height:1}
+#detail{right:20px;top:calc(var(--chrome-h,120px) + 8px);width:320px;
+max-height:calc(100vh - var(--chrome-h,120px) - 36px);overflow:auto;padding:15px 17px;display:none}
+#detail .lab{display:block;color:var(--accent);margin-bottom:6px}
+#detail h3{margin:0 0 10px;overflow-wrap:anywhere}
+#detail table{width:100%;border-collapse:collapse;font-size:12px}
+#detail th{text-align:left;color:var(--dim);font-weight:400;padding:3px 10px 3px 0;
+vertical-align:top;white-space:nowrap}
+#detail td{padding:3px 0;color:var(--body);word-break:break-word}
+#detail .go{display:inline-block;margin-top:12px;font-size:12px}
+#close{position:absolute;top:9px;right:12px;cursor:pointer;color:var(--dim);font-size:17px;line-height:1}
 #close:hover{color:var(--ink)}
 
-#status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:20}
-#status .t{font-size:14px;color:var(--mute);letter-spacing:.03em}
-#note{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10;
-  padding:8px 15px;font-size:12.5px;color:var(--mute);display:none;max-width:min(560px,90vw);text-align:center}
-#question{position:fixed;left:20px;top:62px;z-index:10;font-size:13px;color:var(--mute);max-width:290px;line-height:1.45}
-@media(max-width:760px){#detail{left:20px;right:20px;width:auto}#legend{display:none}#question{display:none}}
+#labels{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.tag{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--sans);font-size:11.5px;
+font-weight:500;letter-spacing:.01em;color:var(--body);will-change:transform,opacity;
+padding:1px 5px;background:color-mix(in srgb,var(--ground) 70%,transparent)}
+.tag.hub{color:var(--ink)}
+.tag.focus{color:var(--accent);font-weight:600}
+
+#status{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;
+font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--mute)}
+#note{left:50%;bottom:20px;transform:translateX(-50%);padding:8px 14px;font-size:12px;
+color:var(--mute);display:none;max-width:min(560px,90vw);text-align:center}
+#freshness{position:fixed;right:20px;bottom:20px;z-index:10;max-width:min(360px,70vw);
+text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
+@media(max-width:760px){
+#chrome{padding:0 16px}
+#chrome nav .links{gap:14px}
+#counts{margin-left:0;flex-basis:100%}
+#question,#legend,#freshness{display:none}
+#detail{left:16px;right:16px;width:auto}
+}
 </style>
 </head>
 <body>
 <div id="scene"></div>
 <div id="vignette"></div>
+<div id="labels" aria-hidden="true"></div>
 
-<header>
-  <a class="brand" href="/">Model<span>Spec</span></a>
-  <a href="/downselect/" style="color:var(--mute);text-decoration:none;font-size:15px">Downselect</a>
-  <select id="view" aria-label="Graph view"></select>
-  <input id="search" type="search" placeholder="Search the graph…" autocomplete="off" aria-label="Search">
-  <div class="spacer"></div>
-  <div class="hint mono" id="counts"></div>
-</header>
-<div class="hint mono" id="freshness" style="position:fixed;right:20px;bottom:20px;z-index:10;max-width:min(360px,70vw);text-align:right"><!-- catalogue-freshness --></div>
+<div id="chrome">
+<!-- site-nav -->
+  <div class="controls">
+    <select id="view" aria-label="Graph view"></select>
+    <input id="search" type="search" placeholder="Search the graph…" autocomplete="off" aria-label="Search">
+    <div id="counts"></div>
+  </div>
+  <p id="question"></p>
+</div>
+<div id="freshness"><!-- catalogue-freshness --></div>
 
-<div id="question"></div>
-
-<div class="panel" id="legend"><h4>Node types</h4><div id="legendRows"></div></div>
+<div class="panel" id="legend"><span class="lab">Node types</span><div id="legendRows"></div>
+  <div id="edgeKey">Edge brightness is the pair's overlap score.</div></div>
 
 <div class="panel" id="detail">
   <div id="close" role="button" aria-label="Close">&times;</div>
-  <div class="kind" id="dKind"></div>
+  <span class="lab" id="dKind"></span>
   <h3 id="dName"></h3>
   <table id="dProps"></table>
   <a class="go" id="dGo" href="#">Open page &rarr;</a>
 </div>
 
-<div id="status"><div class="t mono">Loading the graph…</div></div>
+<div id="status">Loading the graph…</div>
 <div class="panel" id="note"></div>
 
 <script src="/graph/vendor/three.min.js"></script>
@@ -99,20 +115,53 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
 (function () {
   "use strict";
 
-  // Hue carries meaning: one node type, one colour. Saturation stays low so the
-  // amber accent is the only thing that shouts, and so the graph reads as an
-  // instrument rather than a toy.
-  var PALETTE = {
-    Model:      "#dbe6f5",
-    Provider:   "#f5b342",
-    Benchmark:  "#63c9d9",
-    Platform:   "#8fa4d4",
-    Capability: "#78b5a2",
-    License:    "#9aa5b6",
-    Tag:        "#6c778a",
-    Hardware:   "#c98fb8"
+  var css = getComputedStyle(document.documentElement);
+  function token(name) { return css.getPropertyValue(name).trim(); }
+
+  // Hue carries node type and nothing else. Types the Instrument system has a
+  // token for take it; the system has no categorical scale, so the rest are
+  // desaturated hues chosen to sit beside the tokens without shouting.
+  var TYPES = {
+    Model:      { color: token("--mute"),   shape: "round",    geometry: new THREE.SphereGeometry(1, 32, 20), smooth: true },
+    Provider:   { color: token("--accent"), shape: "diamond",  geometry: new THREE.OctahedronGeometry(1.3) },
+    Benchmark:  { color: "#6fb4c2",         shape: "square",   geometry: new THREE.BoxGeometry(1.5, 1.5, 1.5) },
+    Platform:   { color: "#8e9cc6",         shape: "triangle", geometry: new THREE.TetrahedronGeometry(1.5) },
+    Capability: { color: "#7fab9a",         shape: "pentagon", geometry: new THREE.DodecahedronGeometry(1.15) },
+    License:    { color: token("--dim"),    shape: "diamond",  geometry: new THREE.OctahedronGeometry(1.2) },
+    Tag:        { color: "#6b7a8f",         shape: "triangle", geometry: new THREE.TetrahedronGeometry(1.3) },
+    Hardware:   { color: "#b596ad",         shape: "square",   geometry: new THREE.BoxGeometry(1.4, 1.4, 1.4) }
   };
-  var FALLBACK = "#9aa5b6";
+  var FALLBACK = { color: token("--mute"), shape: "round", geometry: new THREE.IcosahedronGeometry(1, 0) };
+  function typeOf(node) { return TYPES[node.label] || FALLBACK; }
+
+  var GROUND = new THREE.Color(token("--ground"));
+  var ACCENT = new THREE.Color(token("--accent"));
+  var EDGE = new THREE.Color(token("--mute"));
+  var EDGE_ALPHA = 0.2;
+  var HALO_SHARE = 0.04;
+  var LABEL_SLOTS = 14;
+  var LABEL_NEIGHBOURHOOD = 48;
+  var NEAR_CROWD_LIMIT = 10;
+  var LABEL_HUB_SCAN = 40;
+  var IDLE_AFTER_MS = 6000;
+  var DRIFT_RAD_PER_S = (2 * Math.PI) / 240;
+  var DRIFT_FRAME_MS = 1000 / 30;
+  // A hub type is a non-model type that is a small share of its view, such
+  // as 29 capabilities among 880 models: the view is organised around it.
+  // Benchmarks in the coverage view are half the nodes, so they are not hubs.
+  var HUB_SHARE_OF_VIEW = 0.15;
+  // Degree sizing stops at a cap, so no node becomes a planet that fills the
+  // frame when the camera comes near. Hubs stop higher than everything else,
+  // and start above the largest model, so even a thinly used hub reads as one.
+  var R_MAX = 8;
+  var R_MAX_HUB = 18;
+  var R_MIN_HUB = 9;
+  // Everything but a hub draws its solid smaller than its reach: a core with
+  // space around it reads as a measured point, and the hit mesh keeps the
+  // full reach. Hubs draw near full size so they read as the hubs they are.
+  var CORE = 0.55;
+  var CORE_HUB = 0.9;
+  function drawnRadius(node) { return node.__r * (node.__hub ? CORE_HUB : CORE); }
   // The export decides what is legible and publishes the limit it used. Keeping
   // a second number here would let the two drift apart silently.
   var DEFAULT_EDGE_LIMIT = 4000;
@@ -120,14 +169,16 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
   var el = function (id) { return document.getElementById(id); };
   var status = el("status"), note = el("note");
   var graph = null, nodesById = {}, currentView = null, hidden = {};
+  var view = { nodes: [], links: [], hubs: [], radius: 1, labelRank: [] };
+  var selected = null, hovered = null;
 
   function setStatus(text) {
-    if (text) { status.style.display = "block"; status.firstElementChild.textContent = text; }
-    else { status.style.display = "none"; }
+    status.style.display = text ? "block" : "none";
+    if (text) { status.textContent = text; }
   }
   function setNote(text) {
-    if (text) { note.style.display = "block"; note.textContent = text; }
-    else { note.style.display = "none"; }
+    note.style.display = text ? "block" : "none";
+    note.textContent = text || "";
   }
   function getJSON(url) {
     return fetch(url).then(function (r) {
@@ -135,85 +186,415 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
       return r.json();
     });
   }
+  function nameOf(n) { return String(n.display_name || n.name || n.id); }
 
-  // A glow sprite behind each node. This is what makes the scene read as
-  // science fiction rather than a ball pit, and it costs one texture shared by
-  // every node rather than a post-processing pass.
+  // ── The scene layer this page owns ─────────────────────────────────────────
+  // The library draws one object per node and one line per edge, so a
+  // 4,000-edge view cost over 4,000 draw calls a frame. Nodes are drawn here as
+  // one instanced mesh per type and edges as one line set; the library keeps
+  // the layout, the camera and an invisible hit mesh per node for clicks.
+
+  var layer = new THREE.Group();
+  // The hit mesh spans about what the old glow sprite did (5.5 radii across),
+  // so a node is as easy to hover and click as before.
+  var hitGeometry = new THREE.IcosahedronGeometry(2.75, 0);
+  var hitMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  var instanced = {};
+  var linkLines = null, dots = null;
+  var dummy = new THREE.Object3D();
+
   var glowTexture = (function () {
     var c = document.createElement("canvas");
-    c.width = c.height = 128;
-    var g = c.getContext("2d").createRadialGradient(64, 64, 0, 64, 64, 64);
-    g.addColorStop(0.00, "rgba(255,255,255,1)");
-    g.addColorStop(0.18, "rgba(255,255,255,.55)");
-    g.addColorStop(0.45, "rgba(255,255,255,.13)");
-    g.addColorStop(1.00, "rgba(255,255,255,0)");
+    c.width = c.height = 64;
     var ctx = c.getContext("2d");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+    var g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, "rgba(255,255,255,.9)");
+    g.addColorStop(0.25, "rgba(255,255,255,.28)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
     return new THREE.CanvasTexture(c);
   })();
-
-  var materialCache = {};
-  function coreMaterial(color) {
-    if (!materialCache[color]) {
-      materialCache[color] = new THREE.MeshBasicMaterial({ color: color });
-    }
-    return materialCache[color];
+  function glowSprite(color, opacity) {
+    return new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture, color: color, transparent: true, opacity: opacity,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
   }
-  var spriteCache = {};
-  function glowMaterial(color) {
-    if (!spriteCache[color]) {
-      spriteCache[color] = new THREE.SpriteMaterial({
-        map: glowTexture, color: color,
-        transparent: true, opacity: 0.62,
-        blending: THREE.AdditiveBlending, depthWrite: false
+  var marker = glowSprite(ACCENT, 0.6);
+  marker.visible = false;
+  layer.add(marker);
+
+  // A faint star shell gives the volume a floor and makes rotation legible.
+  var stars = (function () {
+    var count = 900, pos = new Float32Array(count * 3), seed = 7;
+    function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (var i = 0; i < count; i++) {
+      var u = rand() * 2 - 1, t = rand() * Math.PI * 2, s = Math.sqrt(1 - u * u), r = 1 + rand() * 0.6;
+      pos[i * 3] = s * Math.cos(t) * r; pos[i * 3 + 1] = u * r; pos[i * 3 + 2] = s * Math.sin(t) * r;
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return new THREE.Points(geo, new THREE.PointsMaterial({
+      color: new THREE.Color(token("--dim")), size: 1, sizeAttenuation: false,
+      transparent: true, opacity: 0.35, fog: false, depthWrite: false
+    }));
+  })();
+  layer.add(stars);
+
+  function buildLayer() {
+    Object.keys(instanced).forEach(function (k) {
+      layer.remove(instanced[k]); instanced[k].material.dispose(); instanced[k].dispose();
+    });
+    instanced = {};
+    view.hubs.forEach(function (h) { layer.remove(h.sprite); h.sprite.material.dispose(); });
+    if (linkLines) { layer.remove(linkLines); linkLines.geometry.dispose(); linkLines.material.dispose(); }
+    if (dots) { layer.remove(dots); dots.geometry.dispose(); dots.material.dispose(); }
+
+    var groups = {};
+    view.nodes.forEach(function (n) { (groups[n.label] = groups[n.label] || []).push(n); });
+    Object.keys(groups).forEach(function (label) {
+      var t = TYPES[label] || FALLBACK;
+      var mesh = new THREE.InstancedMesh(t.geometry, new THREE.MeshLambertMaterial({
+        color: t.color, emissive: t.color, emissiveIntensity: 0.1, flatShading: !t.smooth
+      }), groups[label].length);
+      mesh.frustumCulled = false;
+      groups[label].forEach(function (n, i) { n.__slot = i; });
+      instanced[label] = mesh;
+      layer.add(mesh);
+    });
+
+    // Bloom on the hubs only: a soft additive halo on the most connected few.
+    var ranked = view.nodes.slice().sort(function (a, b) { return b.__deg - a.__deg; });
+    var hubCount = Math.max(3, Math.round(view.nodes.length * HALO_SHARE));
+    view.hubs = ranked.slice(0, hubCount).filter(function (n) { return n.__deg > 2; })
+      .map(function (n) {
+        var s = glowSprite(new THREE.Color(typeOf(n).color), 0.32);
+        layer.add(s);
+        return { node: n, sprite: s };
       });
+    view.labelRank = ranked;
+
+    // Every node also gets a dot of fixed screen size, so a node stays visible
+    // when the camera is framed wide enough that its mesh is under a pixel, as
+    // it is on a phone.
+    var dotGeo = new THREE.BufferGeometry();
+    dotGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(view.nodes.length * 3), 3));
+    dotGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(view.nodes.length * 4), 4));
+    dots = new THREE.Points(dotGeo, new THREE.PointsMaterial({
+      size: 2, sizeAttenuation: false,
+      vertexColors: true, transparent: true, depthWrite: false
+    }));
+    dots.frustumCulled = false;
+    layer.add(dots);
+    paintDots();
+
+    var count = view.links.length;
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * 6), 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(count * 8), 4));
+    linkLines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, depthWrite: false
+    }));
+    linkLines.frustumCulled = false;
+    layer.add(linkLines);
+    paintLinks();
+  }
+
+  function endpoint(ref) { return typeof ref === "object" ? ref : nodesById[ref]; }
+
+  // Edges are thin and faint, with alpha as their intensity: uniform, except
+  // where the export carries a score for the pair, and strong in accent where
+  // the edge touches the selected node. Additive blending was tried and summed
+  // the hundreds of edges into a hub to white glare, so edges alpha-blend.
+  function paintLinks() {
+    if (!linkLines) { return; }
+    var col = linkLines.geometry.attributes.color.array;
+    view.links.forEach(function (l, i) {
+      var s = endpoint(l.source), t = endpoint(l.target), c = EDGE, k = EDGE_ALPHA;
+      if (!s || !t || hidden[s.label] || hidden[t.label]) { k = 0; }
+      else if (selected && (s === selected || t === selected)) { c = ACCENT; k = 0.9; }
+      else if (l.score !== undefined) { k = 0.06 + 0.4 * l.score; }
+      for (var v = i * 8; v < i * 8 + 8; v += 4) {
+        col[v] = c.r; col[v + 1] = c.g; col[v + 2] = c.b; col[v + 3] = k;
+      }
+    });
+    linkLines.geometry.attributes.color.needsUpdate = true;
+  }
+
+  function paintDots() {
+    if (!dots) { return; }
+    var col = dots.geometry.attributes.color.array, c = new THREE.Color();
+    view.nodes.forEach(function (n, i) {
+      c.set(typeOf(n).color);
+      col[i * 4] = c.r; col[i * 4 + 1] = c.g; col[i * 4 + 2] = c.b; col[i * 4 + 3] = hidden[n.label] ? 0 : 1;
+    });
+    dots.geometry.attributes.color.needsUpdate = true;
+  }
+
+  function syncLayer() {
+    var dotPos = dots ? dots.geometry.attributes.position.array : null;
+    var cx = 0, cy = 0, cz = 0, n = view.nodes.length || 1;
+    view.nodes.forEach(function (node, i) {
+      var mesh = instanced[node.label];
+      dummy.position.set(node.x || 0, node.y || 0, node.z || 0);
+      dummy.scale.setScalar(drawnRadius(node));
+      dummy.updateMatrix();
+      mesh.setMatrixAt(node.__slot, dummy.matrix);
+      if (dotPos) { dummy.position.toArray(dotPos, i * 3); }
+      cx += dummy.position.x; cy += dummy.position.y; cz += dummy.position.z;
+    });
+    Object.keys(instanced).forEach(function (k) { instanced[k].instanceMatrix.needsUpdate = true; });
+    if (dotPos) { dots.geometry.attributes.position.needsUpdate = true; }
+    cx /= n; cy /= n; cz /= n;
+    var radius = 1;
+    view.nodes.forEach(function (node) {
+      radius = Math.max(radius, Math.hypot((node.x || 0) - cx, (node.y || 0) - cy, (node.z || 0) - cz));
+    });
+    view.radius = radius;
+    stars.position.set(cx, cy, cz);
+    stars.scale.setScalar(radius * 4);
+    view.hubs.forEach(function (h) {
+      h.sprite.position.set(h.node.x || 0, h.node.y || 0, h.node.z || 0);
+      h.sprite.scale.setScalar(drawnRadius(h.node) * 6);
+    });
+    if (selected) { marker.position.set(selected.x || 0, selected.y || 0, selected.z || 0); }
+    if (linkLines) {
+      var pos = linkLines.geometry.attributes.position.array;
+      view.links.forEach(function (l, i) {
+        var s = endpoint(l.source), t = endpoint(l.target);
+        if (!s || !t) { return; }
+        pos[i * 6] = s.x || 0; pos[i * 6 + 1] = s.y || 0; pos[i * 6 + 2] = s.z || 0;
+        pos[i * 6 + 3] = t.x || 0; pos[i * 6 + 4] = t.y || 0; pos[i * 6 + 5] = t.z || 0;
+      });
+      linkLines.geometry.attributes.position.needsUpdate = true;
     }
-    return spriteCache[color];
+    labelsDirty = true;
   }
 
-  var sphere = new THREE.SphereGeometry(1, 12, 10);
-
-  function nodeObject(node) {
-    var color = PALETTE[node.label] || FALLBACK;
-    var r = node.__r;
-    var group = new THREE.Group();
-    var core = new THREE.Mesh(sphere, coreMaterial(color));
-    core.scale.setScalar(r);
-    group.add(core);
-    var glow = new THREE.Sprite(glowMaterial(color));
-    glow.scale.setScalar(r * 5.5);
-    group.add(glow);
-    return group;
+  function applyVisibility() {
+    if (!graph) { return; }
+    graph.nodeVisibility(function (n) { return !hidden[n.label]; });
+    Object.keys(instanced).forEach(function (k) { instanced[k].visible = !hidden[k]; });
+    paintDots();
+    view.hubs.forEach(function (h) { h.sprite.visible = !hidden[h.node.label]; });
+    paintLinks();
+    labelsDirty = true;
   }
+
+  // ── Depth: fog stands in for depth of field ────────────────────────────────
+  // A real bokeh pass needs three's ES-module post-processing, which the
+  // vendored UMD build cannot load. Fog fades near-to-far instead, so distance
+  // reads as dimming, and the nearest nodes stay crisp.
+
+  var fog = new THREE.Fog(GROUND, 1, 2);
+  function updateFog() {
+    var cam = graph.camera(), target = graph.controls().target || new THREE.Vector3();
+    var d = cam.position.distanceTo(target), r = view.radius;
+    fog.near = Math.max(1, d - r * 0.35);
+    fog.far = d + r * 1.5;
+  }
+
+  // ── Labels ────────────────────────────────────────────────────────────────
+  // HTML text in the site's own face, positioned from the scene each frame. The
+  // subset is re-chosen a few times a second: the selected and hovered nodes,
+  // the most connected, and the nearest, each dropped when a nearer node covers
+  // its anchor or when it would collide with a label already placed.
+
+  var labelsEl = el("labels");
+  var slots = [];
+  for (var li = 0; li < LABEL_SLOTS; li++) {
+    var tag = document.createElement("div");
+    tag.className = "tag";
+    tag.style.opacity = "0";
+    labelsEl.appendChild(tag);
+    slots.push({ el: tag, node: null, text: "" });
+  }
+  var labelsDirty = true, lastPick = 0;
+  var v3 = new THREE.Vector3();
+
+  function project(node, cam, w, h) {
+    v3.set(node.x || 0, node.y || 0, node.z || 0).applyMatrix4(cam.matrixWorldInverse);
+    var depth = -v3.z;
+    v3.applyMatrix4(cam.projectionMatrix);
+    return { x: (v3.x + 1) / 2 * w, y: (1 - v3.y) / 2 * h, depth: depth };
+  }
+
+  function pickLabels() {
+    var cam = graph.camera(), w = window.innerWidth, h = window.innerHeight;
+    cam.updateMatrixWorld();
+    var focal = (h / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
+    var shown = view.nodes.filter(function (n) { return !hidden[n.label]; });
+    var proj = new Map(), cells = {}, cell = LABEL_NEIGHBOURHOOD / 1.5;
+    shown.forEach(function (n) {
+      var p = project(n, cam, w, h);
+      p.r = drawnRadius(n) * focal / Math.max(p.depth, 1e-3);
+      proj.set(n, p);
+      if (p.depth > 0) {
+        var key = Math.floor(p.x / cell) + "," + Math.floor(p.y / cell);
+        cells[key] = (cells[key] || 0) + 1;
+      }
+    });
+    function onScreen(p) { return p.depth > 0 && p.x > 0 && p.x < w && p.y > 0 && p.y < h; }
+    function occluded(n, p) {
+      var hit = false;
+      proj.forEach(function (q, m) {
+        if (!hit && m !== n && q.depth > 0 && q.depth < p.depth - m.__r &&
+            Math.hypot(q.x - p.x, q.y - p.y) < q.r) { hit = true; }
+      });
+      return hit;
+    }
+    // How many drawn nodes sit near a label's anchor on screen: the 3x3 block
+    // of grid cells around it. The grid is filled once per pick, so each
+    // label costs nine lookups rather than a pass over every node.
+    function crowding(p) {
+      var cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell), count = -1;
+      for (var dx = -1; dx <= 1; dx++) {
+        for (var dy = -1; dy <= 1; dy++) { count += cells[(cx + dx) + "," + (cy + dy)] || 0; }
+      }
+      return count;
+    }
+    var picks = [], boxes = [], texts = {};
+    // A focus label (selected, hovered, searched) always shows, in full. Any
+    // other label keeps clear of the labels already placed, by a margin that
+    // widens with the crowding around it, so a dense cluster gets one or two
+    // names rather than a pile; and it never repeats text already on screen.
+    function place(n, kind) {
+      var force = kind === "focus";
+      if (!n || picks.length >= LABEL_SLOTS || picks.some(function (x) { return x.node === n; })) { return; }
+      var p = proj.get(n);
+      if (!p || !onScreen(p)) { return; }
+      var text = nameOf(n), limit = force ? 60 : 30;
+      if (text.length > limit) { text = text.slice(0, limit - 1) + "…"; }
+      if (!force && texts[text]) { return; }
+      var crowd = force ? 0 : crowding(p);
+      if (kind === "near" && crowd > NEAR_CROWD_LIMIT) { return; }
+      var margin = force ? 0 : 10 + Math.min(crowd, 40) * 0.9;
+      var box = { x: p.x + p.r + 5, y: p.y - 9, w: text.length * 6.6 + 10, h: 18 };
+      var hit = boxes.some(function (b) {
+        return box.x - margin < b.x + b.w && b.x < box.x + box.w + margin &&
+               box.y - margin < b.y + b.h && b.y < box.y + box.h + margin;
+      });
+      if (hit && !force) { return; }
+      // Occlusion is the one test that still walks every node, so it runs last.
+      if (!force && occluded(n, p)) { return; }
+      boxes.push(box);
+      texts[text] = 1;
+      picks.push({ node: n, kind: kind, text: text });
+    }
+    place(selected, "focus");
+    place(hovered, "focus");
+    var narrow = w < 760, hubs = 0;
+    var scan = Math.min(view.labelRank.length, LABEL_HUB_SCAN);
+    for (var i = 0; i < scan && hubs < (narrow ? 3 : 7); i++) {
+      var n = view.labelRank[i];
+      if (hidden[n.label]) { continue; }
+      var before = picks.length;
+      place(n, "hub");
+      if (picks.length > before) { hubs++; }
+    }
+    shown.filter(function (n) { return onScreen(proj.get(n)); })
+      .sort(function (a, b) { return proj.get(a).depth - proj.get(b).depth; })
+      .slice(0, 12)
+      .forEach(function (n) { if (picks.length < (narrow ? 6 : LABEL_SLOTS - 1)) { place(n, "near"); } });
+
+    slots.forEach(function (slot, i) {
+      var pick = picks[i];
+      slot.node = pick ? pick.node : null;
+      if (pick && slot.text !== pick.text) { slot.el.textContent = pick.text; slot.text = pick.text; }
+      slot.el.className = "tag" + (pick && pick.kind !== "near" ? " " + pick.kind : "");
+      if (!pick) { slot.el.style.opacity = "0"; }
+    });
+  }
+
+  function placeLabels(now) {
+    if (labelsDirty || now - lastPick > 180) { pickLabels(); lastPick = now; labelsDirty = false; }
+    var cam = graph.camera(), w = window.innerWidth, h = window.innerHeight;
+    var focal = (h / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
+    slots.forEach(function (slot) {
+      var n = slot.node;
+      if (!n) { return; }
+      var p = project(n, cam, w, h);
+      if (p.depth <= 0) { slot.el.style.opacity = "0"; return; }
+      var r = drawnRadius(n) * focal / p.depth;
+      var fade = 1 - Math.min(1, Math.max(0, (p.depth - fog.near) / (fog.far - fog.near)));
+      var focus = n === selected || n === hovered;
+      slot.el.style.opacity = String(focus ? 1 : 0.35 + 0.65 * fade);
+      slot.el.style.transform = "translate(" + (p.x + r + 5).toFixed(1) + "px," + (p.y - 8).toFixed(1) + "px)";
+    });
+  }
+
+  // ── The frame loop this page adds ─────────────────────────────────────────
+  // While someone is looking around, the library renders and this loop only
+  // moves labels and fog. After a quiet spell with the layout settled, the
+  // library loop is paused and this loop drifts the camera at 30 frames a
+  // second, which costs less than the library's static full-rate redraw did.
+  // Hidden tabs get no frames at all.
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var engineSettled = false, lastInput = performance.now(), drifting = false, lastDrift = 0;
+  var driftAxis = new THREE.Vector3(0, 1, 0);
+
+  function wake() {
+    lastInput = performance.now();
+    if (drifting) { drifting = false; graph.resumeAnimation(); }
+  }
+  ["pointerdown", "pointermove", "wheel", "touchstart", "keydown"].forEach(function (type) {
+    window.addEventListener(type, wake, { passive: true, capture: true });
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) { wake(); }
+  });
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!graph || document.hidden) { return; }
+    var idle = engineSettled && !reduceMotion && now - lastInput > IDLE_AFTER_MS;
+    if (idle && !drifting) { drifting = true; lastDrift = now; graph.pauseAnimation(); }
+    if (drifting) {
+      if (now - lastDrift < DRIFT_FRAME_MS) { return; }
+      var dt = Math.min(now - lastDrift, 100) / 1000;
+      lastDrift = now;
+      var cam = graph.camera(), target = graph.controls().target;
+      cam.position.sub(target).applyAxisAngle(driftAxis, DRIFT_RAD_PER_S * dt).add(target);
+      cam.lookAt(target);
+      updateFog();
+      placeLabels(now);
+      graph.renderer().render(graph.scene(), cam);
+      return;
+    }
+    updateFog();
+    placeLabels(now);
+  }
+
+  // ── Detail panel, legend, views ───────────────────────────────────────────
 
   function renderLegend(nodes) {
     var counts = {};
     nodes.forEach(function (n) { counts[n.label] = (counts[n.label] || 0) + 1; });
     var rows = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
-    el("legendRows").innerHTML = rows.map(function (label) {
-      var color = PALETTE[label] || FALLBACK;
-      return '<div class="row' + (hidden[label] ? " off" : "") + '" data-label="' + label + '">' +
-             '<span class="dot" style="background:' + color + ';color:' + color + '"></span>' +
-             label + '<span class="n mono">' + counts[label] + "</span></div>";
-    }).join("");
-    Array.prototype.forEach.call(el("legendRows").querySelectorAll(".row"), function (row) {
+    var box = el("legendRows");
+    box.textContent = "";
+    rows.forEach(function (label) {
+      var t = TYPES[label] || FALLBACK;
+      var row = document.createElement("div");
+      row.className = "row" + (hidden[label] ? " off" : "");
+      var glyph = document.createElement("span");
+      glyph.className = "glyph";
+      glyph.dataset.shape = t.shape;
+      glyph.style.background = t.color;
+      var n = document.createElement("span");
+      n.className = "n";
+      n.textContent = counts[label];
+      row.appendChild(glyph);
+      row.appendChild(document.createTextNode(label));
+      row.appendChild(n);
       row.onclick = function () {
-        var label = row.dataset.label;
         hidden[label] = !hidden[label];
         row.classList.toggle("off", !!hidden[label]);
         applyVisibility();
       };
+      box.appendChild(row);
     });
-  }
-
-  function applyVisibility() {
-    if (!graph) { return; }
-    graph.nodeVisibility(function (n) { return !hidden[n.label]; })
-         .linkVisibility(function (l) {
-           var s = typeof l.source === "object" ? l.source : nodesById[l.source];
-           var t = typeof l.target === "object" ? l.target : nodesById[l.target];
-           return s && t && !hidden[s.label] && !hidden[t.label];
-         });
   }
 
   function pageFor(node) {
@@ -227,49 +608,92 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
   }
 
   var SKIP = { key: 1, id: 1, label: 1, has_page: 1, huggingface_url: 1, huggingface_id: 1,
-               __r: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
+               __r: 1, __deg: 1, __hub: 1, __slot: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
                index: 1, __threeObj: 1, fx: 1, fy: 1, fz: 1 };
+  var COUNTS = { total_parameters: 1, active_parameters: 1, context_window: 1, max_input: 1, max_output: 1 };
+
+  // The rule of pipeline/render.py human_count, so the panel and the model
+  // page print 116829156672 the same way: 116.8B.
+  function humanCount(value) {
+    var n = Number(value);
+    if (!isFinite(n)) { return String(value); }
+    var steps = [[1e12, "T"], [1e9, "B"], [1e6, "M"]];
+    for (var i = 0; i < steps.length; i++) {
+      if (n >= steps[i][0]) { return (n / steps[i][0]).toFixed(1).replace(/\.0$/, "") + steps[i][1]; }
+    }
+    return Math.round(n).toLocaleString("en-US");
+  }
+  function esc(text) {
+    return String(text).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function select(node) {
+    selected = node;
+    marker.visible = !!node;
+    if (node) {
+      marker.position.set(node.x || 0, node.y || 0, node.z || 0);
+      marker.scale.setScalar(drawnRadius(node) * 4.5);
+    }
+    paintLinks();
+    labelsDirty = true;
+  }
 
   function showDetail(node) {
+    // The camera eases to the node on the library's loop, which drift pauses.
+    wake();
     el("dKind").textContent = node.label;
-    el("dName").textContent = node.display_name || node.name || node.id;
+    el("dName").textContent = nameOf(node);
     var rows = Object.keys(node).filter(function (k) {
       return !SKIP[k] && node[k] !== null && node[k] !== "" && typeof node[k] !== "object";
     }).sort();
     el("dProps").innerHTML = rows.map(function (k) {
-      return "<tr><th>" + k.replace(/_/g, " ") + "</th><td>" + String(node[k]) + "</td></tr>";
+      var value = COUNTS[k] ? humanCount(node[k]) : node[k];
+      return "<tr><th>" + k.replace(/_/g, " ") + "</th><td>" + esc(value) + "</td></tr>";
     }).join("");
     var href = pageFor(node);
     el("dGo").style.display = href ? "inline-block" : "none";
     if (href) { el("dGo").href = href; }
     el("detail").style.display = "block";
+    select(node);
   }
-  el("close").onclick = function () { el("detail").style.display = "none"; };
+  // Close enough to read the node, never so close its surface fills the frame.
+  function standOff(node, base) { return Math.max(base, node.__r * 18); }
+
+  function hideDetail() { el("detail").style.display = "none"; select(null); }
+  el("close").onclick = hideDetail;
 
   function loadView(key) {
     setStatus("Loading " + key + "…");
     setNote("");
-    return getJSON("/api/graph/views/" + key + ".json").then(function (view) {
-      currentView = view;
-      el("question").textContent = view.question || "";
+    return getJSON("/api/graph/views/" + key + ".json").then(function (data) {
+      currentView = data;
+      el("question").textContent = data.question || "";
+      select(null);
+      el("detail").style.display = "none";
 
-      var nodes = view.nodes.slice();
-      var links = view.edges.map(function (e) {
-        return { source: e.from, target: e.to, type: e.type };
+      var nodes = data.nodes.slice();
+      var links = data.edges.map(function (e) {
+        var link = { source: e.from, target: e.to, type: e.type };
+        if (e.props && typeof e.props.overlap_score === "number") { link.score = e.props.overlap_score; }
+        return link;
       });
 
       if (!links.length) {
         setStatus("");
-        setNote("This view is empty — no " + view.edge_types.join(", ") +
+        setNote("This view is empty — no " + data.edge_types.join(", ") +
                 " relationships exist in the data yet.");
-        if (graph) { graph.graphData({ nodes: [], links: [] }); }
+        view = { nodes: [], links: [], hubs: view.hubs, radius: 1, labelRank: [] };
+        buildLayer();
+        graph.graphData({ nodes: [], links: [] });
         el("counts").textContent = "0 nodes · 0 edges";
-        el("legendRows").innerHTML = "";
+        el("legendRows").textContent = "";
         return;
       }
 
       // An illegible view is sampled rather than rendered whole, and says so.
-      var limit = view.legible_edge_limit || DEFAULT_EDGE_LIMIT;
+      var limit = data.legible_edge_limit || DEFAULT_EDGE_LIMIT;
       var sampled = false;
       if (links.length > limit) {
         links = links.slice(0, limit);
@@ -286,23 +710,33 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
         degree[l.source] = (degree[l.source] || 0) + 1;
         degree[l.target] = (degree[l.target] || 0) + 1;
       });
+      var perType = {};
+      nodes.forEach(function (n) { perType[n.label] = (perType[n.label] || 0) + 1; });
       nodes.forEach(function (n) {
-        n.__r = 2.6 + Math.pow(degree[n.key] || 0, 0.42) * 1.9;
+        n.__deg = degree[n.key] || 0;
+        n.__hub = n.label !== "Model" && perType[n.label] <= nodes.length * HUB_SHARE_OF_VIEW;
+        var r = 2.6 + Math.pow(n.__deg, 0.42) * 1.9;
+        n.__r = n.__hub ? Math.min(Math.max(r, R_MIN_HUB), R_MAX_HUB) : Math.min(r, R_MAX);
       });
 
       nodesById = {};
       nodes.forEach(function (n) { nodesById[n.key] = n; });
 
+      view = { nodes: nodes, links: links, hubs: view.hubs, radius: 1, labelRank: [] };
+      buildLayer();
       graph.__framed = false;
+      engineSettled = false;
+      wake();
       graph.graphData({ nodes: nodes, links: links });
       applyVisibility();
       renderLegend(nodes);
+      el("edgeKey").style.display = links.some(function (l) { return l.score !== undefined; }) ? "block" : "none";
       el("counts").textContent = nodes.length.toLocaleString() + " nodes · " +
                                  links.length.toLocaleString() + " edges";
       setStatus("");
       if (sampled) {
         setNote("Showing the first " + limit.toLocaleString() + " of " +
-                view.counts.edges.toLocaleString() + " edges. This view is too dense to " +
+                data.counts.edges.toLocaleString() + " edges. This view is too dense to " +
                 "draw whole — the full data is in the API.");
       }
     });
@@ -316,34 +750,49 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
     }).join("");
 
     graph = ForceGraph3D()(el("scene"))
-      .backgroundColor("#04060a")
+      .backgroundColor(token("--ground"))
       .showNavInfo(false)
       .nodeId("key")
-      .nodeLabel(function (n) { return n.display_name || n.name || n.id; })
-      .nodeThreeObject(nodeObject)
-      .linkColor(function () { return "#93a9cc"; })
-      .linkOpacity(0.42)
-      .linkWidth(0)
-      .linkDirectionalParticles(0)
+      .nodeLabel(function () { return ""; })
+      .nodeThreeObject(function (node) {
+        var hit = new THREE.Mesh(hitGeometry, hitMaterial);
+        hit.scale.setScalar(node.__r);
+        return hit;
+      })
+      .linkVisibility(false)
       .warmupTicks(24)
       .cooldownTime(9000)
+      .onEngineTick(syncLayer)
+      .onNodeDrag(syncLayer)
+      .onNodeHover(function (node) { hovered = node || null; labelsDirty = true; })
       .onNodeClick(function (node) {
         // Ease the camera to the node rather than cutting, so the viewer keeps
         // their bearings in the volume.
-        var d = 62;
         var dist = Math.hypot(node.x, node.y, node.z) || 1;
-        var k = 1 + d / dist;
+        var k = 1 + standOff(node, 62) / dist;
         graph.cameraPosition({ x: node.x * k, y: node.y * k, z: node.z * k },
                              node, 900);
         showDetail(node);
       })
-      .onBackgroundClick(function () { el("detail").style.display = "none"; })
+      .onBackgroundClick(hideDetail)
       .onEngineStop(function () {
+        syncLayer();
+        engineSettled = true;
+        lastInput = performance.now();
         // Frame what was actually laid out, once, rather than leaving the
         // viewer to find the graph themselves.
         if (!graph.__framed) { graph.__framed = true; graph.zoomToFit(900, 60); }
       });
 
+    graph.scene().add(layer);
+    graph.scene().fog = fog;
+    // Less ambient and more key light than the library's default, so a node
+    // near the camera shows its form instead of one flat tone.
+    var key = new THREE.DirectionalLight(0xffffff, 0.85 * Math.PI);
+    key.position.set(0.6, 1, 0.8);
+    var fill = new THREE.DirectionalLight(0xffffff, 0.2 * Math.PI);
+    fill.position.set(-0.8, -0.4, -0.6);
+    graph.lights([new THREE.AmbientLight(0xffffff, 0.35 * Math.PI), key, fill]);
     graph.d3Force("charge").strength(-95);
 
     var first = views.filter(function (v) { return !v.empty; })[0] || views[0];
@@ -352,17 +801,16 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
 
     el("search").oninput = function () {
       var q = this.value.trim().toLowerCase();
-      if (!q) { graph.nodeThreeObject(nodeObject); return; }
+      if (!q) { return; }
       var hit = null;
       Object.keys(nodesById).some(function (k) {
         var n = nodesById[k];
-        var name = String(n.display_name || n.name || n.id).toLowerCase();
-        if (name.indexOf(q) !== -1) { hit = n; return true; }
+        if (nameOf(n).toLowerCase().indexOf(q) !== -1) { hit = n; return true; }
         return false;
       });
       if (hit) {
         var dist = Math.hypot(hit.x, hit.y, hit.z) || 1;
-        var k = 1 + 70 / dist;
+        var k = 1 + standOff(hit, 70) / dist;
         graph.cameraPosition({ x: hit.x * k, y: hit.y * k, z: hit.z * k }, hit, 700);
         showDetail(hit);
       }
@@ -372,19 +820,23 @@ select:focus,input:focus{outline:none;border-color:var(--amber)}
     // once from window.innerWidth leaves the canvas stranded at its initial
     // dimensions whenever the viewport changes after load — a resized window, a
     // rotated phone, or an embedding pane that settles late.
-    var scene = el("scene");
+    var scene = el("scene"), chrome = el("chrome");
     function fit() {
       var w = scene.clientWidth || window.innerWidth;
       var h = scene.clientHeight || window.innerHeight;
       graph.width(w).height(h);
+      document.documentElement.style.setProperty("--chrome-h", chrome.offsetHeight + "px");
+      labelsDirty = true;
     }
     if (window.ResizeObserver) {
       new ResizeObserver(fit).observe(scene);
+      new ResizeObserver(fit).observe(chrome);
     } else {
       window.addEventListener("resize", fit);
     }
     window.addEventListener("orientationchange", fit);
     fit();
+    requestAnimationFrame(frame);
 
     return loadView(first.key);
   }
