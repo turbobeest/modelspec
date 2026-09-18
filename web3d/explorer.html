@@ -143,6 +143,7 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
   var LABEL_SLOTS = 14;
   var LABEL_NEIGHBOURHOOD = 48;
   var NEAR_CROWD_LIMIT = 10;
+  var LABEL_HUB_SCAN = 40;
   var IDLE_AFTER_MS = 6000;
   var DRIFT_RAD_PER_S = (2 * Math.PI) / 240;
   var DRIFT_FRAME_MS = 1000 / 30;
@@ -424,11 +425,15 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
     cam.updateMatrixWorld();
     var focal = (h / 2) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
     var shown = view.nodes.filter(function (n) { return !hidden[n.label]; });
-    var proj = new Map();
+    var proj = new Map(), cells = {}, cell = LABEL_NEIGHBOURHOOD / 1.5;
     shown.forEach(function (n) {
       var p = project(n, cam, w, h);
       p.r = drawnRadius(n) * focal / Math.max(p.depth, 1e-3);
       proj.set(n, p);
+      if (p.depth > 0) {
+        var key = Math.floor(p.x / cell) + "," + Math.floor(p.y / cell);
+        cells[key] = (cells[key] || 0) + 1;
+      }
     });
     function onScreen(p) { return p.depth > 0 && p.x > 0 && p.x < w && p.y > 0 && p.y < h; }
     function occluded(n, p) {
@@ -439,13 +444,14 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
       });
       return hit;
     }
-    // How many drawn nodes sit near a label's anchor on screen.
+    // How many drawn nodes sit near a label's anchor on screen: the 3x3 block
+    // of grid cells around it. The grid is filled once per pick, so each
+    // label costs nine lookups rather than a pass over every node.
     function crowding(p) {
-      var count = 0;
-      proj.forEach(function (q) {
-        if (q !== p && q.depth > 0 && Math.abs(q.x - p.x) < LABEL_NEIGHBOURHOOD &&
-            Math.abs(q.y - p.y) < LABEL_NEIGHBOURHOOD) { count++; }
-      });
+      var cx = Math.floor(p.x / cell), cy = Math.floor(p.y / cell), count = -1;
+      for (var dx = -1; dx <= 1; dx++) {
+        for (var dy = -1; dy <= 1; dy++) { count += cells[(cx + dx) + "," + (cy + dy)] || 0; }
+      }
       return count;
     }
     var picks = [], boxes = [], texts = {};
@@ -458,7 +464,6 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
       if (!n || picks.length >= LABEL_SLOTS || picks.some(function (x) { return x.node === n; })) { return; }
       var p = proj.get(n);
       if (!p || !onScreen(p)) { return; }
-      if (!force && occluded(n, p)) { return; }
       var text = nameOf(n), limit = force ? 60 : 30;
       if (text.length > limit) { text = text.slice(0, limit - 1) + "…"; }
       if (!force && texts[text]) { return; }
@@ -471,6 +476,8 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
                box.y - margin < b.y + b.h && b.y < box.y + box.h + margin;
       });
       if (hit && !force) { return; }
+      // Occlusion is the one test that still walks every node, so it runs last.
+      if (!force && occluded(n, p)) { return; }
       boxes.push(box);
       texts[text] = 1;
       picks.push({ node: n, kind: kind, text: text });
@@ -478,7 +485,8 @@ text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim)}
     place(selected, "focus");
     place(hovered, "focus");
     var narrow = w < 760, hubs = 0;
-    for (var i = 0; i < view.labelRank.length && hubs < (narrow ? 3 : 7); i++) {
+    var scan = Math.min(view.labelRank.length, LABEL_HUB_SCAN);
+    for (var i = 0; i < scan && hubs < (narrow ? 3 : 7); i++) {
       var n = view.labelRank[i];
       if (hidden[n.label]) { continue; }
       var before = picks.length;
