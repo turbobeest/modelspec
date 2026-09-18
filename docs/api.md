@@ -197,7 +197,7 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 500 | `tier_not_configured` | ours | retry later; report it |
 | 500 | `access_not_configured` | ours | retry later; report it |
 | 502 | `export_unavailable` | the published export could not be read | retry; not your request |
-| 503 | `access_store_not_configured` | a live key, and no key store yet | use a `test_` key, or none |
+| 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | use a `test_` key, or none |
 | 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | send a real `User-Agent` |
 
 A no-match is an answer, not an empty list:
@@ -221,8 +221,8 @@ A no-match is an answer, not an empty list:
 
 **A key is optional today.** `ACCESS_ENFORCED` is off: without a key you get
 the free tier, unmetered, never a 401, 403 or 429. A key you present is
-checked, and a bad one is refused, not ignored. No key is issued yet and the key
-store is unbound, so a live key gets `access_store_not_configured`.
+checked, and a bad one is refused, not ignored. The ACCESS store is bound; no
+key is issued yet (MODEL-73), so a presented live key is unknown.
 [`api-access.md`](api-access.md) has the rest.
 
 | Tier | Daily | Burst | Live data |

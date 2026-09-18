@@ -9,7 +9,9 @@ what a caller sees is what `docs/api-access.md` says:
   presented key is checked — sandbox, metered live, or refused. A bad key is
   never downgraded to anonymous.
 * **Enforcement on**: no key is a 401 naming where to get one.
-* **No ACCESS binding** (as shipped): a presented live key is refused
+* **ACCESS bound** (as shipped): a presented live key is checked against the
+  store. No key is issued yet (MODEL-73).
+* **No ACCESS binding** (fallback): a presented live key is refused
   `access_store_not_configured`; anonymous and `test_` requests are unaffected.
 * The ACCESS store is a stub that behaves as Workers KV does under Pyodide: a
   missing key reads as a `jsnull` stand-in, not `None`.
@@ -222,13 +224,12 @@ def test_off_an_unkeyed_request_is_answered_exactly_as_before(entry, data, endpo
         assert answer["determinations"]["entitlement"] == "public_export"
 
 
-def test_the_shipped_configuration_is_off_and_unbound():
+def test_the_shipped_configuration_is_off_and_bound():
     """What this file tests as 'the default' is what `wrangler.jsonc` ships."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
     assert '"ACCESS_ENFORCED": "false"' in live
-    assert '"binding": "ACCESS"' not in live, "the ACCESS binding is live; update the docs"
-    assert '"binding": "ACCESS"' in config, "the ACCESS binding is no longer staged"
+    assert '"binding": "ACCESS"' in live, "the ACCESS binding is no longer live; update the docs"
 
 
 def test_the_deploy_hands_the_isolate_the_tier_table():

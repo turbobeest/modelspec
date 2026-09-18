@@ -40,19 +40,19 @@ A body is capped at 16 KB and larger ones are refused unread past that point.
 from your request, return it and forget the request: no body, no field of it and
 no answer is written anywhere.
 
-The Worker binds exactly one store today, a Cloudflare KV namespace called
-`DETERMINATIONS` (`api/worker/wrangler.jsonc`). It holds **our own research** —
-the licence and data-residency determinations the paid tier serves — and the
-Worker only ever reads from it. There is no code path that writes to it. No
-database, no object storage, no queue and no analytics dataset is bound at all.
+The Worker binds two KV namespaces today (`api/worker/wrangler.jsonc`).
+`DETERMINATIONS` holds **our own research** — the licence and data-residency
+determinations the paid tier serves — and the Worker only ever reads from it.
+There is no code path that writes to it. No database, no object storage, no
+queue and no analytics dataset is bound at all.
 
-### The API-key store: configured, not yet active
+### The API-key store
 
-A second KV namespace, `ACCESS`, is written into the Worker's configuration for
-API keys (MODEL-69) and is **commented out**: the namespace has not been created
-and the Worker does not bind it, so today nothing is written to it and it holds
-nothing. When it is bound, it will hold exactly two kinds of record, and this is
-what each holds (`api/worker/src/access_keys.py`, `access_limits.py`):
+A second KV namespace, `ACCESS`, is bound for API keys (MODEL-69). Enforcement
+is still off: no key is required. Keys can be presented and are checked against
+the store; none are issued yet (issuance is MODEL-73), so a presented live key
+is unknown. It holds exactly two kinds of record, and this is what each holds
+(`api/worker/src/access_keys.py`, `access_limits.py`):
 
 - **A key record per issued key.** Stored under the SHA-256 hash of the key,
   never under the key, and the key value itself is never stored, logged or
@@ -123,11 +123,9 @@ nothing below is read as describing the service today:
 - **API keys, tiers and rate limits.** The code is wired into the Worker's
   entry point (`api/worker/src/entry.py`, MODEL-69) with **enforcement off**: no
   key is required, and a request without one is answered as it always was,
-  unmetered and with nothing written. No key has been issued, and the key store
-  described above is not bound, so a live key cannot yet be checked and is
-  refused. What a key record and its counters hold is set out under
-  [What we store](#the-api-key-store-configured-not-yet-active), before any of
-  it is written.
+  unmetered and with nothing written. The ACCESS store is bound; no key has
+  been issued (issuance is MODEL-73). What a key record and its counters hold
+  is set out under [What we store](#the-api-key-store).
 - **Payment.** No payment rail, checkout or billing is in operation, so no
   payment or billing data is collected or held. Payments would be handled by a
   payment processor, and that arrangement is not yet made.

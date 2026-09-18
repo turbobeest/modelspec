@@ -52,13 +52,14 @@
   // key, never the key) and per-key daily and per-minute counters. It is a
   // separate namespace from DETERMINATIONS on purpose: that one holds our
   // research and is only ever read; this one is written on every keyed call.
-  // Not created yet. Until it is, a presented live key is refused
-  // `access_store_not_configured`; anonymous and `test_` requests are unaffected.
-  // To enable: `npx wrangler kv namespace create ACCESS`, paste its id below and
-  // uncomment the line.
+  //
+  // The namespace was created 2026-09-18 on the Sparks and Sawdust LLC account.
+  // Binding it does not require a key: ACCESS_ENFORCED stays off, and no key
+  // has been issued (issuance is MODEL-73). A presented live key is checked
+  // against the store; anonymous and `test_` requests are unaffected.
   "kv_namespaces": [
-    { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" }
-    // , { "binding": "ACCESS", "id": "<paste the id from `wrangler kv namespace create ACCESS`>" }
+    { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" },
+    { "binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5" }
   ],
   "observability": { "enabled": true },
   "vars": {

@@ -936,6 +936,10 @@ def _access() -> dict[str, Any]:
     if not bound:
         effect += (" No key store is bound yet and no key has been issued, so a live key "
                    "is refused 503 access_store_not_configured; test_ keys work.")
+    else:
+        effect += (" The ACCESS key store is bound. No key has been issued yet "
+                   "(issuance is MODEL-73), so a presented live key is unknown; "
+                   "test_ keys work.")
     return {
         "status": ("wired; enforced" if enforced else "wired; enforcement off"),
         "ticket": "MODEL-69",

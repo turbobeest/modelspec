@@ -3,10 +3,12 @@
 MODEL-69. How a call to the ranking origin is identified, what it is allowed to
 do, and what it is told when it is refused.
 
-**Status: wired, enforcement off, key store not yet bound.** Both POST endpoints
-(`/v1/rank`, `/v1/policy-check`) pass through the gate. A request without a key
-is served exactly as before; a request that presents a key is checked. See
-[The switch](#the-switch-access_enforced) and [Morning steps](#turning-it-on).
+**Status: wired, enforcement off, key store bound, no keys issued.** Both POST
+endpoints (`/v1/rank`, `/v1/policy-check`) pass through the gate. A request
+without a key is served exactly as before; a request that presents a key is
+checked. See [The switch](#the-switch-access_enforced) and
+[Morning steps](#turning-it-on). No key has been issued yet (issuance is
+MODEL-73).
 
 The modules are in `api/worker/src/`:
 
@@ -226,12 +228,12 @@ caller. **Flip it once key issuance exists.**
 
 Key records and counters live in their own KV namespace, bound as `ACCESS` —
 never in `DETERMINATIONS`, which holds our research and is only ever read. The
-binding is staged in `wrangler.jsonc` as a comment, exactly as `DETERMINATIONS`
-was, because Wrangler refuses to deploy a binding to a namespace that does not
-exist.
+namespace was created 2026-09-18 and is bound in `wrangler.jsonc`. Enforcement
+stays off; no key has been issued (issuance is MODEL-73). A presented live key
+is checked against the store; none are issued, so it is unknown.
 
-With no `ACCESS` binding the Worker hands the gate `access_kv.UnboundKV`, which
-refuses every read. A presented live key is then refused 503
+With no `ACCESS` binding the Worker would hand the gate `access_kv.UnboundKV`,
+which refuses every read. A presented live key is then refused 503
 `access_store_not_configured`; anonymous and `test_` requests are unaffected,
 because neither reads the store. No crash, and no silent pass.
 
@@ -267,13 +269,9 @@ invented in code. Anonymous requests never load the table.
 
 ## Turning it on
 
-1. `npx wrangler kv namespace create ACCESS`, paste the id into the commented
-   `ACCESS` line in `api/worker/wrangler.jsonc`, uncomment it, and move
-   `docs/legal/privacy.md`'s key-store section from "configured, not yet
-   active" to live, and drop "the key store is unbound" from `docs/api.md` and
-   regenerate the spec — `tests/test_legal.py` and `tests/test_api_docs.py`
-   fail until all of them agree. Merge; the deploy binds it. Enforcement stays
-   off.
+1. **Done 2026-09-18.** The `ACCESS` namespace
+   (`ef86b7ce138d4891b3eb630cdd2ba4e5`) is bound in
+   `api/worker/wrangler.jsonc`. Enforcement stays off.
 2. Issue keys (`access_keys.issue`, once issuance exists — MODEL-73).
 3. Then, and only then, set `"ACCESS_ENFORCED": "true"`, regenerate the spec
    (`python api/worker/openapi.py`) and update `docs/api.md`; the doc tests

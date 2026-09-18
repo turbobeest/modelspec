@@ -48,8 +48,8 @@ strings by `tests/test_legal.py`, so the prose cannot drift from the JSON.
 The rule for this ticket was that nothing in the terms may claim a capability
 that is not shipped. As of 2026-09-17 these do not describe, as live: API keys,
 tiers or rate limits (MODEL-69 is wired into the Worker since, with
-enforcement off, no key store bound and no key issued; `privacy.md` says what
-the key store will hold), any paid plan or price, Stripe checkout (MODEL-73), x402 prepaid
+enforcement off and the key store bound since 2026-09-18 but no key issued;
+`privacy.md` says what the key store holds), any paid plan or price, Stripe checkout (MODEL-73), x402 prepaid
 credits (MODEL-75), outcome logging (not built), an MCP server, a policy-check
 endpoint (MODEL-80, not merged), any uptime or support commitment. §6 of the
 terms states the rules that will govern a charge, and says plainly that no

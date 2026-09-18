@@ -74,9 +74,9 @@ KV_COMMERCIAL_USE = "determinations/commercial_use"
 KV_RESIDENCY = "determinations/residency"
 
 #: MODEL-69. The KV binding that holds key records and their counters — not
-#: `DETERMINATIONS`, which holds our research and is only ever read. Staged
-#: commented out in `wrangler.jsonc` until the namespace exists; without it a
-#: presented live key is refused `access_store_not_configured`.
+#: `DETERMINATIONS`, which holds our research and is only ever read. Bound in
+#: `wrangler.jsonc` since 2026-09-18; a Worker deployed without it refuses a
+#: presented live key `access_store_not_configured`.
 ACCESS_BINDING = "ACCESS"
 #: The enforcement switch. Off: an unkeyed request is served as the free tier,
 #: exactly as before MODEL-69, and a presented key is checked. On: an unkeyed

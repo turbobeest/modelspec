@@ -362,9 +362,9 @@ def test_the_access_gate_is_wired_and_the_reference_says_it_is_not_enforced(
     assert "takes no key and meters nothing" not in prose
     assert "**A key is optional today.**" in prose
     assert "`ACCESS_ENFORCED`" in prose
-    assert not generator.access_store_bound(), (
-        "the ACCESS key store is bound now. docs/api.md still says a live key is refused "
-        "access_store_not_configured — update it.")
+    assert generator.access_store_bound(), (
+        "the ACCESS key store is no longer bound. docs/api.md still describes it as bound.")
+    assert "the key store is unbound" not in prose
     assert "access_store_not_configured" in prose
 
 
@@ -463,7 +463,7 @@ def test_the_spec_records_the_access_layer_as_wired_and_not_enforced(
 
     block = spec["x-modelspec-access"]
     assert block["status"] == "wired; enforcement off"
-    assert block["enforced"] is False and block["key_store_bound"] is False
+    assert block["enforced"] is False and block["key_store_bound"] is True
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     assert block["sandbox_prefix"] == tiers["sandbox_prefix"]
     assert block["tiers"]["sandbox"]["daily_limit"] is None

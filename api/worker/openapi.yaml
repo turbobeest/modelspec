@@ -74,12 +74,12 @@ x-modelspec-access:
   ticket: MODEL-69
   enforced: false
   switch: ACCESS_ENFORCED in api/worker/wrangler.jsonc
-  key_store_bound: false
+  key_store_bound: true
   effect_today: 'A key is optional. A request without one is answered as the free tier, unmetered, and
     never gets 401, 403 or 429. A request that presents one is checked: a test_ key gets the sandbox,
     a known key is metered and served per its tier, and an unknown or revoked key is refused (401 or 403),
-    never served as anonymous. No key store is bound yet and no key has been issued, so a live key is
-    refused 503 access_store_not_configured; test_ keys work.'
+    never served as anonymous. The ACCESS key store is bound. No key has been issued yet (issuance is
+    MODEL-73), so a presented live key is unknown; test_ keys work.'
   policy_check_paid_entitlement:
     status: granted to a presented key whose tier is paid
     granted_by: entry.py::_entitlement
