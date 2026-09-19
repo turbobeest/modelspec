@@ -280,6 +280,7 @@ def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
     assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
                       '<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
+                      '<a href="/pricing/">Pricing</a>'
                       '<a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>'
                       '<a href="/api/index.json">API</a></div></nav></body>')
 

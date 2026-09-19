@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import json
 import time
+from dataclasses import replace
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
@@ -276,18 +277,18 @@ async def _load_determinations(env):
     return store
 
 
-def _entitlement(tier) -> str:
+def _entitlement(tier, *, funded: bool = False) -> str:
     """Which store this request may read. The one place the private store is granted.
 
-    `tier` is the caller's row of the tier table (`access_config.TierLimits`),
-    handed over by the access gate after the key was looked up and metered, or
-    `None` for an anonymous request. A tier that is `paid` and serves live data
-    reads the determinations — the paid rows and the exempt row alike, because
-    the exempt tier is data (`tiers.json`), not a branch. Everything else,
+    A funded key (credits remaining for this call) gets the determinations.
+    An unlimited paid tier (null daily and burst — the exempt row) still does,
+    because that row is data, not a name we branch on. Everything else,
     anonymous included, is the free tier: a complete and labelled answer
     (`determinations.included: false`), not a degraded one.
     """
-    if tier is not None and tier.paid and tier.live_data:
+    if funded:
+        return policy_service.ENTITLEMENT_DETERMINATIONS
+    if tier is not None and tier.paid and tier.live_data and tier.unlimited:
         return policy_service.ENTITLEMENT_DETERMINATIONS
     return policy_service.ENTITLEMENT_PUBLIC
 
@@ -425,7 +426,11 @@ class Default(WorkerEntrypoint):
 
             async def _live(record, tier):
                 return await self._policy_answer(payload, service_commit, origin,
-                                                 _entitlement(tier))
+                                                 _entitlement(tier, funded=True))
+
+            async def _live_unfunded(record, tier):
+                return await self._policy_answer(payload, service_commit, origin,
+                                                 _entitlement(tier, funded=False))
 
             def sandbox():
                 return access.refusal(
@@ -440,6 +445,9 @@ class Default(WorkerEntrypoint):
                 return await self._rank(payload, service_commit, origin)
 
             async def _live(record, tier):
+                return await self._rank(payload, service_commit, origin)
+
+            async def _live_unfunded(record, tier):
                 return await self._rank(payload, service_commit, origin)
 
             def sandbox():
@@ -457,7 +465,8 @@ class Default(WorkerEntrypoint):
         anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
                                     x402_trace, keyed=False)
         live = self._x402_wrap(_live, request, path, api_key, envelope,
-                               x402_trace, keyed=True)
+                               x402_trace, keyed=True,
+                               produce_unfunded=_live_unfunded)
 
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
@@ -465,6 +474,7 @@ class Default(WorkerEntrypoint):
             kv=_access_store(self.env),
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
+            limits_for=self._limits_for(api_key),
         )
         return _json_response(
             outcome.status, outcome.body,
@@ -472,12 +482,53 @@ class Default(WorkerEntrypoint):
              **x402.http_headers(outcome.status, outcome.body,
                                  settlement=x402_trace.settlement)})
 
-    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *, keyed: bool):
-        """MODEL-75 hook. `keyed` uses the presented API key as the credit holder."""
+    def _credit_params(self, path: str) -> tuple[int, int, str]:
+        try:
+            policy = access_config.load_policy(self.env)
+            resource = "policy-check" if path.rstrip("/").endswith("policy-check") else "rank"
+            return (policy.credits.weight(resource), policy.credits.pack_expiry_days,
+                    policy.url("get_a_key") or "https://modelspec.dev/pricing")
+        except access_config.PolicyError:
+            return 1, 365, "https://modelspec.dev/pricing"
+
+    def _limits_for(self, api_key):
+        """Funded keys drop the daily window; unfunded billed keys use free limits."""
+
+        async def limits_for(record, tier):
+            if tier.unlimited:
+                return tier
+            holder = x402.holder_from_key(api_key)
+            if not holder:
+                return tier
+            try:
+                bal = await credits.ledger_from_env(self.env).balance(holder)
+            except credits.StoreNotConfigured:
+                return tier
+            try:
+                policy = access_config.load_policy(self.env)
+            except access_config.PolicyError:
+                return tier
+            if bal.available > 0:
+                return replace(tier, daily_limit=None,
+                               burst_limit=policy.credits.burst_limit)
+            try:
+                return policy.tier("free")
+            except access_config.PolicyError:
+                return tier
+
+        return limits_for
+
+    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *,
+                   keyed: bool, produce_unfunded=None):
+        """MODEL-75/93 hook. `keyed` uses the presented API key as the credit holder."""
+        units, expiry_days, buy = self._credit_params(path)
 
         async def wrapped(*args, **kwargs):
             cfg = x402.load_config(self.env)
             holder = x402.holder_from_key(api_key) if keyed else None
+            unfunded = None
+            if produce_unfunded is not None:
+                unfunded = lambda: produce_unfunded(*args, **kwargs)
             return await x402.charge(
                 config=cfg,
                 ledger=credits.ledger_from_env(self.env),
@@ -488,6 +539,10 @@ class Default(WorkerEntrypoint):
                     "export_origin") or "https://api.modelspec.dev"),
                 envelope=envelope,
                 produce=lambda: produce(*args, **kwargs),
+                produce_unfunded=unfunded,
+                units=units,
+                pack_expiry_days=expiry_days,
+                buy_url=buy,
                 trace=trace,
             )
 
@@ -539,7 +594,8 @@ class Default(WorkerEntrypoint):
                 signature=header("stripe-signature") or header("Stripe-Signature"),
                 secret=str(getattr(self.env, STRIPE_WEBHOOK_SECRET_VAR, "") or "") or None,
                 flag=flag, kv=kv, policy=policy, now=now,
-                service_commit=service_commit)
+                service_commit=service_commit,
+                ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if path == "/v1/billing/claim":
@@ -561,7 +617,8 @@ class Default(WorkerEntrypoint):
                 query=billing.query_string(str(request.url)), payload=payload)
             outcome = await billing.claim(
                 session_id=session_id, flag=flag, kv=kv, policy=policy, now=now,
-                service_commit=service_commit)
+                service_commit=service_commit,
+                ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if path == "/v1/billing/rotate":
@@ -572,7 +629,8 @@ class Default(WorkerEntrypoint):
             outcome = await billing.rotate(
                 api_key=access_keys.extract(lambda name: header(name)),
                 flag=flag, kv=kv, policy=policy, now=now,
-                service_commit=service_commit)
+                service_commit=service_commit,
+                ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if method != "POST":
@@ -593,7 +651,8 @@ class Default(WorkerEntrypoint):
             payload=payload, flag=flag,
             secret=str(getattr(self.env, STRIPE_SECRET_KEY_VAR, "") or "") or None,
             origin=origin, kv=kv, policy=policy, service_commit=service_commit,
-            http=_stripe_http)
+            http=_stripe_http,
+            api_key=access_keys.extract(lambda name: header(name)))
         return _json_response(outcome.status, outcome.body, outcome.headers)
 
     async def _rank(self, payload, service_commit: str, origin: str):

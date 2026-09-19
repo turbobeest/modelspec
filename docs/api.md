@@ -227,20 +227,20 @@ A no-match is an answer, not an empty list:
 **A key is optional today.** `ACCESS_ENFORCED` is off: without a key you get
 the free tier, unmetered, never a 401, 403 or 429. A key you present is
 checked, and a bad one is refused, not ignored. The ACCESS store is bound; no
-key is issued yet (MODEL-73), so a presented live key is unknown.
-[`api-access.md`](api-access.md) has the rest.
+key is issued yet. [`api-access.md`](api-access.md) has the rest.
 
 | Tier | Daily | Burst | Live data |
 |---|---|---|---|
 | sandbox — any key starting `test_` | **unlimited** | unlimited | no; synthetic rows, `/v1/rank` only |
 | free | 10 | 5/min | yes |
-| paid | by plan | by plan | yes |
+| paid | none while funded | 60/min | yes |
 | dpf | unlimited | unlimited | yes |
 
 Send `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
-Windows are the UTC day and minute; a 429 states `limit`, `resets_at` and
-`retry_after_seconds`. A paid-tier key unlocks policy-check's
-[determinations](api-policy-check.md#free-and-paid).
+A 429 states `limit`, `resets_at` and `retry_after_seconds`. Remaining credits
+unlock policy-check [determinations](api-policy-check.md#free-and-paid); zero
+balance is the free answer plus `credits.exhausted`. Prices:
+[/pricing/](https://modelspec.dev/pricing/).
 
 ## Neutrality, and what is not in force
 

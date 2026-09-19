@@ -189,6 +189,7 @@ async def serve(
     envelope: dict[str, Any] | None = None,
     now: datetime | None = None,
     log: Callable[[str, dict[str, Any]], None] | None = None,
+    limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
 ) -> Outcome:
     """Classify, meter, answer. The only entry point this package offers."""
     moment = now or datetime.now(UTC)
@@ -258,8 +259,13 @@ async def serve(
                        key_id=record.key_id)
 
     # Every live call is metered, including the ones no limit will refuse.
-    note("limits.consume", key_id=record.key_id, tier=tier.name)
-    meter = await limits.consume(kv, record.key_id, tier, moment)
+    # MODEL-93: a funded key drops the daily window; an unfunded billed key
+    # is metered as free. `limits_for` is that choice; absent, the stored tier.
+    meter_tier = tier
+    if limits_for is not None:
+        meter_tier = await limits_for(record, tier)
+    note("limits.consume", key_id=record.key_id, tier=meter_tier.name)
+    meter = await limits.consume(kv, record.key_id, meter_tier, moment)
     headers = {"x-modelspec-tier": tier.name, "x-modelspec-key-id": record.key_id,
                **_rate_limit_headers(meter, moment)}
     if not meter.allowed:
@@ -287,6 +293,7 @@ async def gate(
     envelope: dict[str, Any] | None = None,
     now: datetime | None = None,
     log: Callable[[str, dict[str, Any]], None] | None = None,
+    limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
 
@@ -326,7 +333,8 @@ async def gate(
 
     try:
         return await serve(api_key=api_key, kv=kv, policy=policy, live=live_for,
-                           sandbox=sandbox, envelope=shell, now=now, log=log)
+                           sandbox=sandbox, envelope=shell, now=now, log=log,
+                           limits_for=limits_for)
     except StoreNotConfigured as exc:
         status, body = refusal(
             STORE_NOT_CONFIGURED,

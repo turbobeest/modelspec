@@ -81,12 +81,13 @@ x-modelspec-access:
     never served as anonymous. The ACCESS key store is bound. No key has been issued yet (issuance is
     MODEL-73), so a presented live key is unknown; test_ keys work.'
   policy_check_paid_entitlement:
-    status: granted to a presented key whose tier is paid
+    status: granted to a presented key with remaining credits, or an unlimited paid tier
     granted_by: entry.py::_entitlement
     effect_today: 'anonymous and free-tier answers have determinations.entitlement public_export; checks
-      they cannot settle come back undetermined with why: tier and available_in_tier: paid. A paid-tier
-      key reads the determinations, or gets HTTP 503 determinations_unavailable when the store cannot
-      be read. No paid key has been issued yet.'
+      they cannot settle come back undetermined with why: tier and available_in_tier: paid. A funded key
+      reads the determinations, or gets HTTP 503 determinations_unavailable when the store cannot be read.
+      A key with zero credits gets the free answer plus credits.exhausted. No paid key has been issued
+      yet.'
   present_key_as:
   - 'Authorization: Bearer <key>'
   - 'X-API-Key: <key>'
@@ -107,23 +108,18 @@ x-modelspec-access:
       daily_limit: 10
       burst_limit_per_minute: 5
       live_data: true
-      description: Live rankings. Enough for a genuine decision, not for a build loop.
+      description: Live rankings. Enough for a genuine decision, not for a build loop. No determinations.
     paid:
-      daily_limit: 1000
+      daily_limit: null
       burst_limit_per_minute: 60
       live_data: true
-      description: Determinations-entitled row. Not what MODEL-73 sells on day one.
+      description: 'Funded key: paid answer including determinations. No daily limit; burst is configuration.
+        Entitlement follows remaining credits, not this flag alone.'
     sandbox:
       daily_limit: null
       burst_limit_per_minute: null
       live_data: false
       description: Fixed, obviously synthetic results. Unlimited, no signup, no live data.
-    subscriber:
-      daily_limit: 1000
-      burst_limit_per_minute: 60
-      live_data: true
-      description: 'PLACEHOLDER monthly plan: live rankings at these limits. Does not include policy-check
-        determinations. Limits are configuration, not a commitment.'
   refusals:
     access_not_configured: 500
     access_store_not_configured: 503
@@ -136,11 +132,13 @@ x-modelspec-access:
   documented_in: docs/api-access.md
 x-modelspec-billing:
   status: wired; flag off
-  ticket: MODEL-73
+  ticket: MODEL-93
   enabled: false
   switch: BILLING_ENABLED in api/worker/wrangler.jsonc
-  what_is_sold: live rank access at the mapped tier's configured limits. It does not include policy-check
-    determinations.
+  unit: credit
+  what_is_sold: 'credits on this API key: a monthly allowance that resets each paid invoice (no rollover),
+    and/or pack credits that expire 12 months after purchase. A funded key receives the paid answer, including
+    cited commercial-use and data-residency determinations. Only successful results draw credits.'
   documented_in: docs/billing.md
 x-modelspec-x402:
   wired: true
@@ -162,7 +160,7 @@ paths:
   /v1/credits:
     get:
       operationId: credits
-      summary: The prepaid x402 credit balance for the presented API key.
+      summary: The credit balance for the presented API key.
       responses:
         '200':
           description: The holder's available and reserved units.
@@ -416,9 +414,11 @@ paths:
   /v1/billing/checkout:
     post:
       operationId: billingCheckout
-      summary: Create a Stripe-hosted Checkout Session for a monthly key.
-      description: 'Redirect the browser to `url`. What is sold is live rank access at the mapped tier''s
-        limits, not policy-check determinations. Flag off: 503.'
+      summary: Create a Stripe-hosted Checkout Session for a plan or pack.
+      description: 'Redirect the browser to `url`. `price_id` is required; omitted is 400 naming the valid
+        ids, never a guessed purchase. A live key in `Authorization: Bearer` binds the payment to that
+        key (fingerprint only, never the key): a pack ADDs credits, a plan attaches. Unknown or revoked
+        key: 401, never anonymous. No key: claim mints one. Flag off: 503.'
       x-modelspec-probe: skip
       requestBody:
         required: false
@@ -430,7 +430,8 @@ paths:
               properties:
                 price_id:
                   type: string
-            example: {}
+            example:
+              price_id: price_PLACEHOLDER_solo_monthly
       responses:
         '200':
           description: Hosted Checkout URL. Open it in a browser.
@@ -439,7 +440,11 @@ paths:
               schema:
                 type: object
                 required:
+                - applied_to
+                - credits
                 - endpoint
+                - kind
+                - name
                 - placeholder
                 - price_id
                 - result
@@ -451,7 +456,15 @@ paths:
                 - url
                 - what_you_buy
                 properties:
+                  applied_to:
+                    type: string
+                  credits:
+                    type: integer
                   endpoint:
+                    type: string
+                  kind:
+                    type: string
+                  name:
                     type: string
                   placeholder:
                     type: boolean
@@ -475,7 +488,44 @@ paths:
                   what_you_buy:
                     type: string
         '400':
-          description: Unknown field, or more than one price and none sent.
+          description: Unknown field, or price_id omitted. The 400 names the valid Price ids.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    - valid_price_ids
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                      valid_price_ids:
+                        type: array
+                        items:
+                          type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '401':
+          description: A presented API key that is unknown or revoked. Never treated as anonymous.
           content:
             application/json:
               schema:
@@ -679,7 +729,8 @@ paths:
   /v1/billing/claim:
     get:
       operationId: billingClaimGet
-      summary: Mint the key and show it once. Checkout success_url lands here.
+      summary: Claim the purchase. Mints a key once if Checkout was anonymous; credits an existing key
+        otherwise.
       parameters:
       - name: session_id
         in: query
@@ -688,16 +739,21 @@ paths:
           type: string
       responses:
         '200':
-          description: The key, shown once.
+          description: The key, shown once (anonymous Checkout), or credits added to the bound key.
           content:
             application/json:
               schema:
                 type: object
                 required:
+                - applied_to
+                - credits
                 - endpoint
                 - how
                 - key
                 - key_id
+                - kind
+                - message
+                - plan
                 - result
                 - schema_version
                 - service_commit
@@ -705,6 +761,10 @@ paths:
                 - tier
                 - what_you_bought
                 properties:
+                  applied_to:
+                    type: string
+                  credits:
+                    type: integer
                   endpoint:
                     type: string
                   how:
@@ -712,6 +772,12 @@ paths:
                   key:
                     type: string
                   key_id:
+                    type: string
+                  kind:
+                    type: string
+                  message:
+                    type: string
+                  plan:
                     type: string
                   result:
                     type: array
@@ -874,7 +940,7 @@ paths:
                 $ref: '#/components/schemas/TransportError'
     post:
       operationId: billingClaimPost
-      summary: Mint the key and show it once, with session_id in the JSON body.
+      summary: Claim the purchase (session_id in the JSON body). Same as GET.
       x-modelspec-probe: skip
       requestBody:
         required: true
@@ -889,16 +955,21 @@ paths:
               - session_id
       responses:
         '200':
-          description: The key, shown once.
+          description: The key, shown once (anonymous Checkout), or credits added to the bound key.
           content:
             application/json:
               schema:
                 type: object
                 required:
+                - applied_to
+                - credits
                 - endpoint
                 - how
                 - key
                 - key_id
+                - kind
+                - message
+                - plan
                 - result
                 - schema_version
                 - service_commit
@@ -906,6 +977,10 @@ paths:
                 - tier
                 - what_you_bought
                 properties:
+                  applied_to:
+                    type: string
+                  credits:
+                    type: integer
                   endpoint:
                     type: string
                   how:
@@ -913,6 +988,12 @@ paths:
                   key:
                     type: string
                   key_id:
+                    type: string
+                  kind:
+                    type: string
+                  message:
+                    type: string
+                  plan:
                     type: string
                   result:
                     type: array
@@ -3585,7 +3666,10 @@ components:
       required:
       - available
       - endpoint
+      - grants
       - holder
+      - monthly
+      - packs
       - reserved
       - result
       - schema_version
@@ -3598,8 +3682,15 @@ components:
           type: integer
         endpoint:
           type: string
+        grants:
+          type: array
+          items: {}
         holder:
           type: string
+        monthly:
+          type: integer
+        packs:
+          type: integer
         reserved:
           type: integer
         result:

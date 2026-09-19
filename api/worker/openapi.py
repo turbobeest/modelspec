@@ -1011,7 +1011,7 @@ def _x402() -> dict[str, Any]:
 
 
 def entitlement_follows_tier() -> bool:
-    """True while `entry.py::_entitlement` grants the store only by a tier's `paid` flag."""
+    """True while `_entitlement` grants the store to a funded key or an unlimited paid row."""
     tree = ast.parse((SRC / "entry.py").read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "_entitlement":
@@ -1019,7 +1019,8 @@ def entitlement_follows_tier() -> bool:
             grants = [r.value for r in ast.walk(node) if isinstance(r, ast.Return)
                       and isinstance(r.value, ast.Attribute)
                       and r.value.attr == "ENTITLEMENT_DETERMINATIONS"]
-            return len(grants) == 1 and "tier.paid" in source and "tier is not None" in source
+            return ("funded" in source and "tier.paid" in source
+                    and "tier.unlimited" in source and len(grants) >= 1)
     return False
 
 
@@ -1027,9 +1028,9 @@ def _access() -> dict[str, Any]:
     """The access layer as deployed: wired, and whether it is enforced."""
     if not entitlement_follows_tier():
         raise SystemExit(
-            "entry.py::_entitlement no longer grants the determinations by a tier's `paid` "
-            "flag alone. x-modelspec-access and docs/api-policy-check.md say it does; update "
-            f"them in {Path(__file__).name} and the docs.")
+            "entry.py::_entitlement no longer grants the determinations to a funded key "
+            "(or an unlimited paid row). x-modelspec-access and docs/api-policy-check.md "
+            f"must match; update them in {Path(__file__).name} and the docs.")
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     enforced, bound = access_enforced(), access_store_bound()
     effect = (
@@ -1055,15 +1056,16 @@ def _access() -> dict[str, Any]:
         "key_store_bound": bound,
         "effect_today": effect,
         "policy_check_paid_entitlement": {
-            "status": "granted to a presented key whose tier is paid",
+            "status": "granted to a presented key with remaining credits, or an unlimited paid tier",
             "granted_by": "entry.py::_entitlement",
             "effect_today": (
                 f"anonymous and free-tier answers have determinations.entitlement "
                 f"{policy.ENTITLEMENT_PUBLIC}; checks they cannot settle come back "
-                "undetermined with why: tier and available_in_tier: paid. A paid-tier key "
+                "undetermined with why: tier and available_in_tier: paid. A funded key "
                 f"reads the determinations, or gets HTTP "
                 f"{policy.HTTP_DETERMINATIONS_UNAVAILABLE} determinations_unavailable when "
-                "the store cannot be read. No paid key has been issued yet."
+                "the store cannot be read. A key with zero credits gets the free answer "
+                "plus credits.exhausted. No paid key has been issued yet."
             ),
         },
         "present_key_as": ["Authorization: Bearer <key>", "X-API-Key: <key>"],
@@ -1217,16 +1219,26 @@ def _billing_paths() -> dict[str, Any]:
             session_id="cs_unknown", flag=True, kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         check = await billing_mod.checkout(
+            payload={"price_id": price}, flag=True, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe())
+        check_omit = await billing_mod.checkout(
             payload={}, flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
             policy=policy, service_commit=_COMMIT, http=_Stripe())
+        check_bad = await billing_mod.checkout(
+            payload={"price_id": price}, flag=True, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe(),
+            api_key="live_unknown_not_issued")
         rot_missing = await billing_mod.rotate(
             api_key=None, flag=True, kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
-        return (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check, rot_missing)
+        return (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready,
+                check, check_omit, check_bad, rot_missing)
 
     (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check,
-     rot_missing) = asyncio.run(samples())
+     check_omit, check_bad, rot_missing) = asyncio.run(samples())
     for name, outcome, code in (
             ("webhook ok", hook_ok, None),
             ("webhook bad", hook_bad, billing_mod.INVALID_SIGNATURE),
@@ -1236,6 +1248,8 @@ def _billing_paths() -> dict[str, Any]:
             ("claim empty", empty, billing_mod.INVALID_REQUEST),
             ("claim not ready", not_ready, billing_mod.CLAIM_NOT_READY),
             ("checkout", check, None),
+            ("checkout omitted price", check_omit, billing_mod.INVALID_REQUEST),
+            ("checkout bad key", check_bad, billing_mod.INVALID_KEY),
             ("rotate missing", rot_missing, billing_mod.MISSING_KEY)):
         got = (outcome.body.get("error") or {}).get("code")
         if code is None:
@@ -1253,10 +1267,14 @@ def _billing_paths() -> dict[str, Any]:
         "/v1/billing/checkout": {
             "post": {
                 "operationId": "billingCheckout",
-                "summary": "Create a Stripe-hosted Checkout Session for a monthly key.",
+                "summary": "Create a Stripe-hosted Checkout Session for a plan or pack.",
                 "description": (
-                    "Redirect the browser to `url`. What is sold is live rank access at the "
-                    "mapped tier's limits, not policy-check determinations. Flag off: 503."
+                    "Redirect the browser to `url`. `price_id` is required; omitted is 400 "
+                    "naming the valid ids, never a guessed purchase. A live key in "
+                    "`Authorization: Bearer` binds the payment to that key (fingerprint "
+                    "only, never the key): a pack ADDs credits, a plan attaches. Unknown "
+                    "or revoked key: 401, never anonymous. No key: claim mints one. "
+                    "Flag off: 503."
                 ),
                 **skip,
                 "requestBody": {
@@ -1266,13 +1284,17 @@ def _billing_paths() -> dict[str, Any]:
                             "type": "object", "additionalProperties": False,
                             "properties": {"price_id": {"type": "string"}},
                         },
-                        "example": {},
+                        "example": {"price_id": price},
                     }},
                 },
                 "responses": {
                     "200": envelope(check, "Hosted Checkout URL. Open it in a browser."),
                     str(billing_mod.HTTP_BAD_REQUEST): envelope(
-                        empty, "Unknown field, or more than one price and none sent."),
+                        check_omit,
+                        "Unknown field, or price_id omitted. The 400 names the valid Price ids."),
+                    str(billing_mod.HTTP_UNAUTHORIZED): envelope(
+                        check_bad,
+                        "A presented API key that is unknown or revoked. Never treated as anonymous."),
                     str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
@@ -1313,13 +1335,13 @@ def _billing_paths() -> dict[str, Any]:
         "/v1/billing/claim": {
             "get": {
                 "operationId": "billingClaimGet",
-                "summary": "Mint the key and show it once. Checkout success_url lands here.",
+                "summary": "Claim the purchase. Mints a key once if Checkout was anonymous; credits an existing key otherwise.",
                 "parameters": [{
                     "name": "session_id", "in": "query", "required": True,
                     "schema": {"type": "string"},
                 }],
                 "responses": {
-                    "200": envelope(claimed, "The key, shown once."),
+                    "200": envelope(claimed, "The key, shown once (anonymous Checkout), or credits added to the bound key."),
                     str(billing_mod.HTTP_BAD_REQUEST): envelope(
                         empty, "session_id missing."),
                     str(billing_mod.HTTP_CONFLICT): envelope(
@@ -1337,7 +1359,7 @@ def _billing_paths() -> dict[str, Any]:
             },
             "post": {
                 "operationId": "billingClaimPost",
-                "summary": "Mint the key and show it once, with session_id in the JSON body.",
+                "summary": "Claim the purchase (session_id in the JSON body). Same as GET.",
                 **skip,
                 "requestBody": {
                     "required": True,
@@ -1347,7 +1369,7 @@ def _billing_paths() -> dict[str, Any]:
                     }},
                 },
                 "responses": {
-                    "200": envelope(claimed, "The key, shown once."),
+                    "200": envelope(claimed, "The key, shown once (anonymous Checkout), or credits added to the bound key."),
                     str(billing_mod.HTTP_BAD_REQUEST): envelope(
                         empty, "session_id missing."),
                     str(billing_mod.HTTP_CONFLICT): envelope(
@@ -1681,9 +1703,10 @@ def build_spec() -> dict[str, Any]:
         "x-modelspec-access": _access(),
         "x-modelspec-billing": {
             "status": ("wired; enabled" if billing_enabled() else "wired; flag off"),
-            "ticket": "MODEL-73",
+            "ticket": "MODEL-93",
             "enabled": billing_enabled(),
             "switch": "BILLING_ENABLED in api/worker/wrangler.jsonc",
+            "unit": "credit",
             "what_is_sold": billing_mod.WHAT_YOU_BUY,
             "documented_in": "docs/billing.md",
         },
@@ -1694,7 +1717,7 @@ def build_spec() -> dict[str, Any]:
             "/v1/credits": {
                 "get": {
                     "operationId": "credits",
-                    "summary": "The prepaid x402 credit balance for the presented API key.",
+                    "summary": "The credit balance for the presented API key.",
                     "responses": {
                         "200": _json_body(
                             "The holder's available and reserved units.",

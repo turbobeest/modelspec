@@ -84,21 +84,60 @@ class TierLimits:
 
 @dataclass(frozen=True)
 class PriceMapping:
-    """One Stripe Price id and the tier it buys. Configuration, not code."""
+    """One Stripe Price id. Configuration, not code.
+
+    `kind` is `plan` (recurring, SET monthly) or `pack` (one-off, ADD with
+    expiry). `credits` is the amount that grant moves. `tier` is the access
+    row the minted key is stored under.
+    """
 
     price_id: str
+    kind: str
+    name: str
+    credits: int
+    usd: int
     tier: str
     interval: str
     placeholder: bool
     description: str
 
+    @property
+    def checkout_mode(self) -> str:
+        return "subscription" if self.kind == "plan" else "payment"
+
     def to_json(self) -> dict[str, Any]:
         return {
             "price_id": self.price_id,
+            "kind": self.kind,
+            "name": self.name,
+            "credits": self.credits,
+            "usd": self.usd,
             "tier": self.tier,
             "interval": self.interval,
             "placeholder": self.placeholder,
             "description": self.description,
+        }
+
+
+@dataclass(frozen=True)
+class CreditsConfig:
+    """Credit weights, paid burst, and pack expiry. Every number is in `tiers.json`."""
+
+    weights: Mapping[str, int]
+    burst_limit: int
+    pack_expiry_days: int
+
+    def weight(self, resource: str) -> int:
+        try:
+            return int(self.weights[resource])
+        except KeyError:
+            raise PolicyError(f"credits.weights has no entry for {resource!r}") from None
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "weights": dict(self.weights),
+            "burst_limit": self.burst_limit,
+            "pack_expiry_days": self.pack_expiry_days,
         }
 
 
@@ -138,6 +177,7 @@ class AccessPolicy:
     urls: Mapping[str, str]
     tiers: Mapping[str, TierLimits]
     billing: BillingConfig
+    credits: CreditsConfig
 
     def tier(self, name: str) -> TierLimits:
         try:
@@ -148,20 +188,21 @@ class AccessPolicy:
     def url(self, name: str) -> str:
         return self.urls.get(name, "")
 
-    def tier_for_price(self, price_id: str) -> str:
-        """The tier a Stripe Price buys. Unknown prices are a configuration error."""
+    def price(self, price_id: str) -> PriceMapping:
         row = self.billing.prices.get(price_id)
         if row is None:
-            raise PolicyError(f"no tier mapped for Stripe price {price_id!r}")
+            raise PolicyError(f"no Stripe price {price_id!r} in the tier table")
+        return row
+
+    def tier_for_price(self, price_id: str) -> str:
+        """The access tier a Stripe Price's key is stored under."""
+        row = self.price(price_id)
         self.tier(row.tier)
         return row.tier
 
-    def default_price_id(self) -> str:
-        ids = list(self.billing.prices)
-        if len(ids) == 1:
-            return ids[0]
-        raise PolicyError(
-            "send price_id; the tier table maps more than one Stripe price, or none")
+    def price_ids(self) -> list[str]:
+        """Mapped Stripe Price ids, sorted. Checkout names these on a 400."""
+        return sorted(self.billing.prices)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -171,6 +212,7 @@ class AccessPolicy:
             "urls": dict(self.urls),
             "tiers": {name: row.to_json() for name, row in self.tiers.items()},
             "billing": self.billing.to_json(),
+            "credits": self.credits.to_json(),
         }
 
 
@@ -235,6 +277,7 @@ def policy_from_mapping(data: Mapping[str, Any]) -> AccessPolicy:
         urls={str(k): str(v) for k, v in urls.items()},
         tiers=tiers,
         billing=_billing(data.get("billing"), tiers),
+        credits=_credits(data.get("credits")),
     )
 
 
@@ -271,10 +314,28 @@ def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
         if tier not in tiers:
             raise PolicyError(
                 f"billing.prices[{price_id!r}] names tier {tier!r}, which is not in the table")
+        kind = str(row.get("kind") or "")
+        if kind not in {"plan", "pack"}:
+            raise PolicyError(
+                f"billing.prices[{price_id!r}].kind must be 'plan' or 'pack'")
+        name = str(row.get("name") or "")
+        if not name:
+            raise PolicyError(f"billing.prices[{price_id!r}] does not set name")
+        credits = _nonneg_int(row, "credits", where=f"billing.prices[{price_id!r}]")
+        if credits < 1:
+            raise PolicyError(f"billing.prices[{price_id!r}].credits must be at least 1")
+        usd = 0
+        if "usd" in row:
+            usd = _nonneg_int(row, "usd", where=f"billing.prices[{price_id!r}]")
+        interval = str(row.get("interval") or ("month" if kind == "plan" else "once"))
         prices[str(price_id)] = PriceMapping(
             price_id=str(price_id),
+            kind=kind,
+            name=name,
+            credits=credits,
+            usd=usd,
             tier=tier,
-            interval=str(row.get("interval") or "month"),
+            interval=interval,
             placeholder=bool(row.get("placeholder", False)),
             description=str(row.get("description") or ""),
         )
@@ -287,6 +348,32 @@ def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
             raw, "signature_tolerance_seconds", where="billing"),
         event_ttl_seconds=_nonneg_int(raw, "event_ttl_seconds", where="billing"),
         prices=prices,
+    )
+
+
+def _credits(raw: Any) -> CreditsConfig:
+    """Credit weights and pack expiry. Absent is a configuration error, not a default."""
+    if not isinstance(raw, Mapping):
+        raise PolicyError("credits must be a JSON object")
+    raw_weights = raw.get("weights")
+    if not isinstance(raw_weights, Mapping) or not raw_weights:
+        raise PolicyError("credits.weights must be a non-empty object")
+    weights: dict[str, int] = {}
+    for name, value in raw_weights.items():
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise PolicyError(
+                f"credits.weights[{name!r}] must be a positive integer")
+        weights[str(name)] = value
+    for required in ("rank", "policy-check"):
+        if required not in weights:
+            raise PolicyError(f"credits.weights must set {required!r}")
+    expiry = _nonneg_int(raw, "pack_expiry_days", where="credits")
+    if expiry < 1:
+        raise PolicyError("credits.pack_expiry_days must be at least 1")
+    return CreditsConfig(
+        weights=weights,
+        burst_limit=_nonneg_int(raw, "burst_limit", where="credits"),
+        pack_expiry_days=expiry,
     )
 
 

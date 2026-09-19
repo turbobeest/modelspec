@@ -77,15 +77,22 @@ def verify_signature(payload: str, header: str | None, secret: str, *,
 
 
 def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
-                  terms_url: str) -> str:
-    """`application/x-www-form-urlencoded` body for a subscription Checkout Session.
+                  terms_url: str, mode: str = "subscription",
+                  key_fingerprint: str = "") -> str:
+    """`application/x-www-form-urlencoded` body for a Checkout Session.
 
+    `mode` is `subscription` for a monthly plan or `payment` for a one-off pack.
     `payment_method_types` is deliberately omitted: Stripe picks methods from
     the Dashboard. Terms of service are required; the Dashboard must also name
     `terms_url` as Checkout's terms URL.
+
+    `key_fingerprint` is the SHA-256 of an existing API key, never the key.
+    Stripe echoes it on the paid session so the webhook can credit that key.
     """
+    if mode not in {"subscription", "payment"}:
+        raise ValueError(f"Checkout mode {mode!r} is not subscription or payment")
     fields = {
-        "mode": "subscription",
+        "mode": mode,
         "line_items[0][price]": price_id,
         "line_items[0][quantity]": "1",
         "success_url": success_url,
@@ -95,20 +102,28 @@ def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
             f"I agree to the ModelSpec terms of service at {terms_url}"
         ),
         "metadata[modelspec_price_id]": price_id,
-        "subscription_data[metadata][modelspec_price_id]": price_id,
         "allow_promotion_codes": "false",
     }
+    if mode == "subscription":
+        fields["subscription_data[metadata][modelspec_price_id]"] = price_id
+    if key_fingerprint:
+        fields["metadata[modelspec_key_fingerprint]"] = key_fingerprint
+        if mode == "subscription":
+            fields["subscription_data[metadata][modelspec_key_fingerprint]"] = (
+                key_fingerprint)
     return urlencode(fields)
 
 
 async def create_checkout_session(*, secret: str, price_id: str, success_url: str,
                                   cancel_url: str, terms_url: str,
-                                  http: Any) -> dict[str, Any]:
+                                  http: Any, mode: str = "subscription",
+                                  key_fingerprint: str = "") -> dict[str, Any]:
     """POST /v1/checkout/sessions. `http` is injected; tests never call Stripe."""
     if not secret:
         raise RuntimeError("STRIPE_SECRET_KEY is not configured")
     body = checkout_form(price_id=price_id, success_url=success_url,
-                         cancel_url=cancel_url, terms_url=terms_url)
+                         cancel_url=cancel_url, terms_url=terms_url, mode=mode,
+                         key_fingerprint=key_fingerprint)
     response = await http(
         STRIPE_API_BASE + CHECKOUT_SESSIONS_PATH,
         method="POST",

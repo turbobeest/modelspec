@@ -419,6 +419,10 @@ def main(argv: list[str] | None = None) -> int:
     legal_counts = legal.write(ms, root, build)
     ms_paths.extend(legal_counts["sitemap_paths"])
 
+    from pipeline import pricing
+    pricing_counts = pricing.write(ms, root, build)
+    ms_paths.extend(pricing_counts["sitemap_paths"])
+
     # benchgraph.dev
     bg_paths = ["/", "/benchmarks/"]
     for bench in benchmarks:
@@ -497,6 +501,7 @@ def main(argv: list[str] | None = None) -> int:
         "graph": graph_counts,
         "ranking": ranking_counts,
         "legal": legal_counts,
+        "pricing": pricing_counts,
         "commit": build.commit[:12],
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
