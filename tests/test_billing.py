@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import urllib.parse
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -1126,3 +1127,13 @@ def test_entry_omitted_price_id_is_400_and_does_not_call_stripe(entry):
         assert "body" not in capture
     finally:
         entry.fetch = previous
+
+
+def test_checkout_always_asks_stripe_tax_for_a_billing_address():
+    for mode in ("subscription", "payment"):
+        form = billing_stripe.checkout_form(
+            price_id=PRICE, success_url="https://s", cancel_url="https://c",
+            terms_url="https://modelspec.dev/legal/terms/", mode=mode)
+        fields = dict(urllib.parse.parse_qsl(form))
+        assert fields["automatic_tax[enabled]"] == "true"
+        assert fields["billing_address_collection"] == "required"

@@ -103,6 +103,11 @@ def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
         ),
         "metadata[modelspec_price_id]": price_id,
         "allow_promotion_codes": "false",
+        # Sparks & Sawdust LLC's tax rule, the same as dev-mux: Stripe Tax on
+        # every Checkout, which needs a billing address for the jurisdiction.
+        # With no active registration Stripe computes zero tax, silently.
+        "automatic_tax[enabled]": "true",
+        "billing_address_collection": "required",
     }
     if mode == "subscription":
         fields["subscription_data[metadata][modelspec_price_id]"] = price_id

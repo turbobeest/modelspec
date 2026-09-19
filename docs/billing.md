@@ -167,9 +167,14 @@ Stripe's live API.
 8. Set `"BILLING_ENABLED": "true"` in `wrangler.jsonc` vars, regenerate
    `openapi.yaml`, merge. The deploy is push-to-main only.
 
-If you will charge US or EU customers, consider Stripe Tax and an active
-registration before going live; without a registration Stripe calculates
-nothing. That is a Dashboard step, not this Worker.
+**Tax.** Sparks & Sawdust LLC applies one rule to every product, set first
+for dev-mux: Stripe Tax on every Checkout (`automatic_tax[enabled]=true`,
+`billing_address_collection=required`). In the Dashboard: head office Rhode
+Island; preset product category *Electronically Supplied Services*; tax
+behaviour Automatic (exclusive for USD); one registration, Rhode Island. With
+no active registration Stripe computes zero tax without an error, so the
+registration is what turns collection on. dev-mux's reasoning and the
+accountant's answer: `dev-mux/docs/ri-sales-tax-decision.md`.
 
 ## Secrets
 
