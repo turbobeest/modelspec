@@ -34,9 +34,9 @@ T0 = datetime(2026, 9, 17, 14, 30, 0, tzinfo=UTC)
 TS = int(T0.timestamp())
 WEBHOOK_SECRET = "whsec_test_fixture_not_a_real_secret"
 COMMIT = "testsha"
-PRICE = "price_PLACEHOLDER_solo_monthly"
-TEAM_PRICE = "price_PLACEHOLDER_team_monthly"
-PACK5 = "price_PLACEHOLDER_pack_5"
+PRICE = "price_1UHN91B565YfQifmuNBRGlZd"
+TEAM_PRICE = "price_1UHN9fB565YfQifm8NwFJSrD"
+PACK5 = "price_1UHNBQB565YfQifmVDhOnO2I"
 SESSION = "cs_test_fixture_session"
 SUB = "sub_test_fixture"
 CUS = "cus_test_fixture"
@@ -113,9 +113,10 @@ async def apply(kv: Any, policy: access_config.AccessPolicy, body: str, *,
 
 # ── configuration ────────────────────────────────────────────────────────────
 
-def test_the_shipped_price_map_is_placeholder_credits_not_limits(policy):
+def test_the_shipped_price_map_is_real_test_mode_credits_not_limits(policy):
     row = policy.billing.prices[PRICE]
-    assert row.placeholder is True
+    assert row.placeholder is False
+    assert not any(p.startswith("price_PLACEHOLDER") for p in policy.billing.prices)
     assert row.kind == "plan"
     assert row.name == "Solo"
     assert row.credits == 4000
@@ -444,7 +445,7 @@ def test_checkout_with_a_stubbed_stripe_returns_a_hosted_url(policy):
     assert outcome.body["credits"] == 4000
     assert "determinations" in outcome.body["what_you_buy"]
     assert "token" not in outcome.body["what_you_buy"].lower()
-    assert outcome.body["placeholder"] is True
+    assert outcome.body["placeholder"] is False
 
 
 def test_unbound_store_cannot_provision(policy):
@@ -619,6 +620,52 @@ def test_renewal_resets_monthly_and_does_not_accumulate(policy):
     assert run(ledger.balance(holder)).monthly == 4000
     assert run(ledger.balance(holder)).available == 4000
 
+
+
+def dahlia_invoice_obj(**extra: Any) -> dict[str, Any]:
+    """An invoice as API version 2026-08-26.dahlia sends it (the shape since
+    2025-03-31.basil): no top-level `subscription`, and each line names its
+    Price under `pricing.price_details`, not `price`."""
+    body = {
+        "id": "in_test_dahlia",
+        "object": "invoice",
+        "customer": CUS,
+        "status": "paid",
+        "parent": {
+            "type": "subscription_details",
+            "subscription_details": {
+                "subscription": SUB,
+                "metadata": {"modelspec_price_id": PRICE},
+            },
+        },
+        "lines": {"data": [{
+            "object": "line_item",
+            "pricing": {"type": "price_details",
+                        "price_details": {"price": PRICE, "product": "prod_test"}},
+        }]},
+    }
+    body.update(extra)
+    return body
+
+
+def test_renewal_in_the_dahlia_invoice_shape_resets_monthly(policy):
+    kv = MemoryKV()
+    ledger = credits.MemoryLedger()
+    run(apply(kv, policy, payload("checkout.session.completed", checkout_obj(), "evt_d1"),
+              ledger=ledger))
+    key = _claim(kv, policy, ledger).body["key"]
+    holder = _holder(key)
+    reserved = run(ledger.reserve(holder, 100))
+    run(ledger.commit(holder, reserved.reservation_id))
+    outcome = run(apply(kv, policy, payload("invoice.paid", dahlia_invoice_obj(), "evt_d2"),
+                        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == 4000
+
+
+def test_price_from_a_dahlia_invoice_without_line_prices_uses_subscription_metadata():
+    obj = dahlia_invoice_obj(lines={"data": []})
+    assert billing._price_from_invoice(obj) == PRICE
 
 def test_pack_adds_credits_with_12_month_expiry(policy):
     kv = MemoryKV()

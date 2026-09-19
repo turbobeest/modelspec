@@ -228,8 +228,20 @@ def _price_from_invoice(obj: dict[str, Any]) -> str:
                 return str(price["id"])
             if isinstance(price, str) and price:
                 return price
+            # Since API 2025-03-31.basil a line names its Price here instead.
+            pricing = row.get("pricing")
+            details = pricing.get("price_details") if isinstance(pricing, dict) else None
+            if isinstance(details, dict) and _id(details.get("price")):
+                return _id(details.get("price"))
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
-    return str(meta.get("modelspec_price_id") or "")
+    if meta.get("modelspec_price_id"):
+        return str(meta["modelspec_price_id"])
+    # Checkout's subscription_data metadata reaches a basil+ invoice here.
+    parent = obj.get("parent")
+    sub_details = parent.get("subscription_details") if isinstance(parent, dict) else None
+    if isinstance(sub_details, dict):
+        return str(_meta(sub_details).get("modelspec_price_id") or "")
+    return ""
 
 
 def _price_from_subscription(obj: dict[str, Any]) -> str:

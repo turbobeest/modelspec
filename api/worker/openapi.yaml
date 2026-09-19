@@ -431,7 +431,7 @@ paths:
                 price_id:
                   type: string
             example:
-              price_id: price_PLACEHOLDER_solo_monthly
+              price_id: price_1UHN91B565YfQifmuNBRGlZd
       responses:
         '200':
           description: Hosted Checkout URL. Open it in a browser.

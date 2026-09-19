@@ -81,25 +81,24 @@ module.
 - `credits.burst_limit` — per-minute burst for a funded key
 - `credits.pack_expiry_days` — pack and x402 top-up expiry (365 as shipped)
 - `billing.prices.<stripe_price_id>` — `{kind: plan\|pack, credits, name, usd,
-  tier, placeholder}`. Placeholders are named `price_PLACEHOLDER_solo_monthly`,
-  `price_PLACEHOLDER_team_monthly`, `price_PLACEHOLDER_pack_5` / `_25` / `_50`
-  / `_100`. No amount is in force until Jamie replaces them with test-mode ids
+  tier, placeholder}`. The ids below are **Stripe test mode** Prices on the
+  Sparks & Sawdust LLC ModelSpec sandbox; live ids replace them at launch
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
 
 Changing a credit amount, a weight, burst, or a mapping is an edit to that
 file. Tests prove a price/credit change needs no code change.
 
-Shipped placeholders (test mode, not live):
+Shipped Prices (test mode, not live):
 
 | Price id | Kind | Name | Credits | USD |
 | --- | --- | --- | --- | --- |
-| `price_PLACEHOLDER_solo_monthly` | plan | Solo | 4,000 / month | 10 |
-| `price_PLACEHOLDER_team_monthly` | plan | Team | 30,000 / month | 50 |
-| `price_PLACEHOLDER_pack_5` | pack | 1,250-credit pack | 1,250 | 5 |
-| `price_PLACEHOLDER_pack_25` | pack | 7,500-credit pack | 7,500 | 25 |
-| `price_PLACEHOLDER_pack_50` | pack | 20,000-credit pack | 20,000 | 50 |
-| `price_PLACEHOLDER_pack_100` | pack | 50,000-credit pack | 50,000 | 100 |
+| `price_1UHN91B565YfQifmuNBRGlZd` | plan | Solo | 4,000 / month | 10 |
+| `price_1UHN9fB565YfQifm8NwFJSrD` | plan | Team | 30,000 / month | 50 |
+| `price_1UHNBQB565YfQifmVDhOnO2I` | pack | 1,250-credit pack | 1,250 | 5 |
+| `price_1UHNAHB565YfQifmlX8oeIx4` | pack | 7,500-credit pack | 7,500 | 25 |
+| `price_1UHNAYB565YfQifmkxZKH5OW` | pack | 20,000-credit pack | 20,000 | 50 |
+| `price_1UHNApB565YfQifm6k3NAign` | pack | 50,000-credit pack | 50,000 | 100 |
 
 The ledger is the MODEL-75 CREDITS Durable Object, keyed `key:` + SHA-256 of
 the API key. See [`x402.md`](x402.md).
@@ -145,16 +144,18 @@ Stripe's live API.
 
 1. Stripe Dashboard, **test mode**. Seller account: Sparks & Sawdust LLC.
 2. Two recurring monthly Prices (Solo $10 / 4,000 credits, Team $50 / 30,000)
-   and four one-off Prices (packs $5 / $25 / $50 / $100). Copy each Price id
-   over the matching `price_PLACEHOLDER_…` in `api/worker/tiers.json`. Keep
-   `placeholder: false` once it is real.
+   and four one-off Prices (packs $5 / $25 / $50 / $100). **Done in test
+   mode** (2026-09-19); the ids are in `api/worker/tiers.json` with
+   `placeholder: false`. Live ids replace them at launch.
 3. Checkout → **Terms of service URL** =
    `https://modelspec.dev/legal/terms/` (the draft is
    `docs/legal/terms-of-service.md`; required: we send
    `consent_collection[terms_of_service]=required`).
 4. Developers → Webhooks → add
    `https://api.modelspec.dev/v1/billing/stripe-webhook`. Events: the table
-   above. Copy the **test** signing secret (`whsec_…`).
+   above. **Done in test mode** (2026-09-19): destination `modelspec-billing`,
+   API version `2026-08-26.dahlia`, snapshot payloads. Copy its **test**
+   signing secret (`whsec_…`).
 5. API keys: a **restricted** test key with Checkout Sessions write is
    better than `sk_test_…`. Never a live key until Jamie says so.
 6. `npx wrangler secret put STRIPE_SECRET_KEY` and

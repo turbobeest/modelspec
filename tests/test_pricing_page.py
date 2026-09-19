@@ -73,7 +73,7 @@ def test_no_token_wording_and_no_third_party_requests(tmp_path: Path) -> None:
 
 def test_a_credit_figure_change_needs_no_code_change() -> None:
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
-    tiers["billing"]["prices"]["price_PLACEHOLDER_solo_monthly"]["credits"] = 8
+    tiers["billing"]["prices"]["price_1UHN91B565YfQifmuNBRGlZd"]["credits"] = 8
     html = pricing.page(tiers, live=False, build=_build())
     assert "8 / month" in html
     assert "4,000 / month" not in html

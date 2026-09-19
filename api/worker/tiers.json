@@ -55,65 +55,65 @@
     "signature_tolerance_seconds": 300,
     "event_ttl_seconds": 604800,
     "prices": {
-      "price_PLACEHOLDER_solo_monthly": {
+      "price_1UHN91B565YfQifmuNBRGlZd": {
         "kind": "plan",
         "name": "Solo",
         "credits": 4000,
         "usd": 10,
         "interval": "month",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER — replace with a Stripe Price id from the Dashboard (test mode). Monthly Solo plan: 4000 credits, reset each paid invoice, no rollover."
+        "placeholder": false,
+        "description": "Stripe test mode. Monthly Solo plan: 4000 credits, reset each paid invoice, no rollover."
       },
-      "price_PLACEHOLDER_team_monthly": {
+      "price_1UHN9fB565YfQifm8NwFJSrD": {
         "kind": "plan",
         "name": "Team",
         "credits": 30000,
         "usd": 50,
         "interval": "month",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER — replace with a Stripe Price id from the Dashboard (test mode). Monthly Team plan: 30000 credits, reset each paid invoice, no rollover."
+        "placeholder": false,
+        "description": "Stripe test mode. Monthly Team plan: 30000 credits, reset each paid invoice, no rollover."
       },
-      "price_PLACEHOLDER_pack_5": {
+      "price_1UHNBQB565YfQifmVDhOnO2I": {
         "kind": "pack",
         "name": "1,250-credit pack",
         "credits": 1250,
         "usd": 5,
         "interval": "once",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER one-off pack. Adds 1250 credits that expire 12 months after purchase."
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 1250 credits that expire 12 months after purchase."
       },
-      "price_PLACEHOLDER_pack_25": {
+      "price_1UHNAHB565YfQifmlX8oeIx4": {
         "kind": "pack",
         "name": "7,500-credit pack",
         "credits": 7500,
         "usd": 25,
         "interval": "once",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER one-off pack. Adds 7500 credits that expire 12 months after purchase."
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 7500 credits that expire 12 months after purchase."
       },
-      "price_PLACEHOLDER_pack_50": {
+      "price_1UHNAYB565YfQifmkxZKH5OW": {
         "kind": "pack",
         "name": "20,000-credit pack",
         "credits": 20000,
         "usd": 50,
         "interval": "once",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER one-off pack. Adds 20000 credits that expire 12 months after purchase."
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 20000 credits that expire 12 months after purchase."
       },
-      "price_PLACEHOLDER_pack_100": {
+      "price_1UHNApB565YfQifm6k3NAign": {
         "kind": "pack",
         "name": "50,000-credit pack",
         "credits": 50000,
         "usd": 100,
         "interval": "once",
         "tier": "paid",
-        "placeholder": true,
-        "description": "PLACEHOLDER one-off pack. Adds 50000 credits that expire 12 months after purchase."
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 50000 credits that expire 12 months after purchase."
       }
     }
   }
