@@ -46,8 +46,9 @@ not used by either site.
 The OFL requires the licence to travel with the font. `JetBrainsMono-OFL.txt` is
 that copy; do not delete it when pruning assets.
 
-## Still on the CDN
+## Nothing on a CDN
 
-Space Grotesk is still loaded from Google Fonts in `web3d/explorer.html`. That
-file is owned by PR #115 (MODEL-24). Self-hosting it the same way would finish
-MODEL-19's flat criterion for that page.
+Since #115 (MODEL-24) switched `web3d/explorer.html`, every page on both sites
+takes its fonts from `/fonts/` and none requests Google Fonts or any other
+third-party host. `tests/test_no_font_cdn.py` fails if a Google font host
+reappears in the runtime tree or a built site.
