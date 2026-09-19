@@ -394,3 +394,14 @@ def test_the_not_found_check_demands_the_versioned_paths() -> None:
         "a 404 that does not say which version answered passed"
     assert checker.check_not_found({**good, "result": [{"model_id": "m"}]}), \
         "a 404 carrying rows passed"
+
+
+def test_site_artifact_keeps_hidden_files() -> None:
+    """upload-artifact >= 4.4 drops dotfiles unless told otherwise. The built
+    sites carry /.well-known/ (api-catalog, mcp.json, agent-skills), so the
+    artifact that carries dist/ to the deploy job must include hidden files,
+    or those discovery documents 404 in production (MODEL-94)."""
+    workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
+    upload = workflow.split("actions/upload-artifact@", 1)[1].split("- uses:", 1)[0]
+    assert "name: sites" in upload
+    assert "include-hidden-files: true" in upload
