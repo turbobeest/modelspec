@@ -695,7 +695,11 @@ def auth_markdown(root: Path) -> str:
     billing_off = _flag_off(flags.get("BILLING_ENABLED"))
     x402_off = _flag_off(flags.get("X402_ENABLED"))
     lines = [
-        "# How an agent gets access to ModelSpec",
+        # Cloudflare Agent Readiness expects the document to open with an
+        # "Auth.md" heading; it reported the old title as missing it.
+        "# Auth.md",
+        "",
+        "How an agent gets access to ModelSpec.",
         "",
         "The rank and policy-check APIs live at `https://api.modelspec.dev`. "
         "Present a key with `Authorization: Bearer <key>` or `X-API-Key`. "

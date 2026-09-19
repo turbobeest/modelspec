@@ -363,3 +363,13 @@ def test_built_pages_make_no_new_third_party_requests(dist: Path) -> None:
                 continue
             hits.append(f"{html_path.relative_to(dist)}: {url}")
     assert hits == []
+
+
+
+def test_auth_md_opens_with_the_auth_md_heading(tmp_path):
+    """Agent Readiness looks for an `Auth.md` heading; without it the check
+    reports the file as present but malformed."""
+    from pipeline.agent_ready import auth_markdown
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    assert auth_markdown(root).splitlines()[0] == "# Auth.md"
