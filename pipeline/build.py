@@ -481,6 +481,12 @@ def main(argv: list[str] | None = None) -> int:
         (tree / "llms.txt").write_text(
             llms_txt(site=site, base=base, build=build), encoding="utf-8")
 
+    from pipeline import agent_ready
+    agent_counts = agent_ready.ship(
+        root=root, ms=ms, bg=bg, models=models, benchmarks=benchmarks,
+        catalogue=catalogue, build=build, by_provider=by_provider,
+        coverage=coverage)
+
     for tree, name in ((ms, "modelspec"), (bg, "benchgraph")):
         missing = missing_internal_hrefs(tree)
         if missing:
@@ -501,6 +507,7 @@ def main(argv: list[str] | None = None) -> int:
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
         "benchgraph_urls": len(bg_paths),
+        "agent_ready": agent_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0

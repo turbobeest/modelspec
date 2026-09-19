@@ -3,3 +3,24 @@
 /*
   X-Content-Type-Options: nosniff
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Link: </llms.txt>; rel="describedby"; type="text/plain", </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json", </sitemap.xml>; rel="sitemap"; type="application/xml", </openapi.yaml>; rel="service-desc"; type="application/yaml", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"
+/.well-known/api-catalog
+  Content-Type: application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"
+  Access-Control-Allow-Origin: *
+/.well-known/mcp.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+/.well-known/agent-skills/index.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+/openapi.yaml
+  Content-Type: application/yaml
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+/favicon.ico
+  Content-Type: image/x-icon

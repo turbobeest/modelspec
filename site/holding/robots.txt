@@ -1,8 +1,10 @@
 # https://modelspec.dev
+# Content-Signal syntax: https://contentsignals.org/
+# (Cloudflare's implementation of publisher AI-use preferences;
+#  also https://blog.cloudflare.com/content-signals-policy/).
+# The published file is written by pipeline/agent_ready.py at build.
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
-
-User-agent: Bytespider
-Disallow: /
 
 Sitemap: https://modelspec.dev/sitemap.xml
