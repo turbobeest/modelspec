@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import importlib.util
 import json
 import sys
@@ -1596,6 +1597,11 @@ def build_spec() -> dict[str, Any]:
         access_error = _merge(access_error, _infer(body)["properties"]["error"])
     access_error = _describe(access_error, "AccessRefusedError", used)
     access_error["properties"]["code"]["enum"] = sorted(access.REFUSALS)
+    # /v1/credits refuses in its own vocabulary (x402.balance_query), not the
+    # access gate's: same error shape, its own two codes.
+    credits_error = copy.deepcopy(access_error)
+    credits_error["properties"]["code"]["enum"] = sorted(
+        {x402.MISSING_HOLDER, x402.CREDITS_STORE_NOT_CONFIGURED})
 
     stray = sorted(set(DESCRIPTIONS) - used)
     if stray:
@@ -1724,7 +1730,10 @@ def build_spec() -> dict[str, Any]:
                             {"$ref": "#/components/schemas/CreditsBalance"}),
                         str(x402.HTTP_UNAUTHORIZED): _json_body(
                             "missing_holder: no API key presented.",
-                            {"$ref": "#/components/schemas/AccessRefused"}),
+                            {"$ref": "#/components/schemas/CreditsRefused"}),
+                        str(x402.HTTP_STORE_UNAVAILABLE): _json_body(
+                            "credits_store_not_configured: the credit ledger is not bound.",
+                            {"$ref": "#/components/schemas/CreditsRefused"}),
                         not_found[0]: not_found[1],
                         str(service.HTTP_METHOD_NOT_ALLOWED): transport(
                             service.HTTP_METHOD_NOT_ALLOWED, "/v1/credits takes GET.")[1],
@@ -1845,6 +1854,7 @@ def build_spec() -> dict[str, Any]:
             "securitySchemes": security_schemes,
             "schemas": {
                 "AccessRefused": error_envelope(access_error),
+                "CreditsRefused": error_envelope(credits_error),
                 "RankRequest": request_schema,
                 "RankResponse": response_schema,
                 "Health": health_schema,
