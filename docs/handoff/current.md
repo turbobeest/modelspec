@@ -84,15 +84,11 @@ The 2026-09-12 hold is **lifted**. The record is kept at
 
 - **MODEL-7, MODEL-30, MODEL-34:** Linear **Done**. Details:
   [`mvp-remainder.md`](mvp-remainder.md).
-- **MODEL-5:** still open, newly blocked. Daily-research PRs are opened by
-  `peter-evans/create-pull-request` with the default `GITHUB_TOKEN`. GitHub will
-  not run required checks on those PRs, so they cannot merge. Measured:
-  [PR #35](https://github.com/turbobeest/modelspec/pull/35) `research/daily-models`,
-  author `app/github-actions`, `statusCheckRollup: []`, check-runs total 0,
-  `mergeStateStatus: BLOCKED`. Required checks on `main` are **Run pytest** and
-  **Build both sites** (GitHub Actions app 15368). Fix: a PAT or GitHub App
-  token as the workflow `token`. **Jamie has to create that credential.** Do
-  not auto-merge `research/*`.
+- **MODEL-5:** still open by design (it becomes a daily cron). The token
+  blocker is resolved: the workflow uses the `RESEARCH_PR_TOKEN` PAT and fails
+  fast if it is empty, so required checks run on `research/daily-models` PRs
+  (e.g. [PR #106](https://github.com/turbobeest/modelspec/pull/106), all green).
+  A human still reviews and merges each one; do not auto-merge `research/*`.
 - **MODEL-3:** do not start (one Worker serving site + API + snapshot + MCP).
   **MODEL-6 is cancelled**, superseded by MODEL-68, MODEL-69, MODEL-73 and
   MODEL-75. MODEL-68 is built (above). **MODEL-69** (keys, rate limits,

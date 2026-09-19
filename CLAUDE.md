@@ -130,15 +130,21 @@ Required checks on `main`: **Run pytest** and **Build both sites**.
 Optional FalkorDB for graph commands: `docker compose up -d`, browser
 `http://localhost:3000`.
 
-## Do not start
+## Do not start / do not touch
 
-MODEL-3 (the one Worker that would serve site + API + snapshot + MCP together).
-MODEL-6 is **cancelled**, superseded by MODEL-68/69/73/75. MODEL-68 (the rank
-Worker) is built — see [`docs/rank-api.md`](docs/rank-api.md); do not start
-MODEL-69 (keys, limits, sandbox) or the billing tickets from here.
-Do not auto-merge `research/*`.
-MODEL-5 daily PRs are opened with `GITHUB_TOKEN`, so required checks never
-run; Jamie must install a PAT or GitHub App token.
+MODEL-3 is not a one-Worker rebuild: Jamie decided (2026-09-18) the site stays
+on Pages. What remains of it is MODEL-95 (Search Console, Bing) and a traffic
+projection. MODEL-6 is **cancelled**, superseded by MODEL-68/69/73/75.
+
+MODEL-68/69/73/75/93 are built: the rank Worker, keys, Stripe Checkout, x402
+credits and the credit ledger ([`docs/billing.md`](docs/billing.md),
+[`docs/x402.md`](docs/x402.md)). `ACCESS_ENFORCED`, `BILLING_ENABLED` and
+`X402_ENABLED` ship **off** in `api/worker/wrangler.jsonc`; turning any of them
+on, or putting live Stripe keys in the Worker, is Jamie's call.
+
+Do not auto-merge `research/*`: a human reviews every daily-research PR.
+MODEL-5's workflow opens them with the `RESEARCH_PR_TOKEN` PAT (it fails fast
+if the secret is empty), so required checks do run and they can merge.
 
 ## Architecture map
 

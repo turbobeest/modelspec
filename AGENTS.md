@@ -40,12 +40,13 @@ it here. Instructions: [`docs/handoff/worktrees.md`](docs/handoff/worktrees.md).
 Tests: `PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q`
 or `-n auto --dist loadfile` (what the "Run pytest" check uses).
 
-## Do not start
+## Do not start / do not touch
 
-- **MODEL-3** (one Worker serving site + API + snapshot + MCP). **MODEL-6** is
-  cancelled, superseded by MODEL-68/69/73/75. MODEL-68, the rank Worker, is
-  built ([`docs/rank-api.md`](docs/rank-api.md)); MODEL-69 (keys, rate limits,
-  sandbox) and the billing tickets are not started from here.
-- Auto-merge of `research/*`. Daily-research PRs need a human, and today they
-  cannot merge because they are opened with `GITHUB_TOKEN` so required checks
-  never run. The token replacement is Jamie's.
+- **MODEL-3** is not a one-Worker rebuild: the site stays on Pages (Jamie,
+  2026-09-18). What remains is MODEL-95 (Search Console, Bing) and a traffic
+  projection. **MODEL-6** is cancelled, superseded by MODEL-68/69/73/75.
+- MODEL-68/69/73/75/93 are built (rank Worker, keys, Stripe Checkout, x402,
+  credit ledger). `ACCESS_ENFORCED`, `BILLING_ENABLED` and `X402_ENABLED` ship
+  off; turning one on, or adding live Stripe keys, is Jamie's call.
+- Auto-merge of `research/*`. Daily-research PRs need a human. They are opened
+  with the `RESEARCH_PR_TOKEN` PAT, so required checks run and they can merge.
