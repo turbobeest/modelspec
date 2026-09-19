@@ -150,6 +150,10 @@ jobs:
           name: sites
           path: dist
           retention-days: 7
+          # upload-artifact >= 4.4 drops dotfiles by default, which silently
+          # removed dist/*/.well-known/ (api-catalog, mcp.json, agent-skills)
+          # from every deploy (MODEL-94).
+          include-hidden-files: true
 
   deploy:
     name: Deploy to Cloudflare Pages
