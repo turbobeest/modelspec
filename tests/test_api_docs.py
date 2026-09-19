@@ -395,12 +395,12 @@ def test_the_paid_policy_entitlement_follows_the_tier_and_the_reference_says_so(
         spec: dict[str, Any], policy_reference: str) -> None:
     """The day `_entitlement` grants the store any other way, this fails."""
     assert generator.entitlement_follows_tier(), (
-        "entry.py::_entitlement no longer grants the determinations by a tier's paid flag. "
-        "docs/api-policy-check.md and openapi.yaml say it does — update both.")
+        "entry.py::_entitlement no longer grants the determinations to a funded key "
+        "(or an unlimited paid row). docs/api-policy-check.md and openapi.yaml must match.")
     assert "The paid tier is not live." not in policy_reference
-    assert "a key whose tier is paid" in policy_reference
+    assert "remaining credits" in policy_reference
     block = spec["x-modelspec-access"]["policy_check_paid_entitlement"]
-    assert "whose tier is paid" in block["status"]
+    assert "remaining credits" in block["status"]
 
 
 NEUTRALITY_URL = "https://modelspec.dev/api/rank/profiles.json"

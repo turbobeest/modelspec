@@ -18,6 +18,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Any, Awaitable, Callable
 from urllib.parse import urlparse
 
@@ -358,6 +359,30 @@ class ChargeTrace:
         self.events.append(event)
 
 
+def pack_expires_at(now: datetime, pack_expiry_days: int) -> str:
+    clock = now if now.tzinfo else now.replace(tzinfo=UTC)
+    expiry = clock.astimezone(UTC) + timedelta(days=int(pack_expiry_days))
+    return expiry.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def attach_exhausted(body: dict[str, Any], *, available: int, needed: int,
+                     buy: str) -> dict[str, Any]:
+    """Free-tier answer when a key cannot cover this call. Not an error."""
+    out = dict(body)
+    out["credits"] = {
+        "exhausted": True,
+        "available": available,
+        "needed": needed,
+        "unit": "credit",
+        "message": (
+            f"credits are exhausted ({available} available, {needed} needed "
+            f"for this call). Buy a plan or pack at {buy}."
+        ),
+        "buy": buy,
+    }
+    return out
+
+
 async def charge(
     *,
     config: Config,
@@ -369,13 +394,52 @@ async def charge(
     envelope: dict[str, Any],
     produce: Callable[[], Awaitable[tuple[int, dict[str, Any]]]],
     trace: ChargeTrace | None = None,
+    produce_unfunded: Callable[[], Awaitable[tuple[int, dict[str, Any]]]] | None = None,
+    units: int = 1,
+    pack_expiry_days: int = 365,
+    buy_url: str = "https://modelspec.dev/pricing",
+    now: datetime | None = None,
 ) -> tuple[int, dict[str, Any]]:
-    """Verify and settle, then produce. Returns (status, body). Headers via http_headers."""
+    """Verify and settle, then produce. Returns (status, body). Headers via http_headers.
+
+    A keyed request that cannot reserve `units` credits is a free answer plus
+    an exhausted field when `produce_unfunded` is supplied; otherwise (and for
+    keyless callers) it is HTTP 402 while the flag is on.
+    """
     log = trace or ChargeTrace()
+    weight = max(1, int(units))
+    moment = now or datetime.now(UTC)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+    async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
+        if produce_unfunded is not None and holder:
+            log.note("unfunded_free")
+            status, body = await produce_unfunded()
+            return status, attach_exhausted(
+                body, available=available, needed=weight, buy=buy_url)
+        log.note("unfunded")
+        return HTTP_PAYMENT_REQUIRED, payment_required_body(
+            config, envelope, resource_url,
+            message="no prepaid credit remains; PAYMENT-SIGNATURE is required")
 
     if not config.enabled:
         log.note("disabled")
-        return await produce()
+        if not holder:
+            return await produce()
+        try:
+            reserved = await ledger.reserve(holder, weight, now=clock)
+        except credits.StoreNotConfigured:
+            if produce_unfunded is not None:
+                return await produce_unfunded()
+            return await produce()
+        if not reserved.ok:
+            if produce_unfunded is not None:
+                return await _unfunded(reserved.available)
+            return await produce()
+        return await _produce_reserved(
+            ledger, holder, reserved.reservation_id, produce, log)
 
     if not config.configured:
         log.note("misconfigured")
@@ -391,7 +455,8 @@ async def charge(
     oneshot = False
     if payload is not None:
         status, body, oneshot = await _settle_and_credit(
-            config, ledger, facilitator, payload, holder, resource_url, envelope, log)
+            config, ledger, facilitator, payload, holder, resource_url, envelope, log,
+            pack_expiry_days=pack_expiry_days, now=moment)
         if status is not None:
             return status, body
 
@@ -400,15 +465,12 @@ async def charge(
     try:
         if holder:
             try:
-                reserved = await ledger.reserve(holder, 1)
+                reserved = await ledger.reserve(holder, weight, now=clock)
             except credits.StoreNotConfigured:
                 return _error(envelope, HTTP_STORE_UNAVAILABLE, CREDITS_STORE_NOT_CONFIGURED,
                               "x402 is enabled and the CREDITS Durable Object is not bound")
             if not reserved.ok:
-                log.note("unfunded")
-                return HTTP_PAYMENT_REQUIRED, payment_required_body(
-                    config, envelope, resource_url,
-                    message="no prepaid credit remains; PAYMENT-SIGNATURE is required")
+                return await _unfunded(reserved.available)
             reservation_id = reserved.reservation_id
             reserved_holder = holder
             log.note("reserved")
@@ -439,6 +501,36 @@ async def charge(
                 pass
 
 
+async def _produce_reserved(
+    ledger: credits.Ledger,
+    holder: str,
+    reservation_id: int | None,
+    produce: Callable[[], Awaitable[tuple[int, dict[str, Any]]]],
+    log: ChargeTrace,
+) -> tuple[int, dict[str, Any]]:
+    log.note("reserved")
+    try:
+        log.note("produce")
+        status, body = await produce()
+        if reservation_id is not None:
+            if is_billable_success(status, body):
+                await ledger.commit(holder, reservation_id)
+                log.note("commit")
+                reservation_id = None
+            else:
+                await ledger.release(holder, reservation_id)
+                log.note("release")
+                reservation_id = None
+        return status, body
+    finally:
+        if reservation_id is not None:
+            try:
+                await ledger.release(holder, reservation_id)
+                log.note("release")
+            except credits.StoreNotConfigured:
+                pass
+
+
 async def _settle_and_credit(
     config: Config,
     ledger: credits.Ledger,
@@ -448,6 +540,8 @@ async def _settle_and_credit(
     resource_url: str,
     envelope: dict[str, Any],
     log: ChargeTrace,
+    pack_expiry_days: int = 365,
+    now: datetime | None = None,
 ) -> tuple[int | None, dict[str, Any], bool]:
     """Verify, settle, credit. Returns (status, body, oneshot). status set means stop."""
     problem = _check_payload(payload, config)
@@ -515,8 +609,11 @@ async def _settle_and_credit(
 
     credit_holder = holder or (
         "payer:" + _norm_addr(str(_authorization(payload).get("from") or "unknown")))
+    expires_at = pack_expires_at(now or datetime.now(UTC), pack_expiry_days)
     try:
-        result = await ledger.credit(credit_holder, pid, units, settled.transaction)
+        result = await ledger.credit(
+            credit_holder, pid, units, settled.transaction,
+            expires_at=expires_at, source="x402")
     except credits.StoreNotConfigured:
         if holder is None:
             log.note("oneshot_unbound")
@@ -552,7 +649,10 @@ def balance_body(envelope: dict[str, Any], balance: credits.Balance, *,
         "available": balance.available,
         "reserved": balance.reserved,
         "total": balance.total,
-        "unit": "successful result",
+        "unit": "credit",
+        "monthly": balance.monthly,
+        "packs": balance.packs,
+        "grants": [g.to_json() for g in balance.grants],
         "result": [],
     }
 

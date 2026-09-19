@@ -331,10 +331,23 @@ def test_a_free_key_gets_the_free_policy_answer(entry, data):
 @pytest.mark.parametrize("tier", ["paid", "dpf"])
 def test_a_paid_or_exempt_key_is_entitled_to_the_determinations(entry, data, tier):
     """Entitled, so it reads the store — and with none loaded it is the 503,
-    never the free answer. That the 503 arrives is the proof of entitlement."""
+    never the free answer. That the 503 arrives is the proof of entitlement.
+
+    MODEL-93: a `paid` row is entitled only while it has remaining credits.
+    The exempt unlimited row is still entitled without a balance.
+    """
     binding = WorkersKV()
-    _issue(entry, binding, tier, f"live_{tier}_pc")
-    response = _call(entry, _env(access=binding), Request(*POLICY, key=f"live_{tier}_pc"))
+    secret = f"live_{tier}_pc"
+    _issue(entry, binding, tier, secret)
+    env = _env(access=binding)
+    if tier == "paid":
+        import credits
+        import x402
+        ledger = credits.MemoryLedger()
+        asyncio.run(ledger.set_monthly(
+            x402.holder_from_key(secret), 20, "in_paid", "Solo"))
+        env.CREDITS = ledger
+    response = _call(entry, env, Request(*POLICY, key=secret))
     assert response.status == 503
     assert response.json()["error"]["code"] == "determinations_unavailable"
 

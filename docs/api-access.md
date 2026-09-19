@@ -38,6 +38,10 @@ string.** URLs are written into access logs, proxy caches, browser history and
 referrer headers by everything they pass through; a key in one is a key in
 somebody else's logs.
 
+`POST /v1/billing/checkout` uses the same headers. A valid live key binds the
+purchase to that key (pack credits ADD, a plan attaches). An unknown or
+revoked key is `401`, never treated as anonymous. See [`billing.md`](billing.md).
+
 ## Tiers
 
 The table is `api/worker/tiers.json`. It is data: changing a limit is an edit
@@ -51,7 +55,7 @@ numeric literal bound to a name that reads like a limit.
 | --- | --- | --- | --- |
 | `sandbox` (`test_…`) | unlimited | unlimited | no |
 | `free` | 10 | 5/min | yes |
-| `paid` | placeholder, per plan | placeholder | yes |
+| `paid` | none (funded keys) | 60/min | yes |
 | `dpf` | unlimited | unlimited | yes |
 
 `null` is how unlimited is written, and it is a comparison that never refuses —
@@ -64,10 +68,11 @@ requests record an identical sequence of steps, and
 `test_no_module_branches_on_the_exempt_tier_by_name` parses the package's syntax
 tree and fails if the tier is named anywhere outside a comment or a docstring.
 
-MODEL-73 adds a `subscriber` row and a `billing.prices` map: a Stripe Price id
-selects a tier. Limits and the mapping are still this file. The subscriber row
-is live rank access, not the policy-check determinations (`paid: false`).
-See [`billing.md`](billing.md).
+MODEL-93 meters paid access in credits, not a daily quota. `billing.prices`
+maps each Stripe Price id to `{kind: plan|pack, credits, name}`. A funded key
+(balance > 0) gets the paid answer, including determinations. A key with zero
+credits gets the free-tier answer plus `credits.exhausted`. See
+[`billing.md`](billing.md).
 
 ## Windows and the reset boundary
 
@@ -193,11 +198,11 @@ return _json_response(outcome.status, outcome.body, outcome.headers)
 ```
 
 `gate` is `serve` behind the switch. `live(record, tier)` answers for a known,
-metered key; for policy-check it passes `_entitlement(tier)`, which grants the
-determinations to a tier whose `paid` flag is set (the paid rows and the exempt
-row alike — the flag, never the name). `anonymous()` is the pre-MODEL-69 answer,
-the free tier. `sandbox()` is the `test_` answer for rank, and
-`sandbox_not_available` for policy-check.
+metered key; for policy-check it passes `_entitlement(tier, funded=…)`, which
+grants the determinations when the key has remaining credits, or when the tier
+is paid and unlimited (the exempt row — the flags, never the name).
+`anonymous()` is the pre-MODEL-69 answer, the free tier. `sandbox()` is the
+`test_` answer for rank, and `sandbox_not_available` for policy-check.
 
 The body is parsed with the live parser before the sandbox answers, so a body
 the live endpoint would refuse is refused in the sandbox too. The one exception

@@ -56,15 +56,39 @@ class CreditsObject(DurableObject):
         )
 
     async def credit(self, holder: str, payment_id: str, units: int,
-                     tx: str) -> dict[str, Any]:
+                     tx: str, expires_at: str = "",
+                     source: str = "x402") -> dict[str, Any]:
         state = self._load()
-        result = state.credit(holder, payment_id, int(units), tx)
+        result = state.credit(holder, payment_id, int(units), tx,
+                              expires_at=str(expires_at or ""),
+                              source=str(source or "x402"))
         self._save(state)
         return result.to_json()
 
-    async def reserve(self, holder: str, units: int = 1) -> dict[str, Any]:
+    async def set_monthly(self, holder: str, units: int, invoice_id: str,
+                          plan: str = "") -> dict[str, Any]:
         state = self._load()
-        result = state.reserve(holder, int(units))
+        result = state.set_monthly(holder, int(units), str(invoice_id),
+                                   str(plan or ""))
+        self._save(state)
+        return result.to_json()
+
+    async def clear_monthly(self, holder: str) -> dict[str, Any]:
+        state = self._load()
+        result = state.clear_monthly(holder)
+        self._save(state)
+        return result.to_json()
+
+    async def transfer(self, src: str, dst: str) -> bool:
+        state = self._load()
+        ok = state.transfer(str(src), str(dst))
+        self._save(state)
+        return ok
+
+    async def reserve(self, holder: str, units: int = 1,
+                      now: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.reserve(holder, int(units), now=str(now or ""))
         self._save(state)
         return result.to_json()
 
@@ -80,8 +104,8 @@ class CreditsObject(DurableObject):
         self._save(state)
         return ok
 
-    async def balance(self, holder: str) -> dict[str, Any]:
-        return self._load().balance(holder).to_json()
+    async def balance(self, holder: str, now: str = "") -> dict[str, Any]:
+        return self._load().balance(holder, now=str(now or "")).to_json()
 
     async def seen(self, payment_id: str) -> bool:
         return self._load().seen(payment_id)

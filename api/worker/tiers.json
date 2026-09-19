@@ -22,21 +22,14 @@
       "paid": false,
       "daily_limit": 10,
       "burst_limit": 5,
-      "description": "Live rankings. Enough for a genuine decision, not for a build loop."
+      "description": "Live rankings. Enough for a genuine decision, not for a build loop. No determinations."
     },
     "paid": {
       "live_data": true,
       "paid": true,
-      "daily_limit": 1000,
+      "daily_limit": null,
       "burst_limit": 60,
-      "description": "Determinations-entitled row. Not what MODEL-73 sells on day one."
-    },
-    "subscriber": {
-      "live_data": true,
-      "paid": false,
-      "daily_limit": 1000,
-      "burst_limit": 60,
-      "description": "PLACEHOLDER monthly plan: live rankings at these limits. Does not include policy-check determinations. Limits are configuration, not a commitment."
+      "description": "Funded key: paid answer including determinations. No daily limit; burst is configuration. Entitlement follows remaining credits, not this flag alone."
     },
     "dpf": {
       "live_data": true,
@@ -46,6 +39,14 @@
       "description": "Unlimited, and deliberately on the same handler as a paid key: null limits, not a bypass."
     }
   },
+  "credits": {
+    "weights": {
+      "rank": 1,
+      "policy-check": 5
+    },
+    "burst_limit": 60,
+    "pack_expiry_days": 365
+  },
   "billing": {
     "downgrade_tier": "free",
     "terms_url": "https://modelspec.dev/legal/terms/",
@@ -54,11 +55,65 @@
     "signature_tolerance_seconds": 300,
     "event_ttl_seconds": 604800,
     "prices": {
-      "price_PLACEHOLDER_live_monthly": {
-        "tier": "subscriber",
+      "price_1UHN91B565YfQifmuNBRGlZd": {
+        "kind": "plan",
+        "name": "Solo",
+        "credits": 4000,
+        "usd": 10,
         "interval": "month",
-        "placeholder": true,
-        "description": "PLACEHOLDER — replace with a Stripe Price id from the Dashboard (test mode). Buys live rank limits, not the compliance answer. No amount is in force."
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. Monthly Solo plan: 4000 credits, reset each paid invoice, no rollover."
+      },
+      "price_1UHN9fB565YfQifm8NwFJSrD": {
+        "kind": "plan",
+        "name": "Team",
+        "credits": 30000,
+        "usd": 50,
+        "interval": "month",
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. Monthly Team plan: 30000 credits, reset each paid invoice, no rollover."
+      },
+      "price_1UHNBQB565YfQifmVDhOnO2I": {
+        "kind": "pack",
+        "name": "1,250-credit pack",
+        "credits": 1250,
+        "usd": 5,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 1250 credits that expire 12 months after purchase."
+      },
+      "price_1UHNAHB565YfQifmlX8oeIx4": {
+        "kind": "pack",
+        "name": "7,500-credit pack",
+        "credits": 7500,
+        "usd": 25,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 7500 credits that expire 12 months after purchase."
+      },
+      "price_1UHNAYB565YfQifmkxZKH5OW": {
+        "kind": "pack",
+        "name": "20,000-credit pack",
+        "credits": 20000,
+        "usd": 50,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 20000 credits that expire 12 months after purchase."
+      },
+      "price_1UHNApB565YfQifm6k3NAign": {
+        "kind": "pack",
+        "name": "50,000-credit pack",
+        "credits": 50000,
+        "usd": 100,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": false,
+        "description": "Stripe test mode. One-off pack. Adds 50000 credits that expire 12 months after purchase."
       }
     }
   }

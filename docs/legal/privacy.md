@@ -62,6 +62,8 @@ is unknown. It holds these kinds of record
   fingerprint (the start of that hash) that identifies the key in support and
   cannot be turned back into it. A billed key is minted at claim, shown once,
   and only this hash is written — never the key, including before claim.
+  An authenticated Checkout binds payment to an already-issued key by that
+  same hash; it does not mint another key and does not store the key value.
 - **Two counters per key.** How many calls that key made in the current UTC day
   and in the current minute, named by the key's fingerprint and the window and
   holding a single number. They expire on their own: the minute counter after a
@@ -70,10 +72,13 @@ is unknown. It holds these kinds of record
   and when, so a replayed webhook is a no-op. The event payload itself is not
   stored.
 - **A subscription record** (`sub:<id>`). Stripe subscription id, customer id,
-  Price id, the mapped tier, status, and — after claim — the key's fingerprint
-  (never the key). No card number, no expiry, no CVC.
-- **A Checkout session pointer** (`session:<id>`). Session id → subscription id,
-  and whether that session has already claimed. No key material.
+  Price id, the mapped tier, status, and the key's fingerprint once the
+  purchase is bound or claimed (never the key). No card number, no expiry,
+  no CVC.
+- **A Checkout session pointer** (`session:<id>`). Session id, optional
+  subscription id, claimed flag, product kind, Price id, credit amount, and
+  — when Checkout was authenticated — the SHA-256 fingerprint of the existing
+  key (never the key).
 - **A keyref** (`keyref:<fingerprint>`). Fingerprint → subscription id, so
   rotation can find the billing row.
 
@@ -83,29 +88,35 @@ those into it. A request that presents no key, or a `test_` sandbox key, writes
 nothing to it at all. Card data never reaches this store: Checkout is hosted on
 Stripe.
 
-### The x402 credit ledger: bound, idle until the flag is on
+### The credit ledger: bound, idle until a flag is on
 
 A Durable Object class `CreditsObject`, bound as `CREDITS`
-(`api/worker/wrangler.jsonc`), holds prepaid x402 credits (MODEL-75).
-`X402_ENABLED` ships `"false"`, so today no request is charged and nothing is
-written to it. When the flag is on, it holds exactly two kinds of record
-(`api/worker/src/credits.py`):
+(`api/worker/wrangler.jsonc`), holds prepaid credits (MODEL-75, MODEL-93).
+`X402_ENABLED` and `BILLING_ENABLED` both ship `"false"`, so today no request
+is charged and nothing is written to it. When either flag is on, it holds
+these kinds of record (`api/worker/src/credits.py`):
 
 - **A balance per holder.** The holder name is `key:` plus the SHA-256 hash of
-  an API key, never the key. The record is two integers: how many successful
-  results remain (`available`) and how many are reserved for an in-flight
-  request (`reserved`). It holds no request body, no prompt, no IP address, no
+  an API key, never the key. The record includes two integers for the live
+  meter: how many credits remain to spend (`available`) and how many are
+  reserved for an in-flight request (`reserved`). It also stores the remaining
+  monthly allowance, and each pack grant as remaining credits, an expiry
+  timestamp, a source (`pack` or `x402`), and the payment id that created it.
+  Drawdown spends the monthly allowance first, then pack grants, oldest
+  expiry first. It holds no request body, no prompt, no IP address, no
   user-agent and no payment signature.
-- **A payment claim per settled payload.** Named by the SHA-256 of the
-  payment's EIP-3009 nonce and signature. The record is which holder was
-  credited, how many units, and the settlement transaction hash, so the same
-  payload cannot credit twice. It holds the transaction hash the facilitator
-  returned, not a wallet private key (there is none in this repository).
+- **A payment claim per settled payload or paid invoice.** Named by the
+  payment id (the SHA-256 of an x402 nonce and signature, a Checkout session
+  id, or a Stripe invoice id). The record is which holder was credited, how
+  many credits, the kind (`pack` or `monthly`), and the settlement transaction
+  hash or invoice id, so the same payload cannot credit twice. It holds the
+  transaction hash the facilitator returned, not a wallet private key (there
+  is none in this repository).
 
 It holds no prompt, no request body, no field of a request, no ranking or
 policy answer, no IP address and no user-agent: our code reads none of those
-into it. A request that does not pay, and a request while `X402_ENABLED` is
-off, writes nothing to it.
+into it. A request that does not pay, and a request while both `X402_ENABLED`
+and `BILLING_ENABLED` are off, writes nothing to it.
 
 Workers KV is not this ledger. KV is eventually consistent and has no
 compare-and-set, so it cannot keep a balance non-negative when two requests
