@@ -43,7 +43,7 @@ class CreditsObject(DurableObject):
         row = _one_row(cursor)
         if row is None:
             return LedgerState()
-        text = row[0] if not isinstance(row, dict) else row.get("v")
+        text = _cell(row, "v")
         if not text:
             return LedgerState()
         return LedgerState.from_json(json.loads(str(text)))
@@ -109,6 +109,20 @@ class CreditsObject(DurableObject):
 
     async def seen(self, payment_id: str) -> bool:
         return self._load().seen(payment_id)
+
+
+def _cell(row: Any, column: str) -> Any:
+    """One column of a SQL row. On Workers the row is a JsProxy of a JS object
+    (attribute access, `to_py()`, no integer index); under CPython tests it
+    may be a dict or a tuple."""
+    to_py = getattr(row, "to_py", None)
+    if callable(to_py):
+        row = to_py()
+    if isinstance(row, dict):
+        return row.get(column)
+    if isinstance(row, (list, tuple)):
+        return row[0] if row else None
+    return getattr(row, column, None)
 
 
 def _one_row(cursor) -> Any:
