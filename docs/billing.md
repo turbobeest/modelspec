@@ -148,7 +148,7 @@ Stripe's live API.
    mode** (2026-09-19); the ids are in `api/worker/tiers.json` with
    `placeholder: false`. Live ids replace them at launch.
 3. Checkout → **Terms of service URL** =
-   `https://modelspec.dev/legal/terms/` (the draft is
+   `https://modelspec.dev/legal/terms/` (adopted 2026-09-19; source
    `docs/legal/terms-of-service.md`; required: we send
    `consent_collection[terms_of_service]=required`).
 4. Developers → Webhooks → add

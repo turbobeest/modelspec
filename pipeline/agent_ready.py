@@ -651,7 +651,7 @@ def skill_markdown() -> str:
         "\n"
         f"Operator: {n['operator']}. Machine-readable commitment: "
         f"{MS_BASE}/api/rank/profiles.json (`neutrality`). "
-        f"Terms (draft): {n['terms_url']}.\n"
+        f"Terms: {n['terms_url']}. Privacy: {n['privacy_url']}.\n"
         "\n"
         "## Discovery\n"
         "\n"

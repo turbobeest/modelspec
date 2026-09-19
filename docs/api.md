@@ -242,14 +242,16 @@ unlock policy-check [determinations](api-policy-check.md#free-and-paid); zero
 balance is the free answer plus `credits.exhausted`. Prices:
 [/pricing/](https://modelspec.dev/pricing/).
 
-## Neutrality, and what is not in force
+## Neutrality, terms and privacy
 
 * **The neutrality commitment is live, as data:**
   [`profiles.json`](https://modelspec.dev/api/rank/profiles.json) →
   `.ranking_policy.neutrality`, and `policy.neutrality` on every `/v1/rank`
   answer. No referral fees, no paid placement, no provider-paid visibility.
-* **No terms of use are in force.** The MODEL-70 terms and privacy pages are
-  unadopted drafts, not linked here; they bind nobody yet.
+  As prose: [neutrality commitment](https://modelspec.dev/legal/neutrality/).
+* **Terms and privacy are in force** (version 1.0, effective 2026-09-19):
+  [terms of service](https://modelspec.dev/legal/terms/) and
+  [privacy statement](https://modelspec.dev/legal/privacy/).
 
 ## Stability
 

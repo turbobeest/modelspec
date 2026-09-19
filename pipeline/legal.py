@@ -8,17 +8,18 @@ two surfaces, no second copy to fall out of date.
 Two things this module is careful about:
 
 1. **A draft does not present itself as terms in force.** While `DRAFT` is true
-   the pages are served `noindex, nofollow` and are kept out of `sitemap.xml`.
-   The URL is stable from the first build — a caller or a crawler that has it
-   keeps it — but nobody arrives at an unadopted terms page from a search for
-   terms that bind. Adopting is flipping that one constant.
+   the pages are served `noindex, nofollow`, carry a draft banner and are kept
+   out of `sitemap.xml`. The URL is stable from the first build — a caller or a
+   crawler that has it keeps it. Sparks & Sawdust LLC adopted version 1.0 on
+   2026-09-19, so `DRAFT` is false: the pages are indexable and in the sitemap.
+   A future unadopted revision belongs on a branch, not behind this flag.
 2. **The prose and the JSON say the same thing.** The honest-broker rule and the
    neutrality pledge exist once, in `api.ranking.engine`, and are asserted to
    appear verbatim in the rendered terms by `tests/test_legal.py`. The published
    commitment an agent fetches from `/api/rank/profiles.json` and the sentence a
    person reads on `/legal/terms/` cannot drift apart without a test failing.
 
-Nothing here is adopted. See `docs/legal/README.md`.
+Adopted 2026-09-19. See `docs/legal/README.md` for how, and what is still open.
 """
 
 from __future__ import annotations
@@ -33,11 +34,10 @@ from pipeline import render as r
 if TYPE_CHECKING:  # pragma: no cover - annotations only
     from pipeline.export import Build
 
-#: Flipped to False only when Sparks & Sawdust LLC has adopted these documents:
-#: after the legal review in §11 of the terms, and after the contact details in
-#: the terms and the privacy statement are filled in. Until then the pages are
-#: published, reachable and unindexed.
-DRAFT = True
+#: False since 2026-09-19, when Sparks & Sawdust LLC adopted version 1.0 of all
+#: three documents. True would publish them unindexed, out of the sitemap and
+#: under a banner saying they bind nobody.
+DRAFT = False
 
 #: Where the documents live on modelspec.dev. `engine.LEGAL_BASE_URL` is the
 #: absolute form of the same thing, and `tests/test_legal.py` keeps them equal.
@@ -90,7 +90,7 @@ DOCS: tuple[LegalDoc, ...] = (
         nav_label="Privacy",
         description=(
             "What the ModelSpec API records today, with the file behind each claim. "
-            "Profiles, not prompts; no store on the ranking path."
+            "Profiles, not prompts; nothing from a request's content is stored."
         ),
     ),
 )

@@ -159,9 +159,15 @@ def test_skills_index_digest_matches_skill_bytes() -> None:
     assert ar.MCP_ENDPOINT in text
 
 
-def test_auth_md_says_billing_is_not_live() -> None:
+def test_auth_md_billing_copy_follows_the_flag() -> None:
+    """Whether billing is live is `BILLING_ENABLED`'s to say, not the terms'.
+    The adopted terms (MODEL-70) do not decide it; this copy follows the flag."""
     text = ar.auth_markdown(ROOT)
-    assert "Billing is not live" in text
+    if ar._flag_off(ar.wrangler_vars(ROOT).get("BILLING_ENABLED")):
+        assert "Billing is not live" in text
+    else:
+        assert "Billing is enabled" in text
+        assert "Billing is not live" not in text
     assert "test_" in text
     assert "No key is required" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text

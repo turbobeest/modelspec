@@ -1,7 +1,8 @@
 # The neutrality commitment
 
-**Status: DRAFT. Not adopted.** Drafted 2026-09-17 for MODEL-70. Version
-`neutrality-v1`, which is the same string the machine-readable copy carries.
+Version `1.0`, effective 2026-09-19. Adopted by Sparks & Sawdust LLC.
+MODEL-70. The commitment itself is `neutrality-v1`, which is the same string
+the machine-readable copy carries.
 
 ## The rule
 

@@ -147,7 +147,8 @@ commitment is published as data at
 under <span class="mono">ranking_policy.neutrality</span>, and as prose at
 <a href="/legal/neutrality/">/legal/neutrality/</a>.</p>
 
-<p>Terms (draft, not adopted): <a href="/legal/terms/">/legal/terms/</a>.
+<p>Terms of service: <a href="/legal/terms/">/legal/terms/</a>. Privacy:
+<a href="/legal/privacy/">/legal/privacy/</a>.
 Keys, when issuance is on, are claimed at the Checkout success URL and shown
 once. Buy URL: <span class="mono">{r.esc(get_a_key)}</span>.</p>
 <p>There is no SLA and no uptime promise on this page.</p>
