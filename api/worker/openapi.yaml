@@ -173,7 +173,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessRefused'
+                $ref: '#/components/schemas/CreditsRefused'
+        '503':
+          description: 'credits_store_not_configured: the credit ledger is not bound.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsRefused'
         '404': &id001
           description: No endpoint at that path. `error.accepted` names the versioned paths.
           content:
@@ -1273,6 +1279,90 @@ components:
               - rate_limited
               - sandbox_not_available
               - tier_not_configured
+            docs:
+              type: string
+            how_to_get_a_key:
+              type: string
+            limit:
+              type: integer
+            message:
+              type: string
+            remaining:
+              type: integer
+            resets_at:
+              type: string
+            retry_after_seconds:
+              type: integer
+            sandbox:
+              type: string
+            scope:
+              type: string
+            tier:
+              type: string
+            upgrade:
+              type: string
+            used:
+              type: integer
+            window:
+              type: string
+            window_seconds:
+              type: integer
+            windows:
+              type: array
+              items:
+                type: object
+                properties:
+                  limit:
+                    type: integer
+                  remaining:
+                    type: integer
+                  resets_at:
+                    type: string
+                  retry_after_seconds:
+                    type: integer
+                  scope:
+                    type: string
+                  used:
+                    type: integer
+                  window:
+                    type: string
+                  window_seconds:
+                    type: integer
+                required:
+                - limit
+                - remaining
+                - resets_at
+                - retry_after_seconds
+                - scope
+                - used
+                - window
+                - window_seconds
+          required:
+          - code
+          - message
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+    CreditsRefused:
+      type: object
+      required:
+      - schema_version
+      - error
+      - result
+      properties:
+        schema_version:
+          type: string
+        service_commit:
+          type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+              - credits_store_not_configured
+              - missing_holder
             docs:
               type: string
             how_to_get_a_key:
