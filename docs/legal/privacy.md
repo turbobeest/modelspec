@@ -1,7 +1,7 @@
 # Privacy statement
 
-**Status: DRAFT. Not adopted.** Drafted 2026-09-17 for MODEL-70, against the
-code as it stood at that date.
+Version `1.0`, effective 2026-09-19. Adopted by Sparks & Sawdust LLC, which
+operates the service. MODEL-70.
 
 This describes **what the service does today**, not what it is planned to do.
 Every claim below names the file that makes it true, so it can be checked and so
@@ -12,9 +12,12 @@ switched on, it is marked **not yet live** and claims nothing.
 
 We do not receive your prompts, because the API has no field for them. We do not
 proxy your model calls, so the content of your inference never reaches us. The
-rank endpoint keeps no store of any kind: it reads your request, computes an
-answer, returns it and forgets it. The one thing recorded about your call is
-recorded by Cloudflare, our infrastructure provider, as platform request logs.
+API keeps nothing from the content of a request: it reads your request, computes
+an answer, returns it and forgets it. If you use an API key or buy credits, we
+keep a hash of the key (never the key), its usage counters and credit balance,
+and the Stripe identifiers of your purchase. Stripe, not us, handles your card.
+Cloudflare, our infrastructure provider, records request metadata as platform
+logs.
 
 ## What a request contains
 
@@ -32,7 +35,18 @@ so there is nothing of that kind for us to receive, log or store. Widening these
 fields toward prompt text would be a breach of the commitment in the terms, not
 a feature release.
 
-A body is capped at 16 KB and larger ones are refused unread past that point.
+A rank body is capped at 16 KB and larger ones are refused unread past that
+point.
+
+`POST https://api.modelspec.dev/v1/policy-check` accepts a **policy**: the
+licence types, origin countries, processing regions and commercial-use
+requirement you want checked, an optional name for the policy, and which models,
+platforms and verdicts to return (`api/worker/src/policy_service.py`). It has no
+field for prompt text either. Its body is capped at 256 KB.
+
+The remote MCP server at `https://api.modelspec.dev/mcp` (`mcp/`) is stateless.
+It passes each tool call through to those endpoints or to the public export,
+forwarding the `Authorization` header you sent, and stores nothing.
 
 ## What we store
 
@@ -40,30 +54,32 @@ A body is capped at 16 KB and larger ones are refused unread past that point.
 from your request, return it and forget the request: no body, no field of it and
 no answer is written anywhere.
 
-The Worker binds two KV namespaces today (`api/worker/wrangler.jsonc`), and
-one Durable Object for prepaid credits that is yours in the sense below.
-`DETERMINATIONS` holds **our own research** — the licence and data-residency
-determinations the paid tier serves — and the Worker only ever reads from it.
-There is no code path that writes to it. No D1 database, R2 bucket, queue or
-analytics dataset is bound.
+The Worker binds two KV namespaces (`api/worker/wrangler.jsonc`) and one
+Durable Object, each described below. `DETERMINATIONS` holds **our own
+research** — the licence and data-residency determinations the paid tier
+serves — and the Worker only ever reads from it. There is no code path that
+writes to it. No D1 database, R2 bucket, queue or analytics dataset is bound.
 
 ### The API-key store
 
-A second KV namespace, `ACCESS`, is bound for API keys (MODEL-69). Enforcement
-is still off: no key is required. Keys can be presented and are checked against
-the store; none are issued yet (issuance is MODEL-73), so a presented live key
-is unknown. It holds these kinds of record
-(`api/worker/src/access_keys.py`, `access_limits.py`, `access_billing.py`):
+A second KV namespace, `ACCESS`, is bound for API keys (MODEL-69) and purchases
+(MODEL-73). It is wired with enforcement off (`ACCESS_ENFORCED` is `"false"`):
+no key is required, and a request without one is answered as it always was, unmetered
+and with nothing written. A request that presents a key is checked against the
+store. A key is issued when a purchase is claimed. It holds these kinds of
+record (`api/worker/src/access_keys.py`, `access_limits.py`,
+`access_billing.py`):
 
 - **A key record per issued key.** Stored under the SHA-256 hash of the key,
   never under the key, and the key value itself is never stored, logged or
-  returned. The record holds the key's tier, who it was issued to, an optional
-  label, when it was created, whether it is active, and a 12-character
-  fingerprint (the start of that hash) that identifies the key in support and
-  cannot be turned back into it. A billed key is minted at claim, shown once,
-  and only this hash is written — never the key, including before claim.
-  An authenticated Checkout binds payment to an already-issued key by that
-  same hash; it does not mint another key and does not store the key value.
+  returned. The record holds the key's tier, who it was issued to (for a
+  purchased key, the Stripe customer id), an optional label, when it was
+  created, whether it is active, and a 12-character fingerprint (the start of
+  that hash) that identifies the key in support and cannot be turned back into
+  it. A billed key is minted at claim, shown once, and only this hash is
+  written — never the key, including before claim. An authenticated Checkout
+  binds payment to an already-issued key by that same hash; it does not mint
+  another key and does not store the key value.
 - **Two counters per key.** How many calls that key made in the current UTC day
   and in the current minute, named by the key's fingerprint and the window and
   holding a single number. They expire on their own: the minute counter after a
@@ -72,13 +88,13 @@ is unknown. It holds these kinds of record
   and when, so a replayed webhook is a no-op. The event payload itself is not
   stored.
 - **A subscription record** (`sub:<id>`). Stripe subscription id, customer id,
-  Price id, the mapped tier, status, and the key's fingerprint once the
-  purchase is bound or claimed (never the key). No card number, no expiry,
-  no CVC.
+  Price id, plan name and monthly credit amount, the mapped tier, status, when
+  it was created, and the key's fingerprint once the purchase is bound or
+  claimed (never the key). No card number, no expiry, no CVC.
 - **A Checkout session pointer** (`session:<id>`). Session id, optional
-  subscription id, claimed flag, product kind, Price id, credit amount, and
-  — when Checkout was authenticated — the SHA-256 fingerprint of the existing
-  key (never the key).
+  subscription id, Stripe customer id, claimed flag, product kind, Price id,
+  credit amount, and — when Checkout was authenticated — the SHA-256
+  fingerprint of the existing key (never the key).
 - **A keyref** (`keyref:<fingerprint>`). Fingerprint → subscription id, so
   rotation can find the billing row.
 
@@ -88,13 +104,14 @@ those into it. A request that presents no key, or a `test_` sandbox key, writes
 nothing to it at all. Card data never reaches this store: Checkout is hosted on
 Stripe.
 
-### The credit ledger: bound, idle until a flag is on
+### The credit ledger
 
 A Durable Object class `CreditsObject`, bound as `CREDITS`
-(`api/worker/wrangler.jsonc`), holds prepaid credits (MODEL-75, MODEL-93).
-`X402_ENABLED` and `BILLING_ENABLED` both ship `"false"`, so today no request
-is charged and nothing is written to it. When either flag is on, it holds
-these kinds of record (`api/worker/src/credits.py`):
+(`api/worker/wrangler.jsonc`), holds credit balances (MODEL-75, MODEL-93).
+Credits are added only by a paid Stripe purchase, which runs only while
+`BILLING_ENABLED` is on, or by an x402 payment, which runs only while
+`X402_ENABLED` is on. It holds these kinds of record
+(`api/worker/src/credits.py`):
 
 - **A balance per holder.** The holder name is `key:` plus the SHA-256 hash of
   an API key, never the key. The record includes two integers for the live
@@ -115,8 +132,10 @@ these kinds of record (`api/worker/src/credits.py`):
 
 It holds no prompt, no request body, no field of a request, no ranking or
 policy answer, no IP address and no user-agent: our code reads none of those
-into it. A request that does not pay, and a request while both `X402_ENABLED`
-and `BILLING_ENABLED` are off, writes nothing to it.
+into it. A request that presents no key, or a `test_` sandbox key, writes
+nothing to it. A request that presents a live key reserves its cost against
+that key's balance, which can create an empty balance record under the key's
+hash even when nothing has been bought (`api/worker/src/x402.py`).
 
 Workers KV is not this ledger. KV is eventually consistent and has no
 compare-and-set, so it cannot keep a balance non-negative when two requests
@@ -129,14 +148,28 @@ published catalogue, which is public data and contains nothing of yours
 Our own code writes no log line about your request. There is no analytics call,
 no telemetry beacon and no third-party tag on the API path.
 
+## What Stripe holds
+
+Purchases are made on Checkout pages hosted by Stripe
+(`api/worker/src/billing_stripe.py`), which processes payments for Sparks &
+Sawdust LLC. Stripe collects your card details and the contact and billing
+details its Checkout form asks for, and holds them under its own privacy
+policy. **We never receive your card number, expiry or CVC.** From Stripe we
+keep only the identifiers listed under [the API-key store](#the-api-key-store):
+event, customer, subscription, Checkout session, invoice and Price ids. We do
+not copy your name, email address or billing address into our stores; they
+remain in our Stripe account, where we can see them to handle a request from
+you.
+
 ## What Cloudflare records
 
 The API and both sites run on Cloudflare, and Cloudflare records request
 metadata as any host does: the source IP address, timestamp, request method and
 path, response status, and user-agent. Cloudflare **Workers observability is
-enabled** on the rank endpoint (`api/worker/wrangler.jsonc`), which retains
-invocation logs — request metadata, outcome and any uncaught error — under
-Cloudflare's own retention. We use this to tell whether the service is working.
+enabled** on the API Worker and the MCP Worker (`api/worker/wrangler.jsonc`,
+`mcp/wrangler.jsonc`), which retains invocation logs — request metadata,
+outcome and any uncaught error — under Cloudflare's own retention. We use this
+to tell whether the service is working.
 
 We do not export it, join it to anything else, or use it to build a profile of
 you. Cloudflare processes it under its own terms as our infrastructure provider.
@@ -171,29 +204,12 @@ are present in your environment and never their values. The keys stay with you.
 Named so that this statement can be checked against the code, and so that
 nothing below is read as describing the service today:
 
-- **API keys, tiers and rate limits.** The code is wired into the Worker's
-  entry point (`api/worker/src/entry.py`, MODEL-69) with **enforcement off**: no
-  key is required, and a request without one is answered as it always was,
-  unmetered and with nothing written. The ACCESS store is bound; no key has
-  been issued (issuance is MODEL-73). What a key record and its counters hold
-  is set out under [What we store](#the-api-key-store).
-- **Payment.** Two rails, each behind its own flag, both off. No payment rail
-  is in operation, so no payment is collected.
-  Stripe Checkout and the entitlement webhook are wired
-  (`api/worker/src/billing.py`, MODEL-73) with **`BILLING_ENABLED` off**: no
-  Checkout Session is created and a valid webhook is refused rather than
-  applied. When the flag flips, Stripe hosts the card form; we never receive
-  card numbers. ACCESS then holds the Stripe event ids and
-  subscription/customer/Price ids described under [What we
-  store](#the-api-key-store). The key is minted when the buyer claims,
-  returned once, and stored only as its SHA-256 hash. The terms Checkout
-  links are still an unadopted draft. The x402 rail (MODEL-75) is wired
-  behind `X402_ENABLED`, which ships off: no request is charged and the
-  credit ledger described above is not written. Coinbase's x402 facilitator,
-  when the flag is on, receives the signed payment payload in order to verify
-  and settle it; that payload is the caller's, not a store of ours. No private
-  key for receiving funds is in this repository. `X402_PAY_TO` is an on-chain
-  address in configuration, currently empty.
+- **x402 payments.** The rail (MODEL-75) is wired behind `X402_ENABLED`, which
+  ships off: no request is charged by x402 and no x402 payment is credited.
+  Coinbase's x402 facilitator, when the flag is on, receives the signed payment
+  payload in order to verify and settle it; that payload is the caller's, not a
+  store of ours. No private key for receiving funds is in this repository.
+  `X402_PAY_TO` is an on-chain address in configuration, currently empty.
 - **Outcome logging.** Not built. The service does not record what you chose,
   whether a recommendation worked, or anything about the result of acting on
   one. When it is built it will record the profile, the recommendation and the
@@ -202,9 +218,11 @@ nothing below is read as describing the service today:
 
 ## Your requests about your data
 
-Since the service holds nothing that identifies you, there is generally nothing
-to access, correct, export or delete. If you believe we hold something about
-you, ask and we will look. Contact details to be filled in before adoption.
+Without a key, the service holds nothing that identifies you, so there is
+generally nothing to access, correct, export or delete. With a purchased key, we
+hold the records described above, linked to your Stripe customer id. To ask
+what we hold about you, or to have it corrected or deleted, write to
+**sales@modelspec.dev**. Never send us your API key.
 
 ## Changes
 

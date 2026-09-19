@@ -411,10 +411,9 @@ def main(argv: list[str] | None = None) -> int:
         ms_paths.append(f"/p/{slug}/")
 
     # Terms, the neutrality commitment and the privacy statement (MODEL-70), at
-    # stable URLs from the first build. While they are drafts they are published
-    # `noindex` and contribute nothing to the sitemap, so the URL is dependable
-    # before the documents are adopted without a crawler presenting an unadopted
-    # draft as terms in force. `legal.DRAFT` is the single switch.
+    # stable URLs. Adopted 2026-09-19, so they are indexable and in the sitemap;
+    # while `legal.DRAFT` is true they would be `noindex` and left out of it.
+    # `legal.DRAFT` is the single switch.
     from pipeline import legal
     legal_counts = legal.write(ms, root, build)
     ms_paths.extend(legal_counts["sitemap_paths"])

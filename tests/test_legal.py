@@ -13,10 +13,11 @@ Three things are worth a test here, and they are not the prose.
    commitment. One string, asserted in both places, so editing the constant
    without editing the document (or the reverse) fails here rather than on a
    customer's reading of a term we no longer keep.
-3. **Nothing claims a capability that is not shipped.** The tests that matter
-   most are the negative ones at the bottom: keys, prices and outcome logging
-   are not live, and a document that starts describing them as live should not
-   reach a reader before someone has looked again.
+3. **Nothing claims a capability that is not shipped, and what is shipped is
+   described as it is.** The documents were adopted as v1.0 on 2026-09-19. The
+   billing terms are checked against `api/worker/tiers.json`, the privacy
+   statement against what the Worker binds and writes, and outcome logging and
+   x402 must stay described as not live until they are.
 """
 
 from __future__ import annotations
@@ -191,10 +192,48 @@ def test_the_operator_is_named() -> None:
 
 # ── nothing claims what is not shipped ───────────────────────────────────────
 
-def test_the_terms_say_no_billing_is_live() -> None:
-    """MODEL-73 and MODEL-75 are not merged. The terms must not read as if they were."""
-    assert "no metered tier, no billing and no payment rail" in FLAT_TERMS
-    assert "no charge exists" in FLAT_TERMS
+def _billing_prices() -> list[dict]:
+    tiers = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
+    return list(tiers["billing"]["prices"].values())
+
+
+def test_the_terms_state_the_plans_and_packs_that_are_configured() -> None:
+    """§6 names each plan and pack. Changing a price in tiers.json without
+    changing the terms fails here, because the terms are what a buyer agreed to."""
+    for price in _billing_prices():
+        credits = f"{price['credits']:,}"
+        usd = f"${price['usd']}"
+        assert credits in FLAT_TERMS, (price["name"], credits)
+        assert usd in FLAT_TERMS, (price["name"], usd)
+        if price["kind"] == "plan":
+            assert price["name"] in FLAT_TERMS
+    tiers = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
+    assert tiers["credits"]["pack_expiry_days"] == 365
+    assert "Pack credits expire 12 months after purchase" in FLAT_TERMS
+    assert "do not roll over" in FLAT_TERMS
+    assert "goes to zero at once" in FLAT_TERMS
+
+
+def test_the_terms_name_the_seller_processor_and_statement_descriptor() -> None:
+    assert "The seller is **Sparks & Sawdust LLC**" in FLAT_TERMS
+    assert "processed by Stripe" in FLAT_TERMS
+    assert "SPARKS & SAWDUST LLC" in FLAT_TERMS
+    assert "https://modelspec.dev/pricing" in FLAT_TERMS
+
+
+def test_the_terms_neither_deny_nor_promise_that_purchase_is_open() -> None:
+    """`BILLING_ENABLED` decides whether Checkout is open, and it can flip without
+    a terms change. The terms point at /pricing for availability instead."""
+    for stale in ("no metered tier, no billing and no payment rail", "no charge exists",
+                  "No price is in force", "None of this is in operation"):
+        assert stale not in FLAT_TERMS, stale
+    assert "Current plans, prices and availability are published at" in FLAT_TERMS
+
+
+def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
+    config = _wrangler_config()
+    if '"X402_ENABLED": "false"' in config:
+        assert "Payment by x402 is not currently offered." in FLAT_TERMS
 
 
 def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> None:
@@ -419,11 +458,31 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
     assert "There is no field" in FLAT_PRIVACY
 
 
-def test_every_document_says_it_is_a_draft() -> None:
-    """Nothing here is adopted, and a reader should not have to infer that."""
+def test_every_document_is_adopted_version_1_0() -> None:
+    """Adopted by Sparks & Sawdust LLC on 2026-09-19. The version and date are
+    at the top of each document, and no draft banner survives."""
+    assert legal.DRAFT is False
     for name, text in (("terms", TERMS), ("neutrality", NEUTRALITY), ("privacy", PRIVACY)):
-        assert "DRAFT" in text.split("\n\n", 3)[1] or "DRAFT" in text[:400], name
-    assert legal.DRAFT is True
+        head = flat(text[:400])
+        assert "Version `1.0`, effective 2026-09-19." in head, name
+        assert "Adopted by Sparks & Sawdust LLC" in head, name
+        assert "DRAFT" not in text, name
+        assert "Not adopted" not in text, name
+
+
+def test_every_document_names_a_contact_and_no_placeholder_remains() -> None:
+    for name, text in (("terms", FLAT_TERMS), ("privacy", FLAT_PRIVACY)):
+        assert "sales@modelspec.dev" in text, name
+        assert "to be filled in" not in text, name
+    # The counsel list moved to the README; the terms say plainly what they omit.
+    assert "needs a lawyer before adoption" not in FLAT_TERMS
+    assert "does not address" in FLAT_TERMS
+    readme = flat((DOCS / "README.md").read_text(encoding="utf-8"))
+    for item in ("governing law, jurisdiction and venue", "limitation of liability",
+                 "indemnity", "class-action waiver", "cooling-off",
+                 "sales tax and VAT", "controller/processor", "change of control"):
+        assert item in readme, item
+    assert "without the counsel review" in readme
 
 
 # ── publication ──────────────────────────────────────────────────────────────
@@ -454,13 +513,40 @@ def test_the_rendered_terms_carry_the_rule_verbatim(tmp_path: Path) -> None:
     assert flat(HONEST_BROKER_RULE) in flattened
 
 
-def test_a_draft_is_published_but_not_advertised(tmp_path: Path) -> None:
-    """Stable URL from the first build; no crawler presenting it as terms in force."""
+def test_an_adopted_document_is_indexed_and_in_the_sitemap(tmp_path: Path) -> None:
+    """In force: indexable, advertised in sitemap.xml, no draft banner."""
+    result = legal.write(tmp_path, REPO_ROOT, _build())
+    assert result["draft"] is False
+    assert result["sitemap_paths"] == [d.url_path for d in legal.DOCS]
+    for doc in legal.DOCS:
+        html = (tmp_path / legal.LEGAL_ROOT / doc.slug / "index.html").read_text(encoding="utf-8")
+        assert '<meta name="robots" content="index, follow">' in html, doc.slug
+        assert "has not been adopted" not in html, doc.slug
+
+
+def test_the_draft_switch_still_hides_a_draft(tmp_path: Path, monkeypatch) -> None:
+    """The mechanism stays correct for a future revision published as a draft."""
+    monkeypatch.setattr(legal, "DRAFT", True)
     result = legal.write(tmp_path, REPO_ROOT, _build())
     assert result["sitemap_paths"] == []
     html = (tmp_path / "legal/terms/index.html").read_text(encoding="utf-8")
     assert '<meta name="robots" content="noindex, nofollow">' in html
     assert "has not been adopted" in html
+
+
+def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
+    """MODEL-70's last criterion: reachable from the landing page and the API docs."""
+    from pipeline import render as r
+
+    landing = (REPO_ROOT / "site" / "holding" / "index.html").read_text(encoding="utf-8")
+    footer = landing.split("<footer>", 1)[1]
+    shell = r.shell(title="t", description="d", canonical=None, body="", build=_build(),
+                    site="ModelSpec", nav_links=r.MS_NAV)
+    api_docs = (REPO_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
+    for doc in legal.DOCS:
+        assert f'href="{doc.url_path}"' in footer, doc.slug
+        assert f'href="{doc.url_path}"' in shell.split("<footer>", 1)[1], doc.slug
+        assert f"](https://modelspec.dev{doc.url_path})" in api_docs, doc.slug
 
 
 def test_a_missing_source_document_fails_the_build(tmp_path: Path) -> None:

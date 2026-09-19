@@ -72,7 +72,8 @@ Do not change a floor without Jamie.
 permanent refusal of referral fees, paid placement and provider-paid visibility,
 published as data beside the floors so an agent can check it rather than trust
 it (MODEL-70). Single source: `neutrality_commitment()` in
-`api/ranking/engine.py`; drafts in `docs/legal/`, still unadopted. Editing those
+`api/ranking/engine.py`; the terms, privacy statement and commitment in
+`docs/legal/` were adopted as v1.0 on 2026-09-19 and are in force. Editing those
 strings edits the published terms, and `tests/test_legal.py` fails if the prose
 and the JSON drift. Neither is a routine edit.
 

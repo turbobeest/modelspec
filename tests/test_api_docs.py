@@ -22,9 +22,9 @@ Every assertion is between a document and the implementation:
   wired with `ACCESS_ENFORCED` off, so a key is optional and a presented one is
   checked. The tests fail the day the switch or the key store binding changes,
   which is the day the references have to change;
-* the neutrality commitment (MODEL-70) is live as data and linked; the terms
-  are drafts and are not presented as in force. Each of those flips a test the
-  day it stops being true.
+* the neutrality commitment (MODEL-70) is live as data and linked; the terms,
+  privacy statement and commitment were adopted on 2026-09-19 and are linked as
+  in force. Each of those flips a test the day it stops being true.
 
 The live endpoint is exercised by `api/worker/openapi.py --probe`, which CI runs
 after a deploy. It is opt-in here (`MODELSPEC_LIVE_API=1`) so the suite needs no
@@ -425,19 +425,20 @@ def test_the_live_neutrality_commitment_is_linked(reference: str) -> None:
     assert neutrality_commitment()["pledge"].split(",")[0] in reference
 
 
-def test_the_draft_terms_are_not_presented_as_in_force(reference: str) -> None:
-    """The legal pages are unadopted drafts. The day `pipeline.legal.DRAFT` flips,
-    this fails, and the reference has to start linking them as terms."""
+def test_the_adopted_terms_are_linked_as_in_force(reference: str) -> None:
+    """The legal pages were adopted as v1.0 on 2026-09-19. The reference links all
+    three and no longer says no terms are in force. If `pipeline.legal.DRAFT`
+    flips back, this fails and the reference has to stop presenting them."""
     from pipeline import legal
 
-    assert legal.DRAFT is True, (
-        "the MODEL-70 legal pages are adopted now. docs/api.md still says no terms are in "
-        "force and deliberately does not link them — update it.")
-    assert "No terms of use are in force." in reference
-    for draft in ("modelspec.dev/legal/terms", "modelspec.dev/legal/privacy",
-                  "modelspec.dev/legal/neutrality"):
-        assert f"](https://{draft}" not in reference, (
-            f"docs/api.md links {draft}, an unadopted draft, as if it were in force")
+    assert legal.DRAFT is False, (
+        "the MODEL-70 legal pages are drafts again; docs/api.md presents them as in "
+        "force — update it.")
+    assert "No terms of use are in force." not in reference
+    assert "Terms and privacy are in force" in reference
+    for page in ("modelspec.dev/legal/terms/", "modelspec.dev/legal/privacy/",
+                 "modelspec.dev/legal/neutrality/"):
+        assert f"](https://{page})" in reference, f"docs/api.md does not link {page}"
 
 
 @pytest.mark.skipif(os.environ.get("MODELSPEC_LIVE_API") != "1",
