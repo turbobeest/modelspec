@@ -79,6 +79,22 @@ it (MODEL-70). Single source: `neutrality_commitment()` in
 strings edits the published terms, and `tests/test_legal.py` fails if the prose
 and the JSON drift. Neither is a routine edit.
 
+## Class fit — which class, before which model (MODEL-100)
+
+Ranking answers "which model?" *within* a class. `api/classes.py` is a **view
+over `ModelType`** — what a model consumes, what it emits, what decision it
+makes — and `api/class_fit.py` answers which class a task needs, refusing when
+the evidence cannot separate two. `partial` (several classes, deliberately
+unordered) is the expected answer, not a degraded one.
+
+**No number ever orders one class above another**, and cost-to-correct
+evidence (`docs/research/cost-to-correct-attribution.md`, MODEL-99) must never
+reach `rank_score`. `api/ranking/engine.py` and `pipeline/ranking.py` import
+neither module, and `tests/test_class_fit.py` walks their imports to keep it
+that way. The rule is published keyless at `/api/rank/class-fit.json`, written
+by `pipeline/class_export.py` — not by `pipeline/ranking.py`, for that same
+reason. Design: [`docs/design/class-selection.md`](docs/design/class-selection.md).
+
 ## Provenance
 
 Ranked rows report `evidence_basis`: `none`, `unverified-legacy`, `mixed`,

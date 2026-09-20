@@ -154,6 +154,7 @@ def test_the_answer_never_claims_to_order_classes() -> None:
 
 
 def _imports(path: Path) -> set[str]:
+    """Every module a file imports, with `from X import y` resolved to `X.y`."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     names: set[str] = set()
     for node in ast.walk(tree):
@@ -161,7 +162,15 @@ def _imports(path: Path) -> set[str]:
             names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             names.add(node.module)
+            names.update(f"{node.module}.{alias.name}" for alias in node.names)
     return names
+
+
+def _repo_imports(path: Path) -> set[str]:
+    """The ones that point back into this repository, packages dropped."""
+    found = {n for n in _imports(path)
+             if n.split(".")[0] in {"api", "pipeline", "schema", "cli"}}
+    return {n for n in found if n not in {"api", "pipeline", "schema", "cli"}}
 
 
 def test_the_scorer_does_not_import_class_fit_in_either_direction() -> None:
@@ -177,15 +186,21 @@ def test_the_scorer_does_not_import_class_fit_in_either_direction() -> None:
 
 
 def test_the_rule_imports_only_the_taxonomy_and_the_standard_library() -> None:
-    imported = _imports(REPO_ROOT / "api" / "class_fit.py")
-    repo_imports = {n for n in imported if n.split(".")[0] in {"api", "pipeline", "schema", "cli"}}
-    assert repo_imports == {"api.classes"}
+    assert _repo_imports(REPO_ROOT / "api" / "class_fit.py") == {"api.classes"}
 
 
-def test_the_taxonomy_imports_nothing_from_this_repository() -> None:
-    """Stdlib only, so the Worker bundle can vendor it unchanged."""
-    imported = _imports(REPO_ROOT / "api" / "classes.py")
-    assert not {n for n in imported if n.split(".")[0] in {"api", "pipeline", "schema", "cli"}}
+def test_the_taxonomy_reaches_only_for_the_engine_and_only_to_read_it() -> None:
+    """`api/classes.py` calls `neutrality_commitment()` rather than copying its
+    strings, and derives `rank_profiles` from `preferred_types` rather than
+    hand-listing them. Both need the engine, and the Worker bundle already
+    carries that file, so this adds no bundle surface. The direction that
+    matters is the other one, and the test below holds it.
+    """
+    assert _repo_imports(REPO_ROOT / "api" / "classes.py") == {
+        "api.ranking.engine",
+        "api.ranking.engine.USE_CASE_PROFILES",
+        "api.ranking.engine.neutrality_commitment",
+    }
 
 
 def test_no_cost_to_correct_number_is_served() -> None:
@@ -449,3 +464,79 @@ def test_every_class_states_why_its_pair_is_its_own_class(model_class) -> None:
     """The reason a rule survives review, in the file the reviewer reads."""
     assert model_class.because
     assert model_class.terms
+
+
+# ── the CLI surface, refusal included ───────────────────────────────────────
+
+
+def _snapshot(cache: Path) -> None:
+    from datetime import UTC, datetime
+
+    from cli.modelspec import snapshot as snap
+
+    (cache / "snapshot.json").write_text(json.dumps({
+        "meta": {"fetched_at": datetime.now(UTC).isoformat(),
+                 "origin": "https://example.test", "build_commit": "abc123def456",
+                 "built_at": "2026-09-20T00:00:00+00:00"},
+        "data": {
+            "index": {"build": {"commit": "abc123def456",
+                                "export_schema_version": snap.EXPORT_SCHEMA_VERSION}},
+            "candidates": {"candidates": [
+                {"model_id": "a/one", "display_name": "One", "provider": "A",
+                 "model_type": "llm-chat"},
+                {"model_id": "b/two", "display_name": "Two", "provider": "B",
+                 "model_type": "embedding-text"},
+            ]},
+            "profiles": {"profiles": {}, "featured": []},
+            "hardware": {"nodes": []},
+        },
+    }), encoding="utf-8")
+
+
+def _run(cache: Path, args: list[str], monkeypatch):
+    from typer.testing import CliRunner
+
+    from cli.modelspec import offline
+
+    monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    return CliRunner().invoke(offline.app, args)
+
+
+def test_the_cli_answers_the_attribution_case_with_a_cascade(tmp_path, monkeypatch) -> None:
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    _snapshot(cache)
+    result = _run(cache, ["class-fit", "--emits", "choice",
+                          "--consumes", "structured_state", "--json"], monkeypatch)
+    assert result.exit_code == 0, result.stdout
+    answer = json.loads(result.stdout)["result"]
+    assert answer["fit_status"] == "partial"
+    assert answer["composition"][0]["sequence"] == ["decider", "text-generator"]
+    decider = next(c for c in answer["candidates"] if c["class"] == "decider")
+    assert decider["catalogue"]["evidence_state"] == "empty"
+
+
+def test_the_cli_refuses_rather_than_guessing_and_exits_one(tmp_path, monkeypatch) -> None:
+    """The refusal path ships with the answer path, not after it."""
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    _snapshot(cache)
+    result = _run(cache, ["class-fit", "zzzz qqqq wwww", "--json"], monkeypatch)
+    assert result.exit_code == 1
+    answer = json.loads(result.stdout)["result"]
+    assert answer["fit_status"] == "refused"
+    assert answer["refusal"]["code"] == "no_term_matched"
+
+
+def test_the_cli_reports_a_class_the_catalogue_holds_as_populated(
+        tmp_path, monkeypatch) -> None:
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    _snapshot(cache)
+    result = _run(cache, ["class-fit", "--emits", "vector", "--json"], monkeypatch)
+    assert result.exit_code == 0, result.stdout
+    answer = json.loads(result.stdout)["result"]
+    assert answer["fit_status"] == "resolved"
+    catalogue = answer["candidates"][0]["catalogue"]
+    assert catalogue["card_count"] == 1
+    assert catalogue["example_model_ids"] == ["b/two"]

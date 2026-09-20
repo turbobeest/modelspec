@@ -364,6 +364,15 @@ def main(argv: list[str] | None = None) -> int:
     from pipeline import ranking
     ranking_counts = ranking.write_export(ms / "api" / "rank", cards, derived, build.to_json())
 
+    # Which *class* of model a problem needs, before ranking within one
+    # (MODEL-100). The whole decision rule as static data, keyless, beside
+    # `profiles.json`. Called from here rather than from `ranking.write_export`
+    # on purpose: the scorer must not import the class taxonomy in either
+    # direction, and `tests/test_class_fit.py` walks its imports to prove it.
+    from pipeline import class_export
+    graph_counts["class_fit"] = class_export.write_export(
+        ms / "api" / "rank", cards, build.to_json())
+
     # The public half of the compliance answer (MODEL-80): licence, origin,
     # commercial-use grant and per-platform availability, reshaped so
     # `POST /v1/policy-check` can read the whole catalogue in one fetch. Adds

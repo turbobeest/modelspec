@@ -32,6 +32,15 @@ and trust boundary: [`docs/policy-check-api.md`](docs/policy-check-api.md).
 The JSON envelope and exit codes for `modelspec snapshot` / `modelspec offline`
 are the contract. Read the file; do not reconstruct it from memory.
 
+MODEL-100 added **class fit**: which *class* of model a problem needs, before
+ranking within one. `api/classes.py` is a view over `ModelType` (what it
+consumes, emits, decides); `api/class_fit.py` decides over it and refuses when
+the evidence cannot separate two classes. **No number orders one class above
+another**, and cost-to-correct evidence (MODEL-99) must never reach
+`rank_score` — the scorer imports neither module and a test enforces it. The
+rule is published keyless at `/api/rank/class-fit.json`. Design:
+[`docs/design/class-selection.md`](docs/design/class-selection.md).
+
 ## Worktrees
 
 Never check out a branch in another session's tree. Create a new worktree from

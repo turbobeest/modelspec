@@ -116,8 +116,10 @@ Two consequences, both deliberate:
 
 * **No card gains a field.** Nothing to round-trip, nothing to drift.
 * **The map is held to the enum by a test**, not by care. `api/classes.py` is
-  keyed on `ModelType` *values as strings* — so the module imports nothing but
-  the standard library and can be vendored into the Worker bundle — and
+  keyed on `ModelType` *values as strings*, never on the enum itself — so the
+  module imports nothing the Worker bundle does not already carry
+  (`api/ranking/engine.py` is in it; `schema/`, which needs pydantic, is not)
+  and can be vendored unchanged — and
   `tests/test_class_fit.py` fails if its key set is not exactly
   `{t.value for t in ModelType}`. A new enum member is a red test on the commit
   that adds it, which is where the argument about its class belongs.
@@ -127,11 +129,11 @@ Two consequences, both deliberate:
 **Lineage — `adapter`, `quantized-variant`, `distilled`, `merged`.** These
 answer "where did these weights come from", not "what does this do". A
 distilled model is a *smaller instance of its base model's class*; it is not an
-alternative to it. They are mapped to the non-class `derived`, with
-`basis: "lineage"`, and the taxonomy states the resolution: **follow
-`lineage.base_model` and take that card's class.** Class-fit never guesses one:
-a `derived` card is excluded with `excluded_reason: "not_a_class"` and its base
-model id is named.
+alternative to it. They are mapped to the non-class `derived`, and the taxonomy
+publishes the resolution beside it: **follow `lineage.base_model` and take that
+card's class.** Class-fit never guesses one — `derived` appears in `excluded`
+with `excluded_reason: "not_a_class"` and that resolution attached, rather than
+being silently absent.
 
 We deliberately do **not** fix this in the card data. The right fix is visible
 and cheap to describe — `BaseModelRelation` already carries `adapter`,
@@ -215,6 +217,7 @@ Per class, `class_status` is `candidate` or `excluded`, with
 | `emits_wrong_kind` | it cannot produce the artefact the task needs |
 | `consumes_unsupported` | it cannot take the inputs the task has |
 | `decision_shape_mismatch` | it decides something other than what was asked |
+| `not_described` | the task used none of this class's terms. **Only reachable when the caller supplied no facets** — a term is a hint and may discover a class, but it may never remove one the caller's own constraints admit |
 | `not_a_class` | lineage or `miscellaneous`; the value names no class |
 
 Request-level refusals, each naming what would have worked:
@@ -359,6 +362,22 @@ matched terms, never the input**. It is not stored, not logged and not
 forwarded, which keeps the "nothing to retain" architecture intact rather than
 converting it into a retention promise.
 
+**A facet is a constraint; a term is a hint**, and they are not combined
+symmetrically. A facet the caller supplied is an assertion about their own
+problem, so it binds. A term match is our guess about their words, so it may
+*discover* a class when nothing else was given, but it may never remove one the
+caller's own constraints admit. A guess never overrides an assertion. This is
+why the worked example below still returns `text-generator` even though the
+attribution description contains none of that class's terms: the caller's
+`emits` and `consumes` admit it, and our word list does not get a veto.
+
+**`decides` is the strict facet.** `emits` and `consumes` admit published
+adaptations — prose parsed into a choice, typed state serialised into text,
+both of which MODEL-99 actually did and measured. `decides` admits none,
+because adapting it means the caller writes the decision logic themselves,
+which is a different architecture rather than a different model. There are
+exactly two adaptations today and each is a claim that page can back.
+
 **What it cannot do**, stated plainly and repeated in the published rule:
 paraphrase; negation; any language but English; any task whose class depends on
 volume, latency or budget rather than on words; and any task described without
@@ -441,8 +460,8 @@ Three properties worth naming:
 
 | surface | what it costs | verdict |
 | --- | --- | --- |
-| **Static `/api/rank/class-fit.json`** | one small file (~15 KB) in `write_export`; zero request CPU; no key | **ship** |
-| **`modelspec class-fit` (CLI)** | a command beside `offline rank` / `offline fit`; counts classes from the snapshot's own `candidates.json`, so no new snapshot file and no contract change | **ship** |
+| **Static `/api/rank/class-fit.json`** | one small file (14 KB measured) written at build time; zero request CPU; no key | **ship** |
+| **`modelspec offline class-fit` (CLI)** | a command beside `offline rank` / `offline fit`; counts classes from the snapshot's own `candidates.json`, so no new snapshot file and no contract change | **ship** |
 | **`POST /v1/class-fit`** | entry routing, the access gate, and — because `tests/test_api_docs.py::test_the_spec_describes_exactly_the_endpoints_the_worker_routes` reads `entry.ACCEPTED_ENDPOINTS` — a full generated OpenAPI operation with inferred response schemas, cross-checked error codes and a word-budgeted reference doc | **defer** |
 | **A step inside `POST /v1/rank`** | would add a prose field to a request whose contract says it carries a profile, not a prompt | **refuse** |
 | **MCP tool** | a proxy tool beside `list_use_cases`, ~15 lines of TypeScript fetching the static file | **defer, but it is next** |
@@ -457,10 +476,12 @@ requests a month while requests are barely 2% used. Per-request CPU is the
 scarce resource, and the overage economics on the Team credit rate are already
 a loss at 289 ms.
 
-Class-fit's own work is negligible — 12 classes × ~10 terms against a ~30-token
-description is a few thousand string comparisons, and the taxonomy file is
-~15 KB against `candidates.json`'s ~2 MB, so it does not even pay the parse
-that ranking pays. That is exactly why the endpoint is the wrong place to spend
+Class-fit's own work is negligible, and measured rather than assumed: **0.43 ms
+per answer** on CPython for the worked example below, against a published file
+of **14,297 bytes** that costs **0.52 ms to parse**. `candidates.json` is
+~2 MB, so class-fit does not even pay the parse that ranking pays — an answer
+is roughly 0.4% of a rank call's measured 121 ms, and a rounding error against
+the 288.78 ms median. That is exactly why the endpoint is the wrong place to spend
 first: the answer costs nothing to compute and can be served as a static file,
 so paying Worker CPU and a full OpenAPI operation for it buys only the HTTP
 verb. `MODEL-100`'s own acceptance test — *"how often is the answer
@@ -479,7 +500,7 @@ the time an endpoint is justified we will know what the terms should have been.
    out, every refusal path present from the first commit.
 3. `pipeline/ranking.py::write_export` — dumps `class-fit.json` beside
    `profiles.json`, with catalogue counts computed from the cards.
-4. `modelspec class-fit` — the CLI surface.
+4. `modelspec offline class-fit` — the CLI surface.
 5. `tests/test_class_fit.py` — exhaustive `ModelType` coverage, every refusal,
    the no-score boundary tests of §3, and the MODEL-99 case worked end to end.
 6. This document, and a note in `CLAUDE.md`.

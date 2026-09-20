@@ -323,6 +323,82 @@ def rank_offline(
         raise typer.Exit(EXIT_NO_MATCH)
 
 
+@app.command("class-fit", cls=ContractCommand)
+def class_fit_offline(
+    task: str = typer.Argument(
+        None, help="What the system has to do, in prose. Matched against the "
+                   "published terms and discarded; never sent anywhere."),
+    emits: str = typer.Option(
+        None, "--emits", help="What the model must produce, e.g. choice, open_text."),
+    consumes: str = typer.Option(
+        None, "--consumes", help="Comma-separated input kinds, e.g. structured_state,text."),
+    decides: str = typer.Option(
+        None, "--decides", help="The decision it must make. Strict: no adaptation."),
+    as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
+    require_fresh: bool = typer.Option(False, "--require-fresh"),
+) -> None:
+    """Which *class* of model a task needs, before ranking within one.
+
+    Ranking answers "which model?" once you have decided you want an LLM. This
+    answers the question before that one, and it refuses rather than guessing:
+    when two classes both survive, it says so and hands back the question you
+    have to settle, because ModelSpec holds no measurement that orders one
+    class against another.
+    """
+    snapshot = _load_or_exit(require_fresh, command="class-fit", as_json=as_json)
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+    from api.class_fit import CatalogueEvidence, class_fit
+    from pipeline.class_export import counts_from_snapshot_candidates
+
+    counts, examples = counts_from_snapshot_candidates(
+        snapshot.data["candidates"]["candidates"])
+    answer = class_fit(
+        task=task,
+        emits=emits,
+        consumes=[c.strip() for c in consumes.split(",") if c.strip()] if consumes else None,
+        decides=decides,
+        evidence=CatalogueEvidence(card_counts=counts, examples=examples),
+    )
+
+    if as_json:
+        typer.echo(json.dumps(_envelope("class-fit", snapshot, answer,
+                                        fit_status=answer["fit_status"]),
+                              indent=2, default=str))
+    else:
+        status = answer["fit_status"]
+        if status == "refused":
+            typer.echo(f"refused: {answer['refusal']['code']} — "
+                       f"{answer['refusal']['message']}")
+        else:
+            typer.echo(f"{status}: {len(answer['candidates'])} candidate class(es). "
+                       "No score orders them.")
+        for row in answer["candidates"]:
+            catalogue = row["catalogue"]
+            count = catalogue.get("card_count")
+            held = "evidence not supplied" if count is None else f"{count} card(s)"
+            typer.echo(f"\n  {row['class']}  — consumes {', '.join(row['consumes'])}; "
+                       f"emits {row['emits']}; decides {row['decides']}  [{held}]")
+            typer.echo(f"      {row['because']}")
+            if row["emits_adapted"]:
+                typer.echo(f"      only via an adaptation: {row['emits_adapted']['how']}")
+            typer.echo(f"      next: {row['next']}")
+        for question in answer["distinguishing_questions"]:
+            typer.echo(f"\n  you must settle: {question['ask']}")
+        for chain in answer["composition"]:
+            typer.echo(f"\n  they compose: {' then '.join(chain['sequence'])} "
+                       f"(evidence: {chain['evidence']} — {chain['see']})")
+        if status == "unavailable":
+            typer.echo("\nNo class in the published taxonomy produces that. "
+                       "See the `emits` vocabulary in /api/rank/class-fit.json.")
+        typer.echo(f"\nfrom a snapshot {snapshot.age_days:.0f} days old, "
+                   f"build {snapshot.build_commit[:12]}")
+
+    if answer["fit_status"] == "refused":
+        raise typer.Exit(EXIT_ERROR)
+    if answer["fit_status"] == "unavailable":
+        raise typer.Exit(EXIT_NO_MATCH)
+
+
 @app.command("fit", cls=ContractCommand)
 def fit_offline(
     hardware: str = typer.Argument(None, help="Hardware id. Omit to list the devices."),
