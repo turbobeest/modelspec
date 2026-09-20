@@ -136,6 +136,14 @@ carries no `org/` prefix, and the model is listed nowhere else, so the only
 route to the right answer is recognising the product name. Abstention is the
 conservative reading of the question; it is also, for these cards, wrong.
 
+> **MODEL-102 followed this up and it does not mean what it looks like.** Every
+> own-page case in this run is settled by `decide_deterministically()` before
+> any model is asked, and **none** of the 67 ambiguous cases is one. These
+> errors are an artefact of this harness asking every arm every case; they were
+> never costing the catalogue a creator. Amending the question does recover
+> them (+22.6 points for Jev on that subset), and is recommended *against*
+> anyway. See [`cascade-attribution.md`](cascade-attribution.md).
+
 12 cases defeated all three arms, and they are all of that shape. Jev's three
 unique misses are the same:
 `cohere/command-a-vision-07-2025`, `mistral/ministral-3b-latest`,
