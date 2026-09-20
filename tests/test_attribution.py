@@ -571,3 +571,147 @@ def test_page_org_named_only_as_a_base_model_is_still_not_a_candidate(registry):
     ev = at.evidence("alibaba", api["alibaba"]["models"][lid], lid)
     assert ev.candidates == ["deepseek"]
     assert "qwen" in ev.named_orgs
+
+
+# ── MODEL-101: the judge never writes its own vendor's card ─────
+
+
+JEV = {"id": "jev-1.13.0", "name": "Jev 1.13", "family": "jev"}
+#: A registry with the supplier in it, as it is once models/typesafe/ exists.
+SUPPLIER_REGISTRY = {
+    "typesafe": A.Org("typesafe", "TypeSafe AI", "US"),
+    "moonshot": A.Org("moonshot", "Moonshot AI", "CN"),
+}
+
+
+def jev_on_a_reseller() -> dict:
+    """A bare Jev listing on a page that is nobody's own: ambiguous evidence.
+
+    The brand token nominates TypeSafe as a candidate, which is how the listing
+    reaches the judgment at all. Nothing else in the evidence names a creator.
+    """
+    return {"greenpt": {"name": "GreenPT", "models": {"jev-1.13.0": dict(JEV)}}}
+
+
+def jev_evidence() -> A.Evidence:
+    api = jev_on_a_reseller()
+    at = A.Attributor(api, SUPPLIER_REGISTRY, PAGE_ORGS, None, A.load_config())
+    return at.evidence("greenpt", api["greenpt"]["models"]["jev-1.13.0"], "jev-1.13.0")
+
+
+def test_the_supplier_is_a_candidate_at_all_so_the_guard_is_load_bearing():
+    """Without this, the rule below would hold vacuously and prove nothing."""
+    ev = jev_evidence()
+    assert "typesafe" in ev.candidates
+    assert A.decide_deterministically(ev, SUPPLIER_REGISTRY) is None  # would be judged
+
+
+def test_an_ambiguous_supplier_listing_is_never_sent_to_the_judgment():
+    """The rule itself: no TypeSafe field is ever written by a Jev judgment."""
+    api = jev_on_a_reseller()
+    at = A.Attributor(api, SUPPLIER_REGISTRY, PAGE_ORGS, NeverCalled(), A.load_config())
+    result = at.attribute("greenpt", api["greenpt"]["models"]["jev-1.13.0"], "jev-1.13.0")
+    assert result.creator is None
+    assert result.writes_creator is False
+    assert result.status == A.CONFLICTED
+    assert "typesafe" in result.basis
+    assert at.budget.spent == 0  # never asked, so never paid for
+
+
+def test_a_stored_judgment_naming_the_supplier_is_never_applied():
+    """The second refusal, which a cached or replayed answer must also meet.
+
+    `decide` refuses to ask; this refuses to apply — a ledger row written
+    before the slug was a supplier, or any caller reaching the policy directly.
+    Removing either refusal fails a test: they are not one guard written twice.
+    """
+    answers = {
+        "choice": "typesafe",
+        "probabilities": {"typesafe": 1.0},
+        "confidence": 1.0,
+        "reseller": 0.0,
+    }
+    result = A.apply_policy(
+        jev_evidence(), answers, ["typesafe", "moonshot"], A.load_config().thresholds
+    )
+    assert result.creator is None
+    assert result.status == A.CONFLICTED
+
+
+def test_the_judgment_can_still_answer_about_everyone_else(registry):
+    """One organisation wide, not a general refusal to judge."""
+    api = kimi_on_alibaba_api(with_crosslisting=False)
+    result = attributor(api, registry, StubJudge(choice="moonshot", confidence=0.99)).attribute(
+        "alibaba", api["alibaba"]["models"]["kimi-k3"], "kimi-k3"
+    )
+    assert (result.creator, result.status) == ("moonshot", A.WRITTEN)
+
+
+def test_a_supplier_prefix_still_settles_deterministically():
+    """`typesafe/...` read by code is not the model's opinion about its maker."""
+    lid = "typesafe/jev-1.13.0"
+    api = {"greenpt": {"name": "GreenPT", "models": {lid: {"id": lid, "name": "Jev 1.13"}}}}
+    at = A.Attributor(api, SUPPLIER_REGISTRY, PAGE_ORGS, NeverCalled(), A.load_config())
+    result = at.attribute("greenpt", api["greenpt"]["models"][lid], lid)
+    assert (result.creator, result.status) == ("typesafe", A.DETERMINISTIC)
+
+
+def test_the_conflict_is_reported_rather_than_swallowed():
+    api = jev_on_a_reseller()
+    at = A.Attributor(api, SUPPLIER_REGISTRY, PAGE_ORGS, NeverCalled(), A.load_config())
+    at.attribute("greenpt", api["greenpt"]["models"]["jev-1.13.0"], "jev-1.13.0")
+    report = A.render_report(at.results, judge_available=True, spent_tokens=0)
+    assert "jev-1.13.0" in report
+    assert "typesafe supplies the judgment" in report
+
+
+def test_the_seeder_writes_no_supplier_card_from_a_judgment(monkeypatch, tmp_path):
+    """End to end: a new TypeSafe listing appears, and no card is written."""
+    lid = "jev-2.0"
+    api = {
+        "alibaba": {
+            "name": "Alibaba",
+            "models": {lid: {"id": lid, "name": "Jev 2.0", "family": "jev"}},
+        }
+    }
+    held = tmp_path / "models" / "typesafe" / "jev-1-13.md"
+    held.parent.mkdir(parents=True)
+    held.write_text(
+        "---\n"
+        + yaml.safe_dump(
+            {
+                "model_id": "typesafe/jev-1-13",
+                "display_name": "Jev 1.13",
+                "provider": "typesafe",
+                "provider_display": "TypeSafe AI",
+            }
+        )
+        + "---\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "load_known_identities", lambda *a, **k: {})
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.setattr(seeder, "make_judge", lambda config: NeverCalled())
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only"])
+    seeder.main()
+
+    assert not (tmp_path / "models" / "typesafe" / "jev-2-0.md").exists()
+    assert [p.name for p in sorted((tmp_path / "models" / "typesafe").glob("*.md"))] == [
+        "jev-1-13.md"
+    ]
+
+
+def test_the_guarded_orgs_are_the_disclosed_orgs():
+    """One table. The org the guard protects is the org the page discloses."""
+    from schema.suppliers import SUPPLIERS, supplier_for
+
+    assert A.SUPPLIER_SLUGS == frozenset(SUPPLIERS)
+    assert supplier_for("typesafe") is not None
+    assert supplier_for("moonshot") is None
+
+
+def test_the_real_typesafe_card_is_under_the_rule():
+    """The card the rule exists for, tied to the slug the guard protects."""
+    card = ModelCard.from_yaml_file(REPO_ROOT / "models" / "typesafe" / "jev-1-13.md")
+    assert card.identity.provider in A.SUPPLIER_SLUGS

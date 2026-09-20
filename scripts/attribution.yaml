@@ -124,6 +124,10 @@ creator_namespaces:
   salesforce: salesforce
   stabilityai: stability
   allenai: allen-ai
+  # The vendor of the judgment itself (MODEL-101). A prefix is code reading a
+  # string, so it still settles a TypeSafe listing deterministically. What is
+  # refused is the judgment: see supplier_conflict() in attribution.py.
+  typesafe: typesafe
 
 # Leading segments that route a request rather than name its maker:
 # `@cf/meta/llama-3.1-8b` is Meta's, `accounts/fireworks/models/x` is nobody's.
@@ -165,6 +169,10 @@ brand_tokens:
   microsoft: [phi]
   ibm: [granite]
   amazon: [nova, titan]
+  # Nominating TypeSafe is how a listing reaches the supplier rule: a
+  # candidature it can never be judged into, only deterministically settled or
+  # left for a person (MODEL-101).
+  typesafe: [jev, typesafe]
 
 # Where a listing on one of the seeded models.dev pages is recorded as
 # availability when the page's organisation did not build the model.

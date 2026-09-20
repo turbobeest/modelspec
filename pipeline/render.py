@@ -25,6 +25,7 @@ from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.applicability import FIELD_RULES
 from schema.card import applicability_block
+from schema.suppliers import supplier_for
 #: The evidence-basis vocabulary lives in the ranking engine. A page that spelled
 #: its own labels out would drift from the CLI on the first edit.
 from pipeline.ranking import _basis
@@ -799,6 +800,11 @@ PAGE_FACTS: tuple[tuple[str, PageFact], ...] = (
 #: one under "Not yet researched" invites work that can never be done.
 PAGE_FACT_PATHS: dict[str, str] = {
     "Context window": "modalities.text.context_window",
+    # The chips come from the `capabilities` block, which `__applicable_model_types__`
+    # already gates to the generative classes. Without this line the first
+    # `decision-model` page asked for coding, reasoning and agent tiers that its
+    # class cannot have, and counted their absence against it (MODEL-101).
+    "Capabilities": "capabilities",
 }
 
 
@@ -845,6 +851,38 @@ def not_applicable_section(front: dict[str, Any]) -> str:
         "answer for that class of model, so they are blank here and are not counted as gaps. That is "
         "a different claim from “not yet researched” below, and the published JSON "
         "keeps the two apart.")
+
+
+#: What an empty score table means, said once rather than left to inference.
+#: Every card with no scores ranks the same way — `_benchmark_evidence()` needs
+#: `coverage >= floor` and at least `MIN_BENCHMARK_COUNT` scores, and an empty
+#: set clears neither — so the page can state the outcome rather than leave a
+#: reader guessing whether the model failed or was never measured (MODEL-101).
+NO_SCORES = (
+    '<p class="lede">This card reports no benchmark scores yet, so the ranker returns it '
+    '<strong>unranked</strong>, with the reason '
+    '<span class="mono">insufficient_benchmark_evidence</span> and a null score. That is the '
+    'correct answer and not a fault on the page: unranked means there is no evidence to rank '
+    'on, which is a different claim from ranking last.</p>'
+)
+
+
+def supplier_disclosure(front: dict[str, Any]) -> str:
+    """Say, on the page, that we buy from the organisation the page documents.
+
+    Derived from the card's `provider` against `schema/suppliers.py`, never
+    authored per card, so a second TypeSafe card cannot ship without it and the
+    wording cannot drift between two cards about the same relationship.
+
+    It sits above the figures rather than below them, because a reader deciding
+    whether to trust the figures needs it before reading them (MODEL-101).
+    """
+    supplier = supplier_for((front or {}).get("provider"))
+    if supplier is None:
+        return ""
+    return (f'<div class="notice"><strong>Disclosure.</strong> {esc(supplier.relationship)} '
+            f"{esc(supplier.rule)} Buying from a vendor earns it nothing in a ranking: see the "
+            f'<a href="/legal/neutrality/">neutrality commitment</a>.</div>')
 
 
 def unresearched_section(front: dict[str, Any], relations: Any, scores: Any) -> str:
@@ -965,13 +1003,13 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 
     body = f"""
 <h1>{esc(model.display_name)}</h1>
-<p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>
+<p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>{supplier_disclosure(front)}
 {chips}
 {stat_strip(model)}
 {sections}{authoring_guide_section(front)}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
-{stale if scores else '<p class="lede">This card reports no benchmark scores yet.</p>'}
+{stale if scores else NO_SCORES}
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
