@@ -82,23 +82,24 @@ module.
 - `credits.pack_expiry_days` — pack and x402 top-up expiry (365 as shipped)
 - `billing.prices.<stripe_price_id>` — `{kind: plan\|pack, credits, name, usd,
   tier, placeholder}`. The ids below are **Stripe test mode** Prices on the
-  Sparks & Sawdust LLC ModelSpec sandbox; live ids replace them at launch
+  Sparks & Sawdust LLC ModelSpec **live** account. The sandbox ids they
+  replaced are in the git history of this file
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
 
 Changing a credit amount, a weight, burst, or a mapping is an edit to that
 file. Tests prove a price/credit change needs no code change.
 
-Shipped Prices (test mode, not live):
+Shipped Prices (**live**, Sparks & Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, 2026-09-19):
 
 | Price id | Kind | Name | Credits | USD |
 | --- | --- | --- | --- | --- |
-| `price_1UHN91B565YfQifmuNBRGlZd` | plan | Solo | 4,000 / month | 10 |
-| `price_1UHN9fB565YfQifm8NwFJSrD` | plan | Team | 30,000 / month | 50 |
-| `price_1UHNBQB565YfQifmVDhOnO2I` | pack | 1,250-credit pack | 1,250 | 5 |
-| `price_1UHNAHB565YfQifmlX8oeIx4` | pack | 7,500-credit pack | 7,500 | 25 |
-| `price_1UHNAYB565YfQifmkxZKH5OW` | pack | 20,000-credit pack | 20,000 | 50 |
-| `price_1UHNApB565YfQifm6k3NAign` | pack | 50,000-credit pack | 50,000 | 100 |
+| `price_1UHRwmBPydVRHUBjqhKcx8xV` | plan | Solo | 4,000 / month | 10 |
+| `price_1UHRwmBPydVRHUBjBYfcWhkW` | plan | Team | 30,000 / month | 50 |
+| `price_1UHRwmBPydVRHUBjMFS5bDPD` | pack | 1,250-credit pack | 1,250 | 5 |
+| `price_1UHRwmBPydVRHUBjN2mEnzdD` | pack | 7,500-credit pack | 7,500 | 25 |
+| `price_1UHRwmBPydVRHUBj08ctUUjN` | pack | 20,000-credit pack | 20,000 | 50 |
+| `price_1UHRwnBPydVRHUBjhRYBngwH` | pack | 50,000-credit pack | 50,000 | 100 |
 
 The ledger is the MODEL-75 CREDITS Durable Object, keyed `key:` + SHA-256 of
 the API key. See [`x402.md`](x402.md).

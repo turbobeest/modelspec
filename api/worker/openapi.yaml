@@ -131,9 +131,9 @@ x-modelspec-access:
     tier_not_configured: 500
   documented_in: docs/api-access.md
 x-modelspec-billing:
-  status: wired; flag off
+  status: wired; enabled
   ticket: MODEL-93
-  enabled: false
+  enabled: true
   switch: BILLING_ENABLED in api/worker/wrangler.jsonc
   unit: credit
   what_is_sold: 'credits on this API key: a monthly allowance that resets each paid invoice (no rollover),
@@ -437,7 +437,7 @@ paths:
                 price_id:
                   type: string
             example:
-              price_id: price_1UHN91B565YfQifmuNBRGlZd
+              price_id: price_1UHRwmBPydVRHUBjqhKcx8xV
       responses:
         '200':
           description: Hosted Checkout URL. Open it in a browser.

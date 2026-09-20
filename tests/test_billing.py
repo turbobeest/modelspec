@@ -35,9 +35,9 @@ T0 = datetime(2026, 9, 17, 14, 30, 0, tzinfo=UTC)
 TS = int(T0.timestamp())
 WEBHOOK_SECRET = "whsec_test_fixture_not_a_real_secret"
 COMMIT = "testsha"
-PRICE = "price_1UHN91B565YfQifmuNBRGlZd"
-TEAM_PRICE = "price_1UHN9fB565YfQifm8NwFJSrD"
-PACK5 = "price_1UHNBQB565YfQifmVDhOnO2I"
+PRICE = "price_1UHRwmBPydVRHUBjqhKcx8xV"
+TEAM_PRICE = "price_1UHRwmBPydVRHUBjBYfcWhkW"
+PACK5 = "price_1UHRwmBPydVRHUBjMFS5bDPD"
 SESSION = "cs_test_fixture_session"
 SUB = "sub_test_fixture"
 CUS = "cus_test_fixture"
@@ -398,10 +398,15 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 
 # ── the switch ───────────────────────────────────────────────────────────────
 
-def test_billing_ships_off():
+def test_billing_is_on_with_live_prices():
+    """Go-live (2026-09-19): the flag is on and the price map is the live
+    Sparks & Sawdust LLC account's, not the sandbox's."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"BILLING_ENABLED": "false"' in live
+    assert '"BILLING_ENABLED": "true"' in live
+    policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
+    assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
+    assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())
     assert billing.enabled("false") is False
     assert billing.enabled("true") is True
 

@@ -286,7 +286,8 @@ def test_built_auth_mcp_and_skills_are_modelspec_only(dist: Path) -> None:
     ms = dist / "modelspec"
     bg = dist / "benchgraph"
     auth = (ms / "auth.md").read_text(encoding="utf-8")
-    assert "Billing is not live" in auth
+    assert "Billing is enabled" in auth
+    assert "Billing is not live" not in auth
     assert "test_" in auth
     card = json.loads((ms / ".well-known" / "mcp.json").read_text(encoding="utf-8"))
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT
