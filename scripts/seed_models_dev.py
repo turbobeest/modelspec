@@ -608,6 +608,19 @@ def make_judge(config: attribution.Config) -> attribution.Judge | None:
     return attribution.TypeSafeJudge.from_env(config)
 
 
+def make_escalator(config: attribution.Config) -> attribution.Judge | None:
+    """The escalation model for Jev's abstentions, or None (MODEL-102).
+
+    Returns None unless the flag is on *and* a key is present; ``Attributor``
+    ignores it anyway when the flag is off. Both gates, deliberately: a key
+    appearing in the environment must not by itself start spending money at a
+    second supplier.
+    """
+    if not config.escalation.enabled:
+        return None
+    return attribution.LLMJudge.from_env(config.escalation)
+
+
 def main() -> None:
     import argparse
 
@@ -659,7 +672,10 @@ def main() -> None:
     judge = None if args.dry_run else make_judge(attr_config)
     ledger_path = PROJECT_ROOT / "scripts" / attribution.LEDGER_PATH.name
     ledger = attribution.Ledger(None if args.dry_run else ledger_path)
-    attributor = attribution.Attributor(api_data, registry, page_orgs, judge, attr_config, ledger)
+    escalator = None if args.dry_run else make_escalator(attr_config)
+    attributor = attribution.Attributor(
+        api_data, registry, page_orgs, judge, attr_config, ledger, escalator=escalator
+    )
     if judge is None and not args.dry_run:
         print("  NOTE: TYPESAFE_API_KEY is not set. Listings whose creator the evidence "
               "does not settle by itself will not be carded.")
@@ -773,7 +789,11 @@ def main() -> None:
                     stale_notices.append(notice)
                     print(f"    STALE guide {notice.model_id}: {notice.old_version} -> {notice.new_version}")
 
-                flag = "  REVIEW creator" if result.status == attribution.REVIEW else ""
+                flag = ""
+                if result.status == attribution.REVIEW:
+                    flag = "  REVIEW creator"
+                elif result.status == attribution.ESCALATED:
+                    flag = "  REVIEW creator (escalated)"
                 print(f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete){flag}")
 
             except Exception as e:
@@ -785,6 +805,7 @@ def main() -> None:
             attributor.results,
             judge_available=judge is not None,
             spent_tokens=attributor.budget.spent,
+            escalations=attributor.escalations.spent,
         )
         if report:
             args.attribution_report.write_text(report, encoding="utf-8")

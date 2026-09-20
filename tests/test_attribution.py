@@ -16,6 +16,7 @@ No test here calls the TypeSafe API. The judge is a stub throughout.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import sys
 from pathlib import Path
@@ -715,3 +716,321 @@ def test_the_real_typesafe_card_is_under_the_rule():
     """The card the rule exists for, tied to the slug the guard protects."""
     card = ModelCard.from_yaml_file(REPO_ROOT / "models" / "typesafe" / "jev-1-13.md")
     assert card.identity.provider in A.SUPPLIER_SLUGS
+# ── The cascade: Jev first, its abstentions escalated (MODEL-102) ──
+#
+# MODEL-99 measured that every error in every arm was an abstention and that no
+# arm ever named a wrong organisation. The cascade is allowed to turn an
+# abstention into an answer. It is not allowed to become a second route by
+# which a model is handed to the platform that lists it — that is MODEL-82, and
+# these tests are the fence around it.
+
+
+class StubLLM:
+    """The escalation model. Answers in the shape ``LLMJudge`` produces."""
+
+    model = "llm-test"
+
+    def __init__(self, choice=None, reseller=0.1, fail=False):
+        self.choice = choice
+        self.reseller = reseller
+        self.fail = fail
+        self.calls: list[tuple[dict, dict]] = []
+
+    def evaluate(self, state, questions):
+        self.calls.append((state, questions))
+        if self.fail:
+            raise A.JudgeUnavailable("escalation request failed: HTTP 503")
+        return {
+            "answers": {
+                A.CREATOR_Q: {
+                    "type": "choice",
+                    "choice": self.choice,
+                    "probabilities": {self.choice: 1.0},
+                    "confidence": 0.0,
+                },
+                A.RESELLER_Q: {"type": "noul", "noul": self.reseller},
+            },
+            "usage": {"input_tokens": 600, "output_tokens": 300},
+        }
+
+
+def cascading(api, registry, judge, escalator, *, limit=150, **kw):
+    """An attributor with the escalation flag ON. Production ships it off."""
+    config = A.load_config()
+    config = dataclasses.replace(
+        config,
+        escalation=dataclasses.replace(
+            config.escalation, enabled=True, max_escalations_per_run=limit
+        ),
+    )
+    return A.Attributor(api, registry, PAGE_ORGS, judge, config, escalator=escalator, **kw)
+
+
+def ambiguous_case():
+    """Kimi bare on Alibaba's page, nothing corroborating: the judgment is asked."""
+    api = kimi_on_alibaba_api(with_crosslisting=False)
+    return api, ("alibaba", api["alibaba"]["models"]["kimi-k3"], "kimi-k3")
+
+
+# ── Provenance: no judgment is anonymous ────────────────────────
+
+
+def test_every_judgment_records_which_arm_produced_it(registry):
+    """rule / jev / llm / none — the acceptance criterion of MODEL-102."""
+    # 1. The deterministic rule: a prefix names the maker. No model is called.
+    api = kimi_on_alibaba_api()
+    by_rule = attributor(api, registry, NeverCalled()).attribute(
+        "tokengo", api["tokengo"]["models"]["moonshotai/kimi-k3"], "moonshotai/kimi-k3"
+    )
+    assert (by_rule.status, by_rule.arm) == (A.DETERMINISTIC, A.ARM_RULE)
+
+    # 2. Jev answers the ambiguous one.
+    api, target = ambiguous_case()
+    by_jev = attributor(api, registry, StubJudge(choice="moonshot", confidence=0.99)).attribute(
+        *target
+    )
+    assert (by_jev.status, by_jev.arm) == (A.WRITTEN, A.ARM_JEV)
+
+    # 3. Jev abstains; the LLM answers.
+    api, target = ambiguous_case()
+    by_llm = cascading(
+        api,
+        registry,
+        StubJudge(choice=A.CANNOT_ESTABLISH, confidence=0.99),
+        StubLLM(choice="moonshot"),
+    ).attribute(*target)
+    assert (by_llm.creator, by_llm.status, by_llm.arm) == ("moonshot", A.ESCALATED, A.ARM_LLM)
+
+    # 4. Nobody could be asked.
+    api, target = ambiguous_case()
+    nobody = attributor(api, registry, None).attribute(*target)
+    assert (nobody.creator, nobody.status, nobody.arm) == (None, A.UNAVAILABLE, A.ARM_NONE)
+
+    # Every arm code is one of the four, and nothing anonymous writes a creator.
+    for r in (by_rule, by_jev, by_llm, nobody):
+        assert r.arm in {A.ARM_RULE, A.ARM_JEV, A.ARM_LLM, A.ARM_NONE}
+        assert not r.writes_creator or r.arm != A.ARM_NONE
+
+
+def test_the_ledger_records_the_arm_for_both_models(registry, tmp_path):
+    api, target = ambiguous_case()
+    ledger = A.Ledger(tmp_path / "judgments.jsonl")
+    cascading(
+        api,
+        registry,
+        StubJudge(choice=A.CANNOT_ESTABLISH),
+        StubLLM(choice="moonshot"),
+        ledger=ledger,
+    ).attribute(*target)
+    rows = [json.loads(line) for line in (tmp_path / "judgments.jsonl").read_text().splitlines()]
+    assert [r["arm"] for r in rows] == [A.ARM_JEV, A.ARM_LLM]
+    assert {r["model"] for r in rows} == {"jev-test", "llm-test"}
+
+
+def test_an_escalated_creator_is_never_written_silently(registry):
+    api, target = ambiguous_case()
+    result = cascading(
+        api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), StubLLM(choice="moonshot")
+    ).attribute(*target)
+    report = A.render_report([result], judge_available=True, spent_tokens=800, escalations=1)
+    assert "Check the creator on these cards" in report
+    assert "escalated to the LLM after Jev abstained" in report
+    assert "Abstentions escalated to the LLM this run: 1." in report
+
+
+# ── The flag ────────────────────────────────────────────────────
+
+
+def test_the_seeder_builds_no_escalator_while_the_flag_is_off(monkeypatch):
+    """Two gates: a key in the environment must not start the spending."""
+    monkeypatch.setenv("TEXT_MODEL_API_KEY", "a-key-that-must-not-be-used")
+    config = A.load_config()
+    assert config.escalation.enabled is False
+    assert seeder.make_escalator(config) is None
+    on = dataclasses.replace(
+        config, escalation=dataclasses.replace(config.escalation, enabled=True)
+    )
+    built = seeder.make_escalator(on)
+    assert built is not None and built.model == on.escalation.model
+
+
+def test_the_cascade_ships_off(registry):
+    """Shipped configuration: no escalation, whatever is handed in."""
+    assert A.load_config().escalation.enabled is False
+    api, target = ambiguous_case()
+    llm = StubLLM(choice="moonshot")
+    at = A.Attributor(
+        api,
+        registry,
+        PAGE_ORGS,
+        StubJudge(choice=A.CANNOT_ESTABLISH),
+        A.load_config(),
+        escalator=llm,
+    )
+    result = at.attribute(*target)
+    assert (result.creator, result.status, result.arm) == (None, A.WITHHELD, A.ARM_JEV)
+    assert llm.calls == []
+
+
+# ── What may and may not be escalated ───────────────────────────
+
+
+def test_only_an_abstention_is_escalated_never_a_refusal(registry):
+    """A judgment the policy refused is a decision, not a shrug."""
+    api, target = ambiguous_case()
+    llm = StubLLM(choice="moonshot")
+    # Jev named an organisation, but below the review band: refused, not unsure.
+    result = cascading(api, registry, StubJudge(choice="moonshot", confidence=0.10), llm).attribute(
+        *target
+    )
+    assert (result.creator, result.status, result.arm) == (None, A.WITHHELD, A.ARM_JEV)
+    assert llm.calls == [], "a banded refusal must not be shopped to a second model"
+
+
+def test_the_escalation_sees_byte_identical_state_and_questions(registry):
+    api, target = ambiguous_case()
+    jev = StubJudge(choice=A.CANNOT_ESTABLISH)
+    llm = StubLLM(choice="moonshot")
+    cascading(api, registry, jev, llm).attribute(*target)
+    assert len(jev.calls) == len(llm.calls) == 1
+    assert json.dumps(jev.calls[0], sort_keys=True) == json.dumps(llm.calls[0], sort_keys=True)
+
+
+def test_an_undecisive_escalation_leaves_the_abstention_standing(registry):
+    for choice in (A.CANNOT_ESTABLISH, "an-org-nobody-offered"):
+        api, target = ambiguous_case()
+        result = cascading(
+            api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), StubLLM(choice=choice)
+        ).attribute(*target)
+        assert (result.creator, result.status) == (None, A.WITHHELD), choice
+        assert result.arm == A.ARM_JEV
+
+
+# ── MODEL-82: the fence the cascade may not climb ───────────────
+
+
+def test_the_cascade_cannot_hand_kimi_to_the_platform_that_lists_it(registry):
+    """The PR #92 failure, attempted through the escalation instead of Jev."""
+    api, target = ambiguous_case()
+    result = cascading(
+        api,
+        registry,
+        StubJudge(choice=A.CANNOT_ESTABLISH, reseller=0.95),
+        StubLLM(choice="qwen", reseller=0.0),
+    ).attribute(*target)
+    assert (result.creator, result.status) == (None, A.WITHHELD)
+
+
+def test_either_model_calling_the_platform_a_reseller_vetoes_the_escalation(registry):
+    """Two graders; either one can stop it. Stricter than the first pass."""
+    api, target = ambiguous_case()
+    result = cascading(
+        api,
+        registry,
+        StubJudge(choice=A.CANNOT_ESTABLISH, reseller=0.0),
+        StubLLM(choice="qwen", reseller=0.95),
+    ).attribute(*target)
+    assert (result.creator, result.status) == (None, A.WITHHELD)
+
+
+def test_the_veto_does_not_catch_base_model_confusion(registry):
+    """**This is why `escalation.enabled` is false.** Measured, not supposed.
+
+    On the 383 `relisted_withheld` cases of 2026-09-20 the cascade produced six
+    misattributions, and not one of them named the listing platform — the veto
+    above held. All six named the organisation of the model's *base*, read out
+    of the product name: `deepseek-r1-distill-qwen-32b` to Qwen,
+    `hermes-2-pro-llama-3-8b` to Meta. `candidate_orgs()` refuses to offer a
+    page's organisation on that evidence alone, and Jev abstained on all 383.
+    An LLM handed the same question answers helpfully and wrongly.
+
+    This test pins the gap rather than closing it: nothing here should be tuned
+    until a derivation rule exists in code and measures at zero on that set.
+    See docs/research/cascade-attribution.md.
+    """
+    lid = "deepseek-r1-distill-qwen-32b"
+    api = {
+        "cerebras": {"name": "Cerebras", "models": {lid: {"id": lid, "name": "R1 Distill 32B"}}},
+        "greenpt": {"name": "GreenPT", "models": {lid: {"id": lid, "name": "R1 Distill 32B"}}},
+    }
+    at = cascading(
+        api,
+        registry,
+        StubJudge(choice=A.CANNOT_ESTABLISH),
+        # The evidence names Qwen only as the base. The LLM picks it anyway.
+        StubLLM(choice="qwen", reseller=0.0),
+    )
+    ev = at.evidence("cerebras", api["cerebras"]["models"][lid], lid)
+    assert "qwen" in ev.candidates, "the base org is on the ballot once DeepSeek is absent"
+    result = at.attribute("cerebras", api["cerebras"]["models"][lid], lid)
+    # The gap, stated: a wrong creator is written, and no veto stops it.
+    assert (result.creator, result.status, result.arm) == ("qwen", A.ESCALATED, A.ARM_LLM)
+    # Which is exactly why the shipped configuration never gets here.
+    assert A.load_config().escalation.enabled is False
+
+
+def test_scraped_text_cannot_reach_a_card_through_the_escalation(registry):
+    api, target = ambiguous_case()
+    hostile = "'; DROP TABLE models; --"
+    result = cascading(
+        api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), StubLLM(choice=hostile)
+    ).attribute(*target)
+    assert (result.creator, result.status) == (None, A.WITHHELD)
+
+
+# ── The budget ──────────────────────────────────────────────────
+
+
+def test_a_spent_escalation_budget_abstains_rather_than_failing_the_run(registry):
+    api = kimi_on_alibaba_api(with_crosslisting=False)
+    llm = StubLLM(choice="moonshot")
+    at = cascading(api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), llm, limit=1)
+    first = at.attribute("alibaba", api["alibaba"]["models"]["kimi-k3"], "kimi-k3")
+    assert (first.creator, first.status, first.arm) == ("moonshot", A.ESCALATED, A.ARM_LLM)
+    assert at.escalations.exhausted()
+    # The next ambiguous listing gets no second opinion, and does not raise.
+    second = at.attribute("greenpt", api["greenpt"]["models"]["kimi-k3"], "kimi-k3")
+    assert (second.creator, second.status, second.arm) == (None, A.WITHHELD, A.ARM_JEV)
+    assert len(llm.calls) == 1
+
+
+def test_a_failed_escalation_leaves_the_abstention_and_does_not_raise(registry):
+    api, target = ambiguous_case()
+    result = cascading(
+        api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), StubLLM(fail=True)
+    ).attribute(*target)
+    assert (result.creator, result.status, result.arm) == (None, A.WITHHELD, A.ARM_JEV)
+
+
+def test_the_configured_escalation_budget_is_finite_and_the_model_is_pinned():
+    esc = A.load_config().escalation
+    assert 0 < esc.max_escalations_per_run <= 1000
+    assert esc.model and "latest" not in esc.model
+    assert esc.endpoint.startswith("https://")
+
+
+# ── The adapter is the one that was measured ────────────────────
+
+
+def test_the_escalation_is_asked_exactly_what_the_measured_arm_was_asked():
+    """MODEL-99's published gpt-5-mini row is evidence for the cascade only if
+    the cascade asks the same thing. The harness imports these from here."""
+    from scripts import eval_cost_to_correct as EC  # noqa: N812
+
+    assert EC.SYSTEM_PROMPT is A.LLM_SYSTEM_PROMPT
+    assert EC.REPLY_FORMAT is A.LLM_REPLY_FORMAT
+    state, questions = {"listing": {"listed_id": "kimi-k3"}}, {"creator": {"criteria": {}}}
+    assert EC.llm_prompt({"state": state, "questions": questions}) == A.llm_messages(
+        state, questions
+    )
+
+
+def test_an_llm_confidence_is_never_compared_against_jevs_bands(registry):
+    """The bands were calibrated on Jev's probabilities. 0.0 is not a score."""
+    api, target = ambiguous_case()
+    result = cascading(
+        api, registry, StubJudge(choice=A.CANNOT_ESTABLISH), StubLLM(choice="moonshot")
+    ).attribute(*target)
+    assert result.creator == "moonshot"
+    assert result.judgment["confidence"] == 0.0
+    assert result.judgment["confidence"] < A.load_config().thresholds.review

@@ -77,16 +77,12 @@ from scripts.seed_models_dev import PROVIDER_MAP  # noqa: E402
 # https://docs.typesafe.ai/models — jev-1.13.0, $42 per Btok / $0.042 per Mtok.
 JEV_PRICE_SOURCE = "https://docs.typesafe.ai/models"
 
-REPLY_FORMAT = (
-    "Answer with one JSON object and nothing else, in this shape:\n"
-    '{"creator": {"choice": "<exactly one key from the creator question\'s criteria>"}, '
-    '"reseller": {"noul": <number from 0 to 1>}}'
-)
+REPLY_FORMAT = A.LLM_REPLY_FORMAT
 
-SYSTEM_PROMPT = (
-    "You answer questions about the state you are given. "
-    "Judge only from the state. Do not use outside knowledge of the models named."
-)
+#: The production prompt itself, not a copy of it. `test_the_escalation_is_
+#: asked_exactly_what_the_measured_arm_was_asked` asserts identity, so the
+#: measured arm and the shipped cascade cannot drift into different questions.
+SYSTEM_PROMPT = A.LLM_SYSTEM_PROMPT
 
 REFUSAL = re.compile(
     r"\b(i (?:can(?:no|')t|am unable|won't)|as an ai|i'm sorry|cannot comply)\b", re.I
