@@ -58,3 +58,14 @@ def test_research_pr_token_guard_runs_before_create_pull_request() -> None:
     guard_indexes = [index for index, step in enumerate(steps) if _is_token_guard(step)]
     assert guard_indexes, "missing RESEARCH_PR_TOKEN empty-secret guard step"
     assert guard_indexes[0] < pr_index
+
+
+def test_the_pull_request_commits_cards_and_nothing_else() -> None:
+    """PR #106 carried survey.txt, validation.json and the attribution ledger
+    because create-pull-request stages everything it finds. `add-paths` keeps
+    the daily PR to the catalogue."""
+    step = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    steps = step["jobs"]["research"]["steps"]
+    pr = next(s for s in steps if str(s.get("uses", "")).startswith("peter-evans/create-pull-request"))
+    add_paths = [p for p in pr["with"]["add-paths"].split("\n") if p.strip()]
+    assert add_paths == ["models/**"]
