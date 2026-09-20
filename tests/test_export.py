@@ -25,15 +25,16 @@ def test_export_schema_version_is_not_the_other_schema_versions() -> None:
 
     assert EXPORT_SCHEMA_VERSION == consumed
     assert EXPORT_SCHEMA_VERSION[0].isdigit()
-    # The tree is 2.0 since MODEL-77 reshaped the published policy fields, and
-    # the ranking-report document has been 2.0 since its profile value changed.
-    # Equal strings, different fields in different files. An earlier version of
+    # The tree is 3.0 since MODEL-98 added `decision-model` to `model_type`,
+    # a published enum; it was 2.0 from MODEL-77's policy reshape, and the
+    # ranking-report document is 2.0 for its own unrelated reason.
+    # Different fields in different files. An earlier version of
     # this test required the two numbers to differ, on the theory that a
     # consumer might tell them apart by value; a consumer that does that is
     # already broken, and the rule would have meant either skipping a bump the
     # MODEL-59 rule requires or renumbering an unrelated document to dodge a
     # collision. Names are the thing that must stay distinct.
-    assert EXPORT_SCHEMA_VERSION == "2.0"
+    assert EXPORT_SCHEMA_VERSION == "3.0"
     assert SCHEMA_VERSION == "1.0"
     assert "schema_version" != "export_schema_version"
 

@@ -25,7 +25,7 @@ The central entity. Every other node connects through a model.
 Properties:
   id                    String    REQUIRED  INDEXED  # canonical ID "provider/model-name"
   display_name          String    REQUIRED
-  model_type            String    REQUIRED  INDEXED  # from taxonomy (llm-chat, embedding-text, etc.)
+  model_type            String    REQUIRED  INDEXED  # from taxonomy (llm-chat, embedding-text, decision-model, etc.)
   model_subtypes        String[]                      # secondary types
   status                String    REQUIRED  INDEXED  # active | beta | alpha | deprecated | sunset
   release_date          Date      REQUIRED  INDEXED
@@ -203,6 +203,18 @@ card schema still defaults to (`nvidia_5090_32gb`, `dgx_spark_128gb`,
 consumer must still treat the property as optional and skip a node that lacks
 one rather than inventing a class for it. Adding the property is additive under
 the MODEL-59 rule and does not bump `build.export_schema_version`.
+
+### `model_type` gained `decision-model` (MODEL-98)
+
+A Model node's `model_type` can now be `decision-model`: a model that
+evaluates supplied state against caller-defined typed questions and returns
+calibrated choices, scores or probabilities, generating no text. Nothing in the
+ontology enumerates the taxonomy — `model_type` is an indexed string property —
+so a query that filters on a value it knows is unaffected, and a query that
+groups by `model_type` gains a group. Unlike `device_class` above, this one
+**does** bump `build.export_schema_version` (2.0 → 3.0): a consumer switching
+on the property can now receive a value it has never handled, which is the
+MODEL-59 widening rule. See [`cli-contract.md`](cli-contract.md).
 
 ### :Host
 The machine around an accelerator (`hosts/*.yaml`, MODEL-26). **Unified hosts

@@ -35,6 +35,21 @@ class ModelType(str, Enum):
     REWARD_MODEL = "reward-model"
     ROUTER = "router"
     AGENT_MODEL = "agent-model"
+    #: Evaluates supplied state against caller-defined typed questions,
+    #: returning calibrated choices, scores or probabilities; generates no text.
+    #:
+    #: MODEL-98. Every near miss fails for a specific reason: `llm-reasoning`
+    #: emits text and a chain of thought; `agent-model` takes actions, while
+    #: here the calling code owns the loop; `router` and `reranker` are
+    #: *applications* of this class rather than the class; `reward-model`
+    #: scores model outputs for training or ranking, not arbitrary questions
+    #: over arbitrary state; `safety-classifier` has a fixed harm taxonomy,
+    #: while these labels are defined per request.
+    #:
+    #: Adding this value widened a published enum and cost the export contract
+    #: a major version (2.0 -> 3.0). See `docs/cli-contract.md` and
+    #: `docs/design/class-and-null-semantics.md`.
+    DECISION_MODEL = "decision-model"
     ADAPTER = "adapter"
     QUANTIZED_VARIANT = "quantized-variant"
     DISTILLED = "distilled"

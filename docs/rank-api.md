@@ -115,14 +115,14 @@ A null beats a guess here as everywhere else.
 ## Response
 
 Every response — success or failure — carries `build.commit` and
-`build.export_schema_version` (`"2.0"`, `pipeline/export.py`), plus
+`build.export_schema_version` (`"3.0"`, `pipeline/export.py`), plus
 `service_commit`, the sha of the deployed Worker.
 
 ```jsonc
 {
   "schema_version": "1.0",
   "endpoint": "rank",
-  "build": { "commit": "b1cb67d…", "built_at": "…", "export_schema_version": "2.0" },
+  "build": { "commit": "b1cb67d…", "built_at": "…", "export_schema_version": "3.0" },
   "service_commit": "…",
   "export_origin": "https://modelspec.dev",
   "request": { … as received, normalised … },
@@ -187,7 +187,7 @@ always-present envelope field (absent is a *state*, not an omitted key).
 `result` rows are unchanged. That is additive under the rule in
 [`cli-contract.md`](cli-contract.md), not a range widening. A major bump here
 would also bump policy-check: the two endpoints share one OpenAPI
-`info.version`. `build.export_schema_version` stays `"2.0"`: the new
+`info.version`. `build.export_schema_version` was unmoved by that change: the new
 `authoring_guides` map on `candidates.json` is an optional object, not a
 widened field.
 

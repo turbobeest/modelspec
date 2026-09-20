@@ -53,8 +53,10 @@ FalkorDB ── optional local exploration (`modelspec stats|search|info`).
 ```
 
 Pin identity for a snapshot: `build.commit` plus `build.export_schema_version`
-(`pipeline/export.py`, currently `"2.0"` — MODEL-77 reshaped the published
-policy fields). That is not the CLI `--json`
+(`pipeline/export.py`, currently `"3.0"` — MODEL-98 added the `decision-model`
+`ModelType`, and MODEL-97's derived `applicability` block rides that bump
+without requiring one; before them, `"2.0"` from MODEL-77's policy reshape).
+That is not the CLI `--json`
 envelope (`cli.modelspec.offline.SCHEMA_VERSION`, also `"1.0"`) and not
 `rankings.json` (`schema_version` `"2.0"`).
 
@@ -89,7 +91,13 @@ verdict. The CLI contract documents the labels; `_basis` in
 `schema/` is the card and ontology source. Null on a card means "not yet
 researched" or "not published" — a null beats a guess.
 
+A null that is **inapplicable** is a different claim (MODEL-97): derived from
+`model_type` in `schema/applicability.py`, never written on a card, published
+as an additive `applicability` block beside the card. Architecture fields are
+never inapplicable — undisclosed is unknown, not meaningless.
+
 - `schema/enums.py` — ModelType, ArchitectureType, LicenseType, Tier, …
+- `schema/applicability.py` — which fields a *class* can answer at all
 - `schema/card.py` — `ModelCard` (universal template, YAML serialization)
 - `schema/graph.py` — how a card becomes FalkorDB nodes/edges **when ingested
   locally**. Ingestion is not the serving path.

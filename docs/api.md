@@ -67,7 +67,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
     "commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
     "built_at": "2026-09-18T01:44:51+00:00",
     "eligibility_as_of": "2026-09-09",
-    "export_schema_version": "2.0"
+    "export_schema_version": "3.0"
   },
   "service_commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
   "export_origin": "https://modelspec.dev",

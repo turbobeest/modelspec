@@ -183,7 +183,7 @@ def test_the_response_checker_rejects_an_empty_ranking() -> None:
     spec.loader.exec_module(checker)
 
     good = {
-        "build": {"commit": "abc", "export_schema_version": "2.0"},
+        "build": {"commit": "abc", "export_schema_version": "3.0"},
         "service_commit": "def",
         "policy": {"min_benchmark_coverage": 0.50, "min_benchmark_count": 2},
         "result": [{"model_id": "m", "score": 1.0, "rank": 1, "cost_input": None,
@@ -296,7 +296,7 @@ def test_a_failing_assertion_says_which_one_and_what_it_got(tmp_path: Path) -> N
     import sys
 
     path = tmp_path / "body.json"
-    path.write_text('{"build": {"commit": "abc", "export_schema_version": "2.0"},'
+    path.write_text('{"build": {"commit": "abc", "export_schema_version": "3.0"},'
                     ' "service_commit": "def", "result": [],'
                     ' "policy": {"min_benchmark_coverage": 0.5,'
                     ' "min_benchmark_count": 2}}', encoding="utf-8")

@@ -56,7 +56,7 @@ loader = _load("modelspec_load_determinations", WORKER_ROOT / "load_determinatio
 SERVICE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 ORIGIN = "https://modelspec.test"
 BUILD = {"commit": "deadbeef", "built_at": "2026-09-17T00:00:00Z",
-         "eligibility_as_of": "2026-09-01", "export_schema_version": "2.0"}
+         "eligibility_as_of": "2026-09-01", "export_schema_version": "3.0"}
 
 
 # ── fixtures: a small catalogue with one of each interesting shape ───────────
@@ -557,7 +557,7 @@ def test_the_response_carries_build_commit_and_the_read_dates():
         [_model("acme/x", commercial="withheld")], st,
         service.ENTITLEMENT_DETERMINATIONS)
     assert body["build"]["commit"] == "deadbeef"
-    assert body["build"]["export_schema_version"] == "2.0"
+    assert body["build"]["export_schema_version"] == "3.0"
     assert body["service_commit"] == SERVICE_COMMIT
     assert body["provenance"]["determination_read_dates"] == {
         "commercial_use": ["2026-09-16"], "residency": ["2026-09-15"]}

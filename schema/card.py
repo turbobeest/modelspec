@@ -13,13 +13,16 @@ Usage:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, ClassVar, Literal
 
 import yaml
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
+from .applicability import FIELD_RULES, model_types
 from .enums import (
     ArchitectureType,
     AttentionType,
@@ -326,27 +329,24 @@ class Licensing(BaseModel):
 # own fields — not a hand list of paths.
 
 
-def _model_types(*keys: str) -> frozenset[ModelType]:
-    """Resolve ModelType members by exact value or hyphen-prefix (``'llm-'``)."""
-    found: set[ModelType] = set()
-    for key in keys:
-        if key.endswith("-"):
-            matched = [t for t in ModelType if t.value.startswith(key)]
-            if not matched:
-                raise ValueError(f"no ModelType starts with {key!r}")
-            found.update(matched)
-        else:
-            found.add(ModelType(key))
-    return frozenset(found)
+#: Shared with the field-level table in `schema/applicability.py`, which is the
+#: same idea one level down: sections here, named fields there.
+_model_types = model_types
 
 
 _LLM_TYPES = _model_types("llm-")
 _EMBEDDING_TYPES = _model_types("embedding-")
 _AUDIO_TYPES = _model_types("audio-")
 _IMAGE_TYPES = _model_types("image-generation", "image-editing")
+#: `decision-model` (MODEL-98) reads text state, so `max_input_tokens` and
+#: `context_window` are real questions for it. It is deliberately absent from
+#: `_GENERATIVE_TEXT_TYPES` below — it writes no text — and the output-shaped
+#: fields inside this subtree are excluded field by field in
+#: `schema/applicability.py`, which is finer than a whole-section gate can be.
 _TEXT_TYPES = _LLM_TYPES | _model_types(
     "vlm", "agent-model", "medical", "legal", "financial",
     "router", "reward-model", "safety-classifier", "text-encoder", "document-ocr",
+    "decision-model",
 )
 _GENERATIVE_TEXT_TYPES = _LLM_TYPES | _model_types(
     "vlm", "agent-model", "medical", "legal", "financial",
@@ -1150,6 +1150,30 @@ class ModelCard(BaseModel):
             )
         return out
 
+    @property
+    def inapplicable_fields(self) -> tuple[str, ...]:
+        """Dotted paths this card's *class* cannot answer (MODEL-97).
+
+        Derived from `model_type` and `model_subtypes`, never stored, so it
+        cannot drift from the card and cannot be lost in a YAML round-trip.
+        A plain property rather than a `computed_field`: it is not card data
+        and must not appear in `model_dump()` or `to_yaml()`.
+
+        An entry may be a field (`modalities.text.max_output_tokens`) or a
+        subtree (`capabilities`), in which case every field beneath it is
+        inapplicable. These are **not** the same as unresearched nulls: there
+        is nothing here to research.
+
+        **The card wins.** A path where this card carries an actual value is
+        never reported inapplicable, whatever the class table says: a
+        `llm-reasoning` card with `modalities.vision.supported: true` is a
+        model that sees, and publishing "vision does not apply" over its own
+        data would be a false claim rather than a missing one. The pruning can
+        only ever *remove* a claim, so it cannot invent applicability.
+        """
+        return _answered_removed(
+            inapplicable_paths(self.identity.model_type, self.identity.model_subtypes), self)
+
     @computed_field
     @property
     def applicable_field_coverage(self) -> float:
@@ -1175,18 +1199,28 @@ class ModelCard(BaseModel):
         """Filled and total fields that apply to this card's type."""
         return self._count_fields(self)
 
-    def _count_fields(self, obj: BaseModel, _depth: int = 0) -> tuple[int, int]:
+    def _count_fields(self, obj: BaseModel, _depth: int = 0,
+                      _prefix: str = "",
+                      _inapplicable: frozenset[str] | None = None) -> tuple[int, int]:
         """Recursively count filled vs type-applicable fields."""
         filled = 0
         total = 0
+        inapplicable = (frozenset(self.inapplicable_fields)
+                        if _inapplicable is None else _inapplicable)
         for field_name, field_info in type(obj).model_fields.items():
             value = getattr(obj, field_name)
             if field_name == "authoring_guide":
                 continue  # guidance, not model facts: never moves coverage
+            # A field this class cannot answer is outside the denominator: it
+            # is not a gap, and counting it would be a permanent deduction for
+            # a question that has no answer (MODEL-97).
+            if f"{_prefix}{field_name}" in inapplicable:
+                continue
             if isinstance(value, BaseModel):
                 if not self._section_applies(value):
                     continue
-                f, t = self._count_fields(value, _depth + 1)
+                f, t = self._count_fields(value, _depth + 1, f"{_prefix}{field_name}.",
+                                          inapplicable)
                 filled += f
                 total += t
             elif isinstance(value, list):
@@ -1288,3 +1322,140 @@ class ModelCard(BaseModel):
                 out[key] = data.pop(key)
         yaml_str = yaml.dump(out, default_flow_style=False, sort_keys=False, allow_unicode=True)
         return f"---\n{yaml_str}---\n\n{self.prose_body}"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Applicability: the *other* kind of null (MODEL-97)
+# ═══════════════════════════════════════════════════════════════
+#
+# Two sources, one answer. `__applicable_model_types__` gates whole sections
+# and predates this; `schema.applicability.FIELD_RULES` gates named fields
+# inside sections that do apply. Both are pure functions of the card's class,
+# so this is cached per class rather than computed per card.
+
+
+def _coerce_types(model_type: Any, model_subtypes: Iterable[Any] = ()) -> frozenset[ModelType]:
+    """Card class plus subtypes, from enum members or from raw YAML strings.
+
+    An unrecognised string is dropped rather than raising: a card carrying a
+    type this build does not know is a card whose class we do not know, and an
+    unknown class must assert nothing about what does or does not apply.
+    """
+    found: set[ModelType] = set()
+    for raw in [model_type, *(model_subtypes or ())]:
+        if raw is None or raw == "":
+            continue
+        if isinstance(raw, ModelType):
+            found.add(raw)
+            continue
+        try:
+            found.add(ModelType(str(raw)))
+        except ValueError:
+            continue
+    return frozenset(found)
+
+
+def _gated_sections(model_cls: type[BaseModel], prefix: str,
+                    types: frozenset[ModelType], out: list[str]) -> None:
+    for name, info in model_cls.model_fields.items():
+        annotation = info.annotation
+        if not (isinstance(annotation, type) and issubclass(annotation, BaseModel)):
+            continue  # a list, a dict, an optional union: not a gated section
+        path = f"{prefix}{name}"
+        gate = getattr(annotation, "__applicable_model_types__", None)
+        if gate is not None and not (types & gate):
+            out.append(path)  # the whole subtree, named once
+            continue
+        _gated_sections(annotation, f"{path}.", types, out)
+
+
+@lru_cache(maxsize=None)
+def _inapplicable_paths(types: frozenset[ModelType]) -> tuple[str, ...]:
+    if not types:
+        return ()
+    sections: list[str] = []
+    _gated_sections(ModelCard, "", types, sections)
+    fields = [rule.path for rule in FIELD_RULES if not (types & rule.applies_to)]
+    # A field inside an already-named subtree is redundant: the subtree says it.
+    # Naming both would make a consumer's `not_applicable` list disagree with
+    # itself about how specific it is.
+    covered = tuple(f"{path}." for path in sections)
+    fields = [path for path in fields if not path.startswith(covered)]
+    return tuple(sorted(set(sections) | set(fields)))
+
+
+def inapplicable_paths(model_type: Any,
+                       model_subtypes: Iterable[Any] = ()) -> tuple[str, ...]:
+    """Dotted paths a card of this class cannot answer, sorted.
+
+    Accepts `ModelType` members or the raw strings a published card carries, so
+    the export and the site renderer can call it with a front-matter dict
+    without paying to build a `ModelCard`.
+
+    A card with no `model_type` gets `()`. Unknown class is unknown: it must
+    never be turned into "there is nothing to know".
+    """
+    return _inapplicable_paths(_coerce_types(model_type, model_subtypes))
+
+
+def _value_at(obj: Any, path: str) -> Any:
+    """Follow a dotted path through a mapping or a model. None when absent."""
+    current = obj
+    for part in path.split("."):
+        if isinstance(current, dict):
+            current = current.get(part)
+        elif isinstance(current, BaseModel):
+            current = getattr(current, part, None)
+        else:
+            return None
+        if current is None:
+            return None
+    return current
+
+
+def _is_answered(value: Any) -> bool:
+    """Whether a value — or anything beneath a section — is a real answer.
+
+    The same test coverage uses: `None`, `""`, `False` and an empty collection
+    are all "nobody filled this in", not data.
+    """
+    if value is None or value == "" or value is False:
+        return False
+    if isinstance(value, BaseModel):
+        return any(_is_answered(getattr(value, name, None))
+                   for name in type(value).model_fields)
+    if isinstance(value, dict):
+        return any(_is_answered(item) for item in value.values())
+    if isinstance(value, (list, tuple, set)):
+        return len(value) > 0
+    return True
+
+
+def _answered_removed(paths: Iterable[str], card: Any) -> tuple[str, ...]:
+    """Drop any path this card actually answers. The card outranks the table.
+
+    One-way: it can only remove an inapplicability claim, never add one, so a
+    card can never talk the catalogue into asserting that a question has no
+    answer.
+    """
+    return tuple(path for path in paths if not _is_answered(_value_at(card, path)))
+
+
+def applicability_block(model_type: Any,
+                        model_subtypes: Iterable[Any] = (),
+                        card: Any = None) -> dict[str, Any]:
+    """The derived block published beside a card in `/api/models/<id>.json`.
+
+    Additive: it adds information rather than widening any card field, so it is
+    not a contract break on its own (see `docs/cli-contract.md`). `card` is the
+    card's frontmatter (or a `ModelCard`); pass it so a path the card answers
+    is never published as one it cannot have.
+    """
+    paths = inapplicable_paths(model_type, model_subtypes)
+    if card is not None:
+        paths = _answered_removed(paths, card)
+    return {
+        "basis": "model_type",
+        "model_type": getattr(model_type, "value", model_type) or None,
+        "not_applicable": list(paths),
+    }

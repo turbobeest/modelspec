@@ -156,6 +156,80 @@ error instead of crashing a client that assumed the old range.
 The MODEL-53 nullable `predicted_decode_tps` below predates this rule and was
 shipped without a bump; that is the case the rule exists to prevent.
 
+### The `decision-model` class, and two kinds of null (MODEL-97/98)
+
+`build.export_schema_version` is **3.0**. One bump, two tickets, because
+consumers should absorb one break rather than two (Jamie, 2026-09-20).
+
+**What widened.** `model_type` gained `decision-model`:
+
+> evaluates supplied state against caller-defined typed questions, returning
+> calibrated choices, scores or probabilities; generates no text.
+
+It is published in `/api/models/<id>.json`, `index.json`,
+`/api/rank/candidates.json` and the graph nodes. A new enum value is the
+textbook widening under the MODEL-59 rule above, so it bumps the major. (The
+earlier non-token classes — `miscellaneous`, `time-series`, `vision-encoder`,
+`text-encoder` — shipped without a bump. They predate the rule and are the
+omission it exists to prevent; they are not a precedent.)
+
+**What a pre-bump CLI does.** It refuses before reading a row:
+
+```
+error: export_schema_version 3.0 is incompatible with this CLI (expects 2.x)
+```
+
+Exit 1, or the documented `--json` error object; no traceback, and a cached
+snapshot is never clobbered. A 2.x CLI therefore never sees a `decision-model`
+row, never scores one and never mis-parses one. **Upgrade the CLI, then
+`modelspec snapshot fetch`.** A 3.x CLI refuses a 2.0 snapshot the same way.
+
+**The CLI `--json` envelope does not move.** `schema_version` stays `"1.0"`:
+no envelope field carries `model_type`. `rank` and `fit` rows are unchanged,
+as are the exit codes. `rankings.json` stays `"2.0"` and the policy export
+stays `"1.0"`; they version different documents.
+
+**Inapplicable is not unresearched.** A `null` has always meant "not yet
+researched". For some fields on some classes there is nothing to research —
+a model that emits no text has no `modalities.text.max_output_tokens` to find.
+`/api/models/<id>.json` now carries a derived sibling block:
+
+```json
+"applicability": {
+  "basis": "model_type",
+  "model_type": "decision-model",
+  "not_applicable": ["capabilities", "inference_performance.api_tps_output",
+                     "modalities.text.max_output_tokens", "…"]
+}
+```
+
+Each entry is a dotted path from the card root; a path naming a section means
+every field beneath it. **This is additive, not a widening**: the `card` tree
+is still the frontmatter verbatim, no field in it changes type, name, meaning
+or range, and a consumer that ignores `applicability` reads exactly what it
+read before. It would not have bumped the major on its own; it rides
+`decision-model`'s bump.
+
+| what you see | what it means | what to do |
+| --- | --- | --- |
+| `null`, path **not** in `not_applicable` | Nobody has researched it. | Treat as unknown. It is a real gap, and it can be closed. |
+| `null`, path **in** `not_applicable` | This class of model cannot have it. | Do not render it as a gap, do not count it against the card, and do not ask for it. |
+
+The block is **derived from `model_type`**, never written on a card, so it
+cannot contradict the card it describes and cannot be lost in a YAML
+round-trip. It says nothing at all for a card whose `model_type` is absent or
+unrecognised: an unknown class is unknown, not empty. Architecture fields are
+never listed — an undisclosed parameter count is *unknown*, not meaningless.
+Reasoning: [`design/class-and-null-semantics.md`](design/class-and-null-semantics.md).
+
+**Ranking is unchanged and stays safe.** A decision model carries no benchmark
+scores, so it comes back `rank_status: "unranked"`, `unranked_reason:
+"insufficient_benchmark_evidence"` and `score: null` — never a low score, and
+never in `result`. No new `unranked_reason` value was added, deliberately:
+that field rides in rows under envelope `schema_version "1.0"`, and widening
+it would cost a second bump to say something a caller cannot act on. The
+floors are untouched.
+
 ### Policy fields, and the one major bump they cost (MODEL-77)
 
 ### Graph Model property removed without a bump (MODEL-74)
