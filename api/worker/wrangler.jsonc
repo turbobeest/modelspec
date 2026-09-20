@@ -84,7 +84,7 @@
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
     // Ships OFF. Secrets (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are
     // Wrangler secrets, test mode only, never in this file. See docs/billing.md.
-    "BILLING_ENABLED": "true",
+    "BILLING_ENABLED": "false",
     // MODEL-75. x402 prepaid credits / per-call 402. Independent of Stripe
     // (MODEL-73) and of ACCESS_ENFORCED. Ships OFF. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/x402.md.

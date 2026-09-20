@@ -398,12 +398,13 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 
 # ── the switch ───────────────────────────────────────────────────────────────
 
-def test_billing_is_on_with_live_prices():
-    """Go-live (2026-09-19): the flag is on and the price map is the live
-    Sparks & Sawdust LLC account's, not the sandbox's."""
+def test_billing_is_paused_with_live_prices():
+    """The price map is the live Sparks & Sawdust LLC account's, but the flag
+    is off: Stripe Tax has no Rhode Island registration yet, so a live sale
+    would collect 0% and leave the tax owed anyway (2026-09-20)."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"BILLING_ENABLED": "true"' in live
+    assert '"BILLING_ENABLED": "false"' in live
     policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
     assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
     assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())

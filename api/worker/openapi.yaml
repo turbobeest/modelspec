@@ -131,9 +131,9 @@ x-modelspec-access:
     tier_not_configured: 500
   documented_in: docs/api-access.md
 x-modelspec-billing:
-  status: wired; enabled
+  status: wired; flag off
   ticket: MODEL-93
-  enabled: true
+  enabled: false
   switch: BILLING_ENABLED in api/worker/wrangler.jsonc
   unit: credit
   what_is_sold: 'credits on this API key: a monthly allowance that resets each paid invoice (no rollover),
