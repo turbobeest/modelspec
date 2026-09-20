@@ -34,8 +34,8 @@ def test_every_price_and_credit_number_comes_from_tiers_json(tmp_path: Path) -> 
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     result = pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text(encoding="utf-8")
-    assert result["billing_enabled"] is True
-    assert "Billing is not live" not in html
+    assert result["billing_enabled"] is False
+    assert "Billing is not live" in html
     for _pid, row in tiers["billing"]["prices"].items():
         assert f"{row['credits']:,}" in html
         assert f"${row['usd']}" in html
