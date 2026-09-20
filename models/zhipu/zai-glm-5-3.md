@@ -811,9 +811,9 @@ downselect:
   approval_authority: ''
   next_review_date: ''
 sources:
-  models_dev_url: https://models.dev/mistral
+  models_dev_url: ''
   provider_docs_url: ''
-  huggingface_url: ''
+  huggingface_url: https://huggingface.co/zai-org/GLM-5.3
   arxiv_url: ''
   paper_url: ''
   github_url: ''
