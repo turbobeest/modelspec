@@ -1,12 +1,86 @@
-# Current ModelSpec state — 2026-09-14
+# Current ModelSpec state — 2026-09-20
 
 This is the current-state entry for a fresh Claude, Codex, or Grok session,
 including a DPF integration session. Historical freeze, census-run, and Phase 1
 instructions are not current policy.
 
-**As of:** 2026-09-14, branch built from `origin/main` `0b4a612`
-(`catalogue: Liquid LFM2.5 Audio total from Hub safetensors (#33)`).
-Working-tree bytes are the source; the commit is context until this lands.
+**As of:** 2026-09-20, `origin/main` `7a63129`
+(`schema: decision-model class and inapplicable-vs-unknown fields (#150)`),
+deployed: the Worker and the live export both report
+`export_schema_version: 3.0`.
+
+## Read this first if you are picking the work up
+
+Three draft PRs are open and **all three are finished work waiting on Jamie's
+merge decision**, not work in progress. Nothing is half-written.
+
+| PR | Ticket | What it is | Why it is still a draft |
+| --- | --- | --- | --- |
+| [#152](https://github.com/turbobeest/modelspec/pull/152) | MODEL-101 | The TypeSafe Jev card, the catalogue's first `decision-model`, plus the guard that stops any TypeSafe card field being written by a Jev judgment | Jamie reviews a card about a supplier we pay |
+| [#153](https://github.com/turbobeest/modelspec/pull/153) | MODEL-102 | A **negative result**: the Jev→LLM cascade measured 97.6% at $0.188/1,000 correct, then misattributed 6 of 383 on the MODEL-82 guard set. Ships switched off, with the gap pinned by a test | It documents something we chose not to ship |
+| [#154](https://github.com/turbobeest/modelspec/pull/154) | MODEL-100 | `class-fit`: which *class* of model a task needs, as a keyless static file plus a CLI command | New public surface |
+
+**Do not mark any of them ready without Jamie saying so** — ready means
+auto-merge (`automerge.yml`).
+
+### What is switched off, deliberately
+
+- **`BILLING_ENABLED` is `false`** (`api/worker/wrangler.jsonc`). Billing went
+  live on 2026-09-20 and was paused the same day: Stripe Tax is on every
+  Checkout, but the live account holds **no Rhode Island registration**, so
+  Stripe computes 0% silently and the LLC still owes the tax. The live Price
+  ids are already in `api/worker/tiers.json` — only the flag moves. **MODEL-96**
+  is the re-enable ticket and lists every step.
+- **`ACCESS_ENFORCED` is `false`**: an unkeyed request is still served free.
+- **`X402_ENABLED` is `false`**.
+- **`escalation.enabled` is `false`** (`scripts/attribution.yaml`) — the cascade
+  from #153, measured and refused.
+
+### Waiting on Jamie, nobody else can do these
+
+1. **Rhode Island Division of Taxation.** Who holds the current sales tax
+   permit — Jamie personally under the dev-mux DBA, or Sparks & Sawdust LLC?
+   That one answer unblocks MODEL-96 (and therefore any revenue) and decides 2.
+2. **Stripe's legal entity name** reads "James J Ter Beest III", not the LLC.
+   It is the **shared** legal entity: changing it changes dev-mux's live
+   account too, and a name that does not match the EIN on file can trigger
+   re-verification and hold payouts. Establish which EIN belongs to which name
+   before touching it.
+3. **A sentence in the adopted neutrality commitment.** It covers money coming
+   *in* (no paid placement, no referral fees) but says nothing about ModelSpec
+   *buying from* a lab it catalogues. `neutrality_commitment()` in
+   `api/ranking/engine.py` is held to `docs/legal/neutrality.md` by
+   `tests/test_legal.py`; the legal documents were adopted v1.0 on 2026-09-19,
+   so editing them is Jamie's call, not an agent's.
+4. **A $5 live smoke test with a real card**, once billing is back on.
+
+### The open tickets, and what they are blocked on
+
+- **MODEL-96** re-enable billing — blocked on the tax office call.
+- **MODEL-95** Search Console / Bing — verified and sitemaps submitted on both
+  domains; the only open item is the first coverage review, which needs Google
+  to crawl. Indexed pages were 0 on 2026-09-20.
+- **MODEL-69** keys and limits — its acceptance criteria still describe the
+  10/day free tier that MODEL-93 replaced with credits. Needs rewriting against
+  credits, and Jamie's call on `ACCESS_ENFORCED`.
+- **MODEL-100/101/102** — the three PRs above.
+
+### Standing rules a new session will not guess
+
+- **One worktree and one chat session per ticket** (Jamie, 2026-09-20). The
+  exception made that day: MODEL-97 and MODEL-98 shared one worktree because
+  they shared one contract bump.
+- **Automate the human steps.** Drive dashboards in the browser rather than
+  handing Jamie a checklist. Come back to him only for a government ID value,
+  a credential, a legal attestation, or an action a permission classifier
+  refuses — and for that last case, say what was blocked and ask, rather than
+  converting it into manual work for him.
+- **The research workflow's scratch files** (`survey.txt`, `validation.json`,
+  `scripts/attribution_judgments.jsonl`) are no longer committed: `add-paths`
+  in `daily-research.yml` limits the daily PR to `models/**` (#148).
+- **The session scratchpad is shared between concurrent sessions.** A worker
+  had a file overwritten mid-task on 2026-09-20. Give each worker its own
+  subdirectory.
 
 ## Serving path
 
