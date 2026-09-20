@@ -78,7 +78,7 @@ STALE_AFTER_DAYS = 30
 #: Must match `pipeline.export.EXPORT_SCHEMA_VERSION`. A different major is
 #: refused so a breaking export cannot be ranked as if it were the old shape.
 #: 2.0 since MODEL-77 reshaped the policy fields on the published cards.
-EXPORT_SCHEMA_VERSION = "2.0"
+EXPORT_SCHEMA_VERSION = "3.0"
 
 #: What a snapshot with no `export_schema_version` at all actually is: an
 #: export from before the field was added, which is the 1.x tree. It is named

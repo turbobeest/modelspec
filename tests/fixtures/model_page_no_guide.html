@@ -169,6 +169,7 @@ text-transform:uppercase;color:var(--accent);border:1px solid var(--line);paddin
 .gaps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .gap{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 text-transform:uppercase;border:1px dashed var(--line);color:var(--mute);padding:4px 11px}
+.gap.na{border-style:solid;text-decoration:line-through}
 .complete{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:68ch}
 .complete .track{flex:1 1 auto;height:6px;background:var(--raise)}
 .complete .fill{display:block;height:6px;background:var(--accent)}
@@ -218,6 +219,7 @@ ul.cols{columns:1}
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody><tr><td>mmlu</td><td><span class="pill unassessed">unassessed</span></td><td class="num">80.0</td></tr></tbody></table></div>
+
 <h2>Not yet researched</h2><p class="lede">A section with nothing to say does not render at all, so this is the one place the page names its gaps. Remember that null in this schema means nobody has looked, not that the model lacks the property.</p><div class="complete"><span class="lab">3 of the 15 facts this page can show</span><span class="track"><span class="fill" style="width:20.0%"></span></span></div><div class="gaps"><span class="gap">Parameters</span><span class="gap">Release date</span><span class="gap">Last updated</span><span class="gap">Open weights</span><span class="gap">Licence</span><span class="gap">Context window</span><span class="gap">Pricing</span><span class="gap">Training cutoff</span><span class="gap">Lineage</span><span class="gap">Capabilities</span><span class="gap">Platform availability</span><span class="gap">Hardware fit</span></div>
 <h2>Data</h2>
 <p><a href="/api/models/acme/tiny.json">This card as JSON</a> &middot;

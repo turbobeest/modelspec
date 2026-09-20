@@ -365,7 +365,7 @@ Beyond `result` and `summary`, every response carries what it was computed from,
 so an answer given today can be defended in a year:
 
 ```jsonc
-"build":        { "commit": "…", "built_at": "…", "export_schema_version": "2.0" },
+"build":        { "commit": "…", "built_at": "…", "export_schema_version": "3.0" },
 "service_commit": "…",           // the deployed Worker
 "export_origin":  "https://modelspec.dev",
 "provenance": {

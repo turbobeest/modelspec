@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
+from schema.card import applicability_block
 
 #: Shape of the published JSON tree (`/api/index.json`, per-model files,
 #: `/api/rank/candidates.json`, `/api/rank/profiles.json`, graph views).
@@ -44,7 +45,15 @@ from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 #: became `list | null` beside a new `data_residency_disclosure`. Both are
 #: range-widening under the MODEL-59 rule, and they ship as one bump because
 #: they are one decision. See `docs/cli-contract.md`.
-EXPORT_SCHEMA_VERSION = "2.0"
+#:
+#: 2.0 -> 3.0 (MODEL-98). `model_type` gained `decision-model`, a value no
+#: consumer switching on that field has ever seen, published in
+#: `/api/models/<id>.json`, `index.json`, `/api/rank/candidates.json` and the
+#: graph nodes. A new enum value is the textbook widening in the MODEL-59 rule.
+#: MODEL-97's applicability block rides this bump but did not require it: it
+#: adds a key rather than widening a field, and is additive on its own. See
+#: `docs/design/class-and-null-semantics.md`.
+EXPORT_SCHEMA_VERSION = "3.0"
 
 
 def _commit(root: Path) -> str:
@@ -163,6 +172,15 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
             "build": build.to_json(),
             "card": model.front,
             "body": model.body,
+            # MODEL-97. Derived from the card's class, never stored on it, so
+            # the `card` tree above stays the frontmatter verbatim and no
+            # field in it changes type, name, meaning or range. A consumer
+            # that ignores this key reads exactly what it read before; one
+            # that reads it can tell a null nobody has researched from a null
+            # this class can never have.
+            "applicability": applicability_block(
+                model.front.get("model_type"), model.front.get("model_subtypes") or (),
+                card=model.front),
         })
 
     if "benchmarks" in parts:

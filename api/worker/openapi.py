@@ -332,7 +332,7 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
             "commit": "0" * 40,
             "built_at": "2026-01-01T00:00:00+00:00",
             "eligibility_as_of": "2026-01-01",
-            "export_schema_version": "2.0",
+            "export_schema_version": "3.0",
         },
         "candidates": [
             {

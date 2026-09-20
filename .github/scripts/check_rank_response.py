@@ -36,7 +36,7 @@ from typing import Any
 EVIDENCE_BASIS = {"none", "unverified-legacy", "mixed", "partial-verified", "verified"}
 
 #: `pipeline.export.EXPORT_SCHEMA_VERSION`, as the published tree reports it.
-EXPORT_SCHEMA_VERSION = "2.0"
+EXPORT_SCHEMA_VERSION = "3.0"
 
 #: `api.ranking.engine.MIN_BENCHMARK_COVERAGE` and `MIN_BENCHMARK_COUNT`. These
 #: are product defaults and changing one needs Jamie; a deployment serving

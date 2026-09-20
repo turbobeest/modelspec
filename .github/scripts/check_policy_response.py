@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Any
 
 #: `pipeline.export.EXPORT_SCHEMA_VERSION`, as the published tree reports it.
-EXPORT_SCHEMA_VERSION = "2.0"
+EXPORT_SCHEMA_VERSION = "3.0"
 
 VERDICT_KEY = {"pass": "passed", "fail": "failed", "undetermined": "undetermined"}
 STATE_KEY = {"satisfied": "satisfied", "violated": "violated",

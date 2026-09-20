@@ -23,6 +23,8 @@ from typing import Any
 
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model
+from schema.applicability import FIELD_RULES
+from schema.card import applicability_block
 #: The evidence-basis vocabulary lives in the ranking engine. A page that spelled
 #: its own labels out would drift from the CLI on the first edit.
 from pipeline.ranking import _basis
@@ -196,6 +198,7 @@ text-transform:uppercase;color:var(--accent);border:1px solid var(--line);paddin
 .gaps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .gap{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
 text-transform:uppercase;border:1px dashed var(--line);color:var(--mute);padding:4px 11px}
+.gap.na{border-style:solid;text-decoration:line-through}
 .complete{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:68ch}
 .complete .track{flex:1 1 auto;height:6px;background:var(--raise)}
 .complete .fill{display:block;height:6px;background:var(--accent)}
@@ -790,6 +793,60 @@ PAGE_FACTS: tuple[tuple[str, PageFact], ...] = (
 )
 
 
+#: The schema path behind a page fact, where one exists. A fact whose path a
+#: card's *class* cannot answer is not a gap on that page (MODEL-97): a
+#: time-series forecaster has no text context window to research, and listing
+#: one under "Not yet researched" invites work that can never be done.
+PAGE_FACT_PATHS: dict[str, str] = {
+    "Context window": "modalities.text.context_window",
+}
+
+
+def _class_inapplicable(front: dict[str, Any]) -> frozenset[str]:
+    """Dotted paths this card's class cannot answer. Derived, never authored.
+
+    A path the card actually answers is dropped: the card outranks the table,
+    so a page never tells a reader that a figure printed above it does not
+    apply (`schema.card.applicability_block`).
+    """
+    if not isinstance(front, dict):
+        return frozenset()
+    return frozenset(applicability_block(
+        front.get("model_type"), front.get("model_subtypes") or (),
+        card=front)["not_applicable"])
+
+
+def _is_inapplicable(path: str, paths: frozenset[str]) -> bool:
+    """True when the path, or a subtree containing it, is inapplicable."""
+    return any(path == p or path.startswith(f"{p}.") for p in paths)
+
+
+def not_applicable_section(front: dict[str, Any]) -> str:
+    """Name what this class of model cannot be asked, so a null is not a gap.
+
+    Derived from `model_type` alone (`schema/applicability.py`), so it cannot
+    contradict the card. Only fields a reader might otherwise mistake for
+    missing research are listed; whole sections that never render are left to
+    the JSON, where a machine reads them.
+    """
+    paths = _class_inapplicable(front)
+    if not paths:
+        return ""
+    labels = [rule.label for rule in FIELD_RULES if rule.path in paths]
+    labels += [label for label, path in PAGE_FACT_PATHS.items()
+               if _is_inapplicable(path, paths)]
+    if not labels:
+        return ""
+    chips = "".join(f'<span class="gap na">{esc(label)}</span>'
+                    for label in sorted(set(labels)))
+    return _section(
+        "Not applicable to this class", f'<div class="gaps">{chips}</div>',
+        f'This card\'s class is {esc(str(front.get("model_type")))}. These questions have no '
+        "answer for that class of model, so they are blank here and are not counted as gaps. That is "
+        "a different claim from “not yet researched” below, and the published JSON "
+        "keeps the two apart.")
+
+
 def unresearched_section(front: dict[str, Any], relations: Any, scores: Any) -> str:
     """Name the gaps once, with the page's own denominator.
 
@@ -797,12 +854,19 @@ def unresearched_section(front: dict[str, Any], relations: Any, scores: Any) -> 
     cards it spans 10.0%-21.3%, so it separates nothing, and it costs 20s per
     build. What a reader wants is which of the things this page could show are
     missing.
+
+    A fact this card's class cannot answer is neither absent nor present: it
+    leaves the numerator *and* the denominator (MODEL-97), so the bar measures
+    research that is actually owed.
     """
-    absent = [label for label, present in PAGE_FACTS
-              if not present(front if isinstance(front, dict) else {}, relations, scores)]
+    data = front if isinstance(front, dict) else {}
+    inapplicable = _class_inapplicable(data)
+    facts = [(label, present) for label, present in PAGE_FACTS
+             if not _is_inapplicable(PAGE_FACT_PATHS.get(label, label), inapplicable)]
+    absent = [label for label, present in facts if not present(data, relations, scores)]
     if not absent:
         return ""
-    have, total = len(PAGE_FACTS) - len(absent), len(PAGE_FACTS)
+    have, total = len(facts) - len(absent), len(facts)
     bar = (f'<div class="complete"><span class="lab">{have} of the {total} facts this page '
            'can show</span><span class="track"><span class="fill" '
            f'style="width:{have / total * 100:.1f}%"></span></span></div>')
@@ -911,6 +975,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 <div class="scroll"><table>
 <thead><tr><th>Benchmark</th><th>Catalogue standing</th><th>Score</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
+{not_applicable_section(front)}
 {unresearched_section(front, rel, scores)}
 <h2>Data</h2>
 <p><a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a> &middot;
