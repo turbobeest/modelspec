@@ -41,6 +41,18 @@ a new call nor a cached one can write it. The suppliers are
 disclosure, so the org we disclose and the org we protect cannot drift apart.
 Deterministic attribution is untouched: an id prefix naming TypeSafe is code
 reading a string, not the model's opinion about its own maker.
+
+**The cascade (MODEL-102), off by default.** With ``escalation.enabled`` in
+``scripts/attribution.yaml`` and an ``LLMJudge``, a Jev *abstention* — and only
+an abstention — is asked again of an LLM, with byte-identical state and
+questions. The LLM answer is taken only when it names one of the same extracted
+candidates; otherwise the abstention stands. A judgment the policy *refused*
+(below the review band, or the reseller veto) is never re-asked: that is a
+decision, not a shrug. A per-run escalation count caps the spend, and
+exhausting it leaves abstentions as abstentions rather than failing the run.
+
+Every ``Attribution`` and every ledger row carries an ``arm``: ``rule``,
+``jev``, ``llm`` or ``none``. No judgment in this module is anonymous.
 """
 
 from __future__ import annotations
@@ -69,16 +81,24 @@ CANNOT_ESTABLISH = "cannot_establish"
 CREATOR_Q = "creator"
 RESELLER_Q = "reseller"
 
-# Status of an attribution. Only the first three put a creator on a card.
+# Status of an attribution. Only the first four put a creator on a card.
 DETERMINISTIC = "deterministic"
 WRITTEN = "written"  # Jev, high band
 REVIEW = "review"  # Jev, medium band: written, and listed for a human
+ESCALATED = "escalated"  # Jev abstained, the LLM named a candidate (MODEL-102)
 WITHHELD = "withheld"  # Jev answered; the answer does not clear the bar
 UNAVAILABLE = "unavailable"  # Jev was needed and could not be asked
 NO_CANDIDATE = "no_candidate"  # nothing in the evidence names a catalogue org
 CONFLICTED = "conflicted"  # the judge's own vendor is in play (MODEL-101)
 
-WRITES_CREATOR = frozenset({DETERMINISTIC, WRITTEN, REVIEW})
+WRITES_CREATOR = frozenset({DETERMINISTIC, WRITTEN, REVIEW, ESCALATED})
+
+# Which instrument produced a judgment (MODEL-102). No judgment is anonymous:
+# every Attribution carries one of these, and so does every ledger row.
+ARM_RULE = "rule"  # decide_deterministically(): code, no model call
+ARM_JEV = "jev"  # the decision model
+ARM_LLM = "llm"  # the escalation model, reached only via a Jev abstention
+ARM_NONE = "none"  # nothing judged it: no candidate, no key, no budget
 
 
 # ── Configuration ───────────────────────────────────────────────
@@ -96,6 +116,25 @@ class Thresholds:
 
 
 @dataclass(frozen=True)
+class Escalation:
+    """Jev's abstentions, sent on to an LLM (MODEL-102).
+
+    ``enabled`` ships **false**. Turning it on spends money on a second
+    supplier, so it is a deliberate act, not a default.
+    """
+
+    enabled: bool
+    model: str
+    endpoint: str
+    timeout_seconds: float
+    max_retries: int
+    max_output_tokens: int
+    # The per-run cap. Like the Firecrawl credit cap: when it is spent the
+    # remaining abstentions stand as abstentions. The run does not fail.
+    max_escalations_per_run: int
+
+
+@dataclass(frozen=True)
 class Config:
     endpoint: str
     model: str
@@ -107,6 +146,20 @@ class Config:
     route_prefixes: frozenset[str]
     brand_tokens: dict[str, frozenset[str]]
     availability_fields: dict[str, str]
+    escalation: Escalation
+
+
+def load_escalation(raw: dict) -> Escalation:
+    esc = raw.get("escalation") or {}
+    return Escalation(
+        enabled=bool(esc.get("enabled", False)),
+        model=str(esc.get("model", "")),
+        endpoint=str(esc.get("endpoint", "")),
+        timeout_seconds=float(esc.get("timeout_seconds", 120.0)),
+        max_retries=int(esc.get("max_retries", 3)),
+        max_output_tokens=int(esc.get("max_output_tokens", 4000)),
+        max_escalations_per_run=int(esc.get("max_escalations_per_run", 0)),
+    )
 
 
 def load_config(path: Path | None = None) -> Config:
@@ -130,6 +183,7 @@ def load_config(path: Path | None = None) -> Config:
             org: frozenset(t.lower() for t in toks) for org, toks in raw["brand_tokens"].items()
         },
         availability_fields=dict(raw.get("availability_fields") or {}),
+        escalation=load_escalation(raw),
     )
 
 
@@ -360,6 +414,9 @@ class Attribution:
     basis: str
     candidates: list[str]
     judgment: dict | None = None
+    # Which instrument produced this judgment (MODEL-102). Set at every
+    # construction site; ``ARM_NONE`` means nothing judged it.
+    arm: str = ARM_NONE
 
     @property
     def writes_creator(self) -> bool:
@@ -372,24 +429,49 @@ def decide_deterministically(ev: Evidence, registry: dict[str, Org]) -> Attribut
     if ev.own_prefix_org:
         org = ev.own_prefix_org
         if org in registry:
-            return Attribution(lst, org, DETERMINISTIC, f"id prefix `{ev.own_prefix}`", [org])
+            return Attribution(
+                lst, org, DETERMINISTIC, f"id prefix `{ev.own_prefix}`", [org], arm=ARM_RULE
+            )
         return Attribution(
-            lst, None, NO_CANDIDATE, "id prefix names an org the catalogue has no directory for", []
+            lst,
+            None,
+            NO_CANDIDATE,
+            "id prefix names an org the catalogue has no directory for",
+            [],
+            arm=ARM_RULE,
         )
     others_named = ev.named_orgs - set(ev.prefix_orgs)
     if len(ev.prefix_orgs) == 1 and not others_named:
         org = next(iter(ev.prefix_orgs))
         if org in registry:
             return Attribution(
-                lst, org, DETERMINISTIC, "same id listed elsewhere under one creator prefix", [org]
+                lst,
+                org,
+                DETERMINISTIC,
+                "same id listed elsewhere under one creator prefix",
+                [org],
+                arm=ARM_RULE,
             )
     if not ev.prefix_orgs and ev.vendor and ev.named_orgs == {ev.vendor} and ev.vendor in registry:
+        # The creator's own page, corroborated by the product name — not by the
+        # page. This is the tier that answers every own-page listing in the
+        # corpus before any model is asked (MODEL-102).
         return Attribution(
-            lst, ev.vendor, DETERMINISTIC, "listing page and product name agree", [ev.vendor]
+            lst,
+            ev.vendor,
+            DETERMINISTIC,
+            "listing page and product name agree",
+            [ev.vendor],
+            arm=ARM_RULE,
         )
     if not ev.candidates:
         return Attribution(
-            lst, None, NO_CANDIDATE, "nothing in the evidence names a catalogue organisation", []
+            lst,
+            None,
+            NO_CANDIDATE,
+            "nothing in the evidence names a catalogue organisation",
+            [],
+            arm=ARM_RULE,
         )
     return None
 
@@ -559,6 +641,143 @@ class TypeSafeJudge:
         raise JudgeUnavailable(f"TypeSafe request failed: {last}")
 
 
+# ── The escalation model ────────────────────────────────────────
+#
+# MODEL-102. These three strings are the *whole* adapter between Jev's typed
+# answer channel and an LLM's text one. They are the strings MODEL-99 measured
+# `openai/gpt-5-mini` with, and `scripts/eval_cost_to_correct.py` imports them
+# from here so the two can never drift: what the cascade asks in production is
+# byte-identical to what the published arm was asked. Anything more would be a
+# better prompt for one arm, which is not a measurement.
+
+LLM_SYSTEM_PROMPT = (
+    "You answer questions about the state you are given. "
+    "Judge only from the state. Do not use outside knowledge of the models named."
+)
+
+LLM_REPLY_FORMAT = (
+    "Answer with one JSON object and nothing else, in this shape:\n"
+    '{"creator": {"choice": "<exactly one key from the creator question\'s criteria>"}, '
+    '"reseller": {"noul": <number from 0 to 1>}}'
+)
+
+_LLM_REFUSAL = re.compile(
+    r"\b(i (?:can(?:no|')t|am unable|won't)|as an ai|i'm sorry|cannot comply)\b", re.I
+)
+_LLM_JSON_BLOCK = re.compile(r"\{.*\}", re.S)
+
+
+def llm_messages(state: dict, questions: dict) -> list[dict]:
+    """Jev's state and Jev's questions, verbatim, plus the reply format."""
+    payload = json.dumps({"state": state, "questions": questions}, indent=2, sort_keys=True)
+    return [
+        {"role": "system", "content": LLM_SYSTEM_PROMPT},
+        {"role": "user", "content": f"{payload}\n\n{LLM_REPLY_FORMAT}"},
+    ]
+
+
+def parse_llm_reply(text: str) -> tuple[str | None, float, str]:
+    """``(choice, reseller_noul, failure)``. A shape we cannot read is a failure."""
+    if not text.strip():
+        return None, 0.0, "empty_reply"
+    body = text.strip()
+    if body.startswith("```"):
+        body = re.sub(r"^```[a-zA-Z]*\n?|```$", "", body).strip()
+    match = _LLM_JSON_BLOCK.search(body)
+    if match is None:
+        return None, 0.0, "refusal" if _LLM_REFUSAL.search(body) else "no_json"
+    try:
+        parsed = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None, 0.0, "bad_json"
+    if not isinstance(parsed, dict):
+        return None, 0.0, "missing_choice"
+    reseller = 0.0
+    raw_reseller = parsed.get("reseller")
+    if isinstance(raw_reseller, dict):
+        try:
+            reseller = float(raw_reseller.get("noul"))
+        except (TypeError, ValueError):
+            reseller = 0.0
+    creator = parsed.get("creator")
+    if isinstance(creator, dict) and "choice" in creator:
+        return str(creator["choice"]), reseller, ""
+    if isinstance(parsed.get("choice"), str):
+        return str(parsed["choice"]), reseller, ""  # a shape that still answers
+    return None, 0.0, "missing_choice"
+
+
+class LLMJudge:
+    """An OpenAI-compatible chat endpoint, wearing the ``Judge`` interface.
+
+    It returns the same body shape ``TypeSafeJudge`` does, so ``parse_answers``
+    reads both. ``confidence`` is reported as 0.0 and is **never** compared
+    against the bands: those were calibrated against Jev's own probabilities
+    (``scripts/attribution.yaml``) and mean nothing here. An escalated answer
+    earns its place by naming a candidate, not by claiming a number.
+    """
+
+    def __init__(self, api_key: str, escalation: Escalation, client: httpx.Client | None = None):
+        self._key = api_key
+        self._esc = escalation
+        self.model = escalation.model
+        self._client = client or httpx.Client(timeout=escalation.timeout_seconds)
+
+    @classmethod
+    def from_env(cls, escalation: Escalation) -> LLMJudge | None:
+        key = os.environ.get("TEXT_MODEL_API_KEY", "").strip()
+        return cls(key, escalation) if key and escalation.model else None
+
+    def evaluate(self, state: dict, questions: dict) -> dict:
+        body = {
+            "model": self.model,
+            "messages": llm_messages(state, questions),
+            "max_tokens": self._esc.max_output_tokens,
+        }
+        headers = {"Authorization": f"Bearer {self._key}", "Content-Type": "application/json"}
+        delay, last = 1.0, "no attempt"
+        for attempt in range(self._esc.max_retries + 1):
+            try:
+                resp = self._client.post(self._esc.endpoint, json=body, headers=headers)
+            except httpx.HTTPError as exc:
+                last = type(exc).__name__
+            else:
+                if resp.status_code == 200:
+                    return self._to_answers(resp.json())
+                last = f"HTTP {resp.status_code}"
+                if resp.status_code not in (408, 429, 500, 502, 503, 504, 529):
+                    break
+            if attempt < self._esc.max_retries:
+                time.sleep(delay)
+                delay *= 2
+        # Never log the key or the body: neither is ours to log.
+        raise JudgeUnavailable(f"escalation request failed: {last}")
+
+    def _to_answers(self, data: dict) -> dict:
+        usage = data.get("usage") or {}
+        choice_obj = (data.get("choices") or [{}])[0]
+        text = str((choice_obj.get("message") or {}).get("content") or "")
+        choice, reseller, failure = parse_llm_reply(text)
+        if choice is None:
+            kind = "truncated" if choice_obj.get("finish_reason") == "length" else failure
+            raise JudgeUnavailable(f"escalation reply unusable: {kind}")
+        return {
+            "answers": {
+                CREATOR_Q: {
+                    "type": "choice",
+                    "choice": choice,
+                    "probabilities": {choice: 1.0},
+                    "confidence": 0.0,  # not a calibrated number; never banded
+                },
+                RESELLER_Q: {"type": "noul", "noul": reseller},
+            },
+            "usage": {
+                "input_tokens": int(usage.get("prompt_tokens") or 0),
+                "output_tokens": int(usage.get("completion_tokens") or 0),
+            },
+        }
+
+
 def request_key(model: str, state: dict, questions: dict) -> str:
     blob = json.dumps({"model": model, "state": state, "questions": questions}, sort_keys=True)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -608,7 +827,11 @@ def parse_answers(body: dict, candidates: list[str]) -> dict:
 
 
 def apply_policy(
-    ev: Evidence, answers: dict, candidates: list[str], thresholds: Thresholds
+    ev: Evidence,
+    answers: dict,
+    candidates: list[str],
+    thresholds: Thresholds,
+    arm: str = ARM_JEV,
 ) -> Attribution:
     """Turn a stored judgment into an attribution under the current thresholds."""
     lst = ev.listing
@@ -624,11 +847,11 @@ def apply_policy(
         return Attribution(lst, None, CONFLICTED, conflict_basis(choice), candidates, judgment)
     if choice == CANNOT_ESTABLISH:
         return Attribution(
-            lst, None, WITHHELD, "judged: cannot be established", candidates, judgment
+            lst, None, WITHHELD, "judged: cannot be established", candidates, judgment, arm
         )
     if choice not in candidates:
         return Attribution(
-            lst, None, WITHHELD, "answer outside the offered options", candidates, judgment
+            lst, None, WITHHELD, "answer outside the offered options", candidates, judgment, arm
         )
     if choice == ev.vendor and answers["reseller"] >= thresholds.reseller_veto:
         return Attribution(
@@ -638,10 +861,11 @@ def apply_policy(
             "picked the listing platform while judging it a reseller",
             candidates,
             judgment,
+            arm,
         )
     if conf >= thresholds.write:
         return Attribution(
-            lst, choice, WRITTEN, f"judged, confidence {conf:.2f}", candidates, judgment
+            lst, choice, WRITTEN, f"judged, confidence {conf:.2f}", candidates, judgment, arm
         )
     if conf >= thresholds.review:
         return Attribution(
@@ -651,6 +875,7 @@ def apply_policy(
             f"judged, confidence {conf:.2f}: needs review",
             candidates,
             judgment,
+            arm,
         )
     return Attribution(
         lst,
@@ -659,6 +884,52 @@ def apply_policy(
         f"judged, confidence {conf:.2f}: below the review band",
         candidates,
         judgment,
+        arm,
+    )
+
+
+def apply_escalation(
+    ev: Evidence,
+    jev_answers: dict,
+    llm_answers: dict,
+    candidates: list[str],
+    thresholds: Thresholds,
+) -> Attribution | None:
+    """The escalated answer, or ``None`` when Jev's abstention stands (MODEL-102).
+
+    *Decisive* is deliberately narrow. The LLM answer is taken only when it
+    names one of the organisations code extracted. ``cannot_establish``, or an
+    option nobody offered, leaves the abstention exactly where it was.
+
+    The MODEL-82 veto is applied **more** strictly here than on the first pass:
+    the platform's own organisation is refused if *either* model judges that
+    platform a reseller. Two graders, either one of whom can stop it. An
+    escalation may rescue a null; it may never be the route by which a model is
+    handed to the platform that lists it.
+
+    **This is not sufficient, and that is measured, not feared.** On the 383
+    ``relisted_withheld`` cases of 2026-09-20 the cascade misattributed six
+    models. None of the six named the listing platform — this veto held. All
+    six named the *base model's* organisation read out of the product name
+    (``deepseek-r1-distill-qwen-32b`` to Qwen), which is an inference
+    ``candidate_orgs()`` refuses and an LLM makes anyway. That is why
+    ``escalation.enabled`` is false. See
+    ``docs/research/cascade-attribution.md``.
+    """
+    choice = llm_answers["choice"]
+    if choice == CANNOT_ESTABLISH or choice not in candidates:
+        return None
+    reseller = max(float(jev_answers.get("reseller", 0.0)), float(llm_answers["reseller"]))
+    if choice == ev.vendor and reseller >= thresholds.reseller_veto:
+        return None
+    return Attribution(
+        ev.listing,
+        choice,
+        ESCALATED,
+        "Jev abstained; escalated and answered: needs review",
+        candidates,
+        {**llm_answers, "jev_reseller": jev_answers.get("reseller")},
+        ARM_LLM,
     )
 
 
@@ -682,6 +953,7 @@ class Attributor:
         judge: Judge | None,
         config: Config | None = None,
         ledger: Ledger | None = None,
+        escalator: Judge | None = None,
     ) -> None:
         self.api_data = api_data
         self.config = config or load_config()
@@ -691,6 +963,12 @@ class Attributor:
         self.ledger = ledger or Ledger(None)
         self.index = ListingIndex.build(api_data, self.config)
         self.budget = Budget(self.config.max_input_tokens_per_run)
+        # Off unless the flag is on AND an escalation model was handed in
+        # (MODEL-102). A budget of 0 is a cascade that never escalates.
+        self.escalator = escalator if self.config.escalation.enabled else None
+        self.escalations = Budget(
+            self.config.escalation.max_escalations_per_run if self.escalator else 0
+        )
         self.results: list[Attribution] = []
 
     def listing(self, platform: str, raw: dict, model_key: str) -> Listing:
@@ -731,7 +1009,12 @@ class Attributor:
             )
         if deterministic_only:
             return Attribution(
-                ev.listing, None, UNAVAILABLE, "ambiguous; judgment not requested", ev.candidates
+                ev.listing,
+                None,
+                UNAVAILABLE,
+                "ambiguous; judgment not requested",
+                ev.candidates,
+                arm=ARM_NONE,
             )
         return self.judge_evidence(ev)
 
@@ -750,6 +1033,7 @@ class Attributor:
                     UNAVAILABLE,
                     "TYPESAFE_API_KEY not set; creator left null",
                     candidates,
+                    arm=ARM_NONE,
                 )
             if self.budget.exhausted():
                 return Attribution(
@@ -758,13 +1042,19 @@ class Attributor:
                     UNAVAILABLE,
                     "token budget for this run spent; creator left null",
                     candidates,
+                    arm=ARM_NONE,
                 )
             try:
                 body = self.judge.evaluate(state, questions)
                 answers = parse_answers(body, candidates)
             except JudgeUnavailable as exc:
                 return Attribution(
-                    ev.listing, None, UNAVAILABLE, f"{exc}; creator left null", candidates
+                    ev.listing,
+                    None,
+                    UNAVAILABLE,
+                    f"{exc}; creator left null",
+                    candidates,
+                    arm=ARM_NONE,
                 )
             usage = body.get("usage") or {}
             self.budget.spent += int(usage.get("input_tokens") or 0)
@@ -772,6 +1062,7 @@ class Attributor:
                 "key": key,
                 "date": date.today().isoformat(),
                 "model": model,
+                "arm": ARM_JEV,
                 "platform": ev.listing.platform,
                 "listed_id": ev.listing.listed_id,
                 "candidates": candidates,
@@ -780,7 +1071,59 @@ class Attributor:
                 "usage": {"input_tokens": int(usage.get("input_tokens") or 0)},
             }
             self.ledger.put(row)
-        return apply_policy(ev, row["answers"], candidates, self.config.thresholds)
+        result = apply_policy(ev, row["answers"], candidates, self.config.thresholds)
+        if row["answers"]["choice"] == CANNOT_ESTABLISH:
+            escalated = self.escalate(ev, row["answers"], candidates, state, questions)
+            if escalated is not None:
+                return escalated
+        return result
+
+    def escalate(
+        self,
+        ev: Evidence,
+        jev_answers: dict,
+        candidates: list[str],
+        state: dict,
+        questions: dict,
+    ) -> Attribution | None:
+        """Ask the escalation model the *same* question Jev abstained on.
+
+        Only an abstention gets here: a judgment the policy refused (below the
+        review band, or the reseller veto) is a decision, not a shrug, and is
+        never shopped to a second model. ``None`` means the abstention stands —
+        including when the budget is spent, which is not an error.
+        """
+        if self.escalator is None or self.escalations.exhausted():
+            return None
+        key = request_key(self.escalator.model, state, questions)
+        row = self.ledger.get(key)
+        if row is None:
+            self.escalations.spent += 1
+            try:
+                body = self.escalator.evaluate(state, questions)
+                answers = parse_answers(body, candidates)
+            except JudgeUnavailable:
+                return None  # the abstention stands; the run does not fail
+            usage = body.get("usage") or {}
+            row = {
+                "key": key,
+                "date": date.today().isoformat(),
+                "model": self.escalator.model,
+                "arm": ARM_LLM,
+                "platform": ev.listing.platform,
+                "listed_id": ev.listing.listed_id,
+                "candidates": candidates,
+                "vendor": ev.vendor,
+                "answers": answers,
+                "usage": {
+                    "input_tokens": int(usage.get("input_tokens") or 0),
+                    "output_tokens": int(usage.get("output_tokens") or 0),
+                },
+            }
+            self.ledger.put(row)
+        return apply_escalation(
+            ev, jev_answers, row["answers"], candidates, self.config.thresholds
+        )
 
 
 # ── Reporting ───────────────────────────────────────────────────
@@ -793,8 +1136,16 @@ def safe(value: object, limit: int = 120) -> str:
     return _UNSAFE.sub("?", str(value))[:limit]
 
 
-def render_report(results: list[Attribution], *, judge_available: bool, spent_tokens: int) -> str:
-    review = [r for r in results if r.status == REVIEW]
+def render_report(
+    results: list[Attribution],
+    *,
+    judge_available: bool,
+    spent_tokens: int,
+    escalations: int = 0,
+) -> str:
+    # An escalated creator is never written silently: it goes in front of a
+    # human beside the medium-confidence ones (MODEL-102).
+    review = [r for r in results if r.status in (REVIEW, ESCALATED)]
     withheld = [
         r for r in results if r.status in (WITHHELD, UNAVAILABLE, NO_CANDIDATE, CONFLICTED)
     ]
@@ -810,14 +1161,21 @@ def render_report(results: list[Attribution], *, judge_available: bool, spent_to
         ]
     if review:
         lines += [
-            "**Check the creator on these cards** (medium confidence, written for review):",
+            "**Check the creator on these cards** (written for review; each line says "
+            "which instrument judged it):",
             "",
         ]
         for r in review:
             conf = (r.judgment or {}).get("confidence", 0.0)
+            # Provenance, on every line: a reviewer sees which arm said this.
+            by = (
+                "escalated to the LLM after Jev abstained"
+                if r.status == ESCALATED
+                else f"Jev, confidence {conf:.2f}"
+            )
             lines.append(
                 f"- `{safe(r.listing.platform)}/{safe(r.listing.listed_id)}` → `{safe(r.creator)}` "
-                f"(confidence {conf:.2f}; candidates {', '.join(safe(c) for c in r.candidates)})"
+                f"({safe_reason(by)}; candidates {', '.join(safe(c) for c in r.candidates)})"
             )
         lines.append("")
     if withheld:
@@ -829,6 +1187,8 @@ def render_report(results: list[Attribution], *, judge_available: bool, spent_to
             )
         lines.append("")
     lines.append(f"Judgment input tokens this run: {spent_tokens}.")
+    if escalations:
+        lines.append(f"Abstentions escalated to the LLM this run: {escalations}.")
     return "\n".join(lines) + "\n"
 
 

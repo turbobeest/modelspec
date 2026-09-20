@@ -187,3 +187,28 @@ availability_fields:
   mistral: mistral_plateforme
   cohere: cohere
   upstage: upstage_solar
+
+# ── The cascade: Jev first, its abstentions escalated (MODEL-102) ──
+#
+# MODEL-99 measured, on 627 identical questions, that Jev abstains where a
+# mid-tier LLM answers: 90.1% against 97.9% overall, 77.6% against 98.5% on
+# the ambiguous subset production actually pays a model for. Every error in
+# every arm was an abstention; nobody named a wrong organisation. So the
+# cheaper instrument goes first and the expensive one is asked only when the
+# first says "I cannot tell".
+#
+# `enabled` ships FALSE. Turning it on spends money at a second supplier and
+# puts a second model's answer on a card, so it is Jamie's call, not a default.
+#
+# `max_escalations_per_run` is the Firecrawl-style cap. When it is spent the
+# remaining abstentions stand as abstentions and the run completes normally.
+# On the measured distribution a full daily sweep escalates ~62 of 627
+# listings; 150 leaves headroom without leaving the bill open.
+escalation:
+  enabled: false
+  model: openai/gpt-5-mini
+  endpoint: https://openrouter.ai/api/v1/chat/completions
+  timeout_seconds: 120
+  max_retries: 3
+  max_output_tokens: 4000
+  max_escalations_per_run: 150
