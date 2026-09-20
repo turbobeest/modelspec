@@ -140,6 +140,13 @@ jobs:
           token: ${{ secrets.RESEARCH_PR_TOKEN }}
           branch: research/daily-models
           delete-branch: true
+          # The job's only product is cards. Without this, create-pull-request
+          # stages the whole worktree, and the run's own scratch files ride
+          # along: survey.txt, validation.json and the attribution judgment
+          # ledger all reached PR #106 that way. Narrow by what belongs, not by
+          # naming today's scratch files, so tomorrow's cannot follow them in.
+          add-paths: |
+            models/**
           commit-message: |
             catalogue: ${{ steps.survey.outputs.count }} cards for newly released models
 
