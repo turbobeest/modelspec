@@ -11,6 +11,7 @@ modelspec snapshot fetch [--origin URL] [--api-key KEY]
 modelspec snapshot status [--json]        what is cached, how old, which build
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
+modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
@@ -25,6 +26,42 @@ is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 `--api-key` is an option on `snapshot fetch` too; it has no default and the
 supported way to supply one is the `MODELSPEC_API_KEY` environment variable
 (see "A keyed origin" below).
+
+`class-fit` accepts a task description as its argument plus `--emits`,
+`--consumes` (comma-separated), `--decides`, `--json` and `--require-fresh`.
+It is a **new command under the existing envelope**: `schema_version` stays
+`"1.0"`, because no field of any existing command's `result` widens.
+
+### `class-fit`: which class, before which model (MODEL-100)
+
+`rank` answers "which model?" once you have decided you want an LLM.
+`class-fit` answers the question before that one, and it is the only command
+that will tell you the catalogue has nothing for you.
+
+`result.fit_status` is one of:
+
+| value | meaning | exit |
+| --- | --- | --- |
+| `resolved` | exactly one class survives the caller's constraints | 0 |
+| `partial` | **two or more survive, and they are deliberately not ordered.** ModelSpec holds no measurement that ranks one class against another, so it returns every survivor plus the question you must settle | 0 |
+| `unavailable` | no class in the published taxonomy emits what was asked for | 2 |
+| `refused` | the request cannot be read; `result.refusal.code` says why and what would have worked | 1 |
+
+Two things a caller must not read into the answer. **The candidate list is
+sorted by class id and carries no score** — there is no ordering hidden in it,
+and `result.policy.orders_classes` is `false` beside every answer. And
+`result.candidates[].catalogue.evidence_state` distinguishes `populated`,
+`empty` (the catalogue holds no model of that class — a real answer) and
+`unknown` (nobody supplied the counts). `empty` is not `unknown` and neither is
+a recommendation against the class.
+
+`result.composition` may name a pair of classes as a **sequence** rather than a
+choice — "this one, then that one on its abstentions". That is not an
+ordering: neither class is placed above the other, and no number is attached.
+
+The whole rule, including the term list the matcher uses, is published keyless
+at `https://modelspec.dev/api/rank/class-fit.json`, so a caller can run the
+same match locally without calling anything.
 
 ## The JSON envelope
 

@@ -406,12 +406,17 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
+        # MODEL-100. The whole class-fit rule as static data, no key: which
+        # *class* of model a problem needs, before ranking within one.
+        f"- class-fit: {MS_BASE}/api/rank/class-fit.json\n"
         f"- mcp: {MCP_ENDPOINT}\n"
         f"- openapi: {OPENAPI_URL}\n"
         f"- auth: {MS_BASE}/auth.md\n"
         f"- llms: {MS_BASE}/llms.txt\n"
         f"- llms-full: {MS_BASE}/llms-full.txt\n"
         f"\n"
+        f"Use class-fit first if you have not decided what *kind* of model the "
+        f"problem needs; it names candidate classes and refuses to order them. "
         f"Use rank to shortlist a model for a use case. Use policy-check to "
         f"test a licence/origin/residency/commercial-use policy. "
         f"evidence_basis is input provenance, not a quality verdict.\n"
