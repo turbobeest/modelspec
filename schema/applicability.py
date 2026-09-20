@@ -100,6 +100,15 @@ FIELD_RULES: tuple[FieldRule, ...] = (
               TEXT_WRITING_MODEL_TYPES, "this class emits no token stream"),
     FieldRule("modalities.text.fill_in_middle", "Fill-in-the-middle",
               TEXT_WRITING_MODEL_TYPES, "this class emits no text"),
+    # Added writing the first `decision-model` card (MODEL-101). "JSON mode" is
+    # a constraint on *generated text*: a toggle that makes a model's prose come
+    # back as valid JSON. A class that emits no prose has no such mode — and for
+    # a decision model the wrong reading is the dangerous one, since its answers
+    # are always typed, so a blank here invites "it cannot do structured output"
+    # exactly backwards. Not a claim that it lacks structure: a claim that the
+    # question is about text this class never writes.
+    FieldRule("modalities.text.json_mode", "JSON output mode",
+              TEXT_WRITING_MODEL_TYPES, "this class emits no text to constrain"),
     FieldRule("inference_performance.api_tps_output", "API output tok/s",
               TEXT_WRITING_MODEL_TYPES, "this class has no output token stream"),
     FieldRule("modalities.text.max_input_tokens", "Max input tokens",

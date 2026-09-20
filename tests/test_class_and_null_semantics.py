@@ -335,7 +335,12 @@ def test_an_inapplicable_fact_is_not_a_gap_and_not_a_denominator() -> None:
     assert "Context window" in chat_html, "still a real gap for a chat model"
     assert "Context window" not in forecaster_html
     assert f"of the {len(PAGE_FACTS)} facts" in chat_html
-    assert f"of the {len(PAGE_FACTS) - 1} facts" in forecaster_html
+    # Two facts leave the forecaster's denominator, not one: MODEL-101 mapped
+    # the "Capabilities" chips to the `capabilities` block, which
+    # `__applicable_model_types__` already gates to the generative classes. A
+    # forecaster has no coding or reasoning tier to research either.
+    assert "Capabilities" not in forecaster_html
+    assert f"of the {len(PAGE_FACTS) - 2} facts" in forecaster_html
 
 
 def test_the_new_class_earns_no_type_bonus_and_pays_no_penalty() -> None:

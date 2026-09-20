@@ -30,6 +30,17 @@ a threshold can change without new inference.
 
 If ``TYPESAFE_API_KEY`` is absent the ambiguous listings stay unattributed and
 the report says so. There is no fallback to the page.
+
+**The judge never writes its own vendor's card (MODEL-101).** ModelSpec pays
+TypeSafe, and the catalogue now carries a TypeSafe card, so a judgment could
+otherwise decide a field about the organisation that supplies the judgment.
+``supplier_conflict`` refuses that listing before the request is made, and
+``apply_policy`` refuses it again before a stored answer is applied, so neither
+a new call nor a cached one can write it. The suppliers are
+``schema.suppliers.SUPPLIER_SLUGS`` — the same table the site reads to print the
+disclosure, so the org we disclose and the org we protect cannot drift apart.
+Deterministic attribution is untouched: an id prefix naming TypeSafe is code
+reading a string, not the model's opinion about its own maker.
 """
 
 from __future__ import annotations
@@ -48,6 +59,8 @@ from typing import Any, Protocol
 import httpx
 import yaml
 
+from schema.suppliers import SUPPLIER_SLUGS
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = PROJECT_ROOT / "scripts" / "attribution.yaml"
 LEDGER_PATH = PROJECT_ROOT / "scripts" / "attribution_judgments.jsonl"
@@ -63,6 +76,7 @@ REVIEW = "review"  # Jev, medium band: written, and listed for a human
 WITHHELD = "withheld"  # Jev answered; the answer does not clear the bar
 UNAVAILABLE = "unavailable"  # Jev was needed and could not be asked
 NO_CANDIDATE = "no_candidate"  # nothing in the evidence names a catalogue org
+CONFLICTED = "conflicted"  # the judge's own vendor is in play (MODEL-101)
 
 WRITES_CREATOR = frozenset({DETERMINISTIC, WRITTEN, REVIEW})
 
@@ -380,6 +394,36 @@ def decide_deterministically(ev: Evidence, registry: dict[str, Org]) -> Attribut
     return None
 
 
+# ── The supplier rule (MODEL-101) ───────────────────────────────
+
+
+def supplier_conflict(ev: Evidence) -> str | None:
+    """The supplier this listing could be attributed to, if any.
+
+    ModelSpec pays TypeSafe and the judgment *is* a TypeSafe model, so a Jev
+    answer naming TypeSafe would be the supplier writing its own card. The
+    check is over ``candidates`` — the only organisations a judgment is ever
+    offered, and the only ones ``apply_policy`` will accept — plus the listing
+    page's own organisation, which is the other route to a creator.
+
+    Stated as "is a supplier *in play*", not "did the judgment pick one": the
+    request is never made, so there is no answer to review, nothing is spent,
+    and there is no stored judgment about a supplier for a later threshold
+    change to promote.
+    """
+    named = set(ev.candidates) | ({ev.vendor} if ev.vendor else set())
+    conflicted = sorted(named & SUPPLIER_SLUGS)
+    return conflicted[0] if conflicted else None
+
+
+def conflict_basis(supplier: str) -> str:
+    """Why nothing was written. One sentence, for the report and the console."""
+    return (
+        f"{supplier} supplies the judgment; no field on a {supplier} card may be "
+        "written by its own model (MODEL-101). Attribute it by hand."
+    )
+
+
 # ── The judgment ────────────────────────────────────────────────
 
 MAX_ELSEWHERE_IN_STATE = 15
@@ -571,6 +615,13 @@ def apply_policy(
     choice = answers["choice"]
     conf = answers["confidence"]
     judgment = dict(answers)
+    # MODEL-101, and the second half of the rule: `decide` refuses to ask about
+    # a supplier, and this refuses to apply an answer about one. Two refusals
+    # because they fail differently — a ledger row written before a slug became
+    # a supplier, or any caller reaching this function directly, arrives here
+    # without passing the first.
+    if choice in SUPPLIER_SLUGS:
+        return Attribution(lst, None, CONFLICTED, conflict_basis(choice), candidates, judgment)
     if choice == CANNOT_ESTABLISH:
         return Attribution(
             lst, None, WITHHELD, "judged: cannot be established", candidates, judgment
@@ -673,6 +724,11 @@ class Attributor:
         settled = decide_deterministically(ev, self.registry)
         if settled is not None:
             return settled
+        supplier = supplier_conflict(ev)
+        if supplier is not None:
+            return Attribution(
+                ev.listing, None, CONFLICTED, conflict_basis(supplier), ev.candidates
+            )
         if deterministic_only:
             return Attribution(
                 ev.listing, None, UNAVAILABLE, "ambiguous; judgment not requested", ev.candidates
@@ -739,7 +795,9 @@ def safe(value: object, limit: int = 120) -> str:
 
 def render_report(results: list[Attribution], *, judge_available: bool, spent_tokens: int) -> str:
     review = [r for r in results if r.status == REVIEW]
-    withheld = [r for r in results if r.status in (WITHHELD, UNAVAILABLE, NO_CANDIDATE)]
+    withheld = [
+        r for r in results if r.status in (WITHHELD, UNAVAILABLE, NO_CANDIDATE, CONFLICTED)
+    ]
     if not review and not withheld and judge_available:
         return ""
     lines = ["### Who built these models (MODEL-82)", ""]
