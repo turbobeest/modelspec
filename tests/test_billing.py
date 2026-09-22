@@ -399,7 +399,7 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 # ── the switch ───────────────────────────────────────────────────────────────
 
 def test_billing_is_paused_with_live_prices():
-    """The price map is the live Sparks & Sawdust LLC account's, but the flag
+    """The price map is the live Sparks and Sawdust LLC account's, but the flag
     is off: Stripe Tax has no Rhode Island registration yet, so a live sale
     would collect 0% and leave the tax owed anyway (2026-09-20)."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")

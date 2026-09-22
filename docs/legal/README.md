@@ -10,7 +10,7 @@ MODEL-70. Three documents, **adopted and in force**:
 
 ## Adoption
 
-Sparks & Sawdust LLC, the operator and the seller, adopted all three as
+Sparks and Sawdust LLC, the operator and the seller, adopted all three as
 **version 1.0, effective 2026-09-19**, at the direction of its operator.
 
 They were drafted by an agent (2026-09-17), then brought up to date with what

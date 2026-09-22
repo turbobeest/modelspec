@@ -22,7 +22,7 @@ recorded. Where something could not be verified, it says so.
 | **Commit mechanic** | Developer Certificate of Origin 1.1, verbatim, in [`DCO`](../../DCO) |
 | **Enforcement** | `.github/workflows/dco.yml`, skipping the operator's own commits |
 | **Contributor agreement** | Harmony Individual Contributor License Agreement v1.0, Option Five, in [`CLA.md`](../../CLA.md). Asked for only on substantial or ongoing contributions |
-| **Contracting party** | Sparks & Sawdust LLC |
+| **Contracting party** | Sparks and Sawdust LLC |
 | **Governing law** | State of Rhode Island, USA (HA-CLA-I §6.1) |
 | **Outbound licences** | Unchanged. Code MIT, data CC BY-SA 4.0 |
 | **Retired** | The bespoke `CLA.md` drafted 2026-09-08 |
@@ -91,7 +91,7 @@ It satisfies two requirements of the 2026-09-16 business adjudication natively, 
 drafting:
 
 - **Contracting party** — `[PROJECT_NAME]` is the defined term for "We"/"Us", set to
-  Sparks & Sawdust LLC.
+  Sparks and Sawdust LLC.
 - **Assignability to a successor in interest** — §2.1(b) grants a **"transferable"** licence,
   and §6.3 provides: *"If You or We assign the rights or obligations received through this
   Agreement to a third party, as a condition of the assignment, that third party must agree in

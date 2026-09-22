@@ -1077,7 +1077,7 @@ def neutrality_commitment() -> dict[str, Any]:
     """
     return {
         "version": "neutrality-v1",
-        "operator": "Sparks & Sawdust LLC",
+        "operator": "Sparks and Sawdust LLC",
         "rule": HONEST_BROKER_RULE,
         "pledge": NEUTRALITY_PLEDGE,
         "permanent": True,

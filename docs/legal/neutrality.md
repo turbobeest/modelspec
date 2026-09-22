@@ -1,6 +1,6 @@
 # The neutrality commitment
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks & Sawdust LLC.
+Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC.
 MODEL-70. The commitment itself is `neutrality-v1`, which is the same string
 the machine-readable copy carries.
 
@@ -63,7 +63,7 @@ sites and the CLI read.
 ```json
 {
   "version": "neutrality-v1",
-  "operator": "Sparks & Sawdust LLC",
+  "operator": "Sparks and Sawdust LLC",
   "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
   "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
   "permanent": true,

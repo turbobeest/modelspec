@@ -71,7 +71,7 @@ def test_the_commitment_rides_with_the_floors() -> None:
     neutrality = policy["neutrality"]
     assert neutrality["rule"] == HONEST_BROKER_RULE
     assert neutrality["pledge"] == NEUTRALITY_PLEDGE
-    assert neutrality["operator"] == "Sparks & Sawdust LLC"
+    assert neutrality["operator"] == "Sparks and Sawdust LLC"
     assert neutrality["permanent"] is True
 
 
@@ -186,8 +186,8 @@ def test_the_terms_state_a_refund_position() -> None:
 
 
 def test_the_operator_is_named() -> None:
-    assert "Sparks & Sawdust LLC" in FLAT_TERMS
-    assert "Sparks & Sawdust LLC" in FLAT_NEUTRALITY
+    assert "Sparks and Sawdust LLC" in FLAT_TERMS
+    assert "Sparks and Sawdust LLC" in FLAT_NEUTRALITY
 
 
 # ── nothing claims what is not shipped ───────────────────────────────────────
@@ -215,7 +215,7 @@ def test_the_terms_state_the_plans_and_packs_that_are_configured() -> None:
 
 
 def test_the_terms_name_the_seller_processor_and_statement_descriptor() -> None:
-    assert "The seller is **Sparks & Sawdust LLC**" in FLAT_TERMS
+    assert "The seller is **Sparks and Sawdust LLC**" in FLAT_TERMS
     assert "processed by Stripe" in FLAT_TERMS
     assert "SPARKS & SAWDUST LLC" in FLAT_TERMS
     assert "https://modelspec.dev/pricing" in FLAT_TERMS
@@ -459,13 +459,13 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
 
 
 def test_every_document_is_adopted_version_1_0() -> None:
-    """Adopted by Sparks & Sawdust LLC on 2026-09-19. The version and date are
+    """Adopted by Sparks and Sawdust LLC on 2026-09-19. The version and date are
     at the top of each document, and no draft banner survives."""
     assert legal.DRAFT is False
     for name, text in (("terms", TERMS), ("neutrality", NEUTRALITY), ("privacy", PRIVACY)):
         head = flat(text[:400])
         assert "Version `1.0`, effective 2026-09-19." in head, name
-        assert "Adopted by Sparks & Sawdust LLC" in head, name
+        assert "Adopted by Sparks and Sawdust LLC" in head, name
         assert "DRAFT" not in text, name
         assert "Not adopted" not in text, name
 
