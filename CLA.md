@@ -13,7 +13,7 @@ source with only the document's own bracketed placeholders completed.
 
 | Placeholder | Completed as |
 | --- | --- |
-| `[PROJECT_NAME]` | ModelSpec, a project of Sparks & Sawdust LLC |
+| `[PROJECT_NAME]` | ModelSpec, a project of Sparks and Sawdust LLC |
 | `[JURISDICTION]` | the State of Rhode Island, United States of America |
 | `[SUBMISSION_INSTRUCTIONS]` | **not yet set** — see the note below |
 | `[NONOWNER_INSTRUCTIONS]` | the third-party material rules in [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -38,7 +38,7 @@ alternatives considered and the points that remain unverified are recorded in
 
 ## Harmony Individual Contributor License Agreement
 
-Thank you for your interest in contributing to ModelSpec, a project of Sparks & Sawdust LLC ("We" or "Us").
+Thank you for your interest in contributing to ModelSpec, a project of Sparks and Sawdust LLC ("We" or "Us").
 
 This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, please sign it and send it to Us by mail, email, fax, or electronic submission, following the instructions at [SUBMISSION_INSTRUCTIONS]. This is a legally binding document, so please read it carefully before agreeing to it. The Agreement may cover more than one software project managed by Us.
 

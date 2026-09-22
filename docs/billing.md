@@ -9,7 +9,7 @@ here runs until that flips, and the secrets exist, in test mode.
 
 The unit is a **credit**.
 
-Seller: Sparks & Sawdust LLC. Card data never touches ModelSpec: Checkout is
+Seller: Sparks and Sawdust LLC. Card data never touches ModelSpec: Checkout is
 hosted on Stripe.
 
 ## What a funded key buys
@@ -82,7 +82,7 @@ module.
 - `credits.pack_expiry_days` — pack and x402 top-up expiry (365 as shipped)
 - `billing.prices.<stripe_price_id>` — `{kind: plan\|pack, credits, name, usd,
   tier, placeholder}`. The ids below are **Stripe test mode** Prices on the
-  Sparks & Sawdust LLC ModelSpec **live** account. The sandbox ids they
+  Sparks and Sawdust LLC ModelSpec **live** account. The sandbox ids they
   replaced are in the git history of this file
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
@@ -90,7 +90,7 @@ module.
 Changing a credit amount, a weight, burst, or a mapping is an edit to that
 file. Tests prove a price/credit change needs no code change.
 
-Shipped Prices (**live**, Sparks & Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, 2026-09-19):
+Shipped Prices (**live**, Sparks and Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, 2026-09-19):
 
 | Price id | Kind | Name | Credits | USD |
 | --- | --- | --- | --- | --- |
@@ -143,7 +143,7 @@ again on the same key.
 Human steps. This repository does not create Stripe objects and does not call
 Stripe's live API.
 
-1. Stripe Dashboard, **test mode**. Seller account: Sparks & Sawdust LLC.
+1. Stripe Dashboard, **test mode**. Seller account: Sparks and Sawdust LLC.
 2. Two recurring monthly Prices (Solo $10 / 4,000 credits, Team $50 / 30,000)
    and four one-off Prices (packs $5 / $25 / $50 / $100). **Done in test
    mode** (2026-09-19); the ids are in `api/worker/tiers.json` with
@@ -168,7 +168,7 @@ Stripe's live API.
 8. Set `"BILLING_ENABLED": "true"` in `wrangler.jsonc` vars, regenerate
    `openapi.yaml`, merge. The deploy is push-to-main only.
 
-**Tax.** Sparks & Sawdust LLC applies one rule to every product, set first
+**Tax.** Sparks and Sawdust LLC applies one rule to every product, set first
 for dev-mux: Stripe Tax on every Checkout (`automatic_tax[enabled]=true`,
 `billing_address_collection=required`). In the Dashboard: head office Rhode
 Island; preset product category *Electronically Supplied Services*; tax

@@ -1,12 +1,12 @@
 # Terms of service
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks & Sawdust LLC.
+Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
 
 The ModelSpec API and the modelspec.dev and benchgraph.dev sites are operated by
-**Sparks & Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
+**Sparks and Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
 including an autonomous agent calling it on somebody's behalf. An agent that
 accepts these terms binds the person or organisation it acts for.
 
@@ -102,7 +102,7 @@ We may refuse or withdraw service for any of the above.
 These are the rules that govern every purchase. They were written before any
 money moved, so that they could not be written to suit the first dispute.
 
-**Seller and payment.** The seller is **Sparks & Sawdust LLC**. Payments are
+**Seller and payment.** The seller is **Sparks and Sawdust LLC**. Payments are
 processed by Stripe on a Stripe-hosted Checkout page; we never receive your
 card number. Charges appear on your card statement as **SPARKS & SAWDUST LLC**.
 Current plans, prices and availability are published at
@@ -265,6 +265,6 @@ the law that applies. Adding any of these later is a change under §10.
 
 ## 12. Contact
 
-Sparks & Sawdust LLC. Questions, cancellation and privacy requests:
+Sparks and Sawdust LLC. Questions, cancellation and privacy requests:
 **sales@modelspec.dev**. Our postal address is available on request at
 sales@modelspec.dev.

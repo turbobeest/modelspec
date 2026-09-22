@@ -10,7 +10,7 @@ Two things this module is careful about:
 1. **A draft does not present itself as terms in force.** While `DRAFT` is true
    the pages are served `noindex, nofollow`, carry a draft banner and are kept
    out of `sitemap.xml`. The URL is stable from the first build — a caller or a
-   crawler that has it keeps it. Sparks & Sawdust LLC adopted version 1.0 on
+   crawler that has it keeps it. Sparks and Sawdust LLC adopted version 1.0 on
    2026-09-19, so `DRAFT` is false: the pages are indexable and in the sitemap.
    A future unadopted revision belongs on a branch, not behind this flag.
 2. **The prose and the JSON say the same thing.** The honest-broker rule and the
@@ -34,7 +34,7 @@ from pipeline import render as r
 if TYPE_CHECKING:  # pragma: no cover - annotations only
     from pipeline.export import Build
 
-#: False since 2026-09-19, when Sparks & Sawdust LLC adopted version 1.0 of all
+#: False since 2026-09-19, when Sparks and Sawdust LLC adopted version 1.0 of all
 #: three documents. True would publish them unindexed, out of the sitemap and
 #: under a banner saying they bind nobody.
 DRAFT = False
@@ -69,7 +69,7 @@ DOCS: tuple[LegalDoc, ...] = (
         source="terms-of-service.md",
         nav_label="Terms",
         description=(
-            "Terms of service for the ModelSpec API, operated by Sparks & Sawdust LLC. "
+            "Terms of service for the ModelSpec API, operated by Sparks and Sawdust LLC. "
             "Only successful results are charged, and the subjects of a ranking are never "
             "charged at all."
         ),

@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks & Sawdust LLC, which
+Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC, which
 operates the service. MODEL-70.
 
 This describes **what the service does today**, not what it is planned to do.

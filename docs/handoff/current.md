@@ -39,7 +39,7 @@ auto-merge (`automerge.yml`).
 ### Waiting on Jamie, nobody else can do these
 
 1. **Rhode Island Division of Taxation.** Who holds the current sales tax
-   permit — Jamie personally under the dev-mux DBA, or Sparks & Sawdust LLC?
+   permit — Jamie personally under the dev-mux DBA, or Sparks and Sawdust LLC?
    That one answer unblocks MODEL-96 (and therefore any revenue) and decides 2.
 2. **Stripe's legal entity name** reads "James J Ter Beest III", not the LLC.
    It is the **shared** legal entity: changing it changes dev-mux's live

@@ -496,7 +496,7 @@ def modelspec_landing_jsonld(models: list[Model], benchmarks: list[Benchmark]) -
                 "Null means not researched."
             ),
             "license": "https://creativecommons.org/licenses/by-sa/4.0/",
-            "creator": {"@type": "Organization", "name": "Sparks & Sawdust LLC"},
+            "creator": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
             "isAccessibleForFree": True,
             "distribution": [
                 {"@type": "DataDownload", "contentUrl": f"{MS_BASE}/api/index.json",
@@ -511,7 +511,7 @@ def modelspec_landing_jsonld(models: list[Model], benchmarks: list[Benchmark]) -
             "name": "ModelSpec Rank API",
             "url": RANK_API,
             "documentation": API_DOCS,
-            "provider": {"@type": "Organization", "name": "Sparks & Sawdust LLC"},
+            "provider": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
         },
         {
             "@context": "https://schema.org",
@@ -535,7 +535,7 @@ def benchgraph_landing_jsonld(benchmarks: list[Benchmark]) -> dict[str, Any]:
             "Null means not researched."
         ),
         "license": "https://creativecommons.org/licenses/by-sa/4.0/",
-        "creator": {"@type": "Organization", "name": "Sparks & Sawdust LLC"},
+        "creator": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
         "isAccessibleForFree": True,
         "isPartOf": {"@type": "WebSite", "name": "ModelSpec", "url": f"{MS_BASE}/"},
     }
