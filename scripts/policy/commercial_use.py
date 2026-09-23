@@ -5,21 +5,24 @@ licence to read for a given model, and being willing to answer "we do not
 know".
 
 `license_type` on a card looked like the answer, and the ticket was scoped on
-that assumption. Measured against the corpus it does not hold. Of the 673 cards
-typed `apache-2.0` or `mit`, 17 are declared `cc-by-nc-4.0` or
-`cc-by-nc-sa-4.0` at the point the weights are actually distributed. A
+that assumption. Measured against the corpus it did not hold. On 2026-09-17,
+of the 683 cards typed `apache-2.0` or `mit`, 27 were declared `cc-by-nc-4.0`
+or `cc-by-nc-sa-4.0` at the point the weights are actually distributed. A
 deterministic map from `license_type` would have published "commercial use
-allowed" for 17 models whose distributor says NonCommercial — into the paid
+allowed" for 27 models whose distributor says NonCommercial — into the paid
 compliance answer, which is the one place this project cannot afford to be
 wrong. Standing rule 2 exists because that failure mode has already happened
 here once, at a scale of 1,589 rows.
 
-The count was 27 until 2026-09-17. None of those 27 repositories ships a
-LICENSE file, so the model card is the only licence document at the
-distribution point, and 10 of them name a NonCommercial licence in their own
-prose rather than only in the frontmatter tag. Those 10 cards were retyped to
-say what their distributor says; the other 17 disagree on the tag alone, and a
-tag is not a document.
+None of those 27 repositories ships a LICENSE file, so the model card is the
+only licence document at the distribution point. 10 of them name a
+NonCommercial licence in their README prose, not only in the frontmatter tag.
+The MODEL-86 licence audit (#130, 2026-09-18) then retyped all 27: 25 to
+`cc-by-nc-4.0`, citing the README, and the two LayoutLM cards to `other`,
+because the enum has no `cc-by-nc-sa-4.0`. Re-measured against the Hub on
+2026-09-23, 0 of the 600 cards typed `apache-2.0` or `mit` are declared
+NonCommercial at the distribution point. The refusal below stays: the next
+card to disagree is the one it exists for.
 
 So the licence of record is established from two pieces of evidence, and
 disagreement is fatal rather than resolved:
@@ -175,8 +178,8 @@ def licence_of_record(
         if declared_anything:
             # The repository named a licence, and it is not one that has been
             # read. It may well be permissive; it may be the NonCommercial
-            # licence 17 cards in this corpus turned out to carry. Unread is
-            # unread.
+            # licence 27 cards in this corpus turned out to carry on
+            # 2026-09-17. Unread is unread.
             return Resolution(None, "unread-licence")
         return Resolution(from_card, "card-license-type")
 

@@ -12,7 +12,8 @@ It was written to settle one question and the answer was a negative. On
 NOTICE file. None sets `license_name` or `license_link` either. So the README
 is the only licence document at the distribution point, and a correction to a
 card's `license_type` has to rest on README body prose naming the licence in
-words, independently of the frontmatter tag.
+words, independently of the frontmatter tag. Rerun over the same 27 on
+2026-09-23: still no licence file in any of them.
 
 It needs the network, so like `verify_quotes.py` it is a script and not a unit
 test. Repository ids arrive on stdin, one per line; `_results.json` and every

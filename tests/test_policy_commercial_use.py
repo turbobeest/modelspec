@@ -6,10 +6,10 @@ Two things are pinned here, and the second is the one that matters.
    says, carries a URL and a read date, and is the *kind* of answer that
    licence gives. A licence with no entry produces no value.
 2. `licence_of_record` refuses to answer when its two pieces of evidence
-   disagree. The corpus contains 17 cards typed `apache-2.0` or `mit` whose
-   distribution repository declares a NonCommercial licence. A mapping keyed on
-   `license_type` alone would sell "commercial use allowed" for every one of
-   them.
+   disagree. On 2026-09-17 the corpus held 27 cards typed `apache-2.0` or `mit`
+   whose distribution repository declares a NonCommercial licence. A mapping
+   keyed on `license_type` alone would have sold "commercial use allowed" for
+   every one of them.
 """
 
 from __future__ import annotations
@@ -232,12 +232,12 @@ def test_agreement_on_outcome_between_two_permissive_licences_is_answered():
 
 
 def test_a_noncommercial_declaration_beats_a_permissive_card_type_by_refusing():
-    """The 17-card case. `apache-2.0` on the card, NonCommercial at the point of
+    """The 27-card case. `apache-2.0` on the card, NonCommercial at the point of
     distribution: the answer is that there is no answer.
 
-    It was 27 until 2026-09-17, when 10 of those cards were retyped to the
-    NonCommercial licence their distributor's model card states in prose. The
-    17 that remain conflict on the Hub's frontmatter tag alone.
+    All 27 cards were retyped by the MODEL-86 audit (#130); on 2026-09-23 no
+    card typed `apache-2.0` or `mit` conflicts with its Hub declaration. The
+    tests pass literal keys, so the refusal holds whatever the corpus count.
     """
     for declared in ("cc-by-nc-4.0", "cc-by-nc-sa-4.0"):
         r = licence_of_record("apache-2.0", declared_licence=declared)
@@ -280,7 +280,7 @@ def test_card_type_answers_when_nothing_contradicts_it():
 
 def test_an_unread_declaration_silences_a_known_card_type():
     """The repository named a licence nobody has read. It might be permissive;
-    17 cards in this corpus show it might equally be NonCommercial."""
+    27 cards in this corpus showed it might equally be NonCommercial."""
     r = licence_of_record(
         "apache-2.0", declared_licence="other", declared_licence_name="some-vendor-eula"
     )
