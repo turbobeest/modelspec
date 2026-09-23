@@ -1,7 +1,8 @@
 # Privacy statement
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC, which
-operates the service. MODEL-70.
+Version `1.1`, effective 2026-09-23. Adopted by Sparks and Sawdust LLC, which
+operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
+changed in 1.1 is listed under [Changes](#changes).
 
 This describes **what the service does today**, not what it is planned to do.
 Every claim below names the file that makes it true, so it can be checked and so
@@ -129,6 +130,17 @@ Credits are added only by a paid Stripe purchase, which runs only while
   hash or invoice id, so the same payload cannot credit twice. It holds the
   transaction hash the facilitator returned, not a wallet private key (there
   is none in this repository).
+- **For a pack bought through Stripe, what has happened to that payment since.**
+  The payment claim for a pack also records the Stripe PaymentIntent id that
+  paid for it, so that a refund or a chargeback of that payment can find the
+  credits it bought (MODEL-106). With it, the record keeps: whether the pack is
+  still waiting to be claimed; how many of its credits a refund took back and
+  how many a lost chargeback forfeited; how many an open chargeback is
+  holding, and that chargeback's Stripe id; the ids of chargebacks already
+  closed against it; and how many of its credits were reserved by a request
+  in flight when a refund arrived. These are counts and Stripe ids. They hold
+  no card detail, no customer name and no reason given for a refund or a
+  chargeback.
 
 It holds no prompt, no request body, no field of a request, no ranking or
 policy answer, no IP address and no user-agent: our code reads none of those
@@ -228,3 +240,11 @@ what we hold about you, or to have it corrected or deleted, write to
 
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
+
+- **1.1, 2026-09-23.** The credit ledger now records, for each pack bought
+  through Stripe, the PaymentIntent id that paid for it and what refunds and
+  chargebacks have done to its credits (see *The credit ledger*), so that a
+  refunded or charged-back pack no longer keeps its credits (MODEL-106). **This
+  was published a few hours after the change shipped, not before it**, contrary
+  to the rule above; it is recorded here rather than hidden.
+- **1.0, 2026-09-19.** Adopted.
