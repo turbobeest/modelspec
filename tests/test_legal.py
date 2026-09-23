@@ -458,13 +458,23 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
     assert "There is no field" in FLAT_PRIVACY
 
 
-def test_every_document_is_adopted_version_1_0() -> None:
-    """Adopted by Sparks and Sawdust LLC on 2026-09-19. The version and date are
-    at the top of each document, and no draft banner survives."""
+#: The version in force for each document. A change to what the service records
+#: is a change to the privacy statement, and it gets a new version and date
+#: rather than a silent edit of the adopted one.
+IN_FORCE = {
+    "terms": "Version `1.0`, effective 2026-09-19.",
+    "neutrality": "Version `1.0`, effective 2026-09-19.",
+    "privacy": "Version `1.1`, effective 2026-09-23.",
+}
+
+
+def test_every_document_is_adopted_and_versioned() -> None:
+    """Adopted by Sparks and Sawdust LLC on 2026-09-19 (v1.0). The version and
+    date in force are at the top of each document, and no draft banner survives."""
     assert legal.DRAFT is False
     for name, text in (("terms", TERMS), ("neutrality", NEUTRALITY), ("privacy", PRIVACY)):
         head = flat(text[:400])
-        assert "Version `1.0`, effective 2026-09-19." in head, name
+        assert IN_FORCE[name] in head, name
         assert "Adopted by Sparks and Sawdust LLC" in head, name
         assert "DRAFT" not in text, name
         assert "Not adopted" not in text, name
@@ -570,3 +580,13 @@ def test_each_page_reaches_the_other_two(tmp_path: Path) -> None:
         for other in legal.DOCS:
             if other.slug != doc.slug:
                 assert f'href="{other.url_path}"' in html
+
+
+def test_the_privacy_statement_describes_what_refunds_record() -> None:
+    """MODEL-106 records, per Stripe pack, the PaymentIntent id and what refunds
+    and chargebacks did to its credits. The statement must say so, and must say
+    that no card detail is held."""
+    assert "PaymentIntent id" in FLAT_PRIVACY
+    assert "chargeback" in FLAT_PRIVACY
+    assert "no card detail" in FLAT_PRIVACY
+    assert "1.1, 2026-09-23" in FLAT_PRIVACY
