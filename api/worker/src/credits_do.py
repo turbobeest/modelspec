@@ -110,6 +110,39 @@ class CreditsObject(DurableObject):
     async def seen(self, payment_id: str) -> bool:
         return self._load().seen(payment_id)
 
+    async def expect(self, payment_id: str, units: int, tx: str,
+                     source: str = "pack") -> dict[str, Any]:
+        state = self._load()
+        result = state.expect(str(payment_id), int(units), str(tx),
+                              str(source or "pack"))
+        self._save(state)
+        return result.to_json()
+
+    async def payment(self, payment_id: str) -> dict[str, Any] | None:
+        return self._load().payment(str(payment_id))
+
+    async def refund(self, tx: str, amount: int, amount_refunded: int,
+                     full: bool, now: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.refund(str(tx), int(amount), int(amount_refunded),
+                              bool(full), now=str(now or ""))
+        self._save(state)
+        return result.to_json()
+
+    async def hold(self, tx: str, dispute_id: str, now: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.hold(str(tx), str(dispute_id), now=str(now or ""))
+        self._save(state)
+        return result.to_json()
+
+    async def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                       now: str = "") -> dict[str, Any]:
+        state = self._load()
+        result = state.end_hold(str(tx), str(dispute_id), bool(restore),
+                                now=str(now or ""))
+        self._save(state)
+        return result.to_json()
+
 
 def _cell(row: Any, column: str) -> Any:
     """One column of a SQL row. On Workers the row is a JsProxy of a JS object
