@@ -5,6 +5,12 @@ every dollar amount and credit figure is read from that file at build time.
 Billing-not-live copy is decided by `BILLING_ENABLED` in
 `api/worker/wrangler.jsonc` at the same moment. Enterprise is not a Price;
 it is a contact line.
+
+When billing is live, every plan and pack carries a buy button (MODEL-105): a
+plain HTML form that posts its `price_id` to the Worker's Checkout endpoint,
+which answers 303 to Stripe. A form, not JavaScript: the Worker sends no CORS
+headers, browsers apply none to a form navigation, and crawlers do not submit
+forms, so no bot can open empty Checkout sessions.
 """
 
 from __future__ import annotations
@@ -19,6 +25,8 @@ from pipeline.export import Build
 TIERS_REL = Path("api/worker/tiers.json")
 WRANGLER_REL = Path("api/worker/wrangler.jsonc")
 PAGE_PATH = Path("pricing") / "index.html"
+#: Where a buy button posts. The Worker answers a form post with 303 to Stripe.
+CHECKOUT_URL = "https://api.modelspec.dev/v1/billing/checkout"
 
 
 def _live_jsonc(text: str) -> str:
@@ -41,6 +49,25 @@ def _usd(amount: int) -> str:
 
 def _credits(amount: int) -> str:
     return f"{int(amount):,}"
+
+
+def _buy_cell(row: dict[str, Any], *, live: bool) -> str:
+    """The buy column: a form per Price when billing is live, nothing when off.
+
+    A placeholder Price is not for sale, so its cell is empty; the Worker would
+    refuse it anyway.
+    """
+    if not live:
+        return ""
+    if row.get("placeholder"):
+        return "<td></td>"
+    label = "Subscribe" if row["kind"] == "plan" else "Buy"
+    return (
+        f'<td><form method="post" action="{CHECKOUT_URL}">'
+        f'<input type="hidden" name="price_id" value="{r.esc(row["price_id"])}">'
+        f'<button type="submit" class="btn primary" style="cursor:pointer">{label}</button>'
+        "</form></td>"
+    )
 
 
 def page(tiers: dict[str, Any], *, live: bool, build: Build,
@@ -68,12 +95,14 @@ def page(tiers: dict[str, Any], *, live: bool, build: Build,
         "result draws them.</p>"
     )
 
+    no_buy = "<td></td>" if live else ""
+    buy_head = "<th>Buy</th>" if live else ""
     plan_rows = (
         "<tr><th>Free</th>"
         "<td>—</td>"
         "<td>—</td>"
         f"<td>{free['daily_limit']} rankings / UTC day, "
-        f"{free['burst_limit']}/min burst. No determinations.</td></tr>"
+        f"{free['burst_limit']}/min burst. No determinations.</td>{no_buy}</tr>"
     )
     for row in plans:
         plan_rows += (
@@ -83,12 +112,12 @@ def page(tiers: dict[str, Any], *, live: bool, build: Build,
             f"<td>Monthly allowance is set to { _credits(row['credits']) } on "
             "each paid invoice (reset, no rollover). Determinations included "
             "while the balance is above zero. No daily cap; "
-            f"{burst}/min burst.</td></tr>"
+            f"{burst}/min burst.</td>{_buy_cell(row, live=live)}</tr>"
         )
     plan_rows += (
         "<tr><th>Enterprise</th><td>—</td><td>—</td>"
         "<td>Contact <a href=\"mailto:sales@modelspec.dev\">"
-        "sales@modelspec.dev</a>.</td></tr>"
+        f"sales@modelspec.dev</a>.</td>{no_buy}</tr>"
     )
 
     pack_rows = ""
@@ -98,7 +127,8 @@ def page(tiers: dict[str, Any], *, live: bool, build: Build,
             f"<td>{_credits(row['credits'])}</td>"
             f"<td>{_usd(row['usd'])}</td>"
             f"<td>Added to the pack balance. Expires {expiry} days after "
-            "purchase. Oldest-expiring spent first.</td></tr>"
+            "purchase. Oldest-expiring spent first.</td>"
+            f"{_buy_cell(row, live=live)}</tr>"
         )
 
     body = f"""
@@ -114,7 +144,7 @@ burst, no determinations.</p>
 
 <h2>Plans</h2>
 <div class="scroll"><table><thead><tr><th>Plan</th><th>Credits</th><th>Price</th>
-<th>What it includes</th></tr></thead><tbody>{plan_rows}</tbody></table></div>
+<th>What it includes</th>{buy_head}</tr></thead><tbody>{plan_rows}</tbody></table></div>
 
 <h2>Packs</h2>
 <p>One-off purchases. They add to a separate pack balance and expire {expiry}
@@ -122,7 +152,7 @@ days after purchase. Cancellation of a plan zeros the monthly allowance at
 once; pack credits are unaffected. x402 top-ups land in this same pack
 balance, with the same expiry rule.</p>
 <div class="scroll"><table><thead><tr><th>Pack</th><th>Credits</th><th>Price</th>
-<th>Expiry</th></tr></thead><tbody>{pack_rows}</tbody></table></div>
+<th>Expiry</th>{buy_head}</tr></thead><tbody>{pack_rows}</tbody></table></div>
 
 <h2>What a credit buys</h2>
 <ul>

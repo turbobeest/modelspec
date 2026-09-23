@@ -55,6 +55,7 @@ import access_keys
 import access_kv
 import access_sandbox
 import billing
+import billing_page
 import credits
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 import kv_value
@@ -354,6 +355,22 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+def _html_response(status: int, page: str, service_commit: str,
+                   extra_headers: dict | None = None) -> Response:
+    """A page for a person's browser (the claim page). Never cached: it holds a key."""
+    return Response(
+        page,
+        status=status,
+        headers={
+            **(extra_headers or {}),
+            **billing_page.HEADERS,
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store",
+            "x-modelspec-service-commit": service_commit,
+        },
+    )
+
+
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
         service_commit = str(getattr(self.env, "BUILD_COMMIT", "") or "unknown")
@@ -619,6 +636,11 @@ class Default(WorkerEntrypoint):
                 session_id=session_id, flag=flag, kv=kv, policy=policy, now=now,
                 service_commit=service_commit,
                 ledger=credits.ledger_from_env(self.env))
+            if billing_page.prefers_html(header("accept")):
+                # MODEL-105: Stripe's success redirect lands a person here.
+                return _html_response(
+                    outcome.status, billing_page.claim_page(outcome.status, outcome.body),
+                    service_commit, outcome.headers)
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if path == "/v1/billing/rotate":
@@ -638,6 +660,13 @@ class Default(WorkerEntrypoint):
         if policy is None:
             return _json_response(*_billing_unconfigured(service_commit))
         raw = await request.text()
+        stripe_secret = str(getattr(self.env, STRIPE_SECRET_KEY_VAR, "") or "") or None
+        if billing.is_form_post(header("content-type"), raw):
+            # MODEL-105: the /pricing buy button. 303 to Stripe; anonymous.
+            outcome = await billing.checkout_form(
+                raw=raw, flag=flag, secret=stripe_secret, origin=origin, kv=kv,
+                policy=policy, service_commit=service_commit, http=_stripe_http)
+            return _json_response(outcome.status, outcome.body, outcome.headers)
         payload = None
         if raw.strip():
             try:
