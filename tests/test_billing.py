@@ -398,13 +398,14 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 
 # ── the switch ───────────────────────────────────────────────────────────────
 
-def test_billing_is_paused_with_live_prices():
-    """The price map is the live Sparks and Sawdust LLC account's, but the flag
-    is off: Stripe Tax has no Rhode Island registration yet, so a live sale
-    would collect 0% and leave the tax owed anyway (2026-09-20)."""
+def test_billing_is_on_with_live_prices():
+    """Billing is live on the Sparks and Sawdust LLC account's own Prices, with
+    the Rhode Island registration in place so Stripe Tax actually collects
+    (MODEL-96). Paused 2026-09-20 for exactly that reason; re-enabled once the
+    LLC registered."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"BILLING_ENABLED": "false"' in live
+    assert '"BILLING_ENABLED": "true"' in live
     policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
     assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
     assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())
