@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 import urllib.parse
 from datetime import UTC, datetime, timedelta
@@ -1144,3 +1145,332 @@ def test_checkout_always_asks_stripe_tax_for_a_billing_address():
         fields = dict(urllib.parse.parse_qsl(form))
         assert fields["automatic_tax[enabled]"] == "true"
         assert fields["billing_address_collection"] == "required"
+
+
+# ── MODEL-105: the form post beside JSON ─────────────────────────────────────
+
+#: The exact response `POST /v1/billing/checkout` gave a JSON caller before
+#: MODEL-105 added the form variant, captured from the unchanged Worker with
+#: the stub Stripe in `_patch_entry_fetch`. A JSON caller keeps getting this.
+JSON_CHECKOUT_GOLDEN_STATUS = 200
+JSON_CHECKOUT_GOLDEN_HEADERS = {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "x-modelspec-service-commit": "testsha",
+}
+JSON_CHECKOUT_GOLDEN_BODY = (
+    '{\n'
+    '  "schema_version": "1.0",\n'
+    '  "endpoint": "billing.checkout",\n'
+    '  "service_commit": "testsha",\n'
+    '  "url": "https://checkout.stripe.com/c/pay/cs_entry_bound",\n'
+    '  "session_id": "cs_entry_bound",\n'
+    '  "tier": "paid",\n'
+    '  "kind": "pack",\n'
+    '  "name": "1,250-credit pack",\n'
+    '  "credits": 1250,\n'
+    '  "price_id": "price_1UHRwmBPydVRHUBjMFS5bDPD",\n'
+    '  "placeholder": false,\n'
+    '  "what_you_buy": "1,250-credit pack: 1250 credits added to this key, '
+    'expiring 12 months after purchase, oldest spent first. A funded key '
+    'receives the paid answer, including cited commercial-use and '
+    'data-residency determinations. Only successful results draw credits.",\n'
+    '  "terms_url": "https://modelspec.dev/legal/terms/",\n'
+    '  "applied_to": "new_key",\n'
+    '  "result": []\n'
+    '}'
+)
+
+
+def _json_checkout_through_entry(entry, headers: dict[str, str]):
+    capture: dict[str, str] = {}
+    previous = _patch_entry_fetch(entry, capture)
+    try:
+        worker = entry.Default()
+        worker.env = _billing_env(_Bind())
+        return run(worker.fetch(_Req(
+            "/v1/billing/checkout", body=json.dumps({"price_id": PACK5}),
+            headers=headers))), capture
+    finally:
+        entry.fetch = previous
+
+
+@pytest.mark.parametrize("headers", [
+    {},
+    {"content-type": "application/json"},
+    # What `curl -d '{"price_id": …}'` sends without `-H`: a JSON body under the
+    # form content type. It was a JSON call before MODEL-105 and stays one.
+    {"content-type": "application/x-www-form-urlencoded"},
+], ids=["no-content-type", "application-json", "curl-d-default"])
+def test_a_json_checkout_is_byte_identical_to_before_the_form_variant(entry, headers):
+    response, capture = _json_checkout_through_entry(entry, headers)
+    assert response.status == JSON_CHECKOUT_GOLDEN_STATUS
+    assert response.headers == JSON_CHECKOUT_GOLDEN_HEADERS
+    assert response.body == JSON_CHECKOUT_GOLDEN_BODY
+    assert capture["url"].startswith("https://api.stripe.com/")
+
+
+FORM = "application/x-www-form-urlencoded"
+
+
+def _form_post(entry, body: str, *, env=None, content_type: str = FORM,
+               headers: dict[str, str] | None = None):
+    capture: dict[str, str] = {}
+    previous = _patch_entry_fetch(entry, capture)
+    try:
+        worker = entry.Default()
+        worker.env = env if env is not None else _billing_env(_Bind())
+        response = run(worker.fetch(_Req(
+            "/v1/billing/checkout", body=body,
+            headers={"content-type": content_type, **(headers or {})})))
+        return response, capture
+    finally:
+        entry.fetch = previous
+
+
+@pytest.mark.parametrize("price_id", [PRICE, TEAM_PRICE, PACK5])
+def test_a_form_post_is_a_303_to_stripe_checkout(entry, price_id):
+    response, capture = _form_post(
+        entry, urllib.parse.urlencode({"price_id": price_id}))
+    assert response.status == 303
+    assert response.headers["location"] == "https://checkout.stripe.com/c/pay/cs_entry_bound"
+    fields = dict(urllib.parse.parse_qsl(capture["body"]))
+    assert fields["line_items[0][price]"] == price_id
+    assert response.json()["applied_to"] == "new_key"
+
+
+def test_a_form_post_with_a_charset_parameter_is_still_a_form(entry):
+    response, _ = _form_post(entry, f"price_id={PACK5}",
+                             content_type=f"{FORM}; charset=UTF-8")
+    assert response.status == 303
+
+
+def test_a_form_post_is_anonymous_even_when_a_key_is_presented(entry, policy):
+    binding = _Bind()
+    key, _ = run(keys.issue(CloudflareKV(binding), tier="paid", owner="tester",
+                            now=T0, policy=policy))
+    response, capture = _form_post(
+        entry, f"price_id={PACK5}", env=_billing_env(binding),
+        headers={"authorization": f"Bearer {key}"})
+    assert response.status == 303
+    assert response.json()["applied_to"] == "new_key"
+    assert "key_id" not in response.json()
+    fields = dict(urllib.parse.parse_qsl(capture["body"]))
+    assert not fields.get("metadata[modelspec_key_fingerprint]")
+    assert keys.fingerprint(key) not in capture["body"]
+
+
+@pytest.mark.parametrize(("body", "status", "code"), [
+    # The same refusal a JSON caller gets for an unmapped Price.
+    ("price_id=price_unknown_not_in_tiers", 500, "price_not_mapped"),
+    ("price_id=", 400, "invalid_request"),
+    ("", 400, "invalid_request"),
+], ids=["unknown", "blank", "empty-body"])
+def test_a_form_post_without_a_mapped_price_is_refused_not_redirected(
+        entry, body, status, code):
+    response, capture = _form_post(entry, body)
+    assert response.status == status
+    assert "location" not in response.headers
+    assert response.json()["error"]["code"] == code
+    assert "body" not in capture
+
+
+def test_a_form_post_for_a_placeholder_price_is_refused_not_redirected(entry):
+    tiers = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
+    tiers["billing"]["prices"][PACK5]["placeholder"] = True
+    env = _billing_env(_Bind())
+    env.TIER_POLICY = json.dumps(tiers)
+    response, capture = _form_post(entry, f"price_id={PACK5}", env=env)
+    assert response.status == 500
+    assert "location" not in response.headers
+    error = response.json()["error"]
+    assert error["code"] == "price_not_mapped"
+    assert error["price_id"] == PACK5
+    assert "placeholder" in error["message"]
+    assert "body" not in capture
+
+
+@pytest.mark.parametrize("body", [
+    f"price_id={PACK5}&price_id={PRICE}",
+    f"price_id={PACK5}&key=live_something",
+], ids=["repeated", "stray"])
+def test_a_malformed_form_is_refused_before_stripe(entry, body):
+    response, capture = _form_post(entry, body)
+    assert response.status == 400
+    assert response.json()["error"]["code"] == "invalid_request"
+    assert "location" not in response.headers
+    assert "body" not in capture
+
+
+def test_a_form_post_when_billing_is_off_is_refused_the_same_way_as_json(entry):
+    form, form_capture = _form_post(
+        entry, f"price_id={PACK5}", env=_billing_env(_Bind(), flag="false"))
+    capture: dict[str, str] = {}
+    previous = _patch_entry_fetch(entry, capture)
+    try:
+        worker = entry.Default()
+        worker.env = _billing_env(_Bind(), flag="false")
+        as_json = run(worker.fetch(_Req(
+            "/v1/billing/checkout", body=json.dumps({"price_id": PACK5}),
+            headers={"content-type": "application/json"})))
+    finally:
+        entry.fetch = previous
+    assert form.status == as_json.status == 503
+    assert form.json()["error"]["code"] == "billing_not_enabled"
+    assert form.body == as_json.body
+    assert form.headers == as_json.headers
+    assert "body" not in form_capture and "body" not in capture
+
+
+# ── MODEL-105: the claim page a browser lands on after paying ───────────────
+
+BROWSER_ACCEPT = ("text/html,application/xhtml+xml,application/xml;q=0.9,"
+                  "image/avif,image/webp,*/*;q=0.8")
+
+#: `GET /v1/billing/claim` as a JSON caller got it before MODEL-105, captured
+#: from the unchanged Worker. The key is random per run, so it and its id are
+#: masked; every other byte is pinned.
+CLAIM_GOLDEN_HEADERS = JSON_CHECKOUT_GOLDEN_HEADERS
+CLAIM_GOLDEN_BODY = (
+    '{\n'
+    '  "schema_version": "1.0",\n'
+    '  "endpoint": "billing.claim",\n'
+    '  "service_commit": "testsha",\n'
+    '  "key_id": "<KEY_ID>",\n'
+    '  "tier": "paid",\n'
+    '  "plan": "Solo",\n'
+    '  "credits": 4000,\n'
+    '  "kind": "plan",\n'
+    '  "what_you_bought": "Solo: 4000 credits each paid month, reset with no '
+    'rollover. A funded key receives the paid answer, including cited '
+    'commercial-use and data-residency determinations. Only successful results '
+    'draw credits. Pack credits are unaffected by cancellation.",\n'
+    '  "how": "Authorization: Bearer <key>",\n'
+    '  "applied_to": "new_key",\n'
+    '  "result": [],\n'
+    '  "key": "<KEY>",\n'
+    '  "shown": "once",\n'
+    '  "message": "API key shown once. Store it; claiming again will not reveal it."\n'
+    '}'
+)
+
+
+def _paid_then_claim(entry, accept: str | None, *, session: str = SESSION,
+                     price: str = PRICE):
+    binding = _Bind()
+    worker = entry.Default()
+    worker.env = _billing_env(binding)
+    obj = checkout_obj(id=session, metadata={"modelspec_price_id": price})
+    body = payload("checkout.session.completed", obj, f"evt_{session}")
+    header = signed(body, timestamp=int(datetime.now(UTC).timestamp()))
+    hook = run(worker.fetch(_Req("/v1/billing/stripe-webhook", body=body,
+                                 headers={"stripe-signature": header})))
+    assert hook.status == 200
+    headers = {"accept": accept} if accept is not None else {}
+
+    def claim():
+        return run(worker.fetch(_Req(
+            f"/v1/billing/claim?session_id={session}", method="GET", headers=headers)))
+    return claim
+
+
+def _mask(text: str, key: str) -> str:
+    return text.replace(key, "<KEY>").replace(keys.key_id(key), "<KEY_ID>")
+
+
+@pytest.mark.parametrize("accept", [
+    None, "*/*", "application/json", "text/html, application/json",
+    "application/json, text/html;q=0.5",
+], ids=["none", "curl", "json", "tie", "json-preferred"])
+def test_a_json_claim_is_byte_identical_to_before_the_html_page(entry, accept):
+    first = _paid_then_claim(entry, accept)()
+    key = first.json()["key"]
+    assert first.status == 200
+    assert first.headers == CLAIM_GOLDEN_HEADERS
+    assert _mask(first.body, key) == CLAIM_GOLDEN_BODY
+
+
+def _assert_static_page(page: str) -> None:
+    lowered = page.lower()
+    assert lowered.startswith("<!doctype html>")
+    assert "<script" not in lowered
+    # Inside real tags only: escaped text may spell anything.
+    assert re.search(r"<[^>]*\bon[a-z]+=", lowered) is None
+    assert re.search(r"<[^>]*\bsrc=", lowered) is None
+    assert re.search(r"<link\b", lowered) is None
+    assert "https://modelspec.dev" in page
+
+
+@pytest.mark.parametrize("price", [PRICE, PACK5], ids=["plan", "pack"])
+def test_a_browser_claim_is_a_readable_page_with_the_key_shown_once(
+        entry, price, capsys):
+    claim = _paid_then_claim(entry, BROWSER_ACCEPT, session=f"cs_html_{price[-4:]}",
+                             price=price)
+    first = claim()
+    assert first.status == 200
+    assert first.headers["content-type"] == "text/html; charset=utf-8"
+    assert first.headers["cache-control"] == "no-store"
+    assert first.headers["x-modelspec-service-commit"] == COMMIT
+    page = first.body
+    _assert_static_page(page)
+    key = re.search(r"live_[A-Za-z0-9_\-]+", page).group(0)
+    assert page.count(key) == 1
+    assert "copy it now" in page.lower()
+    assert "will not be shown again" in page.lower()
+    assert f"Authorization: Bearer {key}" not in page  # the key appears once only
+    assert "Authorization: Bearer &lt;key&gt;" in page
+    mapping = access_config.load_policy().price(price)
+    assert mapping.name.replace("&", "&amp;") in page
+    assert f"{mapping.credits:,}" in page
+    # The key is never logged.
+    out = capsys.readouterr()
+    assert key not in out.out and key not in out.err
+
+    again = claim()
+    assert again.status == 410
+    assert again.headers["content-type"] == "text/html; charset=utf-8"
+    _assert_static_page(again.body)
+    assert key not in again.body
+    assert "rotate" in again.body.lower()
+
+
+def test_a_browser_claim_before_the_webhook_says_to_reload(entry):
+    worker = entry.Default()
+    worker.env = _billing_env(_Bind())
+    response = run(worker.fetch(_Req(
+        "/v1/billing/claim?session_id=cs_not_yet", method="GET",
+        headers={"accept": BROWSER_ACCEPT})))
+    assert response.status == 409
+    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    _assert_static_page(response.body)
+    assert "reload" in response.body.lower()
+
+
+def test_the_claim_page_escapes_everything():
+    import billing_page
+    body = {
+        "endpoint": "billing.claim", "key": "live_<b>x</b>", "key_id": "<i>",
+        "plan": "<script>alert(1)</script>", "credits": 5, "kind": "pack",
+        "what_you_bought": "\"quoted\" & <tag>", "shown": "once",
+        "message": "<m>", "applied_to": "new_key", "tier": "paid",
+    }
+    page = billing_page.claim_page(200, body)
+    assert "<script>" not in page and "<b>" not in page and "<tag>" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+    assert "live_&lt;b&gt;x&lt;/b&gt;" in page
+    refusal = billing_page.claim_page(400, {"error": {
+        "code": "invalid_request", "message": "<img src=x onerror=alert(1)>"}})
+    assert "<img" not in refusal
+    _assert_static_page(refusal)
+
+
+@pytest.mark.parametrize(("accept", "html"), [
+    (None, False), ("", False), ("*/*", False), ("application/json", False),
+    ("text/html, application/json", False),
+    ("text/html;q=0, */*", False),
+    (BROWSER_ACCEPT, True), ("text/html", True),
+    ("application/json;q=0.5, text/html", True),
+])
+def test_prefers_html_is_an_explicit_preference(accept, html):
+    import billing_page
+    assert billing_page.prefers_html(accept) is html

@@ -424,7 +424,16 @@ paths:
       description: 'Redirect the browser to `url`. `price_id` is required; omitted is 400 naming the valid
         ids, never a guessed purchase. A live key in `Authorization: Bearer` binds the payment to that
         key (fingerprint only, never the key): a pack ADDs credits, a plan attaches. Unknown or revoked
-        key: 401, never anonymous. No key: claim mints one. Flag off: 503.'
+        key: 401, never anonymous. No key: claim mints one. Flag off: 503.
+
+
+        Form variant (MODEL-105): the buy buttons on https://modelspec.dev/pricing post `application/x-www-form-urlencoded`
+        with one `price_id` field. A form post is answered 303 See Other with `Location:` the Stripe Checkout
+        URL, so the browser goes straight to Stripe. It is always anonymous Checkout (any Authorization
+        header is ignored; claim mints a new key); buying onto an existing key is the JSON call with the
+        key presented. An unknown or placeholder `price_id` is refused, never redirected, and every refusal
+        is the JSON call''s own. A body that parses as JSON is the JSON call whatever its content type,
+        so `curl -d ''{...}''` is unchanged.'
       x-modelspec-probe: skip
       requestBody:
         required: false
@@ -433,6 +442,17 @@ paths:
             schema:
               type: object
               additionalProperties: false
+              properties:
+                price_id:
+                  type: string
+            example:
+              price_id: price_1UHRwmBPydVRHUBjqhKcx8xV
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - price_id
               properties:
                 price_id:
                   type: string
@@ -493,6 +513,67 @@ paths:
                     type: string
                   what_you_buy:
                     type: string
+        '303':
+          description: 'Form post only: See Other to the Stripe-hosted Checkout page. The body is the
+            200 envelope.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - applied_to
+                - credits
+                - endpoint
+                - kind
+                - name
+                - placeholder
+                - price_id
+                - result
+                - schema_version
+                - service_commit
+                - session_id
+                - terms_url
+                - tier
+                - url
+                - what_you_buy
+                properties:
+                  applied_to:
+                    type: string
+                  credits:
+                    type: integer
+                  endpoint:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  placeholder:
+                    type: boolean
+                  price_id:
+                    type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+                  session_id:
+                    type: string
+                  terms_url:
+                    type: string
+                  tier:
+                    type: string
+                  url:
+                    type: string
+                  what_you_buy:
+                    type: string
+          headers:
+            Location:
+              description: The Stripe Checkout URL (the body's `url`).
+              schema:
+                type: string
+                format: uri
         '400':
           description: Unknown field, or price_id omitted. The 400 names the valid Price ids.
           content:
@@ -554,6 +635,42 @@ paths:
                       code:
                         type: string
                       message:
+                        type: string
+                  result:
+                    type: array
+                    items: {}
+                  schema_version:
+                    type: string
+                  service_commit:
+                    type: string
+        '500':
+          description: 'price_not_mapped: the price_id is not in the tier table, or (form post) is a placeholder.
+            Refused, never redirected.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - endpoint
+                - error
+                - result
+                - schema_version
+                - service_commit
+                properties:
+                  endpoint:
+                    type: string
+                  error:
+                    type: object
+                    required:
+                    - code
+                    - message
+                    - price_id
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                      price_id:
                         type: string
                   result:
                     type: array
@@ -737,6 +854,10 @@ paths:
       operationId: billingClaimGet
       summary: Claim the purchase. Mints a key once if Checkout was anonymous; credits an existing key
         otherwise.
+      description: 'Stripe''s success redirect. HTML variant (MODEL-105): when `Accept` prefers `text/html`
+        over JSON (a browser), the same outcome, status and facts come back as a static page (no script,
+        nothing loaded, CSP `default-src ''none''`) that shows the key once and says to copy it now. `Accept`
+        absent, `*/*`, `application/json`, or a tie: the JSON envelope, unchanged.'
       parameters:
       - name: session_id
         in: query
@@ -798,6 +919,9 @@ paths:
                     type: string
                   what_you_bought:
                     type: string
+            text/html:
+              schema:
+                type: string
         '400':
           description: session_id missing.
           content:
@@ -830,6 +954,9 @@ paths:
                     type: string
                   service_commit:
                     type: string
+            text/html:
+              schema:
+                type: string
         '409':
           description: Payment received, key not ready. Retry in a few seconds.
           content:
@@ -862,6 +989,9 @@ paths:
                     type: string
                   service_commit:
                     type: string
+            text/html:
+              schema:
+                type: string
         '410':
           description: Already shown. Rotate if you still hold the key.
           content:
@@ -900,6 +1030,9 @@ paths:
                     type: string
                   service_commit:
                     type: string
+            text/html:
+              schema:
+                type: string
         '503':
           description: BILLING_ENABLED is off.
           content:
@@ -932,6 +1065,9 @@ paths:
                     type: string
                   service_commit:
                     type: string
+            text/html:
+              schema:
+                type: string
         '404':
           description: No endpoint at that path.
           content:

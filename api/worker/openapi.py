@@ -1232,14 +1232,27 @@ def _billing_paths() -> dict[str, Any]:
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
             policy=policy, service_commit=_COMMIT, http=_Stripe(),
             api_key="live_unknown_not_issued")
+        check_form = await billing_mod.checkout_form(
+            raw=f"price_id={price}", flag=True, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe())
+        check_unmapped = await billing_mod.checkout_form(
+            raw="price_id=price_unknown", flag=True, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe())
         rot_missing = await billing_mod.rotate(
             api_key=None, flag=True, kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         return (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready,
-                check, check_omit, check_bad, rot_missing)
+                check, check_omit, check_bad, check_form, check_unmapped,
+                rot_missing)
 
     (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check,
-     check_omit, check_bad, rot_missing) = asyncio.run(samples())
+     check_omit, check_bad, check_form, check_unmapped,
+     rot_missing) = asyncio.run(samples())
+    if (check_form.status != billing_mod.HTTP_SEE_OTHER
+            or check_form.headers.get("location") != check.body["url"]):
+        raise SystemExit(f"billing spec sample 'checkout form' was {check_form.status}")
     for name, outcome, code in (
             ("webhook ok", hook_ok, None),
             ("webhook bad", hook_bad, billing_mod.INVALID_SIGNATURE),
@@ -1251,6 +1264,7 @@ def _billing_paths() -> dict[str, Any]:
             ("checkout", check, None),
             ("checkout omitted price", check_omit, billing_mod.INVALID_REQUEST),
             ("checkout bad key", check_bad, billing_mod.INVALID_KEY),
+            ("checkout form unmapped", check_unmapped, billing_mod.PRICE_NOT_MAPPED),
             ("rotate missing", rot_missing, billing_mod.MISSING_KEY)):
         got = (outcome.body.get("error") or {}).get("code")
         if code is None:
@@ -1275,27 +1289,63 @@ def _billing_paths() -> dict[str, Any]:
                     "`Authorization: Bearer` binds the payment to that key (fingerprint "
                     "only, never the key): a pack ADDs credits, a plan attaches. Unknown "
                     "or revoked key: 401, never anonymous. No key: claim mints one. "
-                    "Flag off: 503."
+                    "Flag off: 503.\n\n"
+                    "Form variant (MODEL-105): the buy buttons on "
+                    "https://modelspec.dev/pricing post "
+                    "`application/x-www-form-urlencoded` with one `price_id` field. "
+                    "A form post is answered 303 See Other with `Location:` the "
+                    "Stripe Checkout URL, so the browser goes straight to Stripe. "
+                    "It is always anonymous Checkout (any Authorization header is "
+                    "ignored; claim mints a new key); buying onto an existing key "
+                    "is the JSON call with the key presented. An unknown or "
+                    "placeholder `price_id` is refused, never redirected, and every "
+                    "refusal is the JSON call's own. A body that parses as JSON is "
+                    "the JSON call whatever its content type, so `curl -d '{...}'` "
+                    "is unchanged."
                 ),
                 **skip,
                 "requestBody": {
                     "required": False,
-                    "content": {"application/json": {
-                        "schema": {
-                            "type": "object", "additionalProperties": False,
-                            "properties": {"price_id": {"type": "string"}},
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object", "additionalProperties": False,
+                                "properties": {"price_id": {"type": "string"}},
+                            },
+                            "example": {"price_id": price},
                         },
-                        "example": {"price_id": price},
-                    }},
+                        billing_mod.FORM_CONTENT_TYPE: {
+                            "schema": {
+                                "type": "object", "additionalProperties": False,
+                                "required": ["price_id"],
+                                "properties": {"price_id": {"type": "string"}},
+                            },
+                            "example": {"price_id": price},
+                        },
+                    },
                 },
                 "responses": {
                     "200": envelope(check, "Hosted Checkout URL. Open it in a browser."),
+                    str(billing_mod.HTTP_SEE_OTHER): {
+                        **envelope(
+                            check_form,
+                            "Form post only: See Other to the Stripe-hosted Checkout "
+                            "page. The body is the 200 envelope."),
+                        "headers": {"Location": {
+                            "description": "The Stripe Checkout URL (the body's `url`).",
+                            "schema": {"type": "string", "format": "uri"},
+                        }},
+                    },
                     str(billing_mod.HTTP_BAD_REQUEST): envelope(
                         check_omit,
                         "Unknown field, or price_id omitted. The 400 names the valid Price ids."),
                     str(billing_mod.HTTP_UNAUTHORIZED): envelope(
                         check_bad,
                         "A presented API key that is unknown or revoked. Never treated as anonymous."),
+                    str(billing_mod.HTTP_MISCONFIGURED): envelope(
+                        check_unmapped,
+                        "price_not_mapped: the price_id is not in the tier table, or "
+                        "(form post) is a placeholder. Refused, never redirected."),
                     str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
@@ -1337,19 +1387,27 @@ def _billing_paths() -> dict[str, Any]:
             "get": {
                 "operationId": "billingClaimGet",
                 "summary": "Claim the purchase. Mints a key once if Checkout was anonymous; credits an existing key otherwise.",
+                "description": (
+                    "Stripe's success redirect. HTML variant (MODEL-105): when "
+                    "`Accept` prefers `text/html` over JSON (a browser), the same "
+                    "outcome, status and facts come back as a static page (no "
+                    "script, nothing loaded, CSP `default-src 'none'`) that shows "
+                    "the key once and says to copy it now. `Accept` absent, `*/*`, "
+                    "`application/json`, or a tie: the JSON envelope, unchanged."
+                ),
                 "parameters": [{
                     "name": "session_id", "in": "query", "required": True,
                     "schema": {"type": "string"},
                 }],
                 "responses": {
-                    "200": envelope(claimed, "The key, shown once (anonymous Checkout), or credits added to the bound key."),
-                    str(billing_mod.HTTP_BAD_REQUEST): envelope(
-                        empty, "session_id missing."),
-                    str(billing_mod.HTTP_CONFLICT): envelope(
-                        not_ready, "Payment received, key not ready. Retry in a few seconds."),
-                    str(billing_mod.HTTP_GONE): envelope(
-                        gone, "Already shown. Rotate if you still hold the key."),
-                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    "200": _with_html(envelope(claimed, "The key, shown once (anonymous Checkout), or credits added to the bound key.")),
+                    str(billing_mod.HTTP_BAD_REQUEST): _with_html(envelope(
+                        empty, "session_id missing.")),
+                    str(billing_mod.HTTP_CONFLICT): _with_html(envelope(
+                        not_ready, "Payment received, key not ready. Retry in a few seconds.")),
+                    str(billing_mod.HTTP_GONE): _with_html(envelope(
+                        gone, "Already shown. Rotate if you still hold the key.")),
+                    str(billing_mod.HTTP_UNAVAILABLE): _with_html(envelope(hook_off, off)),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),
@@ -1898,6 +1956,14 @@ def build_spec() -> dict[str, Any]:
 
 def _json_body(description: str, schema: dict[str, Any]) -> dict[str, Any]:
     return {"description": description, "content": {"application/json": {"schema": schema}}}
+
+
+def _with_html(response: dict[str, Any]) -> dict[str, Any]:
+    """The claim page (MODEL-105): the same outcome as HTML when Accept prefers it."""
+    return {**response, "content": {
+        **response["content"],
+        "text/html": {"schema": {"type": "string"}},
+    }}
 
 
 def _entry_body_keys(function: str) -> set[str]:

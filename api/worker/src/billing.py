@@ -26,6 +26,7 @@ from access_kv import StoreNotConfigured, UnboundKV
 from billing_stripe import SignatureError
 
 HTTP_OK = 200
+HTTP_SEE_OTHER = 303
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
@@ -63,6 +64,9 @@ REFUSALS: dict[str, int] = {
 }
 
 SCHEMA_VERSION = "1.0"
+
+#: What an HTML `<form method="post">` sends: the `/pricing` buy buttons.
+FORM_CONTENT_TYPE = "application/x-www-form-urlencoded"
 
 #: Subscription statuses that mean paid service has ended. `past_due` is not
 #: here: `invoice.payment_failed` already downgraded, and a later `invoice.paid`
@@ -756,6 +760,62 @@ async def checkout(*, payload: Any, flag: bool, secret: str | None, origin: str,
     if fingerprint:
         extra["key_id"] = fingerprint[:keys.KEY_ID_LENGTH]
     return Outcome(HTTP_OK, _envelope(endpoint, service_commit, extra))
+
+
+def is_form_post(content_type: str | None, raw: str) -> bool:
+    """True when a Checkout body is the `/pricing` HTML form, not JSON (MODEL-105).
+
+    Both conditions, so no JSON caller moves: `curl -d '{…}'` sends a JSON body
+    under the form content type, and an empty body keeps today's JSON answer.
+    """
+    media = (content_type or "").split(";", 1)[0].strip().lower()
+    if media != FORM_CONTENT_TYPE or not raw.strip():
+        return False
+    try:
+        json.loads(raw)
+    except ValueError:
+        return True
+    return False
+
+
+async def checkout_form(*, raw: str, flag: bool, secret: str | None, origin: str,
+                        kv: Any, policy: AccessPolicy, service_commit: str,
+                        http: Any) -> Outcome:
+    """The `/pricing` buy button: a form post answered with 303 to Stripe (MODEL-105).
+
+    Anonymous Checkout: no key is bound, so claim mints one. Buying onto an
+    existing key stays the JSON call with the key presented. Every refusal is
+    the JSON path's own, and none of them carries a `Location`.
+    """
+    endpoint = "billing.checkout"
+    if not flag:
+        return _refusal(BILLING_NOT_ENABLED, "BILLING_ENABLED is off",
+                        service_commit=service_commit, endpoint=endpoint)
+    fields = parse_qs(raw, keep_blank_values=True)
+    repeated = sorted(name for name, values in fields.items() if len(values) > 1)
+    if repeated:
+        return _refusal(
+            INVALID_REQUEST, f"repeated form field(s): {', '.join(repeated)}",
+            service_commit=service_commit, endpoint=endpoint,
+            detail={"fields": repeated, "accepted": ["price_id"]})
+    payload = {name: values[0] for name, values in fields.items()}
+    price_id = payload.get("price_id")
+    if price_id and price_id in policy.billing.prices:
+        if policy.billing.prices[price_id].placeholder:
+            return _refusal(
+                PRICE_NOT_MAPPED, f"{price_id} is a placeholder Price; not for sale",
+                service_commit=service_commit, endpoint=endpoint,
+                detail={"price_id": price_id})
+    outcome = await checkout(
+        payload=payload, flag=flag, secret=secret, origin=origin, kv=kv,
+        policy=policy, service_commit=service_commit, http=http, api_key=None)
+    if outcome.status != HTTP_OK:
+        return outcome
+    url = outcome.body.get("url")
+    if not isinstance(url, str) or not url.startswith("https://"):
+        return _refusal(STRIPE_UNAVAILABLE, "Stripe returned no https Checkout URL",
+                        service_commit=service_commit, endpoint=endpoint)
+    return Outcome(HTTP_SEE_OTHER, outcome.body, {"location": url})
 
 
 def now_utc() -> datetime:

@@ -77,3 +77,70 @@ def test_a_credit_figure_change_needs_no_code_change() -> None:
     html = pricing.page(tiers, live=False, build=_build())
     assert "8 / month" in html
     assert "4,000 / month" not in html
+
+
+# ── MODEL-105: a buy button per plan and pack ────────────────────────────────
+
+CHECKOUT = "https://api.modelspec.dev/v1/billing/checkout"
+
+
+def _forms(html: str) -> list[tuple[str, str]]:
+    """(opening tag, inner html) for every form on the page."""
+    out = []
+    for match in re.finditer(r"(<form\b[^>]*>)(.*?)</form>", html, flags=re.S | re.I):
+        out.append((match.group(1), match.group(2)))
+    return out
+
+
+def test_every_plan_and_pack_has_a_buy_form_when_billing_is_live() -> None:
+    tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
+    html = pricing.page(tiers, live=True, build=_build())
+    forms = _forms(html)
+    prices = tiers["billing"]["prices"]
+    assert len(forms) == len(prices)
+    posted: dict[str, str] = {}
+    for tag, inner in forms:
+        assert 'method="post"' in tag
+        assert f'action="{CHECKOUT}"' in tag
+        hidden = re.search(
+            r'<input type="hidden" name="price_id" value="([^"]+)">', inner)
+        assert hidden, inner
+        button = re.search(r"<button\b[^>]*>([^<]+)</button>", inner)
+        assert button, inner
+        posted[hidden.group(1)] = button.group(1)
+    assert set(posted) == set(prices)
+    for pid, row in prices.items():
+        assert posted[pid] == ("Subscribe" if row["kind"] == "plan" else "Buy")
+
+
+def test_no_buy_form_when_billing_is_off() -> None:
+    tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
+    html = pricing.page(tiers, live=False, build=_build())
+    assert "<form" not in html
+    assert "<button" not in html
+    assert CHECKOUT not in html
+    assert "Billing is not live" in html
+
+
+def test_the_live_page_ships_buy_forms_and_no_script(tmp_path: Path) -> None:
+    pricing.write(tmp_path, REPO_ROOT, _build())
+    html = (tmp_path / "pricing" / "index.html").read_text(encoding="utf-8")
+    assert len(_forms(html)) == 6
+    assert "<script" not in html.lower()
+
+
+def test_buy_form_price_ids_come_from_tiers_json() -> None:
+    tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
+    prices = tiers["billing"]["prices"]
+    prices["price_TESTONLY_renamed"] = prices.pop("price_1UHRwmBPydVRHUBjMFS5bDPD")
+    html = pricing.page(tiers, live=True, build=_build())
+    assert 'value="price_TESTONLY_renamed"' in html
+    assert "price_1UHRwmBPydVRHUBjMFS5bDPD" not in html
+
+
+def test_a_placeholder_price_gets_no_buy_button() -> None:
+    tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
+    tiers["billing"]["prices"]["price_1UHRwmBPydVRHUBjMFS5bDPD"]["placeholder"] = True
+    html = pricing.page(tiers, live=True, build=_build())
+    assert len(_forms(html)) == 5
+    assert 'value="price_1UHRwmBPydVRHUBjMFS5bDPD"' not in html
