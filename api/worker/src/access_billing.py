@@ -135,6 +135,7 @@ class ClaimResult:
     minted: bool = False
     consumed: bool = False
     attached: bool = False
+    refunded: bool = False
 
 
 @dataclass(frozen=True)
@@ -415,8 +416,13 @@ async def record_pack_session(kv: Any, *, session_id: str, customer_id: str,
 
 
 async def grant_pack(kv: Any, *, fingerprint_hex: str, session_id: str, units: int,
-                     ledger: Any, now: datetime, policy: AccessPolicy) -> str:
-    """ADD pack credits to an already-issued key. Idempotent on session id."""
+                     ledger: Any, now: datetime, policy: AccessPolicy,
+                     tx: str = "") -> str:
+    """ADD pack credits to an already-issued key. Idempotent on session id.
+
+    `tx` is the PaymentIntent id when Checkout named one (MODEL-106): the
+    ledger keeps it on the payment claim so a refund or dispute can find it.
+    """
     if not fingerprint_hex or units < 1 or ledger is None:
         return "skipped"
     record = await keys.lookup_fingerprint(kv, fingerprint_hex)
@@ -425,7 +431,7 @@ async def grant_pack(kv: Any, *, fingerprint_hex: str, session_id: str, units: i
     try:
         result = await ledger.credit(
             credits.holder_from_fingerprint(fingerprint_hex),
-            f"pack:{session_id}", units, session_id,
+            f"pack:{session_id}", units, tx or session_id,
             expires_at=_pack_expiry(now, policy), source="pack")
         return "granted" if result.credited else result.reason or "duplicate"
     except credits.StoreNotConfigured:
@@ -561,9 +567,27 @@ async def _consume_bound_plan_claim(kv: Any, session: SessionRecord,
     return ClaimResult(record=stored, attached=True)
 
 
+async def _refunded_before_claim(ledger: Any, session: SessionRecord) -> bool:
+    """True if a refund or lost dispute took the whole pack before it was claimed."""
+    if ledger is None:
+        return False
+    try:
+        rec = await ledger.payment(f"pack:{session.session_id}")
+    except credits.StoreNotConfigured:
+        return False
+    return credits.unclaimed_units(rec) == 0
+
+
 async def _consume_pack_claim(kv: Any, session: SessionRecord, *, now: datetime,
                               policy: AccessPolicy, ledger: Any
                               ) -> ClaimResult | None:
+    if await _refunded_before_claim(ledger, session):
+        record = SubscriptionRecord(
+            subscription_id=f"pack:{session.session_id}",
+            customer_id=session.customer_id, price_id=session.price_id,
+            tier=policy.billing.downgrade_tier, status=STATUS_INACTIVE,
+            key_fingerprint="", key_id="", created_at=_iso(now))
+        return ClaimResult(record=record, refunded=True)
     if session.key_fingerprint:
         key = await keys.lookup_fingerprint(kv, session.key_fingerprint)
         dummy = _bound_pack_record(session, now=now, policy=policy, key=key)

@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, urlparse
 import access
 import access_billing as store
 import access_keys as keys
+import billing_reversals
 import billing_stripe
 import credits
 from access_config import AccessPolicy, PolicyError, PriceMapping
@@ -47,6 +48,7 @@ INVALID_KEY = "invalid_api_key"
 REVOKED_KEY = "key_revoked"
 STORE_NOT_CONFIGURED = "access_store_not_configured"
 STRIPE_UNAVAILABLE = "stripe_unavailable"
+PURCHASE_REFUNDED = "purchase_refunded"
 
 REFUSALS: dict[str, int] = {
     INVALID_SIGNATURE: HTTP_BAD_REQUEST,
@@ -56,6 +58,7 @@ REFUSALS: dict[str, int] = {
     REVOKED_KEY: HTTP_FORBIDDEN,
     CLAIM_NOT_READY: HTTP_CONFLICT,
     CLAIM_CONSUMED: HTTP_GONE,
+    PURCHASE_REFUNDED: HTTP_GONE,
     PRICE_NOT_MAPPED: HTTP_MISCONFIGURED,
     STRIPE_UNAVAILABLE: HTTP_UNAVAILABLE,
     BILLING_NOT_ENABLED: HTTP_UNAVAILABLE,
@@ -82,6 +85,12 @@ DOWNGRADE_TYPES = frozenset({
     "invoice.payment_failed",
     "customer.subscription.deleted",
 })
+#: MODEL-106. A refund or a dispute acts on the purchase's credits.
+REVERSAL_TYPES = billing_reversals.TYPES
+#: Every event type the webhook acts on. The Stripe destinations (live and
+#: sandbox) must subscribe to each; `docs/billing.md` names each.
+HANDLED_TYPES = (PROVISION_TYPES | DOWNGRADE_TYPES | REVERSAL_TYPES
+                 | frozenset({"customer.subscription.updated"}))
 
 WHAT_YOU_BUY = (
     "credits on this API key: a monthly allowance that resets each paid "
@@ -326,7 +335,16 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         obj = {}
 
     action = "ignored"
-    if type_ in PROVISION_TYPES:
+    extra: dict[str, Any] = {}
+    if type_ in REVERSAL_TYPES:
+        try:
+            action, extra = await billing_reversals.apply(
+                type_, obj, ledger=ledger, now=now)
+        except credits.StoreNotConfigured as exc:
+            # Not remembered: Stripe retries, and the retry applies once bound.
+            return _refusal(STORE_NOT_CONFIGURED, str(exc),
+                            service_commit=service_commit, endpoint=endpoint)
+    elif type_ in PROVISION_TYPES:
         if type_.startswith("checkout.session."):
             action, error = await _apply_checkout(
                 obj, kv=kv, policy=policy, now=now, ledger=ledger,
@@ -380,7 +398,7 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
     return Outcome(HTTP_OK, _envelope(endpoint, service_commit, {
         "received": True, "duplicate": False, "event_id": event_id, "type": type_,
-        "action": action,
+        "action": action, **extra,
     }))
 
 
@@ -409,10 +427,13 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             kv, session_id=session_id, customer_id=_id(obj.get("customer")),
             price_id=price_id, credits_amount=mapping.credits,
             key_fingerprint=fingerprint)
+        payment_intent = _id(obj.get("payment_intent"))
+        await _expect_pack(ledger, session_id, mapping.credits, payment_intent)
         if fingerprint:
             grant = await store.grant_pack(
                 kv, fingerprint_hex=fingerprint, session_id=session_id,
-                units=mapping.credits, ledger=ledger, now=now, policy=policy)
+                units=mapping.credits, ledger=ledger, now=now, policy=policy,
+                tx=payment_intent)
             await keys.set_tier(kv, fingerprint, mapping.tier, policy=policy)
             if grant == "granted":
                 action = "credited"
@@ -440,6 +461,23 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
     if grant == "granted":
         action = "credited" if action in {"entitled", "already_entitled"} else action
     return action, None
+
+
+async def _expect_pack(ledger: Any, session_id: str, units: int,
+                       payment_intent: str) -> None:
+    """Record the paid pack in the ledger under its PaymentIntent id (MODEL-106).
+
+    This is the link a later `charge.refunded` or `charge.dispute.*` follows:
+    those name the PaymentIntent, never the Checkout session. Until claim the
+    claim is `pending` (no holder); claim, or the bound key's grant just after
+    this, credits it. A session without a PaymentIntent id links nothing.
+    """
+    if not payment_intent or units < 1:
+        return
+    try:
+        await ledger.expect(f"pack:{session_id}", units, payment_intent, "pack")
+    except credits.StoreNotConfigured:
+        return
 
 
 async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
@@ -562,6 +600,11 @@ async def claim(*, session_id: str, flag: bool, kv: Any, policy: AccessPolicy,
             "payment received, key not ready, retry in a few seconds",
             service_commit=service_commit, endpoint=endpoint)
     record = result.record
+    if result.refunded:
+        return _refusal(
+            PURCHASE_REFUNDED,
+            "this purchase was refunded before it was claimed; no key was issued",
+            service_commit=service_commit, endpoint=endpoint)
     if result.consumed:
         return _refusal(
             CLAIM_CONSUMED,

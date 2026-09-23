@@ -20,6 +20,13 @@ Draw order: monthly allowance first, then pack grants, oldest expiry first.
 Monthly SET (a paid invoice) replaces remaining monthly; it does not add.
 Pack credits ADD and expire. Cancellation zeros monthly and leaves packs.
 
+Reversals (MODEL-106). A card pack's payment claim stores the Stripe
+PaymentIntent id as its `tx`, which is how a refund or a dispute finds it: a
+refund removes the refunded share of the pack's unspent credits, a dispute
+holds them until it closes. Spent credits are never clawed back. An anonymous
+pack is `pending` (no holder yet) from payment until claim, so a refund or
+dispute that arrives first is applied when the claim grants it.
+
 The unit is a credit.
 """
 
@@ -79,6 +86,78 @@ class ReserveResult:
         rid = data.get("reservation_id")
         return cls(bool(data.get("ok")), None if rid is None else int(rid),
                    int(data.get("available") or 0), int(data.get("reserved") or 0))
+
+
+@dataclass(frozen=True)
+class ReversalResult:
+    """What a refund or a dispute did to one pack's credits (MODEL-106).
+
+    `found` is false when no pack payment claim carries that PaymentIntent id:
+    a plan invoice, a purchase made before the id was recorded, or a charge
+    that is not ours. `pending` means the pack had not been claimed yet.
+    """
+
+    found: bool
+    payment_id: str = ""
+    pending: bool = False
+    purchased: int = 0
+    refunded_share: int = 0
+    removed: int = 0
+    already_spent: int = 0
+    expired: int = 0
+    held: int = 0
+    restored: int = 0
+    forfeited: int = 0
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "found": self.found, "payment_id": self.payment_id,
+            "pending": self.pending, "purchased": self.purchased,
+            "refunded_share": self.refunded_share, "removed": self.removed,
+            "already_spent": self.already_spent, "expired": self.expired,
+            "held": self.held, "restored": self.restored,
+            "forfeited": self.forfeited,
+        }
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> ReversalResult:
+        return cls(
+            bool(data.get("found")), str(data.get("payment_id") or ""),
+            bool(data.get("pending")), int(data.get("purchased") or 0),
+            int(data.get("refunded_share") or 0), int(data.get("removed") or 0),
+            int(data.get("already_spent") or 0), int(data.get("expired") or 0),
+            int(data.get("held") or 0), int(data.get("restored") or 0),
+            int(data.get("forfeited") or 0),
+        )
+
+
+def refunded_share(purchased: int, amount: int, amount_refunded: int,
+                   full: bool) -> int:
+    """Credits a refund of `amount_refunded` out of `amount` takes back.
+
+    Proportional to the money returned, measured against the credits the pack
+    was sold with, rounded up: refunding the value of the unused balance
+    (terms §6.6) removes exactly the unused credits, and a fraction of a credit
+    never stays with the refunded buyer. Both amounts are the Charge's, tax
+    included, so a refund of the whole tax-inclusive price is a full refund.
+    """
+    if full or amount <= 0:
+        return purchased
+    share = -(-purchased * max(0, amount_refunded) // amount)
+    return max(0, min(purchased, share))
+
+
+def _grantable(rec: dict[str, Any]) -> int:
+    """Credits a pending pack claim will still grant: bought, less refunded or forfeited."""
+    return max(0, int(rec.get("units") or 0) - int(rec.get("refunded") or 0)
+               - int(rec.get("forfeited") or 0))
+
+
+def unclaimed_units(rec: dict[str, Any] | None) -> int | None:
+    """For a pending pack payment claim, what claim would grant. None if not pending."""
+    if not rec or not rec.get("pending"):
+        return None
+    return _grantable(rec)
 
 
 @dataclass(frozen=True)
@@ -145,18 +224,26 @@ class Balance:
 
 @dataclass
 class _PackGrant:
+    """Pack credits from one payment. `held` is frozen by an open dispute."""
+
     grant_id: str
     remaining: int
     expires_at: str
     source: str
+    held: int = 0
+    hold_id: str = ""
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "grant_id": self.grant_id,
             "remaining": self.remaining,
             "expires_at": self.expires_at,
             "source": self.source,
         }
+        if self.held or self.hold_id:
+            data["held"] = self.held
+            data["hold_id"] = self.hold_id
+        return data
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> _PackGrant:
@@ -165,6 +252,8 @@ class _PackGrant:
             int(data.get("remaining") or 0),
             str(data.get("expires_at") or LEGACY_EXPIRY),
             str(data.get("source") or "pack"),
+            int(data.get("held") or 0),
+            str(data.get("hold_id") or ""),
         )
 
 
@@ -219,7 +308,8 @@ class _Account:
         return max(0, self.monthly) + self.pack_remaining(now)
 
     def drop_expired(self, now: str) -> None:
-        self.packs = [g for g in self.packs if g.remaining > 0 and not _expired(g.expires_at, now)]
+        self.packs = [g for g in self.packs
+                      if (g.remaining > 0 or g.held > 0) and not _expired(g.expires_at, now)]
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -271,8 +361,15 @@ class LedgerState:
 
     def credit(self, holder: str, payment_id: str, units: int,
                tx: str, expires_at: str = "", source: str = "x402") -> CreditResult:
-        """ADD pack credits. Idempotent on payment_id. Same bucket as a card pack."""
+        """ADD pack credits. Idempotent on payment_id. Same bucket as a card pack.
+
+        A `pending` claim (see `expect`) is granted here, to this holder, less
+        anything a refund or a lost dispute took before claim, and held if a
+        dispute is still open.
+        """
         rec = self.payments.get(payment_id)
+        if rec is not None and rec.get("pending"):
+            return self._grant_pending(holder, payment_id, rec, expires_at, source)
         if rec is not None:
             reason = "replay" if rec.get("holder") == holder else "conflict"
             return CreditResult(False, reason, int(rec.get("units") or 0))
@@ -287,6 +384,171 @@ class LedgerState:
             grant_id=payment_id, remaining=int(units),
             expires_at=expiry, source=source or "pack"))
         return CreditResult(True, "", int(units))
+
+    def _grant_pending(self, holder: str, payment_id: str, rec: dict[str, Any],
+                       expires_at: str, source: str) -> CreditResult:
+        units = _grantable(rec)
+        expiry = expires_at or LEGACY_EXPIRY
+        rec.pop("pending", None)
+        rec.update({"holder": holder, "expires_at": expiry})
+        if units < 1:
+            return CreditResult(False, "refunded", 0)
+        grant = _PackGrant(grant_id=payment_id, remaining=units, expires_at=expiry,
+                           source=source or rec.get("source") or "pack")
+        if rec.get("hold"):
+            grant.remaining, grant.held, grant.hold_id = 0, units, str(rec["hold"])
+            rec["held"] = units
+        self._acc(holder).packs.append(grant)
+        return CreditResult(True, "", units)
+
+    def expect(self, payment_id: str, units: int, tx: str,
+               source: str = "pack") -> CreditResult:
+        """Record a paid pack that has no holder yet. `credit` grants it at claim.
+
+        Idempotent on payment_id; a claim already credited is left alone. `tx`
+        is the Stripe PaymentIntent id, so a refund or a dispute that arrives
+        before claim can still find this purchase.
+        """
+        if payment_id in self.payments:
+            return CreditResult(False, "replay", int(self.payments[payment_id].get("units") or 0))
+        if units < 1:
+            return CreditResult(False, "zero", 0)
+        self.payments[payment_id] = {
+            "holder": "", "units": int(units), "tx": tx, "kind": "pack",
+            "source": source, "pending": True,
+        }
+        return CreditResult(True, "pending", int(units))
+
+    def payment(self, payment_id: str) -> dict[str, Any] | None:
+        rec = self.payments.get(payment_id)
+        return dict(rec) if rec is not None else None
+
+    def _pack_claim(self, tx: str) -> tuple[str, dict[str, Any]] | None:
+        if not tx:
+            return None
+        for payment_id, rec in self.payments.items():
+            if rec.get("kind") == "pack" and rec.get("tx") == tx:
+                return payment_id, rec
+        return None
+
+    def _grant(self, grant_id: str) -> _PackGrant | None:
+        """The grant wherever it now lives. Rotation moves accounts, not ids."""
+        for acc in self.accounts.values():
+            for grant in acc.packs:
+                if grant.grant_id == grant_id:
+                    return grant
+        return None
+
+    def refund(self, tx: str, amount: int, amount_refunded: int, full: bool,
+               now: str = "") -> ReversalResult:
+        """Take back the refunded share of this pack's unspent credits.
+
+        `amount_refunded` is the Charge's running total, so the share is a
+        target, not an increment: a replayed or re-sent event removes nothing
+        more. Credits already spent (or reserved by a request in flight) are
+        not clawed back; they are reported as `already_spent`, and a reserved
+        request released afterwards returns its credits to the refund, not to
+        the key.
+        """
+        clock = now or _now_iso()
+        found = self._pack_claim(tx)
+        if found is None:
+            return ReversalResult(False)
+        payment_id, rec = found
+        purchased = int(rec.get("units") or 0)
+        target = refunded_share(purchased, int(amount), int(amount_refunded), bool(full))
+        before = int(rec.get("refunded") or 0)
+        pending = bool(rec.get("pending"))
+        delta = target - before
+        if delta <= 0:
+            return ReversalResult(True, payment_id, pending, purchased, before)
+        rec["refunded"] = target
+        if pending:
+            removable = max(0, purchased - before - int(rec.get("forfeited") or 0))
+            return ReversalResult(True, payment_id, True, purchased, target,
+                                  removed=min(delta, removable))
+        grant = self._grant(payment_id)
+        expired = 0
+        removed = 0
+        if grant is not None and _expired(grant.expires_at, clock):
+            expired = min(delta, grant.remaining + grant.held)
+            grant.remaining = grant.held = 0
+        elif grant is not None:
+            removed = min(delta, grant.remaining)
+            grant.remaining -= removed
+            from_held = min(delta - removed, grant.held)
+            grant.held -= from_held
+            removed += from_held
+        elif _expired(str(rec.get("expires_at") or LEGACY_EXPIRY), clock):
+            expired = delta
+        spent = delta - removed - expired
+        if spent:
+            rec["owed"] = int(rec.get("owed") or 0) + spent
+        return ReversalResult(True, payment_id, False, purchased, target,
+                              removed=removed, already_spent=spent, expired=expired)
+
+    def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
+        """Freeze this pack's unspent credits while `dispute_id` is open."""
+        found = self._pack_claim(tx)
+        if found is None:
+            return ReversalResult(False)
+        payment_id, rec = found
+        purchased = int(rec.get("units") or 0)
+        pending = bool(rec.get("pending"))
+        if rec.get("hold") or dispute_id in (rec.get("closed_disputes") or []):
+            return ReversalResult(True, payment_id, pending, purchased)
+        rec["hold"] = dispute_id
+        if pending:
+            rec["held"] = _grantable(rec)
+            return ReversalResult(True, payment_id, True, purchased, held=rec["held"])
+        grant = self._grant(payment_id)
+        if grant is None:
+            return ReversalResult(True, payment_id, False, purchased)
+        units = grant.remaining
+        grant.held += units
+        grant.remaining = 0
+        grant.hold_id = dispute_id
+        rec["held"] = grant.held
+        return ReversalResult(True, payment_id, False, purchased, held=units)
+
+    def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                 now: str = "") -> ReversalResult:
+        """Close `dispute_id`: give the held credits back, or forfeit them."""
+        clock = now or _now_iso()
+        found = self._pack_claim(tx)
+        if found is None:
+            return ReversalResult(False)
+        payment_id, rec = found
+        purchased = int(rec.get("units") or 0)
+        pending = bool(rec.get("pending"))
+        closed = list(rec.get("closed_disputes") or [])
+        if dispute_id not in closed:
+            closed.append(dispute_id)
+        rec["closed_disputes"] = closed
+        if rec.get("hold") != dispute_id:
+            return ReversalResult(True, payment_id, pending, purchased)
+        rec.pop("hold", None)
+        if pending:
+            # A refund since the hold may have shrunk what claim would grant.
+            units = min(int(rec.pop("held", 0) or 0), _grantable(rec))
+            if restore:
+                return ReversalResult(True, payment_id, True, purchased, restored=units)
+            rec["forfeited"] = int(rec.get("forfeited") or 0) + units
+            return ReversalResult(True, payment_id, True, purchased, forfeited=units)
+        rec.pop("held", None)
+        grant = self._grant(payment_id)
+        if grant is None:
+            return ReversalResult(True, payment_id, False, purchased)
+        units = grant.held
+        grant.held = 0
+        grant.hold_id = ""
+        if not restore:
+            rec["forfeited"] = int(rec.get("forfeited") or 0) + units
+            return ReversalResult(True, payment_id, False, purchased, forfeited=units)
+        if _expired(grant.expires_at, clock):
+            return ReversalResult(True, payment_id, False, purchased, expired=units)
+        grant.remaining += units
+        return ReversalResult(True, payment_id, False, purchased, restored=units)
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
                     plan: str = "") -> CreditResult:
@@ -320,6 +582,9 @@ class LedgerState:
         acc = self.accounts.pop(src, None)
         if acc is None:
             return False
+        for rec in self.payments.values():
+            if rec.get("holder") == src:
+                rec["holder"] = dst
         existing = self.accounts.get(dst)
         if existing is None:
             self.accounts[dst] = acc
@@ -392,11 +657,28 @@ class LedgerState:
         acc.monthly += reservation.monthly
         by_id = {g.grant_id: g for g in acc.packs}
         for grant_id, amount in reservation.packs:
+            rec = self.payments.get(grant_id) or {}
+            # A refund that found these credits reserved counted them as spent
+            # (`owed`); released, they are the refund's, not the key's.
+            owed = int(rec.get("owed") or 0)
+            if owed:
+                absorbed = min(owed, amount)
+                rec["owed"] = owed - absorbed
+                amount -= absorbed
+            if amount <= 0:
+                continue
             grant = by_id.get(grant_id)
             if grant is None:
-                acc.packs.append(_PackGrant(
-                    grant_id=grant_id, remaining=amount,
-                    expires_at=LEGACY_EXPIRY, source="pack"))
+                grant = _PackGrant(
+                    grant_id=grant_id, remaining=0,
+                    expires_at=str(rec.get("expires_at") or LEGACY_EXPIRY),
+                    source=str(rec.get("source") or "pack"),
+                    hold_id=str(rec.get("hold") or ""))
+                acc.packs.append(grant)
+                by_id[grant_id] = grant
+            if grant.hold_id:
+                grant.held += amount       # an open dispute holds these too
+                rec["held"] = grant.held
             else:
                 grant.remaining += amount
         if acc.reserved < 0:
@@ -460,6 +742,19 @@ class Ledger(Protocol):
 
     async def seen(self, payment_id: str) -> bool: ...
 
+    async def expect(self, payment_id: str, units: int, tx: str,
+                     source: str = "pack") -> CreditResult: ...
+
+    async def payment(self, payment_id: str) -> dict[str, Any] | None: ...
+
+    async def refund(self, tx: str, amount: int, amount_refunded: int,
+                     full: bool, now: str = "") -> ReversalResult: ...
+
+    async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult: ...
+
+    async def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                       now: str = "") -> ReversalResult: ...
+
 
 class MemoryLedger:
     """In-process stand-in. One lock, the same serial semantics as the Durable Object."""
@@ -509,6 +804,29 @@ class MemoryLedger:
         async with self._lock:
             return self.state.seen(payment_id)
 
+    async def expect(self, payment_id: str, units: int, tx: str,
+                     source: str = "pack") -> CreditResult:
+        async with self._lock:
+            return self.state.expect(payment_id, units, tx, source)
+
+    async def payment(self, payment_id: str) -> dict[str, Any] | None:
+        async with self._lock:
+            return self.state.payment(payment_id)
+
+    async def refund(self, tx: str, amount: int, amount_refunded: int,
+                     full: bool, now: str = "") -> ReversalResult:
+        async with self._lock:
+            return self.state.refund(tx, amount, amount_refunded, full, now=now)
+
+    async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
+        async with self._lock:
+            return self.state.hold(tx, dispute_id, now=now)
+
+    async def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                       now: str = "") -> ReversalResult:
+        async with self._lock:
+            return self.state.end_hold(tx, dispute_id, restore, now=now)
+
 
 class UnboundLedger:
     """No Durable Object on this deployment. Reads as empty; writes refuse."""
@@ -543,6 +861,24 @@ class UnboundLedger:
 
     async def seen(self, payment_id: str) -> bool:
         return False
+
+    async def expect(self, payment_id: str, units: int, tx: str,
+                     source: str = "pack") -> CreditResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def payment(self, payment_id: str) -> dict[str, Any] | None:
+        return None
+
+    async def refund(self, tx: str, amount: int, amount_refunded: int,
+                     full: bool, now: str = "") -> ReversalResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                       now: str = "") -> ReversalResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
 
 class DurableLedger:
@@ -592,6 +928,33 @@ class DurableLedger:
 
     async def seen(self, payment_id: str) -> bool:
         return bool(await self._stub.seen(payment_id))
+
+    async def expect(self, payment_id: str, units: int, tx: str,
+                     source: str = "pack") -> CreditResult:
+        data = await self._stub.expect(payment_id, int(units), tx, source)
+        return CreditResult.from_json(dict(data))
+
+    async def payment(self, payment_id: str) -> dict[str, Any] | None:
+        data = await self._stub.payment(payment_id)
+        if not data:
+            return None
+        to_py = getattr(data, "to_py", None)
+        return dict(to_py() if callable(to_py) else data)
+
+    async def refund(self, tx: str, amount: int, amount_refunded: int,
+                     full: bool, now: str = "") -> ReversalResult:
+        data = await self._stub.refund(tx, int(amount), int(amount_refunded),
+                                       bool(full), now)
+        return ReversalResult.from_json(dict(data))
+
+    async def hold(self, tx: str, dispute_id: str, now: str = "") -> ReversalResult:
+        data = await self._stub.hold(tx, dispute_id, now)
+        return ReversalResult.from_json(dict(data))
+
+    async def end_hold(self, tx: str, dispute_id: str, restore: bool,
+                       now: str = "") -> ReversalResult:
+        data = await self._stub.end_hold(tx, dispute_id, bool(restore), now)
+        return ReversalResult.from_json(dict(data))
 
 
 def ledger_from_env(env: Any) -> Ledger:

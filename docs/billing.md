@@ -61,6 +61,10 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | `invoice.payment_failed` | **immediate** zero of monthly; key's access row to `billing.downgrade_tier` (`free`). Packs stay |
 | `customer.subscription.deleted` | same as failed payment |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
+| `charge.refunded` | a **pack**: remove the refunded share of its **unspent** credits (`refunded` / `refunded_partially`). Spent credits stay spent. See [Refunds and disputes](#refunds-and-disputes) |
+| `charge.dispute.created` | a **pack**: **hold** its unspent credits while the dispute is open (`held`) |
+| `charge.dispute.closed` | `won` or `warning_closed`: give the held credits back (`restored`). `lost`: forfeit them (`forfeited`). Any other status: stay held (`held_for_review`) |
+| a refund or dispute of a charge no pack claims (a plan invoice, a pack bought before MODEL-106) | `200` `action: unmatched`, with a `review` object naming the charge, PaymentIntent and customer. Nothing changes |
 | anything else | `200` `action: ignored` after the signature checks out |
 
 The webhook never mints a key. A replay of the same `event.id` is `200`
@@ -119,6 +123,10 @@ confirms that session is linked.
   returns `applied_to: existing_key` and `credits added to your key` or
   `plan attached to your key`. The key is not in the body.
 
+A pack refunded (or its dispute lost) in full before anyone claimed it is
+`410 purchase_refunded`: no key is minted. A pack partly refunded before
+claim grants what the refund left.
+
 A second claim is `410 claim_consumed`. A lost key is recovered by rotation,
 not by claiming again. A presented unknown or revoked key on checkout is
 `401`; it is never treated as anonymous.
@@ -138,6 +146,86 @@ and on expiry statuses above: monthly allowance goes to 0. Pack credits
 continue until they expire. A later successful `invoice.paid` SETS monthly
 again on the same key.
 
+## Refunds and disputes
+
+MODEL-106. Found in the live $5 test on 2026-09-23: before this, a refunded or
+charged-back pack kept its credits. `api/worker/src/billing_reversals.py`
+decides; the ledger (`credits.LedgerState.refund`, `hold`, `end_hold`) acts.
+
+**What they act on.** Credits, because credits are the paid entitlement: a key
+gets the paid answer whenever the ledger can reserve the call's weight, and
+the free answer when it cannot, whatever tier its record names. Moving the
+key's tier row alone would not stop a funded key, and zeroing the whole key
+would also take credits from purchases the refund or dispute does not cover.
+So each acts on **the one pack it paid for**, and on nothing else on the key.
+
+**How a charge finds its pack.** A `charge.*` event names a Charge's
+PaymentIntent (`pi_…`), never a Checkout session. A payment-mode Checkout
+Session does name its PaymentIntent, so `checkout.session.completed` now
+records it as the pack's ledger payment claim `tx` (its settlement reference),
+before the key exists if Checkout was anonymous (the claim is then `pending`,
+with no holder, until claim grants it). The refund or dispute finds that claim,
+and the claim's grant wherever the credits now live, rotation included. No new
+ACCESS record kind: the privacy statement lists those, and this needs none.
+
+**A refund** (`charge.refunded`):
+
+- Takes back `ceil(credits × amount_refunded ÷ amount)` of the pack's
+  credits, from what is still unspent on it. Both amounts are the Charge's,
+  tax included. A full refund (`refunded: true`) takes back all of it.
+- **Spent credits are not clawed back.** The outcome reports
+  `credits.removed` and `credits.already_spent` (and `expired`, for a pack past
+  its 12 months). A request in flight during the refund counts as spent; if it
+  then fails, its reserved credits go to the refund, not back to the key.
+- **Partial refunds are proportional, not refused.** The share is measured
+  against the credits the pack was sold with, not against what is left, so
+  refunding the value of the unused balance (terms §6.6: refunds of unused
+  prepaid balance on request) removes exactly the unused credits: 250 unused
+  credits of a 1,250-credit pack are 20 % of the price, and a refund of 20 %
+  removes 250. Rounding is up, so a fraction of a credit never stays with a
+  refunded buyer. A refund of the pre-tax price only is a little under the
+  whole, and leaves the rounding remainder on the key.
+- `amount_refunded` is Stripe's running total, so the share is a target: a
+  second partial refund takes the difference, and a re-sent event takes
+  nothing more.
+- Refunded before claim: claim grants what is left, or answers
+  `410 purchase_refunded` and mints no key if nothing is.
+
+**A dispute** (`charge.dispute.created`, `charge.dispute.closed`):
+
+- Opened: the pack's unspent credits are **held**: not drawable, not removed.
+  Other credits on the key (the monthly allowance, other packs) are
+  untouched. A request in flight that fails returns its credits to the hold.
+- Closed `won`, or `warning_closed` (an inquiry that never became a
+  chargeback; the money never left): the held credits come back, unless the
+  pack expired meanwhile.
+- Closed `lost`: the held credits are forfeited. What was spent before the
+  dispute stays spent.
+- Closed with any other status: the credits stay held and the outcome says
+  `held_for_review`, because holding is the one state that can still be
+  undone by hand.
+- Disputed before claim: claim grants the pack already held.
+
+**Plans are not matched.** A dahlia Charge names no invoice and no
+subscription, and a Dispute names no customer, so nothing this Worker is
+allowed to keep links a plan invoice's charge to a key. Matching one needs a
+customer → subscription (or PaymentIntent → subscription) index: a new ACCESS
+record kind, which the adopted privacy statement does not list, so it is
+Jamie's decision, not this module's. Until then a plan refund or dispute is
+`action: unmatched`, and **refunding a plan means cancelling it**: cancel the
+subscription immediately in the Dashboard with the refund, and
+`customer.subscription.deleted` zeros the monthly allowance at once, as above.
+
+**Idempotent twice over.** The event id is remembered like every other event.
+Underneath, each ledger operation is idempotent on its own: the refund share is
+a target, a hold is keyed by the dispute id, and a closed dispute id is
+remembered on the claim, so neither a KV miss on the event record nor Stripe
+re-sending under a new event id changes a balance twice.
+
+**Purchases before MODEL-106** recorded the Checkout session, not the
+PaymentIntent, as the pack's `tx`. Their refunds are `unmatched`; remove their
+credits by hand if one is refunded.
+
 ## Turning it on
 
 Human steps. This repository does not create Stripe objects and does not call
@@ -156,7 +244,12 @@ Stripe's live API.
    `https://api.modelspec.dev/v1/billing/stripe-webhook`. Events: the table
    above. **Done in test mode** (2026-09-19): destination `modelspec-billing`,
    API version `2026-08-26.dahlia`, snapshot payloads. Copy its **test**
-   signing secret (`whsec_…`).
+   signing secret (`whsec_…`). The full list, which both the live and the
+   sandbox destination must carry (`billing.HANDLED_TYPES`):
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`,
+   `customer.subscription.updated`, and since MODEL-106 `charge.refunded`,
+   `charge.dispute.created`, `charge.dispute.closed`.
 5. API keys: a **restricted** test key with Checkout Sessions write is
    better than `sk_test_…`. Never a live key until Jamie says so.
 6. `npx wrangler secret put STRIPE_SECRET_KEY` and
