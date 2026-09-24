@@ -1,6 +1,6 @@
-"""MODEL-24 part 2: one stylesheet for every page on both sites.
+"""MODEL-24 part 2: one stylesheet for every page.
 
-The landings and the wizard are hand-written HTML. Their colours and fonts were
+The landing and the wizard are hand-written HTML. Their colours and fonts were
 copied in by hand and had drifted from the generated pages, so they now link
 `/instrument.css`, which the build writes from the same constant the generated
 pages inline.
@@ -25,8 +25,6 @@ BUILD = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9,
 
 STATIC_PAGES = {
     "modelspec landing": ROOT / "site/holding/index.html",
-    "benchgraph landing": ROOT / "site/benchgraph/index.html",
-    "benchgraph landing template": ROOT / "site/benchgraph/build/index.tpl.html",
     "wizard": ROOT / "web3d/downselect.v2.html",
     "graph explorer": ROOT / "web3d/explorer.html",
 }
@@ -38,18 +36,17 @@ def _inline_css(page: str) -> str:
 
 # ── one source for the tokens ────────────────────────────────────────────────
 
-def test_instrument_css_is_written_to_both_sites_and_matches_the_inlined_sheet(tmp_path) -> None:
-    ms, bg = tmp_path / "modelspec", tmp_path / "benchgraph"
-    builder._ship_instrument(ROOT, ms, bg)
-    inlined = _inline_css(r.not_found("benchgraph", BUILD, r.BG_NAV, "https://benchgraph.dev/"))
-    for site in (ms, bg):
-        sheet = (site / "instrument.css").read_text(encoding="utf-8")
-        assert sheet == inlined
-        assert "--accent:#f5b342;" in sheet
-        assert '[data-site="benchgraph"]{--accent:#38bdf8}' in sheet
-        assert (site / "fonts" / "archivo-latin.woff2").is_file()
-        assert (site / "fonts" / "jetbrains-mono-latin.woff2").is_file()
-        assert (site / "fonts" / "JetBrainsMono-OFL.txt").is_file()
+def test_instrument_css_matches_the_inlined_sheet(tmp_path) -> None:
+    ms = tmp_path / "modelspec"
+    builder._ship_instrument(ROOT, ms)
+    inlined = _inline_css(r.not_found("ModelSpec", BUILD, r.MS_NAV, "https://modelspec.dev/"))
+    sheet = (ms / "instrument.css").read_text(encoding="utf-8")
+    assert sheet == inlined
+    assert "--accent:#f5b342;" in sheet
+    assert '[data-site="benchgraph"]' not in sheet
+    assert (ms / "fonts" / "archivo-latin.woff2").is_file()
+    assert (ms / "fonts" / "jetbrains-mono-latin.woff2").is_file()
+    assert (ms / "fonts" / "JetBrainsMono-OFL.txt").is_file()
 
 
 def test_the_section_counter_is_scoped_to_the_generated_page_column() -> None:
@@ -93,8 +90,8 @@ def _styles(page: str) -> str:
 
 
 def test_no_static_page_requests_space_grotesk() -> None:
-    """The benchgraph logo's generated SVG still names the face in a presentation
-    attribute. That requests nothing, and the page's CSS outranks it."""
+    """A generated SVG may name a face in a presentation attribute. That
+    requests nothing, and the page's CSS outranks it."""
     for name, path in STATIC_PAGES.items():
         page = path.read_text(encoding="utf-8")
         assert "Space+Grotesk" not in page, name
@@ -122,68 +119,55 @@ def test_static_page_styles_take_every_colour_and_family_from_a_token() -> None:
         assert all(f.strip().startswith("var(--") for f in families), (name, families)
 
 
-def test_the_benchgraph_landing_root_is_marked_as_benchgraph() -> None:
-    for key in ("benchgraph landing", "benchgraph landing template"):
-        page = STATIC_PAGES[key].read_text(encoding="utf-8")
-        assert '<html lang="en" data-site="benchgraph">' in page, key
+_HEADLINE = {"pages": 1200, "scored_benchmarks": 3, "scored_models": 5, "scores": 9000}
 
 
-def test_the_benchgraph_landing_matches_its_template_outside_the_placeholders() -> None:
-    template = STATIC_PAGES["benchgraph landing template"].read_text(encoding="utf-8")
-    page = STATIC_PAGES["benchgraph landing"].read_text(encoding="utf-8")
-    literal = re.split(r"(\{\{[A-Z_]+\}\})", template)
-    pattern = "".join(".*?" if re.fullmatch(r"\{\{[A-Z_]+\}\}", part) else re.escape(part)
-                      for part in literal)
-    assert re.fullmatch(pattern, page, re.S), "index.html has drifted from index.tpl.html"
+def test_benchmark_pages_are_marked_as_modelspec() -> None:
+    page = r.benchmark_page(
+        Benchmark("demo", Path("benchmarks/demo.md"), {"name": "Demo"}, ""),
+        BUILD, Catalogue(as_of=date(2026, 9, 15)), [])
+    catalogue = r.catalogue_page(
+        [], Catalogue(as_of=date(2026, 9, 15)), BUILD, {}, _HEADLINE)
+    for html in (page, catalogue):
+        assert '<html lang="en" data-site="modelspec">' in html
+        assert "https://benchgraph.dev" not in html
+        assert 'href="/benchmarks/"' in html
+    assert 'rel="canonical" href="https://modelspec.dev/b/demo/"' in page
+    assert 'rel="canonical" href="https://modelspec.dev/benchmarks/"' in catalogue
 
 
-def _today(page: str) -> str:
-    match = re.search(r'<p class="today">.*?</p>', page)
-    assert match, "landing has no p.today"
-    return match.group(0)
+def test_there_is_no_separate_benchgraph_landing() -> None:
+    assert not (ROOT / "site/benchgraph").exists()
+    src = (ROOT / "pipeline/build.py").read_text(encoding="utf-8")
+    assert "site/benchgraph" not in src
+    assert "wire_benchgraph_landing" not in src
+    assert "from PIL" not in src
 
 
-def test_the_benchgraph_landing_does_not_hardcode_headline_counts() -> None:
+def test_the_catalogue_headline_does_not_hardcode_counts() -> None:
     """Baked 164/549/10,887 read as the page count and went stale in git."""
-    for key in ("benchgraph landing", "benchgraph landing template"):
-        today = _today(STATIC_PAGES[key].read_text(encoding="utf-8"))
-        assert "{{N_PAGES}}" in today and "{{N_BENCH}}" in today, key
-        assert "{{N_MODELS}}" in today and "{{N_SCORES}}" in today, key
-        assert "benchmark pages" in today and "benchmarks with reported scores" in today, key
-        assert re.search(r"\d", today) is None, key
+    html = r.catalogue_headline(_HEADLINE)
+    assert "benchmark pages" in html and "benchmarks with reported scores" in html
+    assert "<b>1,200</b>" in html and "<b>3</b>" in html
+    assert "164" not in html and "549" not in html and "10,887" not in html
+    assert "{{N_PAGES}}" not in html and "{{N_BENCH}}" not in html
 
 
-def test_benchgraph_landing_statistics_come_from_the_build() -> None:
-    html = builder.wire_benchgraph_landing(
-        '<p class="today">Today the graph holds <b>164</b> benchmarks across '
-        '<b>549</b> scored models, <b>10,887</b> scores in all, each carrying '
-        "the date it was taken.</p>",
-        {"pages": 1200, "scored_benchmarks": 3, "scored_models": 5, "scores": 9000},
-    )
+def test_catalogue_headline_statistics_come_from_the_build() -> None:
+    html = r.catalogue_headline(_HEADLINE)
     assert html == (
         '<p class="today">Today the graph holds <b>1,200</b> benchmark pages and '
         '<b>3</b> benchmarks with reported scores, across <b>5</b> scored models, '
         '<b>9,000</b> scores in all, each carrying the date it was taken.</p>'
     )
-    assert "164" not in html and "549" not in html and "10,887" not in html
 
 
-def test_a_benchgraph_landing_that_lost_its_today_line_fails_the_build() -> None:
-    try:
-        builder.wire_benchgraph_landing("<body>no figures</body>", {
-            "pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1})
-    except ValueError as err:
-        assert "p.today" in str(err)
-    else:
-        raise AssertionError("a landing without p.today must not build")
-
-
-def test_benchgraph_asset_script_does_not_import_pillow_until_png() -> None:
-    src = (ROOT / "site/benchgraph/build/build.py").read_text(encoding="utf-8")
-    before, sep, _after = src.partition("def write_png_assets")
-    assert sep, "PNG rendering must live in write_png_assets"
-    assert "PIL" not in before
-    assert "from PIL import" in _after
+def test_the_catalogue_page_carries_the_build_headline() -> None:
+    html = r.catalogue_page(
+        [], Catalogue(as_of=date(2026, 9, 15)), BUILD, {}, _HEADLINE)
+    assert html.index('<p class="today">') < html.index("<h2>")
+    assert "<b>1,200</b> benchmark pages" in html
+    assert "<b>9,000</b>" in html
 
 
 # ── the landing's calls to action ────────────────────────────────────────────
@@ -257,8 +241,7 @@ def test_a_page_with_no_long_facts_has_no_notes_section() -> None:
 
 # ── one nav per site ─────────────────────────────────────────────────────────
 
-STATIC_NAV_PAGES = ("site/holding/index.html", "site/benchgraph/build/index.tpl.html",
-                    "site/benchgraph/index.html", "web3d/downselect.v2.html",
+STATIC_NAV_PAGES = ("site/holding/index.html", "web3d/downselect.v2.html",
                     "web3d/explorer.html")
 
 
@@ -271,17 +254,16 @@ def test_static_pages_hold_the_placeholder_and_no_nav_of_their_own() -> None:
 
 def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
     build = Build(commit="abc", built_at="2026-09-18T00:00:00Z", as_of=date(2026, 9, 18))
-    for site, links in (("ModelSpec", r.MS_NAV), ("benchgraph", r.BG_NAV)):
-        page = r.shell(title="t", description="d", canonical="https://x/", body="",
-                       build=build, site=site, nav_links=links)
-        assert r.site_nav(site, links) in page
+    page = r.shell(title="t", description="d", canonical="https://x/", body="",
+                   build=build, site="ModelSpec", nav_links=r.MS_NAV)
+    assert r.site_nav("ModelSpec", r.MS_NAV) in page
     filled = builder.with_site_nav(f"<body>{r.NAV_PLACEHOLDER}</body>",
                                    r.site_nav("ModelSpec", r.MS_NAV), "landing")
     assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
                       '<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
                       '<a href="/pricing/">Pricing</a>'
-                      '<a href="https://benchgraph.dev/benchmarks/">Benchmarks</a>'
+                      '<a href="/benchmarks/">Benchmarks</a>'
                       '<a href="/api/index.json">API</a></div></nav></body>')
 
 

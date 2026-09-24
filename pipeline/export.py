@@ -146,9 +146,8 @@ def benchmark_summary(bench: Benchmark, catalogue: Catalogue, covered: int) -> d
     }
 
 
-#: What a given site's API actually needs. modelspec.dev links out to
-#: benchgraph.dev for benchmark detail and vice versa, so shipping both full
-#: sets into both trees would double the deployment for no reader.
+#: Every part is published in the modelspec.dev tree. benchgraph.dev only
+#: redirects, so there is one copy of the export.
 PARTS_ALL = ("index", "models", "catalogue", "benchmarks")
 
 

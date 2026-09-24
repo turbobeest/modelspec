@@ -298,12 +298,13 @@ def test_verified_is_green_and_unverified_legacy_is_amber() -> None:
     assert _TOKENS["good"].lower() != _TOKENS["warn"].lower()
 
 
-def test_the_accent_is_one_token_and_benchgraph_reassigns_it() -> None:
+def test_the_accent_is_one_token() -> None:
     declarations = re.findall(r"--accent:(#[0-9a-fA-F]{6})", CSS)
-    assert len(declarations) == 2, "accent is declared once per site, nowhere else"
-    assert '[data-site="benchgraph"]' in CSS
-    body = CSS.split("[data-site=", 1)[1]
-    assert "#f5b342" not in body.split("}", 1)[1], "no literal amber outside the tokens"
+    assert declarations == ["#f5b342"]
+    assert '[data-site="benchgraph"]' not in CSS
+    root = re.search(r":root\{([^}]*)\}", CSS)
+    assert root is not None
+    assert "#f5b342" not in CSS[root.end():], "no literal amber outside the tokens"
 
 
 def test_the_sheet_has_no_rounded_corners() -> None:

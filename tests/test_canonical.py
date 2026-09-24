@@ -44,9 +44,6 @@ def test_rendered_404_has_no_canonical_and_is_noindex() -> None:
     assert CANONICAL.search(html) is None
     assert 'property="og:url"' not in html
     assert "noindex" in _robots_tokens(html)
-    html = r.not_found("benchgraph", BUILD, r.BG_NAV, "https://benchgraph.dev/")
-    assert CANONICAL.search(html) is None
-    assert "noindex" in _robots_tokens(html)
 
 
 @pytest.fixture(scope="module")
@@ -58,10 +55,10 @@ def dist(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def test_built_404_html_has_no_canonical_and_is_noindex(dist: Path) -> None:
-    for site in ("modelspec", "benchgraph"):
-        html = (dist / site / "404.html").read_text(encoding="utf-8")
-        assert CANONICAL.search(html) is None, site
-        assert "noindex" in _robots_tokens(html), site
+    html = (dist / "modelspec" / "404.html").read_text(encoding="utf-8")
+    assert CANONICAL.search(html) is None
+    assert "noindex" in _robots_tokens(html)
+    assert not (dist / "benchgraph" / "404.html").exists()
 
 
 def test_built_sample_pages_canonical_is_own_url(dist: Path) -> None:
@@ -70,8 +67,8 @@ def test_built_sample_pages_canonical_is_own_url(dist: Path) -> None:
          sorted((dist / "modelspec" / "m").glob("*/*/index.html"))[:5]),
         ("https://modelspec.dev", dist / "modelspec",
          sorted((dist / "modelspec" / "p").glob("*/index.html"))[:5]),
-        ("https://benchgraph.dev", dist / "benchgraph",
-         sorted((dist / "benchgraph" / "b").glob("*/index.html"))[:5]),
+        ("https://modelspec.dev", dist / "modelspec",
+         sorted((dist / "modelspec" / "b").glob("*/index.html"))[:5]),
     )
     for origin, root, pages in samples:
         assert len(pages) == 5, origin

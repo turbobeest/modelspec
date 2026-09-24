@@ -2,7 +2,7 @@
 
 A one-line 143 KiB modelspec sitemap was well-formed XML and identical to
 the built file, and Search Console still reported "could not be read".
-The 100 KiB one-line benchgraph sitemap on the same generator succeeded.
+The same generator's one-line catalogue sitemap, about 100 KiB, succeeded.
 Pretty-printing keeps every line far under a 128 KiB cap.
 """
 

@@ -1,4 +1,4 @@
-"""Agent-readiness files for the two static Pages trees (MODEL-94).
+"""Agent-readiness files for the modelspec.dev tree (MODEL-94).
 
 Called once from `pipeline.build.main` after the pages exist. Adds robots
 Content-Signals, favicon.ico, Markdown twins, well-known discovery documents,
@@ -24,7 +24,6 @@ from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
 LLMS_FULL_CAP = 1_048_576
 
 MS_BASE = "https://modelspec.dev"
-BG_BASE = "https://benchgraph.dev"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 POLICY_API = "https://api.modelspec.dev/v1/policy-check"
 HEALTH_API = "https://api.modelspec.dev/v1/health"
@@ -359,7 +358,7 @@ def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
         f"- name: {bench.name}",
         f"- summary: {_fmt(bench.summary or None)}",
         f"- catalogue_status: {disposition.status}",
-        f"- page: {BG_BASE}/b/{bench.benchmark_id}/",
+        f"- page: {MS_BASE}/b/{bench.benchmark_id}/",
         "",
         "Null means not researched or not published, never a guess.",
         "",
@@ -429,22 +428,6 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
     )
 
 
-def benchgraph_landing_markdown(benchmarks: list[Benchmark], build: Build) -> str:
-    return (
-        f"# benchgraph\n\n"
-        f"> {BG_BASE}\n\n"
-        f"Open graph of AI benchmarks. Null means not researched.\n\n"
-        f"- benchmarks: {len(benchmarks)}\n"
-        f"- built: {build.built_at}\n"
-        f"- commit: {build.commit}\n"
-        f"- eligibility_as_of: {build.as_of.isoformat()}\n"
-        f"- html: {BG_BASE}/\n"
-        f"- json: {BG_BASE}/api/catalogue.json\n"
-        f"- llms: {BG_BASE}/llms.txt\n"
-        f"- llms-full: {BG_BASE}/llms-full.txt\n"
-    )
-
-
 def model_jsonld(model: Model) -> dict[str, Any]:
     """SoftwareApplication from card fields that exist. No ratings."""
     front = model.front if isinstance(model.front, dict) else {}
@@ -478,7 +461,7 @@ def benchmark_jsonld(bench: Benchmark, catalogue: Catalogue) -> dict[str, Any]:
         "@type": "Dataset",
         "name": bench.name,
         "identifier": bench.benchmark_id,
-        "url": f"{BG_BASE}/b/{bench.benchmark_id}/",
+        "url": f"{MS_BASE}/b/{bench.benchmark_id}/",
     }
     if bench.summary:
         data["description"] = bench.summary
@@ -528,23 +511,6 @@ def modelspec_landing_jsonld(models: list[Model], benchmarks: list[Benchmark]) -
             "codeRepository": "https://github.com/turbobeest/modelspec",
         },
     ]
-
-
-def benchgraph_landing_jsonld(benchmarks: list[Benchmark]) -> dict[str, Any]:
-    return {
-        "@context": "https://schema.org",
-        "@type": "Dataset",
-        "name": "benchgraph",
-        "url": f"{BG_BASE}/",
-        "description": (
-            f"{len(benchmarks)} AI benchmark pages as a graph. "
-            "Null means not researched."
-        ),
-        "license": "https://creativecommons.org/licenses/by-sa/4.0/",
-        "creator": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
-        "isAccessibleForFree": True,
-        "isPartOf": {"@type": "WebSite", "name": "ModelSpec", "url": f"{MS_BASE}/"},
-    }
 
 
 def api_catalog() -> dict[str, Any]:
@@ -814,7 +780,7 @@ def _catalogue_digest(title: str, blocks: Iterable[str], *, cap: int,
     return body, {"bytes": size, "cap": cap, "included": included, "omitted": omitted}
 
 
-def llms_full_models(models: Iterable[Model], *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
+def _model_blocks(models: Iterable[Model]) -> list[str]:
     blocks = []
     for model in models:
         facts = model_facts(model)
@@ -829,11 +795,10 @@ def llms_full_models(models: Iterable[Model], *, cap: int = LLMS_FULL_CAP) -> tu
             f"commercial_use: {_fmt(facts['commercial_use'])}\n"
             f"url: {facts['url']}\n"
         )
-    return _catalogue_digest("ModelSpec catalogue digest", blocks, cap=cap, unit="models")
+    return blocks
 
 
-def llms_full_benchmarks(benchmarks: Iterable[Benchmark], catalogue: Catalogue,
-                         *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
+def _benchmark_blocks(benchmarks: Iterable[Benchmark], catalogue: Catalogue) -> list[str]:
     blocks = []
     for bench in benchmarks:
         status = catalogue.for_benchmark(bench.benchmark_id).status
@@ -843,9 +808,27 @@ def llms_full_benchmarks(benchmarks: Iterable[Benchmark], catalogue: Catalogue,
             f"name: {bench.name}\n"
             f"category: {_fmt(category)}\n"
             f"status: {status}\n"
-            f"url: {BG_BASE}/b/{bench.benchmark_id}/\n"
+            f"url: {MS_BASE}/b/{bench.benchmark_id}/\n"
         )
-    return _catalogue_digest("benchgraph catalogue digest", blocks, cap=cap, unit="benchmarks")
+    return blocks
+
+
+def llms_full_models(models: Iterable[Model], *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
+    return _catalogue_digest("ModelSpec catalogue digest", _model_blocks(models), cap=cap, unit="models")
+
+
+def llms_full_benchmarks(benchmarks: Iterable[Benchmark], catalogue: Catalogue,
+                         *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
+    return _catalogue_digest(
+        "Benchmark catalogue digest", _benchmark_blocks(benchmarks, catalogue),
+        cap=cap, unit="benchmarks")
+
+
+def llms_full(models: Iterable[Model], benchmarks: Iterable[Benchmark], catalogue: Catalogue,
+              *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
+    """One digest: model cards, then benchmark pages, under the same cap."""
+    blocks = _model_blocks(models) + _benchmark_blocks(benchmarks, catalogue)
+    return _catalogue_digest("ModelSpec catalogue digest", blocks, cap=cap, unit="records")
 
 
 def _write_favicon(tree: Path) -> int:
@@ -893,18 +876,14 @@ def _write_md(path: Path, text: str) -> int:
     return len(data.encode("utf-8"))
 
 
-def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
+def ship(*, root: Path, ms: Path, models: list[Model],
          benchmarks: list[Benchmark], catalogue: Catalogue, build: Build,
-         by_provider: dict[str, list[Model]], coverage: dict | None = None) -> dict[str, Any]:
-    """Write every MODEL-94 artifact into the two built trees."""
-    del coverage
+         by_provider: dict[str, list[Model]]) -> dict[str, Any]:
+    """Write every MODEL-94 artifact into the modelspec.dev tree."""
     ms_fav = _write_favicon(ms)
-    bg_fav = _write_favicon(bg)
     _copy_functions(root, ms)
-    _copy_functions(root, bg)
 
     (ms / "robots.txt").write_text(robots_txt(MS_BASE), encoding="utf-8")
-    (bg / "robots.txt").write_text(robots_txt(BG_BASE), encoding="utf-8")
 
     openapi_src = root / "api" / "worker" / "openapi.yaml"
     if openapi_src.is_file():
@@ -930,7 +909,6 @@ def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
 
     md_count = 0
     md_count += 1 if _write_md(ms / "index.md", modelspec_landing_markdown(models, benchmarks, build)) else 0
-    md_count += 1 if _write_md(bg / "index.md", benchgraph_landing_markdown(benchmarks, build)) else 0
     for model in models:
         _write_md(ms / "m" / model.model_id / "index.md", model_markdown(model))
         md_count += 1
@@ -938,7 +916,7 @@ def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
         _write_md(ms / "p" / slug / "index.md", provider_markdown(slug, group))
         md_count += 1
     for bench in benchmarks:
-        _write_md(bg / "b" / bench.benchmark_id / "index.md",
+        _write_md(ms / "b" / bench.benchmark_id / "index.md",
                   benchmark_markdown(bench, catalogue))
         md_count += 1
 
@@ -947,12 +925,6 @@ def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
         ms_index.write_text(
             _insert_head(ms_index.read_text(encoding="utf-8"),
                          _head_for("/index.md", modelspec_landing_jsonld(models, benchmarks))),
-            encoding="utf-8")
-    bg_index = bg / "index.html"
-    if bg_index.is_file():
-        bg_index.write_text(
-            _insert_head(bg_index.read_text(encoding="utf-8"),
-                         _head_for("/index.md", benchgraph_landing_jsonld(benchmarks))),
             encoding="utf-8")
     for model in models:
         page = ms / "m" / model.model_id / "index.html"
@@ -969,7 +941,7 @@ def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
                              _head_for(f"/p/{slug}/index.md")),
                 encoding="utf-8")
     for bench in benchmarks:
-        page = bg / "b" / bench.benchmark_id / "index.html"
+        page = ms / "b" / bench.benchmark_id / "index.html"
         if page.is_file():
             page.write_text(
                 _insert_head(page.read_text(encoding="utf-8"),
@@ -977,27 +949,24 @@ def ship(*, root: Path, ms: Path, bg: Path, models: list[Model],
                                        benchmark_jsonld(bench, catalogue))),
                 encoding="utf-8")
 
-    ms_full, ms_full_stats = llms_full_models(models)
-    (ms / "llms-full.txt").write_text(ms_full, encoding="utf-8")
-    bg_full, bg_full_stats = llms_full_benchmarks(benchmarks, catalogue)
-    (bg / "llms-full.txt").write_text(bg_full, encoding="utf-8")
+    full, full_stats = llms_full(models, benchmarks, catalogue)
+    (ms / "llms-full.txt").write_text(full, encoding="utf-8")
 
-    for tree, extra in (
-        (ms, f"- Catalogue digest: {MS_BASE}/llms-full.txt\n"
-             f"- Auth: {MS_BASE}/auth.md\n"
-             f"- MCP card: {MS_BASE}/.well-known/mcp.json\n"),
-        (bg, f"- Catalogue digest: {BG_BASE}/llms-full.txt\n"),
-    ):
-        llms = tree / "llms.txt"
-        if llms.is_file():
-            text = llms.read_text(encoding="utf-8")
-            if extra.strip() not in text:
-                llms.write_text(text.rstrip() + "\n" + extra, encoding="utf-8")
+    extra = (
+        f"- Catalogue digest: {MS_BASE}/llms-full.txt\n"
+        f"- Auth: {MS_BASE}/auth.md\n"
+        f"- MCP card: {MS_BASE}/.well-known/mcp.json\n"
+    )
+    llms = ms / "llms.txt"
+    if llms.is_file():
+        text = llms.read_text(encoding="utf-8")
+        if extra.strip() not in text:
+            llms.write_text(text.rstrip() + "\n" + extra, encoding="utf-8")
 
     return {
         "markdown_pages": md_count,
-        "favicon_bytes": {"modelspec": ms_fav, "benchgraph": bg_fav},
-        "llms_full": {"modelspec": ms_full_stats, "benchgraph": bg_full_stats},
+        "favicon_bytes": ms_fav,
+        "llms_full": full_stats,
         "skill_bytes": len(skill_bytes),
         "openapi_published": (ms / "openapi.yaml").is_file(),
     }

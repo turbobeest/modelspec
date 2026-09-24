@@ -1,8 +1,9 @@
 """Holding mode: the product pages dark, the data still up (Jamie, 2026-09-24).
 
-One real build (what `pipeline.build` publishes, and what production gets when
-`SITE_MODE=live`), and the holding trees `pipeline.holding` derives from it
-(what production gets otherwise, including when the variable is unset).
+One real build (what `pipeline.build` publishes, and what modelspec production
+gets when `SITE_MODE=live`), and the modelspec holding tree `pipeline.holding`
+derives from it (what modelspec production gets otherwise, including when the
+variable is unset). benchgraph.dev is the same redirect file in both.
 """
 
 from __future__ import annotations
@@ -98,6 +99,15 @@ def test_the_holding_trees_are_dark(trees):
                      "m", "p", "b", "models", "providers", "benchmarks", "downselect",
                      "graph", "pricing", "instrument.css"):
             assert not (tree / gone).exists(), (site, gone)
+    real = trees["real"] / "benchgraph"
+    held = trees["holding"] / "benchgraph"
+    assert _files(held) == _files(real)
+    assert list(_files(held)) == ["_redirects"]
+    assert (held / "_redirects").read_text(encoding="utf-8") == builder.BENCHGRAPH_REDIRECTS
+    ms = trees["holding"] / "modelspec"
+    assert (ms / "api" / "catalogue.json").is_file()
+    assert any((ms / "api" / "benchmarks").glob("*.json"))
+    assert not (ms / "b").exists()
 
 
 def test_the_holding_page(trees):
@@ -158,7 +168,9 @@ def test_no_model_name_or_score_leaks_into_any_page_or_text_file(trees):
                 # No scores, no counts, no ranks: no digits at all.
                 assert not re.search(r"\d", text), (site, rel)
             checked += 1
-    assert checked >= 11
+    # index, 404, _headers, robots, openapi.yaml, and the three legal pages.
+    # benchgraph's holding page is gone, so it no longer adds files here.
+    assert checked >= 8
 
 
 # ── what stays exactly as the real site publishes it ─────────────────────────
@@ -193,23 +205,56 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     # MCP `model_info` reads /api/models/<provider>/<slug>.json for any card.
     for model in load_models(ROOT)[:25]:
         assert (ms / "api" / "models" / f"{model.model_id}.json").is_file(), model.model_id
-    assert (trees["holding"] / "benchgraph" / "api" / "catalogue.json").is_file()
+    assert (ms / "api" / "catalogue.json").is_file()
+    assert any((ms / "api" / "benchmarks").glob("*.json"))
 
 
 # ── SITE_MODE=live: today's site ─────────────────────────────────────────────
 
 def test_live_production_is_the_real_build_unchanged(trees):
-    """Live mode deploys `dist`, which `pipeline.build` writes exactly as before
-    this change; holding mode only ever reads it."""
+    """Live mode deploys `dist`. Holding mode only reads it."""
     ms, bg = trees["real"] / "modelspec", trees["real"] / "benchgraph"
     assert len(list((ms / "m").glob("*/*/index.html"))) == len(load_models(ROOT))
     for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
                 ".well-known/mcp.json", "openapi.yaml", "auth.md", "pricing/index.html",
                 "downselect/index.html", "graph/index.html", "models/index.html"):
         assert (ms / rel).is_file(), rel
-    for rel in ("sitemap.xml", "llms.txt", "benchmarks/index.html"):
-        assert (bg / rel).is_file(), rel
-    for tree in (ms, bg):
-        assert "in preparation" not in (tree / "index.html").read_text(encoding="utf-8")
-        assert "X-Robots-Tag" not in (tree / "_headers").read_text(encoding="utf-8")
-        assert "Sitemap:" in (tree / "robots.txt").read_text(encoding="utf-8")
+    files = sorted(path.relative_to(bg).as_posix() for path in bg.rglob("*") if path.is_file())
+    assert files == ["_redirects"]
+    assert (bg / "_redirects").read_text(encoding="utf-8") == builder.BENCHGRAPH_REDIRECTS
+    assert "in preparation" not in (ms / "index.html").read_text(encoding="utf-8")
+    assert "X-Robots-Tag" not in (ms / "_headers").read_text(encoding="utf-8")
+    assert "Sitemap:" in (ms / "robots.txt").read_text(encoding="utf-8")
+
+
+def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
+    src = tmp_path / "src"
+    ms = src / "modelspec"
+    for rel in ("api", "legal", "fonts"):
+        (ms / rel).mkdir(parents=True)
+    (ms / "index.html").write_text("real", encoding="utf-8")
+    bg = src / "benchgraph"
+    bg.mkdir()
+    (bg / "_redirects").write_text(builder.BENCHGRAPH_REDIRECTS, encoding="utf-8")
+    out = tmp_path / "out"
+    assert holding.main(["build", "--src", str(src), "--out", str(out)]) == 0
+    assert (out / "benchgraph" / "_redirects").read_bytes() == (bg / "_redirects").read_bytes()
+    assert list(_files(out / "benchgraph")) == ["_redirects"]
+    assert holding.violations(out / "modelspec", "modelspec") == []
+    assert not (out / "modelspec" / "b").exists()
+
+
+def test_benchgraph_holding_rejects_anything_but_the_redirect(tmp_path):
+    src = tmp_path / "src"
+    real = src / "benchgraph"
+    real.mkdir(parents=True)
+    (real / "index.html").write_text("page", encoding="utf-8")
+    with pytest.raises(ValueError):
+        holding.build(src, tmp_path / "out-extra")
+    (real / "index.html").unlink()
+    (real / "_redirects").write_text("/   https://example.test/  301\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        holding.build(src, tmp_path / "out-wrong")
+    shutil.rmtree(real)
+    with pytest.raises(FileNotFoundError):
+        holding.build(src, tmp_path / "out-missing")
