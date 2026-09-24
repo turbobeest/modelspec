@@ -98,6 +98,10 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice L"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: engineering_stem, directness: direct}
+  - {id: maths, directness: proxy}
+  - {id: agentic_tool_use, directness: proxy}
 ---
 
 Part of the [Humanity's Last Exam](hle.md) family.

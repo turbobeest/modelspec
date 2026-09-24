@@ -104,6 +104,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice C"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: software_engineering, directness: direct}
 ---
 
 ## What it measures

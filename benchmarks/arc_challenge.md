@@ -94,6 +94,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice F"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: reasoning, directness: proxy}
+  - {id: engineering_stem, directness: proxy}
 ---
 
 ## What it measures

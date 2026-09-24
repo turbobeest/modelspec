@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from schema.enums import BenchmarkCategory
 
@@ -91,6 +91,21 @@ class Source(BaseModel):
         return v
 
 
+class DomainTag(BaseModel):
+    """One domain a benchmark measures, and how directly (MODEL-133).
+
+    `id` names a domain in `registry/domains.yaml`; `tests/test_decision_registry.py`
+    checks every tag against it. `direct`: the benchmark's tasks are instances of
+    the domain. `proxy`: correlated with it, a slice of it, or preference rather
+    than correctness. An absent tag means "not tagged", never "no domain".
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    directness: Literal["direct", "proxy"]
+
+
 class Freshness(BaseModel):
     researched: str = ""                 # YYYY-MM-DD
     researched_by: str = ""              # "sonnet-5 agent, batch 1"
@@ -122,6 +137,8 @@ class BenchmarkCard(BaseModel):
     contamination: Contamination = Contamination()
     harness: Harness = Harness()
     tags: list[str] = Field(default_factory=list)
+    #: Optional and additive: pages without it still load (MODEL-133).
+    domains: list[DomainTag] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
     freshness: Freshness = Freshness()
 
@@ -130,6 +147,15 @@ class BenchmarkCard(BaseModel):
     def _id(cls, v: str) -> str:
         if not ID_RE.match(v):
             raise ValueError("id must be snake_case: lowercase letters, digits, underscores")
+        return v
+
+    @field_validator("domains")
+    @classmethod
+    def _one_tag_per_domain(cls, v: list[DomainTag]) -> list[DomainTag]:
+        ids = [tag.id for tag in v]
+        repeated = sorted({i for i in ids if ids.count(i) > 1})
+        if repeated:
+            raise ValueError(f"a domain may be tagged once per page: {', '.join(repeated)}")
         return v
 
     @field_validator("summary")

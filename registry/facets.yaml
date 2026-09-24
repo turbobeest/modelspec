@@ -1,0 +1,732 @@
+# The facet registry (MODEL-133; design §4.1 and §8).
+#
+# A facet is something a spec can constrain or optimise. Adding one is an entry
+# here plus data; the engine reads this file and has no facet list of its own.
+# Loader and validation: decision/registry.py.
+#
+# Entry fields
+#   id                      dotted snake_case, unique
+#   subject                 model | offering | evidence
+#   value_type.kind         number | enum | boolean | date | set | range
+#     number, range         need `unit` (one of `units` below). `unbounded: true`
+#                           lets a known value be the literal `unbounded`
+#                           (for example a licence with no user cap), and
+#                           `not_offered: true` the literal `not_offered` (for
+#                           example a provider with no batch interface).
+#     enum, set             need `values` or `values_from` (a named list the
+#                           loader knows, such as `registry:providers`).
+#   parameter               optional: the facet is a family, one per value of a
+#                           named list (for example one estimate per domain).
+#   definition              exact. Says what a value means and what it does not.
+#   tier                    guaranteed | best_effort (design §8, G and B)
+#   risk                    capability | governance. Sets the default unknown
+#                           policy: capability -> may_qualify,
+#                           governance -> not_satisfied.
+#   permitted_source_kinds  ids from `source_kinds` below
+#   unit                    id from `units` below, where applicable
+#   required_qualifiers     optional: qualifiers every fact must carry
+#   computed_by             optional: the ticket whose build step produces the
+#                           value. Such facets are never authored on a card.
+#
+# A fact's state (known, unknown, not_disclosed, requires_contract) is separate
+# from its value and is not declared here.
+
+schema_version: 1
+
+units:
+  - id: usd_per_1m_tokens
+    definition: >-
+      United States dollars per 1,000,000 tokens, at the provider's list price
+      for the offering, before discounts, credits or committed-use pricing.
+      Tokens are counted by the provider's own tokenizer for that model.
+  - id: tokens
+    definition: >-
+      Tokens as counted by the model's own tokenizer, as documented by its lab.
+      Not words, characters or another model's tokens.
+  - id: tokens_per_second
+    definition: >-
+      Output tokens generated per second of wall-clock time, measured from the
+      first output token to the last, for a single request.
+  - id: milliseconds
+    definition: >-
+      Milliseconds of wall-clock time.
+  - id: parameters
+    definition: >-
+      A count of trainable weights (not billions; 7e9 is written 7000000000).
+  - id: days
+    definition: >-
+      Calendar days.
+  - id: requests_per_minute
+    definition: >-
+      Requests accepted per 60-second window for one account at the tier the
+      offering names, before any limit increase negotiated by contract.
+  - id: tokens_per_minute
+    definition: >-
+      Tokens (input plus output unless the provider states otherwise, in which
+      case the fact's qualifiers say so) accepted per 60-second window for one
+      account at the tier the offering names.
+  - id: percent
+    definition: >-
+      A percentage from 0 to 100.
+  - id: monthly_active_users
+    definition: >-
+      Distinct end users in a calendar month, as the licence itself defines the
+      count.
+  - id: benchmark_metric
+    definition: >-
+      The unit declared by the benchmark page's `metric.unit` for the benchmark
+      version the evidence names. Evidence on different benchmarks is never
+      compared in this unit.
+  - id: capability_scale
+    definition: >-
+      The latent scale of the capability model (MODEL-129). Values are
+      comparable within one domain and one snapshot only.
+
+source_kinds:
+  - id: lab_documentation
+    definition: >-
+      A model card, system card, technical report or API reference published by
+      the lab that trained the model.
+  - id: lab_announcement
+    definition: >-
+      A release post or changelog entry published by the lab that trained the
+      model.
+  - id: licence_text
+    definition: >-
+      The licence or terms of use under which the model's weights or outputs are
+      made available, as published by the licensor.
+  - id: weights_repository
+    definition: >-
+      Configuration and metadata files published alongside the weights by the
+      lab or its designated repository (for example a model repository's config).
+  - id: provider_documentation
+    definition: >-
+      A model page, pricing page, rate-limit page or API reference published by
+      the provider that sells the offering.
+  - id: provider_terms
+    definition: >-
+      The provider's service terms, data processing addendum or product-specific
+      terms that govern the offering.
+  - id: provider_trust_center
+    definition: >-
+      The provider's own page listing its certifications, attestations and
+      audit reports.
+  - id: official_registry
+    definition: >-
+      A register kept by the body that grants a status, such as an
+      authorization marketplace or a company register.
+  - id: benchmark_author
+    definition: >-
+      Results published by the authors or maintainers of the benchmark.
+  - id: independent_evaluator
+    definition: >-
+      Results published by an evaluator that is neither the benchmark's authors
+      nor the lab or provider being measured.
+  - id: provider_self_report
+    definition: >-
+      Results published by the lab or provider about its own model or offering.
+      Legitimate, and always distinguishable from independent evidence.
+  - id: modelspec_measurement
+    definition: >-
+      A measurement ModelSpec ran itself under a published method (ADR 0004).
+  - id: outcome_protocol
+    definition: >-
+      Aggregated outcome records reported through the outcome protocol (design
+      §9).
+  - id: modelspec_estimate
+    definition: >-
+      A value ModelSpec computes from other verified facts and evidence, such as
+      a hardware fit or a capability estimate. Labelled as an estimate.
+
+facets:
+  # ── Model: class, modalities, context ─────────────────────────────────────
+  - id: model.class
+    subject: model
+    value_type: {kind: enum, values_from: model_classes}
+    definition: >-
+      The model's class as derived from its model type by `api/classes.py`:
+      what it consumes, what it emits and what decision it makes. One value per
+      model. Class is derived, not authored, and says nothing about quality.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
+  - id: model.input_modalities
+    subject: model
+    value_type: {kind: set, values: [text, image, audio, video, document, structured]}
+    definition: >-
+      Every modality the model accepts as input natively, without a separate
+      model transcribing or captioning it first. `document` means files such as
+      PDF read as documents, not text extracted by the caller.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
+  - id: model.output_modalities
+    subject: model
+    value_type: {kind: set, values: [text, image, audio, video, embedding, score, label, action]}
+    definition: >-
+      Every modality the model emits natively. `embedding` is a vector,
+      `score` a relevance or reward number, `label` a class from a fixed or
+      caller-defined set, and `action` a tool or environment action.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
+  - id: model.context_window
+    subject: model
+    value_type: {kind: number}
+    unit: tokens
+    definition: >-
+      The maximum number of tokens the model accepts in one request, input and
+      output together, as documented by its lab for its largest supported
+      configuration. A provider that serves a smaller window records that on the
+      offering, not here.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
+  - id: model.max_output_tokens
+    subject: model
+    value_type: {kind: number}
+    unit: tokens
+    definition: >-
+      The maximum number of tokens the model can emit in one response,
+      including any reasoning tokens the lab counts against the limit, as
+      documented by its lab.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement]
+
+  # ── Model: weights, parameters, architecture ──────────────────────────────
+  - id: model.weights_openness
+    subject: model
+    value_type: {kind: enum, values: [open_weights, closed_weights]}
+    definition: >-
+      `open_weights` when the lab publishes the trained weights for download
+      under any licence, including a gated or restrictive one; `closed_weights`
+      otherwise. Says nothing about the licence terms, which are the `licence.*`
+      facets.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository, licence_text]
+  - id: model.parameters_total
+    subject: model
+    value_type: {kind: number}
+    unit: parameters
+    definition: >-
+      The total number of parameters in the released model, counting every
+      expert of a mixture-of-experts model. `not_disclosed` is a state of the
+      fact, never an estimate.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+  - id: model.parameters_active
+    subject: model
+    value_type: {kind: number}
+    unit: parameters
+    definition: >-
+      The number of parameters used to process one token. Equal to the total
+      for a dense model; for a mixture-of-experts model, as the lab documents
+      it.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+  - id: model.architecture
+    subject: model
+    value_type: {kind: enum, values_from: architecture_types}
+    definition: >-
+      The model's architecture family as `ArchitectureType` in `schema/enums.py`
+      names it. An undisclosed architecture is unknown, never inapplicable.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+
+  # ── Model: licence rights (governance) ────────────────────────────────────
+  - id: licence.commercial_use
+    subject: model
+    value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
+    definition: >-
+      Whether the licence governing the model lets a customer use the model or
+      its outputs in a commercial product. `permitted_with_conditions` covers
+      any condition (user caps, attribution, field-of-use limits); the other
+      `licence.*` facets say which.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [licence_text, provider_terms]
+  - id: licence.user_cap
+    subject: model
+    value_type: {kind: number, unbounded: true}
+    unit: monthly_active_users
+    definition: >-
+      The largest number of monthly active users a licensee may serve before the
+      licence requires a separate agreement. `unbounded` when the licence sets
+      no such cap.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [licence_text]
+  - id: licence.output_training
+    subject: model
+    value_type: {kind: enum, values: [permitted, restricted, prohibited]}
+    definition: >-
+      Whether the licence or terms let a customer use the model's outputs to
+      train or improve another model. `restricted` when permitted only for some
+      purposes or models (for example not for a competing model).
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [licence_text, provider_terms]
+  - id: licence.fine_tuning
+    subject: model
+    value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
+    definition: >-
+      Whether the licence lets a customer modify the model's weights by further
+      training and use the result. Whether a provider offers fine-tuning as a
+      service is `offering.fine_tuning`, a different fact.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [licence_text, provider_terms]
+
+  # ── Model: origin, three separate facets (governance) ─────────────────────
+  - id: origin.lab_jurisdiction
+    subject: model
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    definition: >-
+      The country or countries where the lab that trained this model is
+      incorporated, as ISO 3166-1 alpha-2 codes. Where the lab has a parent
+      company, the parent's country is included too. Says nothing about where
+      the model was based on or where it runs.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [lab_documentation, official_registry, provider_terms]
+  - id: origin.base_lineage
+    subject: model
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    definition: >-
+      The countries of incorporation of the labs that trained every model this
+      model's weights were derived from (fine-tuned, distilled into, merged or
+      continued from), as ISO 3166-1 alpha-2 codes. The empty set when the model
+      was trained from random initialisation. Excludes this model's own lab
+      unless it also trained an ancestor.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [lab_documentation, weights_repository, licence_text]
+  - id: origin.weights_hosting
+    subject: model
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    definition: >-
+      The countries in which the lab itself stores and serves the weights for
+      the hosted inference it sells first-party, as ISO 3166-1 alpha-2 codes.
+      The empty set when the lab sells no hosted inference of this model.
+      Where a third-party provider runs the model is `offering.region`, not this.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [lab_documentation, provider_terms, provider_documentation]
+  - id: origin.base_models
+    subject: model
+    value_type: {kind: set, values_from: model_ids}
+    definition: >-
+      The `lab/model-id` of every model this model's weights were directly
+      derived from. The empty set when trained from random initialisation.
+      Backs `origin.base_lineage` with the models themselves.
+    tier: best_effort
+    risk: governance
+    permitted_source_kinds: [lab_documentation, weights_repository, licence_text]
+
+  # ── Model: lifecycle ──────────────────────────────────────────────────────
+  - id: model.release_date
+    subject: model
+    value_type: {kind: date}
+    definition: >-
+      The date the lab first made the model generally available to the public,
+      by API or download. A preview or waitlist release counts only if anyone
+      could sign up.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_announcement, lab_documentation]
+  - id: model.lifecycle
+    subject: model
+    value_type: {kind: enum, values: [active, deprecated, retired]}
+    definition: >-
+      `deprecated` when the lab has announced a retirement date; `retired` when
+      the lab no longer serves or supports the model; `active` otherwise.
+      Retired models are excluded from decisions unless a spec asks for them.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement]
+  - id: model.knowledge_cutoff
+    subject: model
+    value_type: {kind: date}
+    definition: >-
+      The latest date of training data the lab documents for the model. A month
+      is recorded as its first day, and the fact's qualifiers say so.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation]
+  - id: model.deprecation_date
+    subject: model
+    value_type: {kind: date}
+    definition: >-
+      The date the lab has announced the model will stop being served by its own
+      API. Unknown until announced; not the date of the announcement.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, lab_announcement]
+
+  # ── Model: features ───────────────────────────────────────────────────────
+  - id: feature.tool_calling
+    subject: model
+    value_type: {kind: boolean}
+    definition: >-
+      True when the lab documents that the model emits structured function or
+      tool calls against caller-supplied tool definitions through at least one
+      first-party interface.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation]
+  - id: feature.structured_output
+    subject: model
+    value_type: {kind: boolean}
+    definition: >-
+      True when the lab documents constrained output that conforms to a
+      caller-supplied JSON schema. A prompt-only "JSON mode" without a schema
+      guarantee is false.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation]
+  - id: feature.effort_controls
+    subject: model
+    value_type: {kind: boolean}
+    definition: >-
+      True when the lab documents a request parameter that changes how much
+      reasoning the model does (a reasoning effort level or thinking budget).
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation]
+  - id: feature.batch
+    subject: model
+    value_type: {kind: boolean}
+    definition: >-
+      True when the lab's first-party API offers an asynchronous batch interface
+      for this model. Batch pricing is `offering.price.batch_*`.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, provider_documentation]
+  - id: feature.streaming
+    subject: model
+    value_type: {kind: boolean}
+    definition: >-
+      True when the lab's first-party API can return the response incrementally
+      as it is generated.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [lab_documentation, provider_documentation]
+
+  # ── Model: best-effort extras ─────────────────────────────────────────────
+  - id: model.languages
+    subject: model
+    value_type: {kind: set, values_from: bcp_47}
+    definition: >-
+      The natural languages the lab documents the model as supporting, as BCP 47
+      tags. Absence from the set means undocumented, not unsupported.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+  - id: model.fits_hardware
+    subject: model
+    value_type: {kind: set, values_from: hardware}
+    definition: >-
+      The hardware SKUs in `hardware/` on which some published quantisation of
+      the model's weights is estimated to load and run. An estimate, always
+      labelled as one.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+
+  # ── Offering: identity ────────────────────────────────────────────────────
+  - id: offering.provider
+    subject: offering
+    value_type: {kind: enum, values_from: "registry:providers"}
+    definition: >-
+      The provider in `registry/providers.yaml` that sells the offering and
+      bills the customer for it.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.region
+    subject: offering
+    value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    definition: >-
+      The countries in which the provider documents that inference for this
+      offering runs, as ISO 3166-1 alpha-2 codes. A global or routed offering
+      lists every country it may run in. The provider's own region name is a
+      qualifier on the fact.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.tier
+    subject: offering
+    value_type: {kind: enum, values: [standard, enterprise, zero_retention, government]}
+    definition: >-
+      The account tier the offering is sold under. A tier is its own offering
+      only when a guaranteed fact differs from the standard tier: price, data
+      handling or an attestation (design §4.1).
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+
+  # ── Offering: price ───────────────────────────────────────────────────────
+  - id: offering.price.input
+    subject: offering
+    value_type: {kind: number}
+    unit: usd_per_1m_tokens
+    definition: >-
+      The list price of uncached input tokens for a synchronous request. Where
+      the price varies with prompt length, the lowest band, with the band as a
+      qualifier.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.price.output
+    subject: offering
+    value_type: {kind: number}
+    unit: usd_per_1m_tokens
+    definition: >-
+      The list price of output tokens, including reasoning tokens the provider
+      bills as output, for a synchronous request, lowest band as for input.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.price.cached_input
+    subject: offering
+    value_type: {kind: number, not_offered: true}
+    unit: usd_per_1m_tokens
+    definition: >-
+      The list price of input tokens read from the provider's prompt cache.
+      Cache-write surcharges are a qualifier. `not_offered` when the provider
+      has no prompt cache for this offering, which is a known value, not an
+      unknown one.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.price.batch_input
+    subject: offering
+    value_type: {kind: number, not_offered: true}
+    unit: usd_per_1m_tokens
+    definition: >-
+      The list price of input tokens submitted through the provider's
+      asynchronous batch interface. `not_offered` when the provider has no
+      batch interface for this offering.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.price.batch_output
+    subject: offering
+    value_type: {kind: number, not_offered: true}
+    unit: usd_per_1m_tokens
+    definition: >-
+      The list price of output tokens returned through the provider's
+      asynchronous batch interface. `not_offered` when the provider has no
+      batch interface for this offering.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+
+  # ── Offering: speed, limits, SLA ──────────────────────────────────────────
+  - id: offering.speed.time_to_first_token
+    subject: offering
+    value_type: {kind: number}
+    unit: milliseconds
+    definition: >-
+      The median time from sending a request to receiving the first output
+      token. Always carries the method: prompt length, output length, effort,
+      region of the client, sample size and date.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_measurement, independent_evaluator, provider_self_report, outcome_protocol]
+    required_qualifiers: [method]
+  - id: offering.speed.throughput
+    subject: offering
+    value_type: {kind: number}
+    unit: tokens_per_second
+    definition: >-
+      The median output throughput of one request after its first token. Always
+      carries the method, as for time to first token. Self-hosted throughput is
+      a labelled estimate only.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_measurement, independent_evaluator, provider_self_report, outcome_protocol]
+    required_qualifiers: [method]
+  - id: offering.rate_limit.requests
+    subject: offering
+    value_type: {kind: number}
+    unit: requests_per_minute
+    definition: >-
+      The documented default request rate limit for a new account at this tier,
+      at the lowest paid usage level the provider documents.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.rate_limit.tokens
+    subject: offering
+    value_type: {kind: number}
+    unit: tokens_per_minute
+    definition: >-
+      The documented default token rate limit for a new account at this tier,
+      at the lowest paid usage level the provider documents.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.sla_uptime
+    subject: offering
+    value_type: {kind: number}
+    unit: percent
+    definition: >-
+      The monthly uptime the provider commits to in a published service level
+      agreement for this offering, with service credits. A status-page history
+      is not an SLA.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_terms]
+
+  # ── Offering: data handling (governance) ──────────────────────────────────
+  - id: offering.data.retention
+    subject: offering
+    value_type: {kind: number, unbounded: true}
+    unit: days
+    definition: >-
+      The longest period the provider's terms say it keeps prompts and outputs
+      for this offering by default, for any purpose including abuse monitoring.
+      0 means not stored after the response. `unbounded` when the terms set no
+      limit.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_terms, provider_documentation]
+  - id: offering.data.trains_on_customer_data
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider's default terms for this offering let it use
+      customer prompts or outputs to train or improve models. An opt-out the
+      customer must take still makes this true.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_terms]
+  - id: offering.data.zero_retention
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider documents that a customer can have prompts and
+      outputs for this offering not stored at all, including for abuse
+      monitoring, whether by default or on request.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_terms, provider_documentation]
+
+  # ── Offering: attestations (governance; documented, never certified) ──────
+  - id: offering.attestation.soc2
+    subject: offering
+    value_type: {kind: enum, values: [type_1, type_2, none]}
+    definition: >-
+      The SOC 2 report type the provider documents for the service this offering
+      runs on, when that report's scope covers the service. `none` when the
+      provider documents no such report. Documented, never "compliant".
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_trust_center, provider_documentation]
+  - id: offering.attestation.baa
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider documents that it will sign a HIPAA business
+      associate agreement that covers this offering. Says nothing about whether
+      a customer's use is compliant.
+    tier: guaranteed
+    risk: governance
+    permitted_source_kinds: [provider_trust_center, provider_documentation, provider_terms]
+  - id: offering.attestation.fedramp
+    subject: offering
+    value_type: {kind: enum, values: [high, moderate, low, li_saas, none]}
+    definition: >-
+      The FedRAMP authorization level of the cloud service offering this
+      offering runs in, as the FedRAMP marketplace lists it for this model.
+      `none` when not listed.
+    tier: best_effort
+    risk: governance
+    permitted_source_kinds: [official_registry, provider_documentation]
+  - id: offering.attestation.iso_27001
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider documents an ISO/IEC 27001 certificate whose scope
+      covers the service this offering runs on.
+    tier: best_effort
+    risk: governance
+    permitted_source_kinds: [provider_trust_center, provider_documentation]
+
+  # ── Offering: best-effort extras ──────────────────────────────────────────
+  - id: offering.fine_tuning
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider sells fine-tuning of this model as a service and
+      serves the tuned model under this offering's terms.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.private_deployment
+    subject: offering
+    value_type: {kind: boolean}
+    definition: >-
+      True when the provider sells dedicated capacity for this model that is
+      not shared with other customers (provisioned throughput, a dedicated
+      endpoint or deployment in the customer's own cloud account).
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.harness_compatibility
+    subject: offering
+    value_type: {kind: set, values_from: "registry:harnesses"}
+    definition: >-
+      The registered harnesses whose own documentation names this provider as a
+      supported backend for this model. Absence means undocumented.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, lab_documentation]
+
+  # ── Evidence and estimates ────────────────────────────────────────────────
+  - id: evidence.benchmark
+    subject: evidence
+    value_type: {kind: number}
+    unit: benchmark_metric
+    parameter: {name: benchmark, values_from: benchmarks}
+    definition: >-
+      One measured result on a benchmark version and sub-category, with its
+      qualifiers (effort, harness, tools, configuration, measured_by) and
+      evidence date. Never copied between models; a missing value is missing.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [benchmark_author, independent_evaluator, provider_self_report, modelspec_measurement]
+    required_qualifiers: [measured_by, evidence_date, date_type]
+  - id: evidence.outcome
+    subject: evidence
+    value_type: {kind: number}
+    unit: percent
+    parameter: {name: task_type, values_from: outcome_task_types}
+    definition: >-
+      The share of outcome records for a task type, offering and harness whose
+      objective result was success, with the record count. Published only above
+      the protocol's minimum count.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [outcome_protocol]
+    required_qualifiers: [harness, record_count]
+  - id: estimate.capability
+    subject: model
+    value_type: {kind: range}
+    unit: capability_scale
+    parameter: {name: domain, values_from: "registry:domains"}
+    definition: >-
+      The capability model's estimate of the model's capability in one domain,
+      with its interval, computed from verified evidence only. Constraints never
+      add to it. Slice 1 ships no estimates: stage 3 shows evidence per domain,
+      unblended.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+    computed_by: MODEL-129

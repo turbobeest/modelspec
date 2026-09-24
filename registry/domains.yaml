@@ -1,0 +1,121 @@
+# The domain registry (MODEL-133; design §4.1 and §8).
+#
+# A domain is an area of capability that benchmarks can measure. It is not a
+# use case: a use case is what a user wants, and the engine decomposes it into
+# domains at query time. The set is open; adding a domain is an entry here.
+# Loader: decision/registry.py.
+#
+# Entry fields
+#   id          snake_case, unique
+#   name        short label
+#   definition  exact: what a benchmark must measure to count as direct
+#               evidence for this domain
+#   proxy_only  true when no benchmark measures the domain directly, so every
+#               tag on it must be `proxy` and every answer says so
+#
+# How a benchmark page declares its domains (`schema/benchmark.py`,
+# `BenchmarkCard.domains`, optional and additive):
+#
+#   domains:
+#     - {id: software_engineering, directness: direct}
+#     - {id: agentic_tool_use, directness: proxy}
+#
+#   id          a domain id from this file
+#   directness  direct: the benchmark's tasks are instances of the domain as
+#               defined here, so its score is evidence of that capability.
+#               proxy: the benchmark measures something correlated with the
+#               domain, or covers only a slice of it, or measures preference
+#               rather than correctness, so its score is weaker evidence and
+#               is always labelled as proxy.
+#               (`none` is the absence of a tag, never written.)
+#
+# A page may carry several domains; a domain may appear once per page. A page
+# with no `domains` key is untagged, not "no domain".
+
+schema_version: 1
+
+domains:
+  - id: software_engineering
+    name: Software engineering
+    definition: >-
+      Producing or changing working software against an objective check:
+      resolving issues in real repositories, writing code that passes held-out
+      tests, or completing programming tasks whose result is executed and
+      graded.
+  - id: engineering_stem
+    name: Engineering and STEM
+    definition: >-
+      Answering or solving graduate- and professional-level problems in the
+      natural sciences and engineering (physics, chemistry, biology, earth
+      sciences, engineering disciplines) whose answers are objectively graded.
+  - id: maths
+    name: Maths
+    definition: >-
+      Solving mathematical problems whose final answer or proof is objectively
+      checked, from school word problems to competition and research-level
+      mathematics.
+  - id: reasoning
+    name: General reasoning
+    definition: >-
+      Solving novel problems by multi-step inference that does not depend on
+      specialist knowledge: abstraction, logical deduction, commonsense
+      inference and puzzle solving with objectively graded answers.
+  - id: legal
+    name: Legal
+    definition: >-
+      Legal tasks graded against a legal professional's answer or rubric:
+      reading statutes, contracts and cases, issue spotting, and legal
+      reasoning.
+  - id: medical
+    name: Medical
+    definition: >-
+      Clinical and biomedical tasks graded against clinicians' answers or
+      rubrics: diagnosis, treatment questions, medical knowledge and
+      patient-facing health conversations.
+  - id: finance
+    name: Finance
+    definition: >-
+      Financial analysis tasks graded against expert answers: reading filings
+      and statements, financial calculations, and domain questions in
+      accounting, markets and banking.
+  - id: writing
+    name: Writing
+    definition: >-
+      Producing prose judged for quality against a rubric or by human raters:
+      creative writing, editing, summarisation and long-form composition.
+  - id: marketing_seo
+    name: Marketing and SEO
+    definition: >-
+      Marketing copy, positioning and search-engine optimisation. No benchmark
+      measures commercial effect, so all evidence here is proxy and every
+      answer says so.
+    proxy_only: true
+  - id: agentic_tool_use
+    name: Agentic and tool use
+    definition: >-
+      Completing multi-step tasks by calling tools or acting in an environment
+      (shells, browsers, operating systems, APIs, simulated businesses), graded
+      on the end state rather than on the text of the answer.
+  - id: vision_documents
+    name: Vision and documents
+    definition: >-
+      Understanding images and documents given as input: charts, diagrams,
+      scanned pages, screenshots, photographs and text in images, graded
+      against reference answers.
+  - id: multilingual
+    name: Multilingual
+    definition: >-
+      Performing tasks in languages other than English, or across languages,
+      graded per language against reference answers or native raters.
+  - id: chat_preference
+    name: Chat and preference
+    definition: >-
+      Which of two models' responses to the same open-ended prompt people
+      prefer, aggregated into a rating by pairwise comparison. Measures
+      preference, not correctness.
+  - id: retrieval
+    name: Retrieval
+    definition: >-
+      Ranking documents or passages by relevance to a query, as an embedding or
+      reranking model does, graded against relevance judgements with ranking
+      metrics such as nDCG or recall at k.
