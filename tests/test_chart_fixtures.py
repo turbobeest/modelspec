@@ -750,6 +750,81 @@ def _classes(fixture: dict, reading: dict) -> list[str]:
     return [row["class"] for row in reconcile_readings([fixture], [reading], {})["pairs"]]
 
 
+def test_ifbench_prompt_and_ruler_context_stay_on_the_benchmark():
+    assert _classes(
+        _one_bar_fixture("8B Dense", "ifbench", score=77.17, score_text="77.17", configuration="Prompt."),
+        _one_reading("Granite 4.2 8B Dense", "IFBench (prompt)", score=77.17),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "ifbench", configuration="Loose."),
+            _one_reading("8B Dense", "IFBench (prompt)"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("8B Dense", "ruler", score=71.41, score_text="71.41", configuration="128K context."),
+        _one_reading("Granite 4.2 8B Dense", "RULER 128K", score=71.41),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "ruler", configuration="128K context."),
+            _one_reading("8B Dense", "RULER 64K"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_an_unstated_mode_does_not_become_the_mode():
+    fixture = _one_bar_fixture("8B Dense", "GPQA", score=54.8, score_text="54.80")
+    fixture["charts"][0]["bars"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 60,
+            "score_text": "60",
+            "printed": True,
+            "configuration": "thinking",
+        }
+    )
+    reading = _one_reading(
+        "8B Dense",
+        "GPQA",
+        score=60,
+        metric_or_setting="thinking",
+    )
+    reading["charts"][0]["items"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "metric_or_setting": "section: Reasoning; thinking mode not stated",
+            "printed": True,
+        }
+    )
+    assert sorted(_classes(fixture, reading)) == ["agree", "agree"]
+
+
+def test_prose_uncertainty_is_not_a_tolerance():
+    fixture = _one_bar_fixture("Inkling", "MCP Atlas", score=76, score_text="76", printed=False)
+    note = _one_reading(
+        "Inkling",
+        "MCP Atlas",
+        score=76.4,
+        score_text="76.4",
+        printed=False,
+        uncertainty="none; exact embedded value",
+    )
+    assert _classes(fixture, note) == ["disagree"]
+    bound = _one_reading(
+        "Inkling",
+        "MCP Atlas",
+        score=76.4,
+        score_text="76.4",
+        printed=False,
+        uncertainty="±0.5; overlaps the next vertex",
+    )
+    assert _classes(fixture, bound) == ["agree"]
+
+
 def test_label_normalisation_pairs_the_same_bar():
     fixture = {
         "page_url": "https://example.com/post",
@@ -1555,3 +1630,209 @@ def test_slice_and_version_wording_stays_on_the_benchmark():
         _one_bar_fixture("Gemma 4 31B", "medxpertqa", configuration="Multimodal. Thinking."),
         _one_reading("Gemma 4 31B", "MedXPertQA MM"),
     ) == ["agree"]
+
+
+def test_dotted_version_does_not_absorb_a_parameter_count():
+    assert _classes(
+        _one_bar_fixture("Qwen3.5-9B", "AA-LCR", score=61.7, score_text="61.7"),
+        _one_reading("Qwen 3.5 9B", "AA-LCR", score=61.7),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Qwen3.5-9B", "AA-LCR"),
+            _one_reading("Qwen3.5-4B", "AA-LCR"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("8B Dense", "bfcl", score=52.39, score_text="52.39", configuration="v4"),
+        _one_reading("Granite-4.2 8B Dense", "BFCL (v4)", score=52.39),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "bfcl", configuration="v4"),
+            _one_reading("Granite-4.2 30B Dense", "BFCL (v4)"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("30B Dense", "AIME25", score=89.2, score_text="89.2"),
+        _one_reading("Granite 4.2 30B", "AIME25", score=89.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("3B Dense", "τ³-bench (AVG)", score=45.78, score_text="45.78"),
+        _one_reading("Granite 4.2 3B Dense", "τ³-bench", score=45.78),
+    ) == ["agree"]
+    both_spellings = _one_reading("Granite 4.2 8B", "AIME25", score=86.67)
+    both_spellings["charts"][0]["items"].append(
+        {
+            "model_as_labelled": "Granite 4.2 8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "metric_or_setting": "",
+            "printed": True,
+        }
+    )
+    fixture = _one_bar_fixture("8B Dense", "AIME25", score=86.67, score_text="86.67")
+    fixture["charts"][0]["bars"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "score_text": "54.80",
+            "printed": True,
+            "configuration": "",
+        }
+    )
+    assert sorted(_classes(fixture, both_spellings)) == ["agree", "agree"]
+
+
+def test_size_quant_and_closed_marks_pair_and_two_quants_stay_apart():
+    assert _classes(
+        _one_bar_fixture("Devstral Small 2", "SWE-bench Verified", score=68.2, score_text="68.2"),
+        _one_reading("Devstral Small 2 (24B Dense)", "SWE-bench Verified", score=68.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 26B A4B", "IFBench", score=77.2, score_text="77.2"),
+        _one_reading("Gemma-4-26B-A4B-it", "IFBench (Inst. Follow.)", score=77.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Nemotron 3 Ultra BF16", "PinchBench", score=81.2, score_text="81.2"),
+        _one_reading("Nemotron 3 Ultra 550B-A55B BF16", "PinchBench", score=81.2),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Nemotron 3 Ultra BF16", "PinchBench"),
+            _one_reading("Nemotron 3 Ultra NVFP4", "PinchBench"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Claude Haiku 4.5", "CLIcK", score=53.5, score_text="53.5"),
+        _one_reading("Claude Haiku 4.5 (closed)", "CLIcK", score=53.5),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Pro", "Terminal-Bench 2.1", score=64.0, score_text="64.0"),
+        _one_reading("DeepSeek-V4-Pro-0813", "Terminal-Bench 2.1", score=64.0),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 26B A4B", "swe_bench_verified", score=57.4, score_text="57.4"),
+            _one_reading("Gemma-4-26B-A4B-it", "SWE-Bench (Coding)", score=57.4, metric_or_setting="variant not stated"),
+        )
+    ) == ["only_a", "only_b"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 26B A4B", "terminal_bench_v2_1", score=37.2, score_text="37.2"),
+            _one_reading(
+                "Gemma-4-26B-A4B-it",
+                "Terminal-Bench (Terminal)",
+                score=37.2,
+                metric_or_setting="version not stated",
+            ),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_score_scale_inside_parentheses_is_not_a_section():
+    assert _classes(
+        _one_bar_fixture("GLM-5.1", "IOI 2025", score=76.1, score_text="76.1"),
+        _one_reading("GLM-5.1 754B-A40B", "IOI 2025 (Score / 600)", score=76.1),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "SWE-bench Pro"),
+        _one_reading("Opus 5", "Agentic coding / SWE-bench Pro"),
+    ) == ["agree"]
+
+
+def test_niah_cells_pair_on_depth_and_the_quant_stays_out_of_the_model():
+    fixture = {
+        "page_url": "https://example.com/post",
+        "charts": [
+            {
+                "title": "NIAH",
+                "bars": [
+                    {
+                        "model_as_labelled": "A.X K2",
+                        "benchmark_as_labelled": "niah",
+                        "score": 100,
+                        "score_text": "100",
+                        "printed": True,
+                        "configuration": "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 1000 tokens.",
+                    },
+                    {
+                        "model_as_labelled": "A.X K2",
+                        "benchmark_as_labelled": "niah",
+                        "score": 90,
+                        "score_text": "90",
+                        "printed": True,
+                        "configuration": "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 1000 tokens.",
+                    },
+                ],
+            }
+        ],
+        "_path": "example.yaml",
+        "_slug": "example",
+    }
+    reading = {
+        "source": "https://example.com/post",
+        "reader": "reader-b",
+        "read_on": "2026-09-24",
+        "charts": [
+            {
+                "title": "NIAH",
+                "items": [
+                    {
+                        "model_as_labelled": "A.X K2 NVFP4 (experts-only W4A4)",
+                        "benchmark_as_labelled": "Needle-In-A-Haystack",
+                        "score": 90,
+                        "metric_or_setting": "context length 1000 tokens; needle depth 10.0%; YARN factor=2; NVFP4 experts-only W4A4 quantised checkpoint",
+                        "printed": True,
+                    },
+                    {
+                        "model_as_labelled": "A.X K2 NVFP4 (experts-only W4A4)",
+                        "benchmark_as_labelled": "Needle-In-A-Haystack",
+                        "score": 100,
+                        "metric_or_setting": "context length 1000 tokens; needle depth 0.0%; YARN factor=2; NVFP4 experts-only W4A4 quantised checkpoint",
+                        "printed": True,
+                    },
+                ],
+            }
+        ],
+    }
+    assert sorted(_classes(fixture, reading)) == ["agree", "agree"]
+
+
+def test_index_version_is_not_the_component_list_and_claude_order_pairs():
+    metric = (
+        "Intelligence Index v4.1.1 (9 evaluations: GDPval-AA v2, Terminal-Bench v2.1, "
+        "Humanity's Last Exam); effort/setting in label: max with fallback"
+    )
+    assert _classes(
+        _one_bar_fixture(
+            "Claude Fable 5.1",
+            "Artificial Analysis Intelligence Index v4.1.1",
+            score=66,
+            score_text="66",
+            configuration="max with fallback",
+        ),
+        _one_reading(
+            "Claude Fable 5.1 (max with fallback)",
+            "Artificial Analysis Intelligence Index",
+            score=66,
+            metric_or_setting=metric,
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Claude Haiku 4.5", "Artificial Analysis Intelligence Index v4.1.1"),
+            _one_reading("Claude 4.6 Haiku", "Artificial Analysis Intelligence Index v4.1.1"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Claude Haiku 4.5", "Artificial Analysis Intelligence Index v4.1.1", score=30, score_text="30"),
+        _one_reading("Claude 4.5 Haiku", "Artificial Analysis Intelligence Index v4.1.1", score=30),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Command A+", "Artificial Analysis Intelligence Index v4.1.1"),
+            _one_reading("Command A+", "Artificial Analysis Intelligence Index v4.1"),
+        )
+    ) == ["only_a", "only_b"]

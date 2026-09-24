@@ -11,6 +11,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Mercury 2.5"
         model_id: "inception/mercury-2-5"

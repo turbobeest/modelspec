@@ -10,6 +10,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3-Ultra-550B-A55B-Base"
         model_id: null
@@ -774,6 +776,8 @@ charts:
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "N-3-Ultra 550B-A55B"
@@ -2795,6 +2799,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron 3 Ultra"
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
@@ -2887,6 +2893,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron 3 Ultra"
@@ -3150,6 +3158,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron 3 Ultra"

@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2-8B-A1B"
         model_id: "liquid/lfm2-8b-a1b"
@@ -213,6 +215,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2.5-8B-A1B"
         model_id: "liquid/lfm2-5-8b-a1b"
@@ -264,6 +268,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 9.37
+          - reader: claude-opus
+            value: 82.23
       - model_as_labelled: "Granite-4.0-H-Tiny"
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: ifbench
@@ -297,6 +306,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 17.20
+          - reader: claude-opus
+            value: 87.8
       - model_as_labelled: "Qwen3.5-4B"
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: ifbench
@@ -305,6 +319,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 16.99
+          - reader: claude-opus
+            value: 50.38
       - model_as_labelled: "Qwen3.5-4B"
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: multiif
@@ -330,6 +349,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 18.80
+          - reader: claude-opus
+            value: 90.82
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
         model_id: null
         benchmark_id: ifbench
@@ -363,6 +387,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 7.00
+          - reader: claude-opus
+            value: 82.93
       - model_as_labelled: "Gemma-4-E2B-IT"
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: ifbench
@@ -371,6 +400,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 15.05
+          - reader: claude-opus
+            value: 33.53
       - model_as_labelled: "Gemma-4-E2B-IT"
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: multiif
@@ -396,6 +430,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 8.10
+          - reader: claude-opus
+            value: 87.74
       - model_as_labelled: "Gemma-4-E4B-IT"
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifbench
@@ -404,6 +443,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 36.06
+          - reader: claude-opus
+            value: 39.48
       - model_as_labelled: "Gemma-4-E4B-IT"
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: multiif
@@ -429,6 +473,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 14.37
+          - reader: claude-opus
+            value: 91.4
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifbench
@@ -462,6 +511,11 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 14.57
+          - reader: claude-opus
+            value: 86.73
       - model_as_labelled: "gpt-oss-20b"
         model_id: null
         benchmark_id: ifbench
@@ -484,6 +538,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2.5-8B-A1B"
@@ -542,6 +598,11 @@ charts:
         printed: true
         configuration: "v3"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 4.93
+          - reader: claude-opus
+            value: 56.89
       - model_as_labelled: "Granite-4.0-H-Tiny"
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: bfcl
@@ -550,6 +611,11 @@ charts:
         printed: true
         configuration: "v4"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 3.33
+          - reader: claude-opus
+            value: 28.52
       - model_as_labelled: "Granite-4.0-H-Tiny"
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: tau2
@@ -622,6 +688,11 @@ charts:
         printed: true
         configuration: "v3"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 71.67
+          - reader: claude-opus
+            value: 73.39
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
         model_id: null
         benchmark_id: bfcl
@@ -630,6 +701,11 @@ charts:
         printed: true
         configuration: "v4"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 66.67
+          - reader: claude-opus
+            value: 50.53
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
         model_id: null
         benchmark_id: tau2
@@ -742,6 +818,11 @@ charts:
         printed: true
         configuration: "v3"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 68.67
+          - reader: claude-opus
+            value: 68.87
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: bfcl
@@ -750,6 +831,11 @@ charts:
         printed: true
         configuration: "v4"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 72.00
+          - reader: claude-opus
+            value: 55.87
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
@@ -782,6 +868,11 @@ charts:
         printed: true
         configuration: "v3"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 68.53
+          - reader: claude-opus
+            value: 62.52
       - model_as_labelled: "gpt-oss-20b"
         model_id: null
         benchmark_id: bfcl
@@ -790,6 +881,11 @@ charts:
         printed: true
         configuration: "v4"
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 68.67
+          - reader: claude-opus
+            value: 49.88
       - model_as_labelled: "gpt-oss-20b"
         model_id: null
         benchmark_id: tau2

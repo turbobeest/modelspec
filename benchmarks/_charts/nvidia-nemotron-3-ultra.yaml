@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "N-3-Ultra 550B-A55B"
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
@@ -2031,6 +2033,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3-Ultra BF16"
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
@@ -2048,6 +2052,11 @@ charts:
         printed: true
         configuration: "NVFP4"
         role: subject
+        disputed:
+          - reader: grok-build-4.7
+            value: 63.9
+          - reader: claude-opus
+            value: 53.9
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1

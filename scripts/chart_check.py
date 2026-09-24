@@ -1037,6 +1037,10 @@ _BENCH_ALIASES = (
     ("aime 24", "aime 2024"),
     ("aime 25", "aime 2025"),
     ("crux o", "cruxeval"),
+    ("tau 3 bench avg", "tau 3 bench"),
+    ("needle in a haystack", "niah"),
+    ("aa lcr long ctx", "aa lcr"),
+    ("ifbench inst follow", "ifbench"),
     ("aider polyglot", "aider"),
     ("deep swe", "deepswe"),
     ("c eval", "ceval"),
@@ -1048,6 +1052,8 @@ _BENCH_ALIASES = (
 # A version written beside the benchmark id, not in the benchmark name.
 _VERSION_STEMS = ("gdpval aa", "aa briefcase")
 _QUALIFIERS = (
+    ("with fallback", "fallback"),
+    ("fallback", "fallback"),
     ("text only", "textonly"),
     ("with tools", "tools"),
     ("w tools", "tools"),
@@ -1127,6 +1133,7 @@ _GLOSS = {
     "prose", "open", "cost", "objectives", "completed", "objective", "met",
     "guardrail", "violation", "zeroes", "held", "out", "set", "share",
     "every", "no", "benchmark",
+    "checkpoint", "quantised", "quantized", "needle", "length",
 }
 _SCAFFOLDS = {
     "claudecode", "codex", "dshminimal", "dshstandard", "dshptc", "miniswe", "opencode", "pi",
@@ -1195,11 +1202,24 @@ def _split_outside_parens(text: str) -> tuple[str, str]:
     return text[:found].strip(), text[found + 3 :].strip()
 
 
+def _section_split(text: str) -> str:
+    """A slash outside parentheses is a section header. ``Score / 600`` is a scale."""
+    depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0 and text.startswith(" / ", index):
+            return text[index + 3 :].strip()
+    return text
+
+
 def _benchmark_parts(value: Any) -> tuple[str, str]:
     """Drop a section header. A row setting after ' - ' belongs with the metric."""
     text = _present(value)
-    if " / " in text:
-        text = text.split(" / ", 1)[1].strip()
+    text = re.sub(r"\(\s*score\s*/\s*\d+\s*\)", " ", text, flags=re.I)
+    text = _section_split(text)
     text, extra = _split_outside_parens(text)
     text = re.sub(r"\blower is better\b", " ", text, flags=re.I)
     text = re.sub(r"\(\s*score\s*\)", " ", text, flags=re.I)
@@ -1208,7 +1228,8 @@ def _benchmark_parts(value: Any) -> tuple[str, str]:
 
 
 def _join_version(text: str) -> str:
-    text = re.sub(r"\b(\d{1,2}) (\d)\b", r"\1.\2", text)
+    # ``4 8`` is 4.8. ``4.2 8`` is version 4.2 beside a size, not version 4.2.8.
+    text = re.sub(r"(?<!\d\.)\b(\d{1,2}) (\d)\b", r"\1.\2", text)
     return re.sub(r"\b(\d+)\.0+(?!\.\d)\b", r"\1", text)
 
 
@@ -1293,9 +1314,17 @@ def _peel_model(text: str) -> tuple[str, list[str], list[str]]:
     return text, efforts, quals
 
 
+def _order_claude(text: str) -> str:
+    """``Claude 4.5 Haiku`` and ``Claude Haiku 4.5`` are one product."""
+    parts = text.split()
+    if len(parts) >= 3 and parts[0] == "claude" and parts[1][:1].isdigit() and parts[2] in _CLAUDE_FAMILY:
+        return " ".join(["claude", parts[2], parts[1], *parts[3:]])
+    return text
+
+
 def _finish_model(text: str) -> str:
     # ``Claude-opus-4-8`` and ``Claude Opus 4.8`` are one product.
-    text = _join_version(text)
+    text = _order_claude(_join_version(text))
     if text.startswith("ds "):
         text = "deepseek " + text[3:]
     parts = text.split()
@@ -1438,6 +1467,9 @@ def _prepare_setting(value: Any) -> str:
     raw = re.sub(r"table value\s*=", " ", raw, flags=re.I)
     raw = re.sub(r"\(in row label\)", " ", raw, flags=re.I)
     raw = re.sub(r"\bbar label\b", " ", raw, flags=re.I)
+    raw = re.sub(r"effort\s*/\s*setting in label\s*:?", " ", raw, flags=re.I)
+    raw = re.sub(r"thinking mode not stated", " ", raw, flags=re.I)
+    raw = re.sub(r"\bnot stated\b", " ", raw, flags=re.I)
     raw = re.sub(r"cost per task\s*:.*", " ", raw, flags=re.I | re.S)
     raw = re.sub(r"\bmaximum at any effort\b", " ", raw, flags=re.I)
     raw = re.sub(r"\bmaximum\b", "max", raw, flags=re.I)
@@ -1493,11 +1525,17 @@ def canon_metric(value: Any, model: Any = "") -> str:
     return " ".join(sorted(set(kept)))
 
 
+def _drop_component_list(text: str) -> str:
+    """An index names its own version. The parenthetical list of components does not."""
+    return re.sub(r"\(\s*\d+\s+evaluations?:.*?\)", " ", text, flags=re.I | re.S)
+
+
 def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     model_body, model_efforts, model_quals = _peel_model(_basic_label(model))
     model_key = _finish_model(model_body)
     bench_body, row_extra = _benchmark_parts(benchmark)
-    metric_bits = " ".join(bit for bit in (str(metric or ""), row_extra) if str(bit).strip())
+    raw_metric = _drop_component_list(str(metric or ""))
+    metric_bits = " ".join(bit for bit in (raw_metric, row_extra) if str(bit).strip())
     metric_bits = _prepare_setting(metric_bits)
     bench = _mark_settings(canon_benchmark(bench_body))
     metric_text = _mark_settings(_basic_label(metric_bits))
@@ -1512,13 +1550,26 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     bench, bench_quals = _pull_qualifiers(bench)
     metric_text, metric_quals = _pull_qualifiers(metric_text)
     quals = " ".join(sorted(set(_merge_quals(bench_quals, metric_quals + model_quals))))
-    if quals:
-        bench = f"{bench} {quals}".strip()
     bench, metric_text = _attach_named_version(bench, metric_text)
     if not re.search(r"\d", bench):
-        version = _marked_version(benchmark, metric)
+        version = _marked_version(benchmark, raw_metric)
         if version:
             bench = f"{bench} {version}"
+            metric_text = re.sub(rf"\b{re.escape(version)}\b", " ", metric_text)
+            metric_text = re.sub(r"\s+", " ", metric_text).strip()
+    if quals:
+        bench = f"{bench} {quals}".strip()
+    # IFBench (prompt) is that variant. RULER 128K is that context, and 128 is not prose.
+    if bench == "ifbench" and "prompt" in metric_text.split():
+        bench = "ifbench prompt"
+        metric_text = " ".join(token for token in metric_text.split() if token != "prompt")
+    if bench == "ruler" or bench.startswith("ruler "):
+        lengths = set(re.findall(r"\b(\d+) k\b", metric_text))
+        if len(lengths) == 1 and not re.search(r"\d", bench):
+            length = lengths.pop()
+            bench = f"{bench} {length} k"
+            metric_text = re.sub(rf"\b{length} k\b", " ", metric_text)
+            metric_text = re.sub(r"\s+", " ", metric_text).strip()
     effort = _one_effort(model_efforts, metric_efforts)
     metric_key = canon_metric(metric_text, model_key)
     if effort:
@@ -1529,6 +1580,21 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
 
 def _pair_key(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     return _identity(model, benchmark, metric)
+
+
+def _numeric_uncertainty(value: Any) -> float | None:
+    """A ± bound is a tolerance. A note that says none is not one."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text or text.casefold().startswith("none"):
+        return None
+    match = re.search(r"(\d+(?:\.\d+)?)", text.replace("±", " "))
+    if match is None:
+        return None
+    return float(match.group(1))
 
 
 def _scores_agree(
@@ -1607,7 +1673,6 @@ def _judge_pair(a_item: dict[str, Any], b_item: dict[str, Any]) -> str:
         return "agree"
     if a_item["score_kind"] != "number" or b_item["score_kind"] != "number":
         return "disagree"
-    uncertainty = b_item.get("uncertainty")
     agree = _scores_agree(
         float(a_item["score_value"]),
         str(a_item["score_text"]),
@@ -1615,7 +1680,7 @@ def _judge_pair(a_item: dict[str, Any], b_item: dict[str, Any]) -> str:
         float(b_item["score_value"]),
         str(b_item["score_text"]),
         bool(b_item["printed"]),
-        None if uncertainty is None else float(uncertainty),
+        _numeric_uncertainty(b_item.get("uncertainty")),
     )
     return "agree" if agree else "disagree"
 
@@ -1682,6 +1747,118 @@ def _effort_conflict(a_item: dict[str, Any], b_item: dict[str, Any]) -> bool:
     return ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks)
 
 
+def _annotation_span(tokens: list[str], start: int) -> int:
+    """Parameter count, quant, or a closed/instruct mark. Not the product name."""
+    if start >= len(tokens):
+        return 0
+    token = tokens[start]
+    if token in {"dense", "closed", "it", "instruct", "thinking", "experts", "only"}:
+        return 1
+    if re.fullmatch(r"0\d{3}", token):
+        return 1
+    if token == "a" and start + 2 < len(tokens) and tokens[start + 1].isdigit() and tokens[start + 2] in {"b", "t"}:
+        return 3
+    if token.isdigit() and start + 1 < len(tokens) and tokens[start + 1] in {"b", "t"}:
+        return 2
+    if token in {"nvfp", "bf", "fp", "mxfp"} and start + 1 < len(tokens) and tokens[start + 1].isdigit():
+        return 2
+    if (
+        token == "w"
+        and start + 3 < len(tokens)
+        and tokens[start + 1].isdigit()
+        and tokens[start + 2] == "a"
+        and tokens[start + 3].isdigit()
+    ):
+        return 4
+    return 0
+
+
+def _only_annotations(tokens: list[str]) -> bool:
+    index = 0
+    if not tokens:
+        return False
+    while index < len(tokens):
+        span = _annotation_span(tokens, index)
+        if span == 0:
+            return False
+        index += span
+    return True
+
+
+def _is_annotated_expansion(short: str, long: str) -> bool:
+    """True when one spelling adds a size, a quant, or a closed/instruct mark."""
+    short_tokens = short.split()
+    long_tokens = long.split()
+    if not short_tokens or len(long_tokens) <= len(short_tokens):
+        return False
+    bare = [token for token in short_tokens if token != "dense"]
+    fuller = [token for token in long_tokens if token != "dense"]
+    if (
+        bare
+        and _only_annotations(bare)
+        and any(token in {"b", "t"} for token in bare)
+        and len(fuller) > len(bare)
+        and fuller[-len(bare) :] == bare
+        and not _only_annotations(fuller)
+    ):
+        return True
+    index = 0
+    extras: list[str] = []
+    for token in long_tokens:
+        if index < len(short_tokens) and token == short_tokens[index]:
+            index += 1
+        else:
+            extras.append(token)
+    return index == len(short_tokens) and _only_annotations(extras)
+
+
+def _soft_mark(short: str, long: str) -> bool:
+    """``Dense`` or ``closed`` does not make a second model."""
+    short_tokens = short.split()
+    long_tokens = long.split()
+    index = 0
+    extras: list[str] = []
+    for token in long_tokens:
+        if index < len(short_tokens) and token == short_tokens[index]:
+            index += 1
+        else:
+            extras.append(token)
+    return index == len(short_tokens) and bool(extras) and set(extras) <= {"dense", "closed"}
+
+
+def _fold_soft_marks(rows: list[dict[str, Any]]) -> None:
+    keys = {row["model_key"] for row in rows}
+    rewrite: dict[str, str] = {}
+    for short in keys:
+        longs = [long for long in keys if long != short and _soft_mark(short, long)]
+        if longs:
+            rewrite[short] = max(longs, key=lambda text: len(text.split()))
+    for row in rows:
+        row["model_key"] = rewrite.get(row["model_key"], row["model_key"])
+
+
+def _align_model_keys(a_rows: list[dict[str, Any]], b_rows: list[dict[str, Any]]) -> None:
+    """Pair spellings of one model. Two sizes on the same side stay apart."""
+    _fold_soft_marks(a_rows)
+    _fold_soft_marks(b_rows)
+    a_keys = {row["model_key"] for row in a_rows}
+    b_keys = {row["model_key"] for row in b_rows}
+    proposals: dict[str, set[str]] = defaultdict(set)
+    for a_key in a_keys:
+        for b_key in b_keys:
+            if not a_key or not b_key or a_key == b_key:
+                continue
+            short, long = (a_key, b_key) if len(a_key.split()) <= len(b_key.split()) else (b_key, a_key)
+            if short == long or not _is_annotated_expansion(short, long):
+                continue
+            if (short in a_keys and long in a_keys) or (short in b_keys and long in b_keys):
+                continue
+            proposals[short].add(long)
+    rewrite = {short: next(iter(longs)) for short, longs in proposals.items() if len(longs) == 1}
+    for row in a_rows + b_rows:
+        row["model_key"] = rewrite.get(row["model_key"], row["model_key"])
+
+
 def _pair_rows(
     a_rows: list[dict[str, Any]],
     b_rows: list[dict[str, Any]],
@@ -1691,6 +1868,7 @@ def _pair_rows(
     read_on: str,
 ) -> list[dict[str, Any]]:
     """Pair on model and benchmark. A repeated setting also has to match the metric."""
+    _align_model_keys(a_rows, b_rows)
     a_by2: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     b_by2: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in a_rows:

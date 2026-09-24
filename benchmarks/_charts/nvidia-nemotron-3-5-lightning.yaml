@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
@@ -678,6 +680,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
@@ -883,6 +887,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron 3.5 Lightning"
