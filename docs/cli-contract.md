@@ -323,6 +323,30 @@ that field rides in rows under envelope `schema_version "1.0"`, and widening
 it would cost a second bump to say something a caller cannot act on. The
 floors are untouched.
 
+### Benchmark coverage gained `verified` rows without a bump
+
+`models_covered` in `/api/benchmarks/<id>.json` used to list only the flat
+`benchmarks.scores` dict on each card, so every row's `attribution` was
+`unverified-legacy`. It now also lists each reviewed `benchmarks.evidence`
+record, with `attribution: "verified"`. A record replaces the card's flat
+score for the same benchmark, and a card with several records for one
+benchmark gets one row per record. `models_covered` in `catalogue.json` counts
+distinct models, not rows.
+
+The new `attribution` value widens that field's range. Under the rule above it
+would bump the major. `build.export_schema_version` stays **3.0** on the
+MODEL-74 reasoning: the CLI snapshot files (`index`, `candidates`,
+`profiles`, `hardware`, `hosts`) carry no coverage rows, and the CLI never
+reads `/api/benchmarks/`, so a bump would make every 3.x CLI refuse new
+snapshots with no consumer to protect.
+
+Every row carries the same keys. A `verified` row fills `unit`, `date_type`,
+`source_kind`, `model_id_as_evaluated`, `benchmark_version`, `configuration`
+and `verified_at` from its record, and takes `as_of` and `source` from the
+record's `evidence_date` and `source_url`. An `unverified-legacy` row has those
+seven keys set to `null`, and its `as_of` and `source` are still the card's
+one collection date and source list.
+
 ### Policy fields, and the one major bump they cost (MODEL-77)
 
 ### Graph Model property removed without a bump (MODEL-74)

@@ -20,10 +20,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from pipeline import build as builder  # noqa: E402
-from pipeline.export import models_by_benchmark  # noqa: E402
+from pipeline.export import Build, models_by_benchmark, write  # noqa: E402
 from pipeline.load import (  # noqa: E402
+    Benchmark,
     Catalogue,
     LoadError,
+    Model,
     load_benchmarks,
     load_catalogue,
     load_models,
@@ -36,7 +38,8 @@ from pipeline.render import format_score  # noqa: E402
 _models = functools.lru_cache(maxsize=1)(load_models)
 _benchmarks = functools.lru_cache(maxsize=1)(load_benchmarks)
 _catalogue = functools.lru_cache(maxsize=1)(load_catalogue)
-_coverage = functools.lru_cache(maxsize=1)(lambda: models_by_benchmark(_models()))
+_coverage = functools.lru_cache(maxsize=1)(
+    lambda: models_by_benchmark(_models(), _benchmarks()))
 
 
 # ── loading ──────────────────────────────────────────────────────────────────
@@ -109,13 +112,16 @@ def test_future_dated_report_refuses_to_publish(tmp_path: Path, monkeypatch) -> 
 
 def test_coverage_is_derived_from_the_cards() -> None:
     """Every coverage row must trace back to a score on that model's own card."""
-    models = _models()
-    scores_by_model = {m.model_id: m.scores for m in models}
-    coverage = models_by_benchmark(models)
-    for key, rows in coverage.items():
+    cards = {m.model_id: m for m in _models()}
+    for key, rows in _coverage().items():
         for row in rows:
-            assert key in scores_by_model[row["model_id"]]
-            assert scores_by_model[row["model_id"]][key] == row["score"]
+            card = cards[row["model_id"]]
+            evidence = [r["score"] for r in card.front["benchmarks"].get("evidence") or []
+                        if r["benchmark_id"] == key]
+            if row["attribution"] == "verified":
+                assert row["score"] in evidence
+            else:
+                assert evidence == [] and card.scores[key] == row["score"]
 
 
 def test_coverage_is_ordered_by_score() -> None:
@@ -126,9 +132,163 @@ def test_coverage_is_ordered_by_score() -> None:
 
 def test_legacy_card_scores_are_marked_unverified() -> None:
     """Card scores carry no per-score source, so they must never read as evidence."""
-    coverage = _coverage()
-    rows = coverage["gpqa_diamond"]
-    assert rows and all(r["attribution"] == "unverified-legacy" for r in rows)
+    rows = _coverage()["gpqa_diamond"]
+    legacy = [r for r in rows if r["source_kind"] is None]
+    assert legacy and all(r["attribution"] == "unverified-legacy" for r in legacy)
+
+
+# ── coverage from evidence records ───────────────────────────────────────────
+
+_BUILD = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9, 15))
+
+
+def _card(model_id: str, name: str = "", scores: dict | None = None,
+          evidence: tuple[dict, ...] = ()) -> Model:
+    return Model(model_id, Path(f"models/{model_id}.md"), {
+        "model_id": model_id, "display_name": name or model_id.split("/")[-1],
+        "provider": "demo", "provider_display": "Demo Lab",
+        "benchmarks": {"scores": scores or {}, "evidence": list(evidence),
+                       "benchmark_as_of": "2026-01-01", "benchmark_source": "card sources"},
+    }, "")
+
+
+def _evidence(benchmark_id: str, score: float, **fields: str) -> dict:
+    return {"benchmark_id": benchmark_id, "model_id_as_evaluated": "Demo Model",
+            "score": score, "unit": "percent", "source_url": "https://src.example/run",
+            "source_kind": "independent_evaluator", "evidence_date": "2026-09-01",
+            "date_type": "evaluated", "verified_at": "2026-09-02",
+            "benchmark_version": "v1", "configuration": "default", **fields}
+
+
+def _page(benchmark_id: str, direction: str = "higher_is_better") -> Benchmark:
+    return Benchmark(benchmark_id, Path(f"benchmarks/{benchmark_id}.md"),
+                     {"id": benchmark_id, "name": benchmark_id,
+                      "metric": {"direction": direction}}, "")
+
+
+def _published(tmp_path: Path, models: list[Model],
+               pages: list[Benchmark]) -> dict[str, list[dict]]:
+    """`models_covered` as `/api/benchmarks/<id>.json` publishes it."""
+    write(tmp_path, models, pages, Catalogue(as_of=date(2026, 9, 15)), _BUILD,
+          parts=("benchmarks",))
+    return {p.benchmark_id: json.loads(
+        (tmp_path / "benchmarks" / f"{p.benchmark_id}.json").read_text(encoding="utf-8")
+    )["models_covered"] for p in pages}
+
+
+def test_a_benchmark_reported_only_in_evidence_records_has_coverage(tmp_path: Path) -> None:
+    """benchgraph.dev/b/automationbench/ listed no model although a card reported it."""
+    card = _card("demo/astra", "Astra", evidence=(_evidence(
+        "automationbench", 41.4, model_id_as_evaluated="Astra",
+        source_url="https://src.example/astra", source_kind="provider_self_report",
+        evidence_date="2026-09-03", date_type="published", verified_at="2026-09-11",
+        benchmark_version="AutomationBench", configuration="launch table"),))
+    rows = _published(tmp_path, [card], [_page("automationbench")])["automationbench"]
+    assert rows == [{
+        "model_id": "demo/astra", "display_name": "Astra",
+        "provider": "demo", "provider_display": "Demo Lab",
+        "score": 41.4, "unit": "percent",
+        "as_of": "2026-09-03", "date_type": "published",
+        "source": "https://src.example/astra", "source_kind": "provider_self_report",
+        "model_id_as_evaluated": "Astra", "benchmark_version": "AutomationBench",
+        "configuration": "launch table", "verified_at": "2026-09-11",
+        "attribution": "verified",
+    }]
+
+
+def test_an_evidence_record_replaces_the_card_score_for_the_same_benchmark(
+        tmp_path: Path) -> None:
+    """The same measurement, checked. The ranking engine applies the same precedence."""
+    cards = [_card("demo/checked", scores={"b": 51.2}, evidence=(_evidence("b", 40.81),)),
+             _card("demo/legacy", scores={"b": 45.0})]
+    rows = _published(tmp_path, cards, [_page("b")])["b"]
+    assert [(r["model_id"], r["score"], r["as_of"], r.get("date_type"), r["source"],
+             r["attribution"]) for r in rows] == [
+        ("demo/legacy", 45.0, "2026-01-01", None, "card sources", "unverified-legacy"),
+        ("demo/checked", 40.81, "2026-09-01", "evaluated", "https://src.example/run",
+         "verified"),
+    ]
+    assert rows[0].keys() == rows[1].keys()
+
+
+def test_each_evidence_record_is_its_own_row(tmp_path: Path) -> None:
+    """A provider's claim and an independent run are both shown, each with its own date."""
+    card = _card("demo/opus", scores={"b": 90.0}, evidence=(
+        _evidence("b", 93.6, source_kind="provider_self_report",
+                  evidence_date="2026-05-28", date_type="published"),
+        _evidence("b", 92.02)))
+    write(tmp_path, [card], [_page("b")], Catalogue(as_of=date(2026, 9, 15)), _BUILD,
+          parts=("benchmarks", "catalogue"))
+    rows = json.loads((tmp_path / "benchmarks/b.json").read_text())["models_covered"]
+    assert [(r["score"], r["as_of"], r.get("date_type"), r.get("source_kind"),
+             r["attribution"]) for r in rows] == [
+        (93.6, "2026-05-28", "published", "provider_self_report", "verified"),
+        (92.02, "2026-09-01", "evaluated", "independent_evaluator", "verified"),
+    ]
+    catalogue = json.loads((tmp_path / "catalogue.json").read_text())
+    assert [(b["id"], b["models_covered"]) for b in catalogue["benchmarks"]] == [("b", 1)]
+
+
+@pytest.mark.parametrize(("direction", "expected"), [
+    ("lower_is_better", [3.0, 4.0, 5.0]),
+    ("higher_is_better", [5.0, 4.0, 3.0]),
+])
+def test_coverage_is_ordered_best_first_by_metric_direction(
+        tmp_path: Path, direction: str, expected: list[float]) -> None:
+    cards = [_card("demo/a", scores={"wer": 5.0}),
+             _card("demo/b", evidence=(_evidence("wer", 3.0),)),
+             _card("demo/c", scores={"wer": 4.0})]
+    rows = _published(tmp_path, cards, [_page("wer", direction)])["wer"]
+    assert [r["score"] for r in rows] == expected
+
+
+def test_every_card_evidence_record_reaches_its_benchmark_page(tmp_path: Path) -> None:
+    """Thirteen benchmarks were reported only in evidence records and listed no model."""
+    records = [(m.model_id, rec) for m in _models()
+               for rec in (m.front.get("benchmarks") or {}).get("evidence") or []]
+    ids = {str(rec["benchmark_id"]) for _, rec in records}
+    published = _published(tmp_path, _models(),
+                           [b for b in _benchmarks() if b.benchmark_id in ids])
+    shown = {key: {(r["model_id"], r["score"], r["as_of"], r.get("source_kind"),
+                    r["attribution"]) for r in rows}
+             for key, rows in published.items()}
+    missing = [(model_id, rec["benchmark_id"]) for model_id, rec in records
+               if (model_id, rec["score"], str(rec["evidence_date"]), rec["source_kind"],
+                   "verified") not in shown[str(rec["benchmark_id"])]]
+    assert missing == []
+
+
+def test_benchgraph_headline_counts_evidence_only_scores() -> None:
+    card = _card("demo/astra", evidence=(_evidence("automationbench", 41.4),))
+    stats = builder.benchgraph_headline_stats([card], [_page("automationbench")])
+    assert stats == {"pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1}
+
+
+def _coverage_cells(html: str) -> list[list[str]]:
+    table = html.split("<h2>Models reporting this benchmark</h2>", 1)[1].split("<h2>", 1)[0]
+    return [[" ".join(re.sub(r"<[^>]+>", " ", cell).split())
+             for cell in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+            for row in re.findall(r"<tr><td.*?</tr>", table, re.S)]
+
+
+def test_benchmark_page_shows_each_score_with_its_date_and_attribution(
+        tmp_path: Path) -> None:
+    from pipeline.render import benchmark_page
+
+    cards = [_card("demo/astra", "Astra", evidence=(_evidence(
+                 "b", 41.4, model_id_as_evaluated="Astra (max)",
+                 source_kind="provider_self_report", evidence_date="2026-09-03",
+                 date_type="published"),)),
+             _card("demo/old", "Old", scores={"b": 30.0})]
+    page = _page("b")
+    rows = _published(tmp_path, cards, [page])["b"]
+    html = benchmark_page(page, _BUILD, Catalogue(as_of=date(2026, 9, 15)), rows)
+    assert "No model card in ModelSpec reports this benchmark yet." not in html
+    assert _coverage_cells(html) == [
+        ["Astra evaluated as Astra (max)", "Demo Lab", "41.4%", "2026-09-03 published",
+         "verified provider self report source"],
+        ["Old", "Demo Lab", "30.0", "2026-01-01 card", "unverified-legacy"],
+    ]
 
 
 # ── presentation ─────────────────────────────────────────────────────────────
@@ -212,7 +372,8 @@ def test_benchgraph_headline_counts_pages_apart_from_scored_keys() -> None:
     stats = builder.benchgraph_headline_stats(_models(), _benchmarks(), _coverage())
     assert stats["pages"] == len(_benchmarks())
     assert stats["scored_benchmarks"] == len(_coverage())
-    assert stats["scored_models"] == sum(1 for m in _models() if m.scores)
+    assert stats["scored_models"] == len(
+        {r["model_id"] for rows in _coverage().values() for r in rows})
     assert stats["scores"] == sum(len(rows) for rows in _coverage().values())
     assert stats["pages"] > stats["scored_benchmarks"]
     from pipeline.render import catalogue_headline

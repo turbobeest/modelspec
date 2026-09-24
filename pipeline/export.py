@@ -90,29 +90,64 @@ def make_build(catalogue: Catalogue, root: Path | None = None) -> Build:
     )
 
 
-def models_by_benchmark(models: list[Model]) -> dict[str, list[dict[str, Any]]]:
-    """Which models report each benchmark, derived from the cards.
+#: What an evidence record says about its own score beyond the date and source.
+#: A flat card score says none of it, so these are null on its row, not absent.
+_EVIDENCE_ROW_KEYS = ("unit", "date_type", "source_kind", "model_id_as_evaluated",
+                      "benchmark_version", "configuration", "verified_at")
 
-    Never authored on the benchmark page. Each entry carries the date and source
-    the card claims for its scores, so a reader can see how old the number is
-    rather than being shown a bare figure.
+
+def _coverage_row(model: Model, score: float, as_of: Any, source: Any,
+                  attribution: str, record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "model_id": model.model_id,
+        "display_name": model.display_name,
+        "provider": model.provider,
+        "provider_display": model.provider_display,
+        "score": score,
+        "as_of": as_of,
+        "source": source,
+        "attribution": attribution,
+        **{key: record.get(key) for key in _EVIDENCE_ROW_KEYS},
+    }
+
+
+def models_by_benchmark(models: list[Model],
+                        benchmarks: list[Benchmark]) -> dict[str, list[dict[str, Any]]]:
+    """Which models report each benchmark, derived from the cards, best first.
+
+    Never authored on the benchmark page. Every row carries its own date and
+    attribution, so a reader can see how old a number is and who stands behind
+    it rather than being shown a bare figure.
+
+    A reviewed evidence record is `verified` and dated by its own
+    `evidence_date`. A card can hold several for one benchmark (a provider's
+    claim beside an independent run), and each is its own row. A flat card
+    score is `unverified-legacy`, dated by the card's one collection date, and
+    is dropped where the same card has evidence for that benchmark: it is the
+    same measurement, checked. The ranking engine applies the same precedence.
     """
     index: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for model in models:
+        for record in model.evidence:
+            index[str(record["benchmark_id"])].append(_coverage_row(
+                model, record["score"], record.get("evidence_date"),
+                record.get("source_url"), "verified", record))
+        reviewed = {str(record["benchmark_id"]) for record in model.evidence}
         for key, value in model.scores.items():
-            index[key].append({
-                "model_id": model.model_id,
-                "display_name": model.display_name,
-                "provider": model.provider,
-                "provider_display": model.provider_display,
-                "score": value,
-                "as_of": model.scores_as_of,
-                "source": model.scores_source,
-                "attribution": "unverified-legacy",
-            })
-    for rows in index.values():
-        rows.sort(key=lambda r: (-float(r["score"]), r["display_name"].lower()))
+            if key not in reviewed:
+                index[key].append(_coverage_row(
+                    model, value, model.scores_as_of, model.scores_source,
+                    "unverified-legacy", {}))
+    ascending = {b.benchmark_id for b in benchmarks if b.lower_is_better}
+    for key, rows in index.items():
+        sign = 1.0 if key in ascending else -1.0
+        rows.sort(key=lambda r: (sign * float(r["score"]), r["display_name"].lower()))
     return dict(index)
+
+
+def models_reporting(rows: list[dict[str, Any]]) -> int:
+    """Distinct models in one benchmark's coverage; one model can hold several rows."""
+    return len({row["model_id"] for row in rows})
 
 
 def model_summary(model: Model) -> dict[str, Any]:
@@ -156,7 +191,7 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
           parts: tuple[str, ...] = PARTS_ALL) -> dict[str, int]:
     """Write the export tree. Returns counts for the run summary."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    coverage = models_by_benchmark(models)
+    coverage = models_by_benchmark(models, benchmarks)
 
     def dump(rel: str, payload: Any) -> None:
         path = out_dir / rel
@@ -206,7 +241,7 @@ def write(out_dir: Path, models: list[Model], benchmarks: list[Benchmark],
         })
 
     catalogue_rows = [
-        benchmark_summary(b, catalogue, len(coverage.get(b.benchmark_id, [])))
+        benchmark_summary(b, catalogue, models_reporting(coverage.get(b.benchmark_id, [])))
         for b in benchmarks
     ]
     by_status: dict[str, list[str]] = defaultdict(list)
