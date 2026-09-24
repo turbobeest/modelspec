@@ -102,7 +102,7 @@ def dispute(*, status: str, pi: Any = PI, dispute_id: str = DISPUTE) -> dict[str
 async def _apply(kv: Any, policy: Any, body: str, ledger: Any) -> Any:
     return await billing.webhook(
         payload=body, signature=billing_stripe.sign_header(body, SECRET, TS),
-        secret=SECRET, flag=True, kv=kv, policy=policy, now=T0,
+        secret=SECRET, kv=kv, policy=policy, now=T0,
         service_commit=COMMIT, ledger=ledger)
 
 
@@ -112,7 +112,7 @@ def apply(kv: Any, policy: Any, type_: str, obj: dict[str, Any], event_id: str,
 
 
 def claim(kv: Any, policy: Any, ledger: Any, session: str = SESSION) -> Any:
-    return run(billing.claim(session_id=session, flag=True, kv=kv, policy=policy,
+    return run(billing.claim(session_id=session, kv=kv, policy=policy,
                              now=T0, service_commit=COMMIT, ledger=ledger))
 
 
@@ -238,7 +238,7 @@ def test_two_partial_refunds_are_cumulative_not_additive(policy):
 def test_a_refund_follows_the_credits_through_key_rotation(policy):
     kv, ledger = MemoryKV(), credits.MemoryLedger()
     key = bought_pack(kv, policy, ledger)
-    rotated = run(billing.rotate(api_key=key, flag=True, kv=kv, policy=policy, now=T0,
+    rotated = run(billing.rotate(api_key=key, kv=kv, policy=policy, now=T0,
                                  service_commit=COMMIT, ledger=ledger))
     assert rotated.status == 200
     new_key = rotated.body["key"]
@@ -486,7 +486,7 @@ def test_expired_pack_refund_removes_nothing_and_says_so(policy):
     body = event("charge.refunded", charge(refunded_amount=AMOUNT), "evt_late")
     outcome = run(billing.webhook(
         payload=body, signature=billing_stripe.sign_header(body, SECRET, int(later.timestamp())),
-        secret=SECRET, flag=True, kv=kv, policy=policy, now=later,
+        secret=SECRET, kv=kv, policy=policy, now=later,
         service_commit=COMMIT, ledger=ledger))
     assert outcome.body["credits"]["removed"] == 0
     assert outcome.body["credits"]["expired"] == 1250

@@ -578,7 +578,12 @@ class Default(WorkerEntrypoint):
         return _json_response(status, body)
 
     async def _billing(self, request, path: str, method: str, service_commit: str):
-        """MODEL-73: Checkout, webhook, claim, rotate. Routing only."""
+        """MODEL-73: Checkout, webhook, claim, rotate. Routing only.
+
+        `BILLING_ENABLED` gates Checkout alone (no new purchase can start).
+        The webhook, claim and rotate serve purchases already paid for, so
+        they answer with the flag off too (2026-09-24, holding mode).
+        """
         if path not in ("/v1/billing/stripe-webhook", "/v1/billing/checkout",
                         "/v1/billing/claim", "/v1/billing/rotate"):
             return _json_response(service.HTTP_NOT_FOUND, {
@@ -610,7 +615,7 @@ class Default(WorkerEntrypoint):
                 payload=raw,
                 signature=header("stripe-signature") or header("Stripe-Signature"),
                 secret=str(getattr(self.env, STRIPE_WEBHOOK_SECRET_VAR, "") or "") or None,
-                flag=flag, kv=kv, policy=policy, now=now,
+                kv=kv, policy=policy, now=now,
                 service_commit=service_commit,
                 ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)
@@ -633,7 +638,7 @@ class Default(WorkerEntrypoint):
             session_id = billing.session_id_from_request(
                 query=billing.query_string(str(request.url)), payload=payload)
             outcome = await billing.claim(
-                session_id=session_id, flag=flag, kv=kv, policy=policy, now=now,
+                session_id=session_id, kv=kv, policy=policy, now=now,
                 service_commit=service_commit,
                 ledger=credits.ledger_from_env(self.env))
             if billing_page.prefers_html(header("accept")):
@@ -650,7 +655,7 @@ class Default(WorkerEntrypoint):
                 return _json_response(*_billing_unconfigured(service_commit))
             outcome = await billing.rotate(
                 api_key=access_keys.extract(lambda name: header(name)),
-                flag=flag, kv=kv, policy=policy, now=now,
+                kv=kv, policy=policy, now=now,
                 service_commit=service_commit,
                 ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)

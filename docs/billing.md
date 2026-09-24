@@ -3,9 +3,21 @@
 A human pays by card on Stripe-hosted Checkout. Plans SET a monthly credit
 allowance; packs ADD pack credits. A Checkout that presents a live API key
 credits **that** key. An anonymous Checkout is claimed once and mints a key.
-There is no console step after payment. **The switch is off.**
-`BILLING_ENABLED` in `api/worker/wrangler.jsonc` ships `"false"`. Nothing
-here runs until that flips, and the secrets exist, in test mode.
+There is no console step after payment. **The switch is off** (2026-09-24,
+holding mode: see [`handoff/holding-mode.md`](handoff/holding-mode.md)).
+`BILLING_ENABLED` in `api/worker/wrangler.jsonc` is `"false"`.
+
+**What the switch gates: Checkout, and nothing else.** With it off,
+`POST /v1/billing/checkout` (JSON and the `/pricing` form post) answers
+`503 billing_not_enabled` before any call to Stripe, so no new purchase can
+start. The webhook, claim and rotation keep answering, because each one
+serves money that has already moved: a pack paid for before the flag went off
+is still granted and claimed, an existing plan's renewal is still credited,
+and a refund or chargeback still takes back (or holds) the pack's credits.
+Existing keys and their credits keep working on `/v1/rank` and
+`/v1/policy-check`; the ledger never reads this flag. Until 2026-09-24 the
+flag also refused the webhook, which was harmless before the first sale and
+would have kept a refunded pack's credits after it.
 
 The unit is a **credit**.
 
@@ -33,8 +45,8 @@ Enterprise is not a Price. Contact sales@modelspec.dev.
 
 ## Endpoints
 
-All on `https://api.modelspec.dev`. Flag off → `503 billing_not_enabled` after
-a webhook signature still being checked. Billing paths are never HTTP 402.
+All on `https://api.modelspec.dev`. Flag off → `503 billing_not_enabled` on
+checkout only; the other three answer as usual. Billing paths are never HTTP 402.
 
 | Method | Path | Who |
 | --- | --- | --- |
@@ -271,7 +283,9 @@ Stripe's live API.
 7. ACCESS KV must exist (MODEL-69). The CREDITS Durable Object is bound
    (MODEL-75). Enforcement can stay off; a presented key is still checked.
 8. Set `"BILLING_ENABLED": "true"` in `wrangler.jsonc` vars, regenerate
-   `openapi.yaml`, merge. The deploy is push-to-main only.
+   `openapi.yaml`, merge. The deploy is push-to-main only. At relaunch this is
+   the step that reopens Checkout; do it together with `SITE_MODE=live`, since
+   the buy buttons live on `/pricing`, which holding mode does not publish.
 
 **Tax.** Sparks and Sawdust LLC applies one rule to every product, set first
 for dev-mux: Stripe Tax on every Checkout (`automatic_tax[enabled]=true`,
@@ -288,7 +302,7 @@ accountant's answer: `dev-mux/docs/ri-sales-tax-decision.md`.
 | --- | --- | --- |
 | `STRIPE_SECRET_KEY` | Wrangler secret | creating a Checkout Session |
 | `STRIPE_WEBHOOK_SECRET` | Wrangler secret | verifying `Stripe-Signature` |
-| `BILLING_ENABLED` | `wrangler.jsonc` vars | the switch, default `"false"` |
+| `BILLING_ENABLED` | `wrangler.jsonc` vars | whether Checkout is open; `"false"` while the sites are in holding mode |
 
 No secret belongs in this repository. Tests sign fixtures with a throwaway
 `whsec_test_…` string.

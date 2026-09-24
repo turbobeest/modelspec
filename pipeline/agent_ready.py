@@ -754,11 +754,11 @@ def auth_markdown(root: Path) -> str:
     ]
     if billing_off:
         lines.append(
-            "**Billing is not live.** `BILLING_ENABLED` is off. Stripe "
-            "Checkout, key claim and paid keys are wired in the Worker and "
-            "return `503 billing_not_enabled` after a valid webhook "
-            "signature. There is no paid key you can buy today, and no "
-            "price in force."
+            "**Billing is not live.** `BILLING_ENABLED` is off. "
+            "`POST /v1/billing/checkout` returns `503 billing_not_enabled`, "
+            "so there is no paid key you can buy today. A key bought "
+            "earlier keeps working and keeps its credits; claim and "
+            "rotation still answer for it."
         )
     else:
         lines.append(
