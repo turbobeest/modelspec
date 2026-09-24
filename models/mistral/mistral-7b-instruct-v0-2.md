@@ -736,9 +736,73 @@ benchmarks:
     gpqa_diamond: 27.6
     musr: 39.7
     mmlu_pro: 27.2
+  evidence:
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.2
+    score: 69.44
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_biology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.2
+    score: 65.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_computer_science (5-shot, acc),
+      x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.2
+    score: 35.76
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.2
+    score: 80.99
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-international_law (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.2
+    score: 74.07
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-jurisprudence (5-shot, acc), x100.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds the Open LLM
+    Leaderboard v2 "MATH Lvl 5 Raw" value for mistralai/Mistral-7B-Instruct-v0.2. Each value is confirmed for this
+    exact model but is not the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -896,7 +960,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

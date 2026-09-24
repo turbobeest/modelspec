@@ -735,9 +735,812 @@ benchmarks:
     gpqa_diamond: 29.2
     musr: 40.3
     mmlu_pro: 29.5
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 60.49
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task arc:challenge (25-shot, acc_norm), x100.
+    limitations: ''
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 45.17
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 BBH
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "BBH Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 34.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task gsm8k (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 82.99
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hellaswag (10-shot, acc_norm), x100.
+    limitations: ''
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 22.66
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 IFEval
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "IFEval Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 30.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-abstract_algebra (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 60.74
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-anatomy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 65.13
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-astronomy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 61.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-business_ethics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 68.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-clinical_knowledge (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 69.44
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_biology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 49.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_chemistry (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 52.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_computer_science (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 37.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 63.01
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_medicine (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 31.37
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 73.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-computer_security (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 58.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-conceptual_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 44.74
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-econometrics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 55.86
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-electrical_engineering (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 40.21
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-elementary_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 39.68
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-formal_logic (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 40.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-global_facts (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 76.13
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_biology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 54.19
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_chemistry (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 65.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_computer_science (5-shot, acc),
+      x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 76.36
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_european_history (5-shot, acc),
+      x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 77.27
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_geography (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 87.56
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_government_and_politics (5-shot,
+      acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 60.51
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_macroeconomics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 35.93
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 63.87
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_microeconomics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 35.76
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 80.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_psychology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 51.85
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_statistics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 81.37
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_us_history (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 78.06
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_world_history (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 69.96
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-human_aging (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 77.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-human_sexuality (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 80.99
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-international_law (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 74.07
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-jurisprudence (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 78.53
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-logical_fallacies (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 53.57
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-machine_learning (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 81.55
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-management (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 88.03
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-marketing (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 70.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-medical_genetics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 79.82
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-miscellaneous (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 70.23
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-moral_disputes (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 39.78
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-moral_scenarios (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 74.18
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-nutrition (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 72.67
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-philosophy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 68.83
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-prehistory (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 29.53
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MMLU-Pro
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "MMLU-PRO Raw" x100 (raw
+      accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 51.06
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_accounting (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 46.15
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_law (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 68.75
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_medicine (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 66.18
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_psychology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 64.55
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-public_relations (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 72.65
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-security_studies (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 82.59
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-sociology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 88.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-us_foreign_policy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 53.61
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-virology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 81.87
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-world_religions (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 40.32
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MuSR
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "MUSR Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 41.79
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task truthfulqa:mc (0-shot, mc2), x100.
+    limitations: ''
+  - benchmark_id: winogrande
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 78.45
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/mistralai/Mistral-7B-v0.3/results_2024-05-23T11-37-26.409605.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-05-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task winogrande (5-shot, acc), x100.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
+    LLM Leaderboard v2 "GPQA Raw" value for mistralai/Mistral-7B-v0.3; math_500 holds the Open LLM Leaderboard v2
+    "MATH Lvl 5 Raw" value for mistralai/Mistral-7B-v0.3. Each value is confirmed for this exact model but is not
+    the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -895,7 +1698,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
