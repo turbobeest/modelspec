@@ -301,7 +301,7 @@ Acceptance: every recall test passes, no guaranteed facet is unknown, and each o
 
 **Slice 4:** the outcome protocol with DPF, and active speed probes.
 
-**Slice 5:** the builder UI (a condition builder over the same contract), saved specs and alerts, the claims-versus-evidence pages.
+**Slice 5:** the human downselect experience, saved specs and alerts, and the claims-versus-evidence pages. The downselect page is meant to be exceptional, not a form. It should make choosing a model exciting and intuitive, with benchmark graphs that pop. It is **research-led**: a dedicated UX research phase, contrasting prototypes and usability tests on the recall-set questions, all over the same decision contract and explanations that agents use (MODEL-147).
 
 **Launch** is Jamie's call, after slice 2 at the earliest.
 
