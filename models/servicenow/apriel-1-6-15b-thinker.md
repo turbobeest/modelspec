@@ -668,33 +668,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence:
-  - benchmark_id: critpt
-    model_id_as_evaluated: Apriel-v1.6-15B-Thinker
-    score: 0.29
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Apriel-v1.6-15B-Thinker
-    score: 73.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+  evidence: []
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -860,4 +834,4 @@ card_updated: '2026-09-10'
 
 # Apriel-v1.6-15B-Thinker
 
-Carded from Hugging Face Hub [ServiceNow-AI/Apriel-1.6-15b-Thinker](https://huggingface.co/ServiceNow-AI/Apriel-1.6-15b-Thinker) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 14,863,859,712. No benchmark evidence attached.
+Carded from Hugging Face Hub [ServiceNow-AI/Apriel-1.6-15b-Thinker](https://huggingface.co/ServiceNow-AI/Apriel-1.6-15b-Thinker) because a live leaderboard row had no catalogue card. Hub safetensors total 14,863,859,712. No benchmark evidence attached.

@@ -116,7 +116,9 @@ class ReferenceModel(StrictRecord):
 
 class ModelReferenceSet(StrictRecord):
     as_of: date
-    models: list[ReferenceModel] = Field(min_length=1)
+    #: May be empty. With no reference models no result can qualify, so the
+    #: active set is empty: that fails closed, which is the point.
+    models: list[ReferenceModel] = Field(default_factory=list)
 
     _date = field_validator("as_of", mode="before")(_date_value)
 

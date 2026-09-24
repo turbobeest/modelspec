@@ -686,8 +686,6 @@ benchmarks:
     arena_elo_overall: 1340.0
     arena_elo_style_control: 1413.0
     arena_elo_vision: 1213.5
-    artificial_analysis_quality_index: 84.0
-    artificial_analysis_speed_index: 76.0
     bbq: 86.5
     chartqa: 88.5
     docvqa: 94.1
@@ -742,45 +740,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: GPT-4.1
-    score: 68.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: GPT-4.1
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: GPT-4.1
-    score: 66.57
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: gpt-4.1-2025-04-14
     score: 1382.77
@@ -1252,7 +1211,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 90.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

@@ -669,21 +669,6 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: automationbench
-    model_id_as_evaluated: GPT 6 Sol (Max)
-    score: 32.0
-    unit: percent
-    source_url: https://zapier.com/benchmarks
-    source_kind: benchmark_author
-    evidence_date: '2026-09-24'
-    date_type: evaluated
-    verified_at: '2026-09-24'
-    benchmark_version: AutomationBench 1.0.6 (strict pass rate, private held-out set)
-    configuration: Zapier's own AutomationBench leaderboard, dataset 1.0.6, row 'GPT
-      6 Sol (Max)'. Max effort, AA-consistent canonical row. The same board shows GPT
-      6 Sol (XHigh) at 33.2%, the figure OpenAI quotes on its launch page. The page
-      states no as-of date; evidence_date is the observation, fetched 2026-09-24.
-    limitations: ''
   - benchmark_id: arena_webdev
     model_id_as_evaluated: gpt-6-sol-max
     score: 1685.9

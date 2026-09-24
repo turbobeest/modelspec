@@ -112,7 +112,7 @@ Lukas Haas, Gal Yona, Giovanni D'Antonio, Sasha Goldshtein and Dipanjan Das at G
 
 ## Lineage
 
-It succeeds OpenAI's SimpleQA (`simpleqa`), fixing noisy and incorrect labels, topic bias and redundant questions. It replaces the proposed Artificial Analysis Omniscience key in the chat profile: both measure short-form factual recall, and no profile weight may rest on Artificial Analysis (MODEL-117).
+It succeeds OpenAI's SimpleQA (`simpleqa`), fixing noisy and incorrect labels, topic bias and redundant questions. It measures short-form factual recall.
 
 ## Saturation and contamination
 

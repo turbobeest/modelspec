@@ -667,20 +667,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence:
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: DeepHermes 3 - Mistral 24B
-    score: 38.18
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+  evidence: []
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -846,6 +833,6 @@ card_updated: '2026-09-18'
 
 # DeepHermes 3 Mistral 24B
 
-Carded from Hugging Face Hub [NousResearch/DeepHermes-3-Mistral-24B-Preview](https://huggingface.co/NousResearch/DeepHermes-3-Mistral-24B-Preview) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 23,572,464,640. No benchmark evidence attached.
+Carded from Hugging Face Hub [NousResearch/DeepHermes-3-Mistral-24B-Preview](https://huggingface.co/NousResearch/DeepHermes-3-Mistral-24B-Preview) because a live leaderboard row had no catalogue card. Hub safetensors total 23,572,464,640. No benchmark evidence attached.
 
 Licence: apache-2.0. Creator distribution https://huggingface.co/NousResearch/DeepHermes-3-Mistral-24B-Preview/raw/main/README.md (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.

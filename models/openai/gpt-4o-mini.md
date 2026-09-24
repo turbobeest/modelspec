@@ -684,8 +684,6 @@ benchmarks:
     arena_elo_overall: 1250.0
     arena_elo_style_control: 1317.2
     arena_elo_vision: 1097.8
-    artificial_analysis_quality_index: 72.0
-    artificial_analysis_speed_index: 90.0
     gpqa_diamond: 46.1
     humaneval: 87.2
     ifeval: 80.5
@@ -709,32 +707,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: GPT-4o mini
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: GPT-4o mini
-    score: 42.63
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-4o-mini-2024-07-18
     score: 1317.59
@@ -1147,7 +1119,6 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 150.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

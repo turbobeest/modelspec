@@ -668,8 +668,6 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    artificial_analysis_quality_index: 58.0
-    artificial_analysis_speed_index: 92.0
     bbh: 38.1
     gpqa_diamond: 28.5
     ifeval: 72.4
@@ -790,7 +788,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 200.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

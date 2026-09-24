@@ -1077,4 +1077,4 @@ card_updated: '2026-09-10'
 
 # LongCat Flash Chat
 
-Carded from Hugging Face Hub [meituan-longcat/LongCat-Flash-Chat](https://huggingface.co/meituan-longcat/LongCat-Flash-Chat) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 561,862,880,256. No benchmark evidence attached.
+Carded from Hugging Face Hub [meituan-longcat/LongCat-Flash-Chat](https://huggingface.co/meituan-longcat/LongCat-Flash-Chat) because a live leaderboard row had no catalogue card. Hub safetensors total 561,862,880,256. No benchmark evidence attached.

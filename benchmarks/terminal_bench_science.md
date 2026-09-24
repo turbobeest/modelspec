@@ -102,7 +102,7 @@ Harbor Framework is the credited publisher or author information in the opened s
 
 Terminal-Bench is a versioned family of terminal-agent evaluations. Terminal-Bench 2.0, its verified derivative, Terminal-Bench 3.0 and Terminal-Bench-Science are distinct releases or task collections, not interchangeable scores. Terminal-Bench-LILT is a multilingual coding extension with a separate paper and task suite.
 
-The v2.1 and v4.0 leads supplied for this assignment resolve only to an Artificial Analysis logo asset. They do not establish benchmark identities, releases or aliases.
+No release for the v2.1 or v4.0 labels has been established from a primary source, so neither is an alias of the releases above.
 
 ## Saturation and contamination
 

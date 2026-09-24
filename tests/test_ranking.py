@@ -359,8 +359,14 @@ def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
 
 
 def test_verified_benchmarks_now_carry_ranking_weight() -> None:
-    """MODEL-32 option B: reviewed evidence is load-bearing."""
+    """MODEL-32 option B: reviewed evidence is load-bearing.
+
+    The active set may be empty (it is after MODEL-117), so the claim is
+    checked two ways: every active benchmark is weighted, and every benchmark
+    folded in by `VERIFIED_ADDITIONS` is weighted, ready for evidence to land.
+    """
     import json as _json
+    from api.ranking.engine import VERIFIED_ADDITIONS
 
     report = _json.loads(
         (REPO_ROOT / "benchmarks/_census/eligibility/current-report.json").read_text())
@@ -368,7 +374,9 @@ def test_verified_benchmarks_now_carry_ranking_weight() -> None:
     weighted = set()
     for profile in USE_CASE_PROFILES.values():
         weighted |= set(profile.get("benchmark_weights") or {})
-    assert active & weighted, "no verified benchmark carries any ranking weight"
+    assert active <= weighted, sorted(active - weighted)
+    added = {b for bs in VERIFIED_ADDITIONS.values() for b in bs}
+    assert added and added <= weighted, sorted(added - weighted)
 
 
 def test_one_evaluators_index_cannot_dominate_a_profile() -> None:

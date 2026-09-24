@@ -20,7 +20,7 @@ FAMILY_RULES = [
     ("mmlu", r"^mmlu(_|$)(?!pro)"), ("multipl_e", r"^multipl_e"), ("mteb", r"^mteb"), ("arena_elo", r"^arena_elo"),
     ("swe_bench", r"^swe_bench"), ("flores", r"^flores"), ("graphwalks", r"^graphwalks"), ("charxiv", r"^charxiv"),
     ("screenspot_pro", r"^screenspot_pro"), ("lab_bench_figqa", r"^lab_bench_figqa"), ("hle", r"^hle"),
-    ("terminal_bench", r"^terminal_bench"), ("artificial_analysis", r"^artificial_analysis"),
+    ("terminal_bench", r"^terminal_bench"),
 ]
 
 

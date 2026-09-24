@@ -6,9 +6,9 @@ page_kind: benchmark
 category: agentic
 subcategory: "Terminal-Bench version label"
 status: unknown
-summary: "The supplied v2.1 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry."
+summary: "No authoritative release or task registry for Terminal-Bench v2.1 has been established."
 measures: >
-  The supplied v2.1 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry. The benchmark gives an agent an English task, a terminal environment and a
+  No authoritative release or task registry for Terminal-Bench v2.1 has been established. The benchmark gives an agent an English task, a terminal environment and a
   verification procedure; success depends on completing the task and passing its tests.
 task_format: "Agent interacts with a containerized terminal; task-specific tests determine success."
 metric:
@@ -22,20 +22,20 @@ metric:
 dataset:
   size: null
   size_note: "A stable task count was not established from the opened primary source."
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
+  url: ""
   license: ""
   languages: [en]
   modalities: [text]
   splits: "versioned task collection; no train/test split established"
   public_test_set: true
 publisher:
-  org: "Artificial Analysis lead"
-  authors: ["Artificial Analysis lead"]
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
+  org: ""
+  authors: []
+  url: ""
 paper:
   title: "Terminal-Bench"
   arxiv: ""
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
+  url: ""
   year: null
 leaderboard_url: ""
 repo_url: ""
@@ -62,10 +62,7 @@ harness:
   bigbench: ""
   other: "Harbor/Terminal-Bench execution harness"
 tags: [terminal, agents, tool-use, container]
-sources:
-  - url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
-    title: "Terminal-Bench v2.1 primary dataset or paper source"
-    accessed: "2026-09-09"
+sources: []
 freshness:
   researched: "2026-09-09"
   researched_by: "GPT-5.6 Luna, luna-stream-c-002 (Codex coordinated)"
@@ -75,7 +72,7 @@ freshness:
 
 ## What it measures
 
-The supplied v2.1 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry. An agent receives an instruction and works inside a terminal environment. The task may involve programming, debugging, system administration, data processing or scientific computation, depending on the release.
+No authoritative release or task registry for Terminal-Bench v2.1 has been established. An agent receives an instruction and works inside a terminal environment. The task may involve programming, debugging, system administration, data processing or scientific computation, depending on the release.
 
 Success requires both useful interaction and a completed artifact. The benchmark measures agent planning, tool use, environment handling and end-to-end task completion. It is not a static coding-question exam.
 
@@ -93,13 +90,13 @@ Version and mirror provenance matter. Hugging Face cards for Terminal-Bench 2.0 
 
 ## Who publishes it
 
-Artificial Analysis lead is the credited publisher or author information in the opened source. The Harbor and Terminal-Bench projects maintain the execution framework and versioned task releases. No universal leaderboard was established for every assigned version.
+No publisher for this version label has been established. The Harbor and Terminal-Bench projects maintain the execution framework and versioned task releases. No universal leaderboard was established for every assigned version.
 
 ## Lineage
 
 Terminal-Bench is a versioned family of terminal-agent evaluations. Terminal-Bench 2.0, its verified derivative, Terminal-Bench 3.0 and Terminal-Bench-Science are distinct releases or task collections, not interchangeable scores. Terminal-Bench-LILT is a multilingual coding extension with a separate paper and task suite.
 
-The v2.1 and v4.0 leads supplied for this assignment resolve only to an Artificial Analysis logo asset. They do not establish benchmark identities, releases or aliases.
+No release for the v2.1 or v4.0 labels has been established from a primary source, so neither is an alias of the releases above.
 
 ## Saturation and contamination
 

@@ -683,8 +683,6 @@ benchmarks:
     arena_elo_math: 1360.0
     arena_elo_overall: 1370.0
     arena_elo_style_control: 1451.9
-    artificial_analysis_quality_index: 86.0
-    artificial_analysis_speed_index: 71.0
     bbq: 87.5
     chartqa: 84.2
     docvqa: 91.5
@@ -737,71 +735,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Claude 4.5 Sonnet
-    score: 72.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Claude 4.5 Sonnet
-    score: 1.14
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Claude 4.5 Sonnet
-    score: 24.46
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Claude 4.5 Sonnet
-    score: 83.43
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: scicode
-    model_id_as_evaluated: Claude 4.5 Sonnet
-    score: 45.72
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: SciCode
-    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: claude-sonnet-4-5-20250929
     score: 1438.25
@@ -1289,7 +1222,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 72.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

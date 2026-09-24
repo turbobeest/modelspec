@@ -242,8 +242,8 @@ cost:
   finetune_hosting_per_hour: null
   free_tier: false
   free_tier_limits: ''
-  note: Z.ai first-party API $1.40/$4.40 per 1M (docs.z.ai/guides/llm/glm-5.2 and
-    Artificial Analysis, 2026-09-10). Together serverless matches those prices and
+  note: Z.ai first-party API $1.40/$4.40 per 1M (docs.z.ai/guides/llm/glm-5.2,
+    2026-09-10). Together serverless matches those prices and
     lists context 1048575 (docs.together.ai/docs/serverless-models, 2026-09-10); the
     provider figure is 1M tokens.
 availability:
@@ -670,71 +670,6 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: GLM-5.2 (max)
-    score: 78.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-11'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: GLM-5.2 (max)
-    score: 20.86
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-11'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: GLM-5.2 (max)
-    score: 45.88
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-11'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: GLM-5.2 (max)
-    score: 89.49
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-11'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: scicode
-    model_id_as_evaluated: GLM-5.2 (max)
-    score: 51.16
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-11'
-    benchmark_version: SciCode
-    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: glm-5.2-max
     score: 1472.1

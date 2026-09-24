@@ -1091,4 +1091,4 @@ card_updated: '2026-09-10'
 
 # Qwen2 72B Instruct
 
-Carded from Hugging Face Hub [Qwen/Qwen2-72B-Instruct](https://huggingface.co/Qwen/Qwen2-72B-Instruct) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 72,706,203,648. No benchmark evidence attached.
+Carded from Hugging Face Hub [Qwen/Qwen2-72B-Instruct](https://huggingface.co/Qwen/Qwen2-72B-Instruct) because a live leaderboard row had no catalogue card. Hub safetensors total 72,706,203,648. No benchmark evidence attached.

@@ -4,7 +4,6 @@
   "name": "Humanity's Last Exam",
   "aliases": [],
   "sources": [
-   "aggregator:artificialanalysis.ai",
    "aggregator:llm-stats.com",
    "awesome:benchflow-ai/awesome-evals",
    "awesome:meetrais/awesome-llm-evals",
@@ -12,7 +11,6 @@
   ],
   "source_count": 5,
   "urls": [
-   "https://artificialanalysis.ai/img/logos/hle_small.svg",
    "https://arxiv.org/abs/2501.14249",
    "https://llm-stats.com/benchmarks/humanity's-last-exam"
   ],
@@ -2884,40 +2882,6 @@
   "score": 18.0
  },
  {
-  "slug": "aa_analystagent_methodology",
-  "name": "AA-AnalystAgent Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "aa_apex_agents_aa_methodology",
-  "name": "AA APEX-Agents-AA Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "aaai2025",
   "name": "AAAI2025",
   "aliases": [],
@@ -4246,40 +4210,6 @@
   "score": 18.0
  },
  {
-  "slug": "allenai_ifbench",
-  "name": "allenai/IFBench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "allenai_ifbench_test",
-  "name": "allenai/IFBench_test",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "allenai_wildbench",
   "name": "allenai/WildBench",
   "aliases": [],
@@ -4978,91 +4908,6 @@
   "score": 18.0
  },
  {
-  "slug": "artificial_analysis_gdp_pdf_methodology",
-  "name": "Artificial Analysis GDP.pdf Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "artificialanalysis_aa_briefcase_lite",
-  "name": "ArtificialAnalysis/AA-Briefcase-Lite",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "artificialanalysis_aa_lcr",
-  "name": "ArtificialAnalysis/AA-LCR",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "artificialanalysis_aa_omniscience_public",
-  "name": "ArtificialAnalysis/AA-Omniscience-Public",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "artificialanalysis_itbench_aa",
-  "name": "ArtificialAnalysis/ITBench-AA",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "artigenz_coder_ds_6_7b",
   "name": "Artigenz-Coder-DS-6.7B",
   "aliases": [],
@@ -5423,57 +5268,6 @@
   "score": 18.0
  },
  {
-  "slug": "automationbench",
-  "name": "AutomationBench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/evaluations"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "automationbench_aa",
-  "name": "AutomationBench-AA",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/zapier.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "automationbench_aa_methodology",
-  "name": "AutomationBench-AA Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "automonitor_bench",
   "name": "AutoMonitor-Bench",
   "aliases": [],
@@ -5806,23 +5600,6 @@
   "source_count": 1,
   "urls": [
    "https://arxiv.org/abs/2603.15949v3"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "banking_sierra_ai",
-  "name": "\ud835\udf0f\u00b3-Banking - Sierra AI",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/sierra_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -10054,24 +9831,6 @@
   "score": 18.0
  },
  {
-  "slug": "critpt_benchmark_critpt",
-  "name": "CritPt-Benchmark/CritPt",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg",
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "crond_jaist_autopentest_drl",
   "name": "crond-jaist/AutoPentest-DRL",
   "aliases": [],
@@ -12837,23 +12596,6 @@
   "score": 18.0
  },
  {
-  "slug": "enterpriseops_gym_aa_methodology",
-  "name": "EnterpriseOps-Gym-AA Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "enterpriserag",
   "name": "EnterpriseRAG",
   "aliases": [],
@@ -15236,40 +14978,6 @@
   "score": 18.0
  },
  {
-  "slug": "gdp_pdf",
-  "name": "GDP.pdf",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/_next/image?url=%2Fimg%2Flogos%2Fsurge.jpg&w=32&q=75"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "gdp_pdf_paper",
-  "name": "GDP.pdf Paper",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/arxiv_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "geb_bench",
   "name": "GEB-Bench",
   "aliases": [],
@@ -16987,23 +16695,6 @@
   "score": 18.0
  },
  {
-  "slug": "harvey_lab_aa_methodology",
-  "name": "Harvey LAB-AA Methodology",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logo-icon.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "has_bench",
   "name": "HAS-Bench",
   "aliases": [],
@@ -17813,23 +17504,6 @@
   "source_count": 1,
   "urls": [
    "https://arxiv.org/abs/2505.18223v2"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "idavidrein_gpqa",
-  "name": "idavidrein/gpqa",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -18774,23 +18448,6 @@
   "score": 18.0
  },
  {
-  "slug": "itbench",
-  "name": "ITBench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/evaluations"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "itu_indicators",
   "name": "ITU Indicators",
   "aliases": [],
@@ -19641,23 +19298,6 @@
   "score": 18.0
  },
  {
-  "slug": "laude_institute_terminal_bench",
-  "name": "laude-institute/terminal-bench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "lavisa",
   "name": "LaViSA",
   "aliases": [],
@@ -20163,40 +19803,6 @@
   "source_count": 1,
   "urls": [
    "https://arxiv.org/abs/2604.13072v2"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "livecodebench_live_code_bench",
-  "name": "livecodebench (Live Code Bench)",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "livecodebench_livecodebench",
-  "name": "LiveCodeBench/LiveCodeBench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -23919,40 +23525,6 @@
   "score": 18.0
  },
  {
-  "slug": "mmmu_benchmark_mmmu",
-  "name": "MMMU-Benchmark/MMMU",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "mmmu_mmmu_pro",
-  "name": "MMMU/MMMU_Pro",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "mmooc",
   "name": "MMOOC",
   "aliases": [],
@@ -26959,23 +26531,6 @@
   "source_count": 1,
   "urls": [
    "https://arxiv.org/abs/2607.28545v2"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "original_mmlu_paper",
-  "name": "Original MMLU Paper",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/arxiv_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -30817,23 +30372,6 @@
   "score": 18.0
  },
  {
-  "slug": "scicode_bench_scicode",
-  "name": "scicode-bench/SciCode",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "scidocbench",
   "name": "SciDocBench",
   "aliases": [],
@@ -31276,23 +30814,6 @@
   "score": 18.0
  },
  {
-  "slug": "servicenow_ai_enterpriseops_gym",
-  "name": "ServiceNow-AI/EnterpriseOps-Gym",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "sevra_bench",
   "name": "SEVRA-BENCH",
   "aliases": [],
@@ -31438,23 +30959,6 @@
   "source_count": 1,
   "urls": [
    "https://sierra.ai/blog/benchmarking-ai-agents"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "sierra_research_tau2_bench",
-  "name": "sierra-research/tau2-bench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -33045,23 +32549,6 @@
   "score": 18.0
  },
  {
-  "slug": "surgeai_gdp_pdf",
-  "name": "surgeai/GDP.pdf",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/huggingface_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "surgskill_bench",
   "name": "SurgSkill-Bench",
   "aliases": [],
@@ -34018,40 +33505,6 @@
   "score": 18.0
  },
  {
-  "slug": "terminal_bench_v2_1",
-  "name": "Terminal-Bench v2.1",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/tbench_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "terminal_bench_v4_0",
-  "name": "Terminal-Bench v4.0",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/tbench_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "terms_bench",
   "name": "TERMS-Bench",
   "aliases": [],
@@ -34538,23 +33991,6 @@
   "source_count": 1,
   "urls": [
    "https://arxiv.org/abs/2609.05117v1"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "tiger_ai_lab_mmlu_pro",
-  "name": "TIGER-AI-Lab/MMLU-Pro",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -37767,23 +37203,6 @@
   "score": 18.0
  },
  {
-  "slug": "wisedocs_ai_medical_long_context_reasoning",
-  "name": "Wisedocs-AI/medical-long-context-reasoning",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
   "slug": "worldbench",
   "name": "WorldBench",
   "aliases": [],
@@ -38150,23 +37569,6 @@
   "source_count": 1,
   "urls": [
    "https://github.com/zhenbench/z-bench"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 18.0
- },
- {
-  "slug": "zapier_automationbench",
-  "name": "zapier/AutomationBench",
-  "aliases": [],
-  "sources": [
-   "aggregator:artificialanalysis.ai"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://artificialanalysis.ai/img/logos/github_small.svg"
   ],
   "harness": {},
   "category_hint": "",
@@ -38988,23 +38390,6 @@
   "category_hint": "",
   "priority": 3,
   "downloads": 10297,
-  "score": 17.0
- },
- {
-  "slug": "big_bench_audio",
-  "name": "big_bench_audio",
-  "aliases": [],
-  "sources": [
-   "hf_datasets"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/datasets/ArtificialAnalysis/big_bench_audio"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 10828,
   "score": 17.0
  },
  {
@@ -42805,23 +42190,6 @@
   "category_hint": "",
   "priority": 3,
   "downloads": 1824,
-  "score": 16.3
- },
- {
-  "slug": "large_model_agentic_eval_parity_tb21_aa",
-  "name": "large-model-agentic-eval-parity-tb21-aa",
-  "aliases": [],
-  "sources": [
-   "hf_datasets"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/datasets/penfever/large-model-agentic-eval-parity-tb21-aa"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 1818,
   "score": 16.3
  },
  {
@@ -100012,24 +99380,6 @@
   "score": 13.0
  },
  {
-  "slug": "llm_performance_leaderboard",
-  "name": "LLM-Performance-Leaderboard",
-  "aliases": [],
-  "sources": [
-   "hf_spaces"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/spaces/ArtificialAnalysis/LLM-Performance-Leaderboard",
-   "https://huggingface.co/spaces/darkc0de/LLM-Performance-Leaderboard"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 13.0
- },
- {
   "slug": "llm_pii_detection_leaderboard",
   "name": "LLM-PII-Detection-Leaderboard",
   "aliases": [],
@@ -101258,23 +100608,6 @@
   "urls": [
    "https://huggingface.co/spaces/chan030609/muse_leaderboard",
    "https://huggingface.co/spaces/muse-bench/MUSE-Leaderboard"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 13.0
- },
- {
-  "slug": "music_arena_leaderboard",
-  "name": "Music-Arena-Leaderboard",
-  "aliases": [],
-  "sources": [
-   "hf_spaces"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/spaces/ArtificialAnalysis/Music-Arena-Leaderboard"
   ],
   "harness": {},
   "category_hint": "",
@@ -104581,23 +103914,6 @@
   "score": 13.0
  },
  {
-  "slug": "speech_arena_leaderboard",
-  "name": "Speech-Arena-Leaderboard",
-  "aliases": [],
-  "sources": [
-   "hf_spaces"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/spaces/ArtificialAnalysis/Speech-Arena-Leaderboard"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 13.0
- },
- {
   "slug": "speech_iq_leaderboard",
   "name": "Speech-IQ-leaderboard",
   "aliases": [],
@@ -105163,27 +104479,6 @@
    "https://huggingface.co/spaces/ariakang/test_leaderboard",
    "https://huggingface.co/spaces/averoo/test-leaderboard",
    "https://huggingface.co/spaces/shezamunir/test-leaderboard"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 13.0
- },
- {
-  "slug": "text_to_image_leaderboard",
-  "name": "Text-to-Image-Leaderboard",
-  "aliases": [
-   "text-to-image-leaderboard"
-  ],
-  "sources": [
-   "hf_spaces"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/spaces/ArtificialAnalysis/Text-to-Image-Leaderboard",
-   "https://huggingface.co/spaces/lumenfall/text-to-image-leaderboard",
-   "https://huggingface.co/spaces/opi78901/Text-to-Image-Leaderboard"
   ],
   "harness": {},
   "category_hint": "",
@@ -105937,23 +105232,6 @@
   "source_count": 1,
   "urls": [
    "https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard"
-  ],
-  "harness": {},
-  "category_hint": "",
-  "priority": 3,
-  "downloads": 0,
-  "score": 13.0
- },
- {
-  "slug": "video_generation_arena_leaderboard",
-  "name": "Video-Generation-Arena-Leaderboard",
-  "aliases": [],
-  "sources": [
-   "hf_spaces"
-  ],
-  "source_count": 1,
-  "urls": [
-   "https://huggingface.co/spaces/ArtificialAnalysis/Video-Generation-Arena-Leaderboard"
   ],
   "harness": {},
   "category_hint": "",

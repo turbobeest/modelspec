@@ -1,6 +1,8 @@
-# Live leaderboard harvest (AA + LM Arena)
+# Live leaderboard harvest (LM Arena)
 
-2026-09-10. Attachments went through `scripts/attach_evidence.py` and
+2026-09-10. Rows this harvest took from a second board were removed on
+2026-09-24 (MODEL-117); the counts below are as harvested then.
+ Attachments went through `scripts/attach_evidence.py` and
 `LEDGER_TO_CARD` only. No git writes. Firecrawl JSON/query/highlight was not
 used.
 
@@ -43,8 +45,7 @@ evidence):
 Most of those 167 already had some other score; the unrankable gap only
 clears when a card goes from *none* to *any*. 66 cards made that jump.
 
-Harvest extracted 2260 scored cells (2060 AA ranked components + 200 Arena
-style-control overall). 590 of those had an explicit `LEDGER_TO_CARD` entry
+Harvest extracted 2260 scored cells, 200 of them Arena style-control overall. 590 of those had an explicit `LEDGER_TO_CARD` entry
 and were attached. Absence stays absent.
 
 ## Ranked keys taken
@@ -54,14 +55,9 @@ only when the column identity was exact:
 
 | source | column / snapshot | ranked key | unit |
 | --- | --- | --- | --- |
-| AA | `gpqa` (methodology: GPQA Diamond, 448 questions) | `gpqa_diamond` | percent |
-| AA | `scicode` | `scicode` | percent |
-| AA | `lcr` | `aa_lcr` | percent |
-| AA | `gdpvalNormalized` | `gdpval_aa` | percent |
-| AA | `critpt` | `critpt` | percent |
 | LM Arena | `text-overall-style_control` | `arena_elo_style_control` | elo |
 
-AA 0–1 fractions were stored as percent. Arena ratings were stored as Elo.
+Arena ratings were stored as Elo.
 
 ## Date-contract decision
 
@@ -92,19 +88,6 @@ same judgement already recorded for `GPT-6 Astra (max)`. `(high)` / `(low)` /
 `(medium)` / `(xhigh)` / thinking / non-reasoning are refused.
 
 ## Refusals (by cause)
-
-### AA field is not a ranked key (13)
-
-An AA index is not a raw benchmark. Wrong variants are not folded into a
-nearby ranked id.
-
-- `intelligenceIndex` — composite Intelligence Index
-- `mmmuPro` — MMMU-Pro ≠ `mmmu`
-- `terminalbenchV21` / `terminalbenchV40` / `terminalbenchHard` — not `terminal_bench` (v1.0)
-- `tau2` / `tauBanking` — not original `tau_bench`
-- `hle` — not ranked
-- `ifbench` — not `ifeval`
-- `omniscience` / `analystAgent` / `apexAgents` / `itbenchSre` — not ranked
 
 ### Arena snapshot is not the ranked Elo variant (10)
 
@@ -156,5 +139,4 @@ Examples: `Claude 3.5 Sonnet (Oct)`, `Gemini 3 Flash`, `MiMo-V2.5-Pro`,
 
 Cached pages:
 
-- `raw/artificialanalysis-ai-leaderboards-models.html` (+ `.meta.json`, fetched_at 2026-09-10)
 - `raw/lmarena-ai-leaderboard.html` (+ `.meta.json`, fetched_at 2026-09-10)

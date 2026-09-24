@@ -15,7 +15,6 @@ registries:
     path: opencompass/configs/datasets
 scrape_allow:
   - llm-stats.com
-  - artificialanalysis.ai
   - lmarena.ai
   - vals.ai
   - scale.com
@@ -31,7 +30,6 @@ scrape_allow:
   - openreview.net
 aggregator_pages:
   - https://llm-stats.com/benchmarks
-  - https://artificialanalysis.ai/evaluations
   - https://lmarena.ai/leaderboard
   - https://www.vals.ai/benchmarks
   - https://scale.com/leaderboard
