@@ -673,9 +673,65 @@ benchmarks:
     gpqa_diamond: 31.0
     musr: 42.1
     mmlu_pro: 23.0
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: tiiuae/falcon-mamba-7b
+    score: 42.85
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 BBH
+    configuration: Open LLM Leaderboard v2 contents row tiiuae/falcon-mamba-7b, column "BBH Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: ifeval
+    model_id_as_evaluated: tiiuae/falcon-mamba-7b
+    score: 33.36
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 IFEval
+    configuration: Open LLM Leaderboard v2 contents row tiiuae/falcon-mamba-7b, column "IFEval Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: tiiuae/falcon-mamba-7b
+    score: 23.02
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MMLU-Pro
+    configuration: Open LLM Leaderboard v2 contents row tiiuae/falcon-mamba-7b, column "MMLU-PRO Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: musr
+    model_id_as_evaluated: tiiuae/falcon-mamba-7b
+    score: 42.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-23'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MuSR
+    configuration: Open LLM Leaderboard v2 contents row tiiuae/falcon-mamba-7b, column "MUSR Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
+    LLM Leaderboard v2 "GPQA Raw" value for tiiuae/falcon-mamba-7b; math_500 holds the Open LLM Leaderboard v2 "MATH
+    Lvl 5 Raw" value for tiiuae/falcon-mamba-7b. Each value is confirmed for this exact model but is not the benchmark
+    its key names, so it stays in the flat block and is not promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -833,7 +889,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
