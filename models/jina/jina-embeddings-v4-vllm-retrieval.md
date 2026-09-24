@@ -666,17 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    beir: 57.0
-    mteb_classification: 72.0
-    mteb_clustering: 51.5
-    mteb_overall: 67.8
-    mteb_retrieval: 65.0
-    mteb_reranking: 59.5
-    mteb_sts: 86.2
-    mteb_pair_classification: 84.5
-    mteb_summarization: 30.2
-    miracl: 63.5
+  scores: {}
   benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -837,7 +827,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: jina/jina-embeddings-v4-vllm-retrieval

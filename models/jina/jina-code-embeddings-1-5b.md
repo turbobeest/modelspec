@@ -666,12 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    mteb_reranking: 58.1
-    mteb_sts: 85.8
-    mteb_pair_classification: 84.0
-    mteb_summarization: 29.7
-    miracl: 61.2
+  scores: {}
   benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
   benchmark_notes: ''
