@@ -668,19 +668,178 @@ availability:
 benchmarks:
   scores: {}
   evidence:
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: Claude Fable 5.1
+    score: 81.2
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Pro
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. Average over five trials.
+    limitations: ''
+  - benchmark_id: swe_bench_multilingual
+    model_id_as_evaluated: Claude Fable 5.1
+    score: 89.1
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Multilingual
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. Average over five trials.
+    limitations: ''
+  - benchmark_id: swe_bench_multimodal
+    model_id_as_evaluated: Claude Fable 5.1
+    score: 54.7
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Multimodal
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. Average over five trials.
+    limitations: ''
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Claude Fable 5.1
+    score: 55.8
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. 15 trials per task, Claude
+      Code --bare, max effort; SE ±1.6-2 pts.
+    limitations: ''
+  - benchmark_id: terminal_bench_science
+    model_id_as_evaluated: Claude Fable 5.1
+    score: 52.6
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench-Science 0.1
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. Averaged over 10 trials
+      per task (700 trials).
+    limitations: ''
+  - benchmark_id: arc_agi_2
+    model_id_as_evaluated: Claude Fable 5.1 (max)
+    score: 90.0
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: ARC-AGI-2
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8. Taken only where the body text attributes the number to Fable
+      5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
+      copied to either card. Adaptive thinking, max effort. Max effort.
+    limitations: ''
+  - benchmark_id: automationbench
+    model_id_as_evaluated: Claude Fable 5.1 (with Opus 5 Fallback)
+    score: 31.4
+    unit: percent
+    source_url: https://zapier.com/benchmarks
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AutomationBench 1.0.6 (strict pass rate, private held-out set)
+    configuration: Zapier's own AutomationBench leaderboard, dataset 1.0.6, row 'Claude
+      Fable 5.1 (with Opus 5 Fallback)'. Opus 5 completed steps Fable 5.1's safety classifier
+      refused, on ~40% of tasks (260 of 657), and those count toward the score, so the
+      row is not Fable 5.1 alone. The page states no as-of date; evidence_date is the
+      observation, fetched 2026-09-24.
+    limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1507.58
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1507.58 (95% CI 1499.43-1515.73), 5783 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1511.36
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1511.36 (95% CI 1493.86-1528.85), 1184 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-fable-5.1-max
-    score: 1504.21
+    score: 1498.47
     unit: elo
-    source_url: https://lmarena.ai/leaderboard
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1498.47 (95% CI 1490.31-1506.64), 5783 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Fable 5.1 (max)
+    score: 57.88
+    unit: percent
+    source_url: https://www.tbench.ai/leaderboard
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Official Terminal-Bench 4.0 leaderboard (tbench.ai; /leaderboard
+      now serves from the site root), row 'Fable 5.1', reasoning effort max, agent Claude
+      Code, 330 trials. The row's own date (Sep 1, 2026) is used. Read 2026-09-24. Differs
+      from the system card's internal 55.8% (15 trials, Claude Code --bare); both are
+      kept.
     limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
