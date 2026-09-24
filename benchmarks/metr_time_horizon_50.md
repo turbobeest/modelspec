@@ -89,6 +89,9 @@ freshness:
   researched_by: "grok-4.6, METR time-horizon first slice"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: agentic_tool_use, directness: direct}
+  - {id: software_engineering, directness: proxy}
 ---
 
 Part of the [METR task-completion time horizon](metr_time_horizon.md) family.

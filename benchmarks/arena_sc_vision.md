@@ -86,6 +86,9 @@ freshness:
   researched_by: Claude Opus 5.5, MODEL-123
   reviewed: ''
   reviewed_by: ''
+domains:
+  - {id: chat_preference, directness: direct}
+  - {id: vision_documents, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.
