@@ -420,6 +420,52 @@ def test_cli_partial_ranking_is_success_and_discloses_withheld_models(cache: Pat
     assert [row["model_id"] for row in report["result"]] == ["a/one"]
 
 
+def _with_unscored(cache: Path, count: int) -> None:
+    """`count` new coding-type models with no benchmark scores at all."""
+    _write(cache)
+    path = cache / "snapshot.json"
+    payload = json.loads(path.read_text())
+    for i in range(count):
+        payload["data"]["candidates"]["candidates"].append({
+            "model_id": f"new/m{i:02d}", "display_name": f"New {i}", "provider": "N",
+            "model_type": "llm-chat", "benchmark_scores": {}, "capability_tiers": {},
+            "cost_input": 1.0, "context_window": 128000, "open_weights": True,
+            "release_date": f"2026-08-{i + 1:02d}"})
+    path.write_text(json.dumps(payload))
+
+
+def test_cli_json_names_the_unranked_candidates(cache: Path) -> None:
+    """MODEL-110: additive envelope field; `result` is still the ranked list."""
+    _with_unscored(cache, 3)
+    report = json.loads(_run(["offline", "rank", "coding", "--json"], cache).stdout)
+    assert report["schema_version"] == "1.0"
+    assert [row["model_id"] for row in report["result"]] == ["a/one"]
+    block = report["unranked_candidates"]
+    assert block["count"] == 3
+    assert [m["model_id"] for m in block["models"]] == ["new/m02", "new/m01", "new/m00"]
+    assert {m["reason"] for m in block["models"]} == {"no_scores"}
+
+
+def test_cli_human_output_names_models_not_ranked_yet(cache: Path) -> None:
+    _with_unscored(cache, 12)
+    result = _run(["offline", "rank", "coding"], cache)
+    assert result.returncode == offline.EXIT_OK
+    lines = result.stdout.splitlines()
+    line = next(x for x in lines if "not ranked yet" in x)
+    assert line.startswith("12 models are not ranked yet (not enough benchmark evidence)")
+    # Newest first, ten named, and the remainder counted rather than dropped.
+    assert "new/m11, new/m10," in line
+    assert "new/m01" not in line
+    assert line.endswith("and 2 more.")
+    # Under the table, above the freshness footer.
+    assert lines.index(line) > next(i for i, x in enumerate(lines) if "One" in x)
+
+
+def test_cli_human_output_is_silent_when_nothing_is_withheld(cache: Path) -> None:
+    _write(cache)
+    assert "not ranked yet" not in _run(["offline", "rank", "coding"], cache).stdout
+
+
 @pytest.mark.parametrize("snapshot_kind", ["truncated", "unreadable"])
 def test_invalid_snapshot_is_a_runtime_error_without_traceback(
     cache: Path, snapshot_kind: str

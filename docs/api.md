@@ -44,7 +44,8 @@ means "not stated". At most 16384 bytes.
   with the reason (e.g. `environment.runtime: "together_ai"`).
 * `build.commit` — the catalogue answered from; `service_commit` the Worker.
 * `ranking_status` — `complete`, `partial`, `empty`, `unavailable`. `partial` is
-  normal: models without enough benchmark evidence are withheld, not ranked low.
+  normal: models lacking benchmark evidence are withheld, not ranked low;
+  `unranked_candidates` names ten, newest first.
 * `evidence_basis` per row — `none`, `unverified-legacy`, `mixed`,
   `partial-verified`, `verified`: input provenance, not a quality verdict.
 
@@ -128,6 +129,42 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
   "ranking_status": "partial",
   "ranked_count": 30,
   "unranked_count": 280,
+  "unranked_candidates": {
+    "count": 204,
+    "cap": 10,
+    "models": [
+      {"model_id": "deepseek/deepseek-flash", "display_name": "DeepSeek V4.1 Flash",
+       "release_date": "2026-09-10", "reason": "no_scores",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "zhipu/glm-5-3-flash", "display_name": "GLM-5.3-Flash",
+       "release_date": "2026-08-26", "reason": "below_count_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "cerebras/qwen-3-8-27b", "display_name": "Qwen3.8 27B",
+       "release_date": "2026-08-14", "reason": "below_count_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "zhipu/glm-5-3", "display_name": "GLM-5.3",
+       "release_date": "2026-08-14", "reason": "below_count_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "zhipu/zai-glm-5-3", "display_name": "GLM-5.3",
+       "release_date": "2026-08-14", "reason": "no_scores",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "deepseek/deepseek-v4-pro", "display_name": "DeepSeek V4 Pro",
+       "release_date": "2026-08-12", "reason": "below_coverage_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "terminal_bench"]},
+      {"model_id": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b", "display_name": "NVIDIA Nemotron 3.5 Lightning 30B A3B",
+       "release_date": "2026-08-11", "reason": "below_count_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "meta/muse-glimmer-30b", "display_name": "Muse Glimmer 30B",
+       "release_date": "2026-08-10", "reason": "no_scores",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
+      {"model_id": "deepseek/deepseek-v4-flash", "display_name": "DeepSeek V4 Flash",
+       "release_date": "2026-07-31", "reason": "below_coverage_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "terminal_bench"]},
+      {"model_id": "qwen/deepseek-v4-flash-0731", "display_name": "DeepSeek V4 Flash 0731",
+       "release_date": "2026-07-31", "reason": "below_count_floor",
+       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]}
+    ]
+  },
   "candidates_considered": 1339,
   "authoring_guide": {
     "state": "absent",
@@ -180,7 +217,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
 }
 ```
 
-Captured 2026-09-17. Scores move; the shape does not.
+Captured 2026-09-17; `unranked_candidates` 2026-09-23. Scores move; the shape does not.
 
 ## Every error, and the fix
 

@@ -159,10 +159,24 @@ def _candidates(snapshot: snap.Snapshot) -> list[Any]:
             open_weights=bool(c.get("open_weights")), scores_as_of=c.get("scores_as_of"),
             fits=c.get("fits") or {},
             verified_benchmarks=set(c.get("verified_benchmarks") or []),
-            rehost_of=c.get("rehost_of"),
+            rehost_of=c.get("rehost_of"), release_date=c.get("release_date"),
         )
         for c in snapshot.data["candidates"]["candidates"]
     ]
+
+
+def _not_ranked_yet(block: dict[str, Any]) -> str | None:
+    """One line under the rank table naming what the ranking could not order (MODEL-110)."""
+    count = block["count"]
+    if not count:
+        return None
+    named = [m["model_id"] for m in block["models"]]
+    rest = count - len(named)
+    head = (f"{count} model is not ranked yet" if count == 1
+            else f"{count} models are not ranked yet")
+    tail = f", and {rest} more." if rest else "."
+    return (f"{head} (not enough benchmark evidence), newest first: "
+            f"{', '.join(named)}{tail}")
 
 
 @snapshot_app.command("fetch", cls=ContractCommand)
@@ -306,6 +320,8 @@ def rank_offline(
             ranking_status=ranking_status,
             ranked_count=ranked_count,
             unranked_count=unranked_count,
+            # MODEL-110. A new envelope field, always present; additive under 1.0.
+            unranked_candidates=report["unranked_candidates"],
         ), indent=2, default=str))
     else:
         typer.echo(f"{use_case}: {ranking_status} ordering; "
@@ -316,6 +332,9 @@ def rank_offline(
             typer.echo("No model matches those constraints.")
         elif ranking_status == "unavailable":
             typer.echo("No model has enough evidence to be ranked.")
+        withheld = _not_ranked_yet(report["unranked_candidates"])
+        if withheld:
+            typer.echo(f"\n{withheld}")
         typer.echo(f"\nfrom a snapshot {snapshot.age_days:.0f} days old, "
                    f"build {snapshot.build_commit[:12]}")
 

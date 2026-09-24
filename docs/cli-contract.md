@@ -119,6 +119,62 @@ empty ranked list with `ranking_status: unavailable` is distinguishable from an
 empty catalogue match (`ranking_status: empty`) without changing the meaning of
 the result list. `--limit 0` does not change the status or exit code.
 
+### `unranked_candidates`: the models a ranking could not rank (MODEL-110)
+
+`unranked_count` alone lets a stale shortlist look authoritative: a caller
+asking for the best coding model never learns that a model released last week
+exists and has no scores yet. Every rank answer therefore names them:
+
+```json
+"unranked_candidates": {
+  "count": 848,
+  "cap": 10,
+  "models": [
+    {"model_id": "anthropic/claude-opus-5-5", "display_name": "Claude Opus 5.5",
+     "release_date": "2026-09-22", "reason": "no_scores",
+     "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "…"]}
+  ]
+}
+```
+
+* **Who is named.** A model that passed every filter the request applied
+  (`--open-weights`, `--fits`, `--max-cost`, rehosts), whose `model_type` or a
+  subtype is one of the profile's `preferred_types`, and that is still
+  unranked. The type test is what makes it "a candidate waiting for evidence"
+  rather than "the rest of the catalogue": an embedding model with no coding
+  scores is not a coding candidate. So `count` ≤ `unranked_count`, which is
+  unchanged and still counts every unrankable model in the pool.
+* **Order.** Newest `release_date` first; a model with no date, or a date that
+  is not `YYYY`, `YYYY-MM` or `YYYY-MM-DD`, sorts last; ties by `model_id`.
+* **Bound.** At most `cap` (10) are named. `count` is never capped.
+* **`reason`** is one of three, the ones the floors can actually tell apart:
+  `no_scores` (no score on any benchmark the profile weighs),
+  `below_count_floor` (fewer than `min_benchmark_count`) and
+  `below_coverage_floor` (under `min_benchmark_coverage`). A model failing both
+  floors is `below_count_floor`. Rehosts, type, hardware and price are
+  *filters*, not reasons: a model they remove was never a candidate.
+* **`missing_benchmarks`** are the profile's weighted benchmarks the model has
+  no score for. `release_date` is the card's, verbatim, or `null`.
+
+The block is always present, `{"count": 0, "cap": 10, "models": []}` when
+there is nothing to name, on exit 0 and exit 2 alike. It is disclosure only:
+it is computed in `pipeline.ranking.rank_report`, beside the ranking and from
+the same scored rows, and nothing in `result` changes. The rank API, the MCP
+`rank` tool and `rankings.json` carry the same block from the same function.
+
+Without `--json`, `rank` prints it as one line under the table:
+
+```
+848 models are not ranked yet (not enough benchmark evidence), newest first: anthropic/claude-opus-5-5, openai/gpt-6-luna, …, and 838 more.
+```
+
+**Versioning.** A new, always-present field on the envelope and on each
+`rankings.json` profile report, and a new `release_date` on each
+`candidates.json` row. No existing field's range widens, so under MODEL-59
+nothing bumps: the envelope stays `"1.0"`, `rankings.json` `"2.0"`,
+`build.export_schema_version` `"3.0"`. A snapshot from before this field has no
+`release_date`; its candidates are named, all undated, ordered by id.
+
 When `--json` is supplied and a command fails before it can produce an answer,
 it writes this machine-readable error object to stderr and writes no answer to
 stdout:
