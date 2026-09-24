@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/inclusionAI/Ring-2.6-1T"
 publisher: "inclusionAI"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Benchmark panels"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: aime_2026
         score: 95.83
@@ -23,6 +25,7 @@ charts:
         configuration: "Mean@64. Effort xhigh."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: aime_2026
         score: 96.40
@@ -31,6 +34,7 @@ charts:
         configuration: "Mean@64. Effort Thinking."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: aime_2026
         score: 95.83
@@ -39,6 +43,7 @@ charts:
         configuration: "Mean@64. Effort Max."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: aime_2026
         score: 99.17
@@ -47,6 +52,7 @@ charts:
         configuration: "Mean@64. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: aime_2026
         score: 98.33
@@ -55,6 +61,7 @@ charts:
         configuration: "Mean@64. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: aime_2026
         score: 96.41
@@ -63,6 +70,7 @@ charts:
         configuration: "Mean@64. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: gpqa_diamond
         score: 88.27
@@ -71,6 +79,7 @@ charts:
         configuration: "Pass@1. Effort xhigh."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: gpqa_diamond
         score: 91.10
@@ -79,6 +88,7 @@ charts:
         configuration: "Pass@1. Effort Thinking."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: gpqa_diamond
         score: 90.10
@@ -87,6 +97,7 @@ charts:
         configuration: "Pass@1. Effort Max."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: gpqa_diamond
         score: 92.80
@@ -95,6 +106,7 @@ charts:
         configuration: "Pass@1. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: gpqa_diamond
         score: 94.30
@@ -103,6 +115,7 @@ charts:
         configuration: "Pass@1. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: gpqa_diamond
         score: 94.20
@@ -111,6 +124,7 @@ charts:
         configuration: "Pass@1. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -120,6 +134,7 @@ charts:
         configuration: "Pass@2. Effort xhigh."
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -129,6 +144,7 @@ charts:
         configuration: "Pass@2. Effort Max."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -138,6 +154,7 @@ charts:
         configuration: "Pass@2. Effort Thinking."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -147,6 +164,7 @@ charts:
         configuration: "Pass@2. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -156,6 +174,7 @@ charts:
         configuration: "Pass@2. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-2"
@@ -165,6 +184,7 @@ charts:
         configuration: "Pass@2. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -174,6 +194,7 @@ charts:
         configuration: "Average of 3. Effort high."
         role: subject
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -183,6 +204,7 @@ charts:
         configuration: "Average of 3. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -192,6 +214,7 @@ charts:
         configuration: "Average of 3. Effort high."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -201,6 +224,7 @@ charts:
         configuration: "pass^3. Effort high."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -210,6 +234,7 @@ charts:
         configuration: "pass^3. Effort Thinking."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -219,6 +244,7 @@ charts:
         configuration: "pass^3. Effort Max."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -228,6 +254,7 @@ charts:
         configuration: "pass^3. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -237,6 +264,7 @@ charts:
         configuration: "pass^3. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -246,6 +274,7 @@ charts:
         configuration: "pass^3. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: swe_bench_verified
         score: 74.00
@@ -254,6 +283,7 @@ charts:
         configuration: "Resolved. Effort high."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: swe_bench_verified
         score: 80.20
@@ -262,6 +292,7 @@ charts:
         configuration: "Resolved. Effort Thinking."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: swe_bench_verified
         score: 80.60
@@ -270,6 +301,7 @@ charts:
         configuration: "Resolved. Effort Max."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: swe_bench_verified
         score: 80.60
@@ -278,6 +310,7 @@ charts:
         configuration: "Resolved. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_verified
         score: 80.60
@@ -286,6 +319,7 @@ charts:
         configuration: "Resolved. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_verified
         score: 87.60
@@ -294,6 +328,7 @@ charts:
         configuration: "Resolved. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -303,6 +338,7 @@ charts:
         configuration: "Mean of 3. Effort high."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -312,6 +348,7 @@ charts:
         configuration: "Mean of 3. Effort Thinking."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -321,6 +358,7 @@ charts:
         configuration: "Mean of 3. Effort Max."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-4"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -330,6 +368,7 @@ charts:
         configuration: "Mean of 3. Effort xHigh."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -339,6 +378,7 @@ charts:
         configuration: "Mean of 3. Effort high."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2-search"
@@ -348,6 +388,7 @@ charts:
         configuration: "Mean of 3. Effort xhigh."
         role: competitor
       - model_as_labelled: "Ring-2.6-1T"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "inclusionai/ring-2-6-1t"
         benchmark_id: tau2
         score: 95.32
@@ -356,6 +397,7 @@ charts:
         configuration: "Mean of 3. Effort high. Telecom."
         role: subject
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: tau2
         score: 95.90
@@ -364,6 +406,7 @@ charts:
         configuration: "Mean of 3. Effort Thinking. Telecom."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: tau2
         score: 96.20
@@ -372,6 +415,7 @@ charts:
         configuration: "Mean of 3. Effort Max. Telecom."
         role: competitor
       - model_as_labelled: "GPT-5.4"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-4"
         benchmark_id: tau2
         score: 87.10
@@ -380,6 +424,7 @@ charts:
         configuration: "Mean of 3. Effort xHigh. Telecom."
         role: competitor
       - model_as_labelled: "Gemini-3.1-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: tau2
         score: 95.60
@@ -388,6 +433,7 @@ charts:
         configuration: "Mean of 3. Effort high. Telecom."
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: tau2
         score: 85.67

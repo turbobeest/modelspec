@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/MiniMaxAI/MiniMax-M3"
 publisher: "MiniMax"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Benchmark"
     kind: image
@@ -17,6 +18,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: swe_bench_verified
         score: 80.5
@@ -25,6 +27,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: swe_bench_verified
         score: 79.9
@@ -33,6 +36,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_verified
         score: 87.6
@@ -41,6 +45,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_verified
         score: 82.9
@@ -49,6 +54,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_verified
         score: 80.6
@@ -57,6 +63,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: swe_bench_verified
         score: 79.6
@@ -65,6 +72,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: swe_bench_verified
         score: 80.6
@@ -73,6 +81,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: swe_bench_verified
         score: 80.2
@@ -81,6 +90,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: swe_bench_pro
         score: 59.0
@@ -89,6 +99,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: swe_bench_pro
         score: 56.2
@@ -97,6 +108,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_pro
         score: 64.3
@@ -105,6 +117,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -113,6 +126,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -121,6 +135,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: swe_bench_pro
         score: 55.4
@@ -129,6 +144,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: swe_bench_pro
         score: 58.4
@@ -137,6 +153,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -145,6 +162,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: terminal_bench_v2_1
         score: 66.0
@@ -153,6 +171,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: terminal_bench_v2_1
         score: 51.1
@@ -161,6 +180,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: terminal_bench_v2_1
         score: 66.1
@@ -169,6 +189,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 78.2
@@ -177,6 +198,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 70.3
@@ -185,6 +207,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 59.6
@@ -193,6 +216,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 48.3
@@ -201,6 +225,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: terminal_bench_v2_1
         score: 53.9
@@ -218,6 +243,7 @@ charts:
             - reader: claude-sonnet
               value: 53.9
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -227,6 +253,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -236,6 +263,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -245,6 +273,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -254,6 +283,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -263,6 +293,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-QnA"
@@ -272,6 +303,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -281,6 +313,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -290,6 +323,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -299,6 +333,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -308,6 +343,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -317,6 +353,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -326,6 +363,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -335,6 +373,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -344,6 +383,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -353,6 +393,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -362,6 +403,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -371,6 +413,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -380,6 +423,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -389,6 +433,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "SWE Atlas-Test Writing"
@@ -398,6 +443,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "SWE-fficiency"
@@ -407,6 +453,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE-fficiency"
@@ -416,6 +463,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "SWE-fficiency"
@@ -425,6 +473,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE-fficiency"
@@ -434,6 +483,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SWE-fficiency"
@@ -443,6 +493,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "LiveSQLBench"
@@ -452,6 +503,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "LiveSQLBench"
@@ -461,6 +513,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "LiveSQLBench"
@@ -470,6 +523,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "LiveSQLBench"
@@ -479,6 +533,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "LiveSQLBench"
@@ -488,6 +543,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "CL-Bench"
@@ -497,6 +553,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "CL-Bench"
@@ -506,6 +563,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "CL-Bench"
@@ -515,6 +573,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CL-Bench"
@@ -524,6 +583,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "CL-Bench"
@@ -533,6 +593,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -542,6 +603,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -551,6 +613,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -560,6 +623,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -569,6 +633,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -578,6 +643,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -587,6 +653,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -596,6 +663,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -605,6 +673,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "VIBE-V2"
@@ -614,6 +683,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -623,6 +693,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -632,6 +703,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -641,6 +713,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -650,6 +723,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -659,6 +733,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -668,6 +743,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -677,6 +753,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -686,6 +763,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "SVG-Bench"
@@ -695,6 +773,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -704,6 +783,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -713,6 +793,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -722,6 +803,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -731,6 +813,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -740,6 +823,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "KernelBench Hard"
@@ -749,6 +833,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "KernelBench Hard"
@@ -758,6 +843,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "KernelBench Hard"
@@ -767,6 +853,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "KernelBench Hard"
@@ -776,6 +863,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "KernelBench Hard"
@@ -785,6 +873,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: paperbench
         score: 52.6
@@ -793,6 +882,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: paperbench
         score: 30.6
@@ -801,6 +891,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: paperbench
         score: 58.5
@@ -809,6 +900,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: paperbench
         score: 57.5
@@ -817,6 +909,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: paperbench
         score: 46.7
@@ -825,6 +918,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: browsecomp
         score: 83.5
@@ -833,6 +927,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: browsecomp
         score: 76.3
@@ -841,6 +936,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: browsecomp
         score: 79.3
@@ -849,6 +945,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: browsecomp
         score: 84.4
@@ -857,6 +954,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: browsecomp
         score: 85.9
@@ -865,6 +963,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: browsecomp
         score: 74.7
@@ -873,6 +972,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: browsecomp
         score: 83.4
@@ -881,6 +981,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: browsecomp
         score: 79.3
@@ -889,6 +990,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: browsecomp
         score: 83.2
@@ -897,6 +999,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "DRACO"
@@ -906,6 +1009,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "DRACO"
@@ -915,6 +1019,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "DRACO"
@@ -924,6 +1029,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "DRACO"
@@ -933,6 +1039,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -942,6 +1049,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -951,6 +1059,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -960,6 +1069,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -969,6 +1079,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -978,6 +1089,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -987,6 +1099,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -996,6 +1109,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -1005,6 +1119,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "GDPval rubrics"
@@ -1014,6 +1129,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "BankerToolBench"
@@ -1023,6 +1139,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "BankerToolBench"
@@ -1032,6 +1149,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "BankerToolBench"
@@ -1041,6 +1159,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "BankerToolBench"
@@ -1050,6 +1169,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "BankerToolBench"
@@ -1059,6 +1179,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1068,6 +1189,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1077,6 +1199,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1086,6 +1209,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1095,6 +1219,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1104,6 +1229,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1113,6 +1239,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1122,6 +1249,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1131,6 +1259,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1140,6 +1269,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1149,6 +1279,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1158,6 +1289,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -1167,6 +1299,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1185,6 +1318,7 @@ charts:
             - reader: claude-sonnet
               value: "2.1M"
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1194,6 +1328,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1212,6 +1347,7 @@ charts:
             - reader: claude-sonnet
               value: "2.2M"
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1230,6 +1366,7 @@ charts:
             - reader: claude-sonnet
               value: "1.3M"
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1248,6 +1385,7 @@ charts:
             - reader: claude-sonnet
               value: "1.1M"
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1266,6 +1404,7 @@ charts:
             - reader: claude-sonnet
               value: "0.1M"
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "YC-Bench"
@@ -1284,6 +1423,7 @@ charts:
             - reader: claude-sonnet
               value: "0.5M"
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "LOCA-Bench (256k)"
@@ -1293,6 +1433,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LOCA-Bench (256k)"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "LOCA-Bench (256k)"
@@ -1302,6 +1443,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LOCA-Bench (256k)"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1311,6 +1453,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1320,6 +1463,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1329,6 +1473,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1338,6 +1483,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1347,6 +1493,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1356,6 +1503,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1365,6 +1513,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1374,6 +1523,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -1383,6 +1533,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1392,6 +1543,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1401,6 +1553,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1410,6 +1563,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1419,6 +1573,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1428,6 +1583,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Apex-Agents"
@@ -1437,6 +1593,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1446,6 +1603,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: subject
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1455,6 +1613,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1464,6 +1623,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1473,6 +1633,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1482,6 +1643,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "DeepSeek V4 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1491,6 +1653,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "GLM 5.1 Thinking"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1500,6 +1663,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -1509,6 +1673,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1518,6 +1683,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1527,6 +1693,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1536,6 +1703,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1545,6 +1713,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1554,6 +1723,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1563,6 +1733,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1572,6 +1743,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1581,6 +1753,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1590,6 +1763,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1599,6 +1773,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1608,6 +1783,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: mmmu_pro
         score: 78.1
@@ -1616,6 +1792,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: mmmu_pro
         score: 77.0
@@ -1624,6 +1801,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: mmmu_pro
         score: 81.2
@@ -1632,6 +1810,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: mmmu_pro
         score: 80.5
@@ -1640,6 +1819,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "Claude Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: mmmu_pro
         score: 74.5
@@ -1648,6 +1828,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "Kimi K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: mmmu_pro
         score: 79.4
@@ -1656,6 +1837,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "Video-MMMU"
@@ -1665,6 +1847,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Video-MMMU"
@@ -1674,6 +1857,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
         role: competitor
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Video-MMMU"
@@ -1683,6 +1867,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Video-MMMU"
@@ -1692,6 +1877,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub)"
@@ -1701,6 +1887,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VideoMME (w/ sub)"
         role: subject
       - model_as_labelled: "GPT 5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub)"
@@ -1710,6 +1897,7 @@ charts:
         configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VideoMME (w/ sub)"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub)"

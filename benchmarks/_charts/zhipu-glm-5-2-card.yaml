@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/zai-org/GLM-5.2"
 publisher: "Z.ai"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Benchmark"
     kind: html_table
@@ -11,6 +12,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: hle
         score: 40.5
@@ -19,6 +21,7 @@ charts:
         configuration: "Model card table. HLE"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hle
         score: 31
@@ -27,6 +30,7 @@ charts:
         configuration: "Model card table. HLE"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: hle
         score: 41.4
@@ -35,6 +39,7 @@ charts:
         configuration: "Model card table. HLE"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: hle
         score: 37
@@ -43,6 +48,7 @@ charts:
         configuration: "Model card table. HLE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle
         score: 37.7
@@ -51,6 +57,7 @@ charts:
         configuration: "Model card table. HLE"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -59,6 +66,7 @@ charts:
         configuration: "Model card table. HLE Starred: cited from that model's own report."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle
         score: 41.4
@@ -67,6 +75,7 @@ charts:
         configuration: "Model card table. HLE Starred: cited from that model's own report."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle
         score: 45
@@ -75,6 +84,7 @@ charts:
         configuration: "Model card table. HLE"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: hle_tools
         score: 54.7
@@ -83,6 +93,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools)"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hle_tools
         score: 52.3
@@ -91,6 +102,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools)"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: hle_tools
         score: 53.5
@@ -99,6 +111,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle_tools
         score: 48.2
@@ -107,6 +120,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -115,6 +129,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools) Starred: cited from that model's own report."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle_tools
         score: 52.2
@@ -123,6 +138,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools) Starred: cited from that model's own report."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle_tools
         score: 51.4
@@ -131,6 +147,7 @@ charts:
         configuration: "Model card table. HLE (w/ Tools) Starred: cited from that model's own report."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: critpt
         score: 20.9
@@ -139,6 +156,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: critpt
         score: 4.6
@@ -147,6 +165,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: critpt
         score: 13.4
@@ -155,6 +174,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: critpt
         score: 3.7
@@ -163,6 +183,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: critpt
         score: 12.9
@@ -171,6 +192,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: critpt
         score: 20.9
@@ -179,6 +201,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: critpt
         score: 27.1
@@ -187,6 +210,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: critpt
         score: 17.7
@@ -195,6 +219,7 @@ charts:
         configuration: "Model card table. CritPt"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: aime_2026
         score: 99.2
@@ -203,6 +228,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: aime_2026
         score: 95.3
@@ -211,6 +237,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: aime_2026
         score: 97
@@ -219,6 +246,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: aime_2026
         score: 94.6
@@ -227,6 +255,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: aime_2026
         score: 95.7
@@ -235,6 +264,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: aime_2026
         score: 98.3
@@ -243,6 +273,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: aime_2026
         score: 98.2
@@ -251,6 +282,7 @@ charts:
         configuration: "Model card table. AIME 2026"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -260,6 +292,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -269,6 +302,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -278,6 +312,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -287,6 +322,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -296,6 +332,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -305,6 +342,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -314,6 +352,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Nov. 2025"
@@ -323,6 +362,7 @@ charts:
         configuration: "Model card table. HMMT Nov. 2025"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: hmmt2026
         score: 92.5
@@ -331,6 +371,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hmmt2026
         score: 82.6
@@ -339,6 +380,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: hmmt2026
         score: 97.1
@@ -347,6 +389,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: hmmt2026
         score: 84.4
@@ -355,6 +398,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hmmt2026
         score: 95.2
@@ -363,6 +407,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hmmt2026
         score: 96.7
@@ -371,6 +416,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hmmt2026
         score: 96.7
@@ -379,6 +425,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hmmt2026
         score: 87.3
@@ -387,6 +434,7 @@ charts:
         configuration: "Model card table. HMMT Feb. 2026"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -396,6 +444,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -405,6 +454,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -414,6 +464,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -423,6 +474,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -432,6 +484,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -441,6 +494,7 @@ charts:
         configuration: "Model card table. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: gpqa_diamond
         score: 91.2
@@ -449,6 +503,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: gpqa_diamond
         score: 86.2
@@ -457,6 +512,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: gpqa_diamond
         score: 90
@@ -465,6 +521,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: gpqa_diamond
         score: 93
@@ -473,6 +530,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: gpqa_diamond
         score: 90.1
@@ -481,6 +539,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: gpqa_diamond
         score: 93.6
@@ -489,6 +548,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: gpqa_diamond
         score: 93.6
@@ -497,6 +557,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: gpqa_diamond
         score: 94.3
@@ -505,6 +566,7 @@ charts:
         configuration: "Model card table. GPQA-Diamond"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: swe_bench_pro
         score: 62.1
@@ -513,6 +575,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: swe_bench_pro
         score: 58.4
@@ -521,6 +584,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: swe_bench_pro
         score: 60.6
@@ -529,6 +593,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: swe_bench_pro
         score: 59
@@ -537,6 +602,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: swe_bench_pro
         score: 55.4
@@ -545,6 +611,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -553,6 +620,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -561,6 +629,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -569,6 +638,7 @@ charts:
         configuration: "Model card table. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -578,6 +648,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -587,6 +658,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -596,6 +668,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -605,6 +678,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -614,6 +688,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -623,6 +698,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -632,6 +708,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -641,6 +718,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -650,6 +728,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -659,6 +738,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -668,6 +748,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -677,6 +758,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -686,6 +768,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -695,6 +778,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -704,6 +788,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -713,6 +798,7 @@ charts:
         configuration: "Model card table. DeepSWE"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -722,6 +808,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -731,6 +818,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -740,6 +828,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -749,6 +838,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -758,6 +848,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -767,6 +858,7 @@ charts:
         configuration: "Model card table. ProgramBench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 81.0
@@ -775,6 +867,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 63.5
@@ -783,6 +876,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 75
@@ -791,6 +885,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: terminal_bench_v2_1
         score: 65
@@ -799,6 +894,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 64
@@ -807,6 +903,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85
@@ -815,6 +912,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 84
@@ -823,6 +921,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 74
@@ -831,6 +930,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Terminus-2)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -839,6 +939,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Best Reported Harness)"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 69
@@ -847,6 +948,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Best Reported Harness)"
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 78.9
@@ -855,6 +957,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Best Reported Harness)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 83.4
@@ -863,6 +966,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Best Reported Harness)"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 70.7
@@ -871,6 +975,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1 (Best Reported Harness)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -880,6 +985,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -889,6 +995,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -898,6 +1005,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -907,6 +1015,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -916,6 +1025,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE (Dominance)"
@@ -925,6 +1035,7 @@ charts:
         configuration: "Model card table. FrontierSWE (Dominance)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -934,6 +1045,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -943,6 +1055,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -952,6 +1065,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -961,6 +1075,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -970,6 +1085,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -979,6 +1095,7 @@ charts:
         configuration: "Model card table. SWE-Marathon"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -988,6 +1105,7 @@ charts:
         configuration: "Model card table. SWE-Marathon"
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -997,6 +1115,7 @@ charts:
         configuration: "Model card table. SWE-Marathon"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -1006,6 +1125,7 @@ charts:
         configuration: "Model card table. SWE-Marathon"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -1015,6 +1135,7 @@ charts:
         configuration: "Model card table. SWE-Marathon"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1024,6 +1145,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1033,6 +1155,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1042,6 +1165,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "MiniMax M3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "minimax/minimax-m3"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1051,6 +1175,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1060,6 +1185,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1069,6 +1195,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1078,6 +1205,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas (Public Set)"
@@ -1087,6 +1215,7 @@ charts:
         configuration: "Model card table. MCP-Atlas (Public Set)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"
@@ -1096,6 +1225,7 @@ charts:
         configuration: "Model card table. Tool-Decathlon"
         role: subject
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"
@@ -1105,6 +1235,7 @@ charts:
         configuration: "Model card table. Tool-Decathlon"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"
@@ -1114,6 +1245,7 @@ charts:
         configuration: "Model card table. Tool-Decathlon"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"
@@ -1123,6 +1255,7 @@ charts:
         configuration: "Model card table. Tool-Decathlon"
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"
@@ -1132,6 +1265,7 @@ charts:
         configuration: "Model card table. Tool-Decathlon"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Tool-Decathlon"

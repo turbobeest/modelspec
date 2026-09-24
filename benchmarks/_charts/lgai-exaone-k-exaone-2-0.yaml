@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/LGAI-EXAONE/K-EXAONE-2.0-750B-A37B"
 publisher: "LG AI Research"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "K-EXAONE 2.0 BF16 evaluation"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: mmlu_pro
         score: 83.5
@@ -21,6 +23,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: mmlu_pro
         score: 83.8
@@ -29,6 +32,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: mmlu_pro
         score: 89.8
@@ -37,6 +41,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: mmlu_pro
         score: 86.0
@@ -45,6 +50,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: mmlu_pro
         score: 87.5
@@ -53,6 +59,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: gpqa_diamond
         score: 82.2
@@ -61,6 +68,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: gpqa_diamond
         score: 79.1
@@ -69,6 +77,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: gpqa_diamond
         score: 88.4
@@ -77,6 +86,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: gpqa_diamond
         score: 86.2
@@ -85,6 +95,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: gpqa_diamond
         score: 90.1
@@ -93,6 +104,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hle
         score: 18.3
@@ -101,6 +113,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hle
         score: 13.6
@@ -109,6 +122,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hle
         score: 28.7
@@ -117,6 +131,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hle
         score: 31.0
@@ -125,6 +140,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle
         score: 37.7
@@ -133,6 +149,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: aime_2026
         score: 92.3
@@ -141,6 +158,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: aime_2026
         score: 92.2
@@ -149,6 +167,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: aime_2026
         score: 91.3
@@ -157,6 +176,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: aime_2026
         score: 95.3
@@ -165,6 +185,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: aime_2026
         score: 95.2
@@ -173,6 +194,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hmmt2026
         score: 78.4
@@ -181,6 +203,7 @@ charts:
         configuration: "BF16 table. February 2026."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hmmt2026
         score: 80.7
@@ -189,6 +212,7 @@ charts:
         configuration: "BF16 table. February 2026."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hmmt2026
         score: 84.6
@@ -197,6 +221,7 @@ charts:
         configuration: "BF16 table. February 2026."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hmmt2026
         score: 82.6
@@ -205,6 +230,7 @@ charts:
         configuration: "BF16 table. February 2026."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hmmt2026
         score: 95.2
@@ -213,6 +239,7 @@ charts:
         configuration: "BF16 table. February 2026. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "IMO Answer"
@@ -222,6 +249,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "IMO Answer"
@@ -231,6 +259,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "IMO Answer"
@@ -240,6 +269,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "IMO Answer"
@@ -249,6 +279,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "IMO Answer"
@@ -258,6 +289,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: scicode
         score: 37.4
@@ -266,6 +298,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: scicode
         score: 35.6
@@ -274,6 +307,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: scicode
         score: 42.0
@@ -282,6 +316,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: scicode
         score: 43.8
@@ -290,6 +325,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: scicode
         score: 50.0
@@ -298,6 +334,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: swe_bench_verified
         score: 68.2
@@ -306,6 +343,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: swe_bench_verified
         score: 49.4
@@ -314,6 +352,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: swe_bench_verified
         score: 76.4
@@ -322,6 +361,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: swe_bench_verified
         score: 73.6
@@ -330,6 +370,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: swe_bench_verified
         score: 80.6
@@ -338,6 +379,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: terminal_bench_v2_1
         score: 43.8
@@ -346,6 +388,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: terminal_bench_v2_1
         score: 30.3
@@ -354,6 +397,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: terminal_bench_v2_1
         score: 51.3
@@ -362,6 +406,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 61.8
@@ -370,6 +415,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 64.0
@@ -378,6 +424,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -387,6 +434,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -396,6 +444,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -405,6 +454,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -414,6 +464,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -423,6 +474,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -432,6 +484,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -441,6 +494,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -450,6 +504,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -459,6 +514,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -468,6 +524,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: ifeval
         score: 92.4
@@ -476,6 +533,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: ifeval
         score: 89.7
@@ -484,6 +542,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ifeval
         score: 92.6
@@ -492,6 +551,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: ifeval
         score: 93.9
@@ -500,6 +560,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: ifeval
         score: 94.0
@@ -508,6 +569,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: ifbench
         score: 72.6
@@ -516,6 +578,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: ifbench
         score: 67.3
@@ -524,6 +587,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ifbench
         score: 76.5
@@ -532,6 +596,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: ifbench
         score: 76.3
@@ -540,6 +605,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: ifbench
         score: 76.5
@@ -548,6 +614,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: openai_mrcr
         score: 94.4
@@ -556,6 +623,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: openai_mrcr
         score: 52.3
@@ -564,6 +632,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: openai_mrcr
         score: 93.0
@@ -572,6 +641,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: openai_mrcr
         score: 71.5
@@ -580,6 +650,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: openai_mrcr
         score: 92.9
@@ -588,6 +659,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -597,6 +669,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -606,6 +679,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -615,6 +689,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -624,6 +699,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -633,6 +709,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -642,6 +719,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -651,6 +729,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -660,6 +739,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -669,6 +749,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -678,6 +759,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: click
         score: 84.2
@@ -686,6 +768,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: click
         score: 83.9
@@ -694,6 +777,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: click
         score: 88.9
@@ -702,6 +786,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: click
         score: 88.7
@@ -710,6 +795,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: click
         score: 91.6
@@ -718,6 +804,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hrm8k
         score: 91.1
@@ -726,6 +813,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hrm8k
         score: 91.9
@@ -734,6 +822,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hrm8k
         score: 91.2
@@ -742,6 +831,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hrm8k
         score: 89.4
@@ -750,6 +840,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hrm8k
         score: 94.3
@@ -758,6 +849,7 @@ charts:
         configuration: "BF16 table. KSM subset. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: mmmlu
         score: 86.6
@@ -766,6 +858,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: mmmlu
         score: 86.2
@@ -774,6 +867,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: mmmlu
         score: 90.6
@@ -782,6 +876,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: mmmlu
         score: 89.7
@@ -790,6 +885,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: mmmlu
         score: 89.6
@@ -798,6 +894,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: global_mmlu
         score: 86.6
@@ -806,6 +903,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: global_mmlu
         score: 86.9
@@ -814,6 +912,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: global_mmlu
         score: 92.1
@@ -822,6 +921,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: global_mmlu
         score: 90.7
@@ -830,6 +930,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: global_mmlu
         score: 92.0
@@ -838,6 +939,7 @@ charts:
         configuration: "BF16 table. Lite. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "PolyMath"
@@ -847,6 +949,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "PolyMath"
@@ -856,6 +959,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "PolyMath"
@@ -865,6 +969,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "PolyMath"
@@ -874,6 +979,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "PolyMath"
@@ -883,6 +989,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -892,6 +999,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -901,6 +1009,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -910,6 +1019,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -919,6 +1029,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -928,6 +1039,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -937,6 +1049,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -946,6 +1059,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -955,6 +1069,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -964,6 +1079,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -985,6 +1101,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: openai_mrcr
         score: 94.4
@@ -993,6 +1110,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: openai_mrcr
         score: 52.3
@@ -1001,6 +1119,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: openai_mrcr
         score: 93.0
@@ -1009,6 +1128,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: openai_mrcr
         score: 71.5
@@ -1017,6 +1137,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -1026,6 +1147,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -1035,6 +1157,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -1044,6 +1167,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Ko-LongBench"
@@ -1053,6 +1177,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hrm8k
         score: 91.1
@@ -1061,6 +1186,7 @@ charts:
         configuration: "KSM subset."
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hrm8k
         score: 91.9
@@ -1069,6 +1195,7 @@ charts:
         configuration: "KSM subset."
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hrm8k
         score: 91.2
@@ -1077,6 +1204,7 @@ charts:
         configuration: "KSM subset."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hrm8k
         score: 89.4
@@ -1085,6 +1213,7 @@ charts:
         configuration: "KSM subset."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: aime_2026
         score: 92.3
@@ -1093,6 +1222,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: aime_2026
         score: 92.2
@@ -1101,6 +1231,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: aime_2026
         score: 91.3
@@ -1109,6 +1240,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: aime_2026
         score: 95.3
@@ -1117,6 +1249,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: ifeval
         score: 92.4
@@ -1125,6 +1258,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: ifeval
         score: 89.7
@@ -1133,6 +1267,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ifeval
         score: 92.6
@@ -1141,6 +1276,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: ifeval
         score: 93.9
@@ -1149,6 +1285,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench (Banking)"
@@ -1158,6 +1295,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench (Banking)"
@@ -1167,6 +1305,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench (Banking)"
@@ -1176,6 +1315,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench (Banking)"
@@ -1185,6 +1325,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1194,6 +1335,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1203,6 +1345,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1212,6 +1355,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1221,6 +1365,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -1230,6 +1375,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -1239,6 +1385,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"
@@ -1248,6 +1395,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ROK-Fortress"

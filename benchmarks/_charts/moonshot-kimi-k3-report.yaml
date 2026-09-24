@@ -1,6 +1,7 @@
 page_url: "https://arxiv.org/abs/2607.24653"
 publisher: "Moonshot AI"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Table 2. Performance comparison"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: gpqa_diamond
         score: 93.5
@@ -21,6 +23,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: gpqa_diamond
         score: 92.6
@@ -29,6 +32,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: gpqa_diamond
         score: 94.1
@@ -37,6 +41,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: gpqa_diamond
         score: 91.0
@@ -45,6 +50,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: gpqa_diamond
         score: 93.5
@@ -53,6 +59,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: gpqa_diamond
         score: 91.2
@@ -61,6 +68,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: critpt
         score: 23.4
@@ -69,6 +77,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: critpt
         score: 28.6
@@ -77,6 +86,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: critpt
         score: 32.3
@@ -85,6 +95,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: critpt
         score: 20.9
@@ -93,6 +104,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: critpt
         score: 27.1
@@ -101,6 +113,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: critpt
         score: 20.9
@@ -109,6 +122,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CritPt"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: hle
         score: 43.5
@@ -117,6 +131,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: hle_tools
         score: 56.0
@@ -125,6 +140,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle
         score: 53.3
@@ -133,6 +149,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle_tools
         score: 63.0
@@ -141,6 +158,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: hle
         score: 44.5
@@ -149,6 +167,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: hle_tools
         score: 58.0
@@ -157,6 +176,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -165,6 +185,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -173,6 +194,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle
         score: 41.4
@@ -181,6 +203,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle_tools
         score: 52.2
@@ -189,6 +212,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -198,6 +222,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -207,6 +232,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -216,6 +242,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -225,6 +252,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -234,6 +262,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -243,6 +272,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSWE"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -252,6 +282,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -261,6 +292,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -270,6 +302,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -279,6 +312,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -288,6 +322,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -297,6 +332,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ProgramBench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_v2_1
         score: 88.3
@@ -305,6 +341,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_v2_1
         score: 88.0
@@ -313,6 +350,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v2_1
         score: 88.8
@@ -321,6 +359,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 84.6
@@ -329,6 +368,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 83.4
@@ -337,6 +377,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -345,6 +386,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -354,6 +396,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -363,6 +406,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -372,6 +416,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -381,6 +426,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -390,6 +436,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -399,6 +446,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -408,6 +456,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -417,6 +466,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -426,6 +476,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -435,6 +486,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -444,6 +496,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon"
@@ -453,6 +506,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -462,6 +516,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -471,6 +526,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -480,6 +536,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -489,6 +546,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -498,6 +556,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -507,6 +566,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -516,6 +576,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -525,6 +586,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -534,6 +596,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -543,6 +606,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -552,6 +616,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "MLS-Bench-Lite"
@@ -561,6 +626,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: scicode
         score: 58.7
@@ -569,6 +635,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: scicode
         score: 60.2
@@ -577,6 +644,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: scicode
         score: 56.1
@@ -585,6 +653,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: scicode
         score: 53.5
@@ -593,6 +662,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: scicode
         score: 56.1
@@ -601,6 +671,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: scicode
         score: 50.5
@@ -609,6 +680,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SciCode"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: browsecomp
         score: 91.2
@@ -617,6 +689,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BrowseComp"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: browsecomp
         score: 88.0
@@ -625,6 +698,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BrowseComp"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: browsecomp
         score: 90.4
@@ -633,6 +707,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 84.3
@@ -641,6 +716,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BrowseComp"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: browsecomp
         score: 84.4
@@ -649,6 +725,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BrowseComp"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: deepsearchqa
         score: 95.0
@@ -657,6 +734,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: deepsearchqa
         score: 94.2
@@ -665,6 +743,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: deepsearchqa
         score: 93.1
@@ -673,6 +752,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ResearchRubrics"
@@ -682,6 +762,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ResearchRubrics"
@@ -691,6 +772,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ResearchRubrics"
@@ -700,6 +782,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ResearchRubrics"
@@ -709,6 +792,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ResearchRubrics"
@@ -718,6 +802,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -727,6 +812,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -736,6 +822,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -745,6 +832,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -754,6 +842,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -763,6 +852,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -772,6 +862,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MCPMark-Verified"
@@ -781,6 +872,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "MCPMark-Verified"
@@ -790,6 +882,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "MCPMark-Verified"
@@ -799,6 +892,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCPMark-Verified"
@@ -808,6 +902,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCPMark-Verified"
@@ -817,6 +912,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -826,6 +922,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -835,6 +932,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -844,6 +942,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -853,6 +952,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -862,6 +962,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -871,6 +972,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -880,6 +982,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -889,6 +992,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -898,6 +1002,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -907,6 +1012,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -916,6 +1022,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -925,6 +1032,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. JobBench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -934,6 +1042,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -943,6 +1052,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam Dagger: multimodal parts of the input were ignored."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -952,6 +1062,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -961,6 +1072,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -970,6 +1082,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Agents’ Last Exam"
@@ -979,6 +1092,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -988,6 +1102,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -997,6 +1112,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -1006,6 +1122,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -1015,6 +1132,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -1024,6 +1142,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -1033,6 +1152,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1042,6 +1162,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1051,6 +1172,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1060,6 +1182,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1069,6 +1192,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1078,6 +1202,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "OfficeQA Pro"
@@ -1087,6 +1212,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1096,6 +1222,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1105,6 +1232,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1114,6 +1242,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1123,6 +1252,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1132,6 +1262,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -1141,6 +1272,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1150,6 +1282,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1159,6 +1292,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1168,6 +1302,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1177,6 +1312,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -1186,6 +1322,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -1195,6 +1332,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -1204,6 +1342,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -1213,6 +1352,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -1222,6 +1362,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -1231,6 +1372,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SaaS-Bench"
@@ -1240,6 +1382,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SaaS-Bench"
@@ -1249,6 +1392,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SaaS-Bench"
@@ -1258,6 +1402,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SaaS-Bench"
@@ -1267,6 +1412,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1276,6 +1422,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1285,6 +1432,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1294,6 +1442,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1303,6 +1452,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1312,6 +1462,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "τ3\\tau^{3}-Banking"
@@ -1321,6 +1472,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1330,6 +1482,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1339,6 +1492,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1348,6 +1502,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1357,6 +1512,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1366,6 +1522,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "CorpFin v2"
@@ -1375,6 +1532,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1384,6 +1542,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1393,6 +1552,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1402,6 +1562,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1411,6 +1572,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1420,6 +1582,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -1429,6 +1592,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1438,6 +1602,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1447,6 +1612,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1456,6 +1622,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1465,6 +1632,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1474,6 +1642,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Legal Research Bench"
@@ -1483,6 +1652,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA ForceAnswer"
@@ -1492,6 +1662,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA ForceAnswer"
@@ -1501,6 +1672,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA ForceAnswer"
@@ -1510,6 +1682,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA ForceAnswer"
@@ -1519,6 +1692,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA ForceAnswer"
@@ -1528,6 +1702,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1537,6 +1712,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1546,6 +1722,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1555,6 +1732,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1564,6 +1742,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench"
@@ -1573,6 +1752,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -1582,6 +1762,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -1591,6 +1772,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -1600,6 +1782,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -1609,6 +1792,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -1618,6 +1802,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Video-MME (w/ sub)"
@@ -1627,6 +1812,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Video-MME (w/ sub)"
@@ -1636,6 +1822,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Video-MME (w/ sub)"
@@ -1645,6 +1832,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Video-MME (w/ sub)"
@@ -1654,6 +1842,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MMVU"
@@ -1663,6 +1852,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMVU"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "MMVU"
@@ -1672,6 +1862,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMVU"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MMVU"
@@ -1681,6 +1872,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMVU"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MMVU"
@@ -1690,6 +1882,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMVU"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision w/ Python"
@@ -1699,6 +1892,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision w/ Python"
@@ -1708,6 +1902,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision w/ Python"
@@ -1717,6 +1912,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision w/ Python"
@@ -1726,6 +1922,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision w/ Python"
@@ -1735,6 +1932,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: mmmu_pro
         score: 81.6
@@ -1743,6 +1941,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: mmmu_pro
         score: 83.4
@@ -1751,6 +1950,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: mmmu_pro
         score: 81.2
@@ -1759,6 +1959,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: mmmu_pro
         score: 86.5
@@ -1767,6 +1968,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: mmmu_pro
         score: 83.0
@@ -1775,6 +1977,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: mmmu_pro
         score: 84.6
@@ -1783,6 +1986,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: mmmu_pro
         score: 78.9
@@ -1791,6 +1995,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: mmmu_pro
         score: 82.7
@@ -1799,6 +2004,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: mmmu_pro
         score: 81.2
@@ -1807,6 +2013,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: mmmu_pro
         score: 83.2
@@ -1815,6 +2022,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: charxiv_reasoning
         score: 84.8
@@ -1823,6 +2031,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: charxiv_reasoning_tools
         score: 91.3
@@ -1831,6 +2040,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: charxiv_reasoning
         score: 88.9
@@ -1839,6 +2049,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: charxiv_reasoning_tools
         score: 93.5
@@ -1847,6 +2058,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: charxiv_reasoning
         score: 84.6
@@ -1855,6 +2067,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: charxiv_reasoning_tools
         score: 89.1
@@ -1863,6 +2076,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: charxiv_reasoning
         score: 80.5
@@ -1871,6 +2085,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: charxiv_reasoning_tools
         score: 89.9
@@ -1879,6 +2094,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: charxiv_reasoning
         score: 84.1
@@ -1887,6 +2103,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: charxiv_reasoning_tools
         score: 89.0
@@ -1895,6 +2112,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1904,6 +2122,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1913,6 +2132,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1922,6 +2142,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1931,6 +2152,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1940,6 +2162,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1949,6 +2172,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1958,6 +2182,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1967,6 +2192,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1976,6 +2202,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -1985,6 +2212,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -1994,6 +2222,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2003,6 +2232,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2012,6 +2242,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2021,6 +2252,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2030,6 +2262,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2039,6 +2272,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2048,6 +2282,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2057,6 +2292,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2066,6 +2302,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2085,6 +2322,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2094,6 +2332,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2103,6 +2342,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2112,6 +2352,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2121,6 +2362,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2130,6 +2372,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
         role: subject
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2139,6 +2382,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2148,6 +2392,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2157,6 +2402,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2166,6 +2412,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2175,6 +2422,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2184,6 +2432,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2193,6 +2442,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2202,6 +2452,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Coding Experience"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2211,6 +2462,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Coding Experience"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2220,6 +2472,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Coding Experience"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2229,6 +2482,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2238,6 +2492,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2247,6 +2502,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2256,6 +2512,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2265,6 +2522,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2274,6 +2532,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2283,6 +2542,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2292,6 +2552,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2301,6 +2562,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2310,6 +2572,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2319,6 +2582,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2328,6 +2592,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2337,6 +2602,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2346,6 +2612,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2355,6 +2622,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2364,6 +2632,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2373,6 +2642,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2382,6 +2652,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2391,6 +2662,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2400,6 +2672,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2409,6 +2682,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2418,6 +2692,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2427,6 +2702,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2436,6 +2712,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2445,6 +2722,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2454,6 +2732,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2463,6 +2742,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2472,6 +2752,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2481,6 +2762,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2490,6 +2772,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2499,6 +2782,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2508,6 +2792,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2517,6 +2802,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2526,6 +2812,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2535,6 +2822,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2544,6 +2832,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2553,6 +2842,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2562,6 +2852,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2571,6 +2862,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2580,6 +2872,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2589,6 +2882,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2598,6 +2892,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2607,6 +2902,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2616,6 +2912,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2625,6 +2922,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2644,6 +2942,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2653,6 +2952,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2662,6 +2962,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -2671,6 +2972,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2680,6 +2982,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2689,6 +2992,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -2698,6 +3002,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2707,6 +3012,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2716,6 +3022,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -2725,6 +3032,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2734,6 +3042,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2743,6 +3052,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -2762,6 +3072,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2771,6 +3082,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2780,6 +3092,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2789,6 +3102,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2798,6 +3112,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2807,6 +3122,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -2816,6 +3132,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2825,6 +3142,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2834,6 +3152,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2843,6 +3162,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2852,6 +3172,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2861,6 +3182,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -2870,6 +3192,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2879,6 +3202,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2888,6 +3212,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2897,6 +3222,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2906,6 +3232,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2915,6 +3242,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -2924,6 +3252,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -2933,6 +3262,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -2942,6 +3272,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -2951,6 +3282,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -2960,6 +3292,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -2969,6 +3302,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"

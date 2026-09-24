@@ -8,6 +8,9 @@ publisher's, and the file belongs in the chart cache, named by its sha256.
 A fixture:
 
 - `page_url`, `publisher`, `read_on` (ISO date).
+- `phase` — the reading pass this page belongs to: `phase1`, `phase2a`,
+  `phase2b-1`, `phase2b-2`, `phase2b-3`, or `phase2b-4`. The confirmation
+  tally groups by it.
 - `charts`: each chart has `title`, `footnotes`, `competitor_numbers`
   (`official_reports`, `vendor_run`, or `unstated`), `readings`
   (`reader`, `date`), and `bars`.
@@ -41,6 +44,11 @@ Each bar:
   `readings` (`reader`, `value`). A value counts only when two independent
   readers agree within the printed precision. The bar's `score` is that value.
   A third reading that agrees with neither leaves the bar `disputed`.
+- `confirmed_by` — the readers whose reading of this bar agrees with the
+  stored score. A pair that agrees names both readers. A two-of-three
+  resolution names the two who agree. A bar only one reader recorded names
+  that reader. Every name is one of the chart's `readings`. One name does
+  not fail the check.
 
 `score` is written on its own line so the printed precision survives YAML
 (`78.2` is ±0.05, `78` is ±0.5).

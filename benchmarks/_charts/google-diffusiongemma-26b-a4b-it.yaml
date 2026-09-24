@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/google/diffusiongemma-26B-A4B-it"
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Benchmark results"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: mmlu_pro
         score: 77.6
@@ -21,6 +23,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: mmlu_pro
         score: 82.6
@@ -29,6 +32,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: aime_2026
         score: 69.1
@@ -37,6 +41,7 @@ charts:
         configuration: "Entropy-bound sampler. No tools."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: aime_2026
         score: 88.3
@@ -45,6 +50,7 @@ charts:
         configuration: "Entropy-bound sampler. No tools."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6"
@@ -54,6 +60,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6"
@@ -63,6 +70,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -72,6 +80,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -81,6 +90,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: gpqa_diamond
         score: 73.2
@@ -89,6 +99,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: gpqa_diamond
         score: 82.3
@@ -97,6 +108,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: tau2
         score: 56.2
@@ -105,6 +117,7 @@ charts:
         configuration: "Entropy-bound sampler. Average over 3 domains."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
         score: 68.2
@@ -113,6 +126,7 @@ charts:
         configuration: "Entropy-bound sampler. Average over 3 domains."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: hle
         score: 11.0
@@ -121,6 +135,7 @@ charts:
         configuration: "Entropy-bound sampler. No tools."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: hle
         score: 8.7
@@ -129,6 +144,7 @@ charts:
         configuration: "Entropy-bound sampler. No tools."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: hle_tools
         score: 11.9
@@ -137,6 +153,7 @@ charts:
         configuration: "Entropy-bound sampler. With search."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: hle_tools
         score: 17.2
@@ -145,6 +162,7 @@ charts:
         configuration: "Entropy-bound sampler. With search."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: bbeh
         score: 47.6
@@ -153,6 +171,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: bbeh
         score: 64.8
@@ -161,6 +180,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: mmmlu
         score: 81.5
@@ -169,6 +189,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: mmmlu
         score: 86.3
@@ -177,6 +198,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: mmmu_pro
         score: 54.3
@@ -185,6 +207,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: mmmu_pro
         score: 73.8
@@ -193,6 +216,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5 (average edit distance, lower is better)"
@@ -202,6 +226,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5 (average edit distance, lower is better)"
@@ -211,6 +236,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -220,6 +246,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -229,6 +256,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: medxpertqa_multimodal
         score: 49.0
@@ -237,6 +265,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: medxpertqa_multimodal
         score: 58.1
@@ -245,6 +274,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: deepmind_mrcr_v2
         score: 32.0
@@ -253,6 +283,7 @@ charts:
         configuration: "Entropy-bound sampler. 8-needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: deepmind_mrcr_v2
         score: 44.1

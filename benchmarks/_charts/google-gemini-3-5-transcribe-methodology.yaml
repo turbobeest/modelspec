@@ -2,6 +2,7 @@ page_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcrib
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
 document_sha256: "95b074664b450121d597f2cd3d0d72da9676af717fec8cfe55f1a965c464fe82"
+phase: "phase2b-2"
 charts:
   - title: "FLEURS streaming"
     kind: image
@@ -16,6 +17,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.5 Transcribe Live"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -25,6 +27,7 @@ charts:
         configuration: "Streaming. FLEURS top locales. Lower is better."
         role: subject
       - model_as_labelled: "Google Cloud Chirp 3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -34,6 +37,7 @@ charts:
         configuration: "Streaming. FLEURS top locales. Lower is better."
         role: subject
       - model_as_labelled: "ElevenLabs Scribe v2 Realtime"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -43,6 +47,7 @@ charts:
         configuration: "Streaming. FLEURS top locales. Lower is better."
         role: competitor
       - model_as_labelled: "OpenAI GPT Live Transcribe"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -52,6 +57,7 @@ charts:
         configuration: "Streaming. FLEURS top locales. Lower is better."
         role: competitor
       - model_as_labelled: "Deepgram Nova-3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -73,6 +79,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.5 Transcribe"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -82,6 +89,7 @@ charts:
         configuration: "Non-streaming. FLEURS top locales. Lower is better."
         role: subject
       - model_as_labelled: "Google Cloud Chirp 3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -91,6 +99,7 @@ charts:
         configuration: "Non-streaming. FLEURS top locales. Lower is better."
         role: subject
       - model_as_labelled: "ElevenLabs Scribe v2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -100,6 +109,7 @@ charts:
         configuration: "Non-streaming. FLEURS top locales. Lower is better."
         role: competitor
       - model_as_labelled: "OpenAI GPT Live Transcribe"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -109,6 +119,7 @@ charts:
         configuration: "Non-streaming. FLEURS top locales. Lower is better."
         role: competitor
       - model_as_labelled: "Deepgram Nova-3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"

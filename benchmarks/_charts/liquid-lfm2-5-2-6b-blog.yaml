@@ -1,6 +1,7 @@
 page_url: "https://www.liquid.ai/blog/lfm2-5-2-6b"
 publisher: "Liquid AI"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Benchmarks"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: aime_2025
         score: 51.87
@@ -21,6 +23,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: aime_2025
         score: 26.33
@@ -29,6 +32,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: aime_2025
         score: 34.27
@@ -37,6 +41,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: aime_2025
         score: 49.33
@@ -45,6 +50,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: aime_2025
         score: 56.07
@@ -53,6 +59,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: live_code_bench
         score: 59.41
@@ -61,6 +68,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: live_code_bench
         score: 54.92
@@ -69,6 +77,7 @@ charts:
         configuration: "v6"
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: live_code_bench
         score: 63.77
@@ -77,6 +86,7 @@ charts:
         configuration: "v6"
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: live_code_bench
         score: 60.85
@@ -85,6 +95,7 @@ charts:
         configuration: "v6"
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: live_code_bench
         score: 69.86
@@ -93,6 +104,7 @@ charts:
         configuration: "v6"
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: ifbench
         score: 59.17
@@ -101,6 +113,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: ifbench
         score: 34.08
@@ -109,6 +122,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifbench
         score: 39.24
@@ -117,6 +131,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: ifbench
         score: 48.40
@@ -125,6 +140,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: ifbench
         score: 56.47
@@ -133,6 +149,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: multiif
         score: 80.07
@@ -141,6 +158,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: multiif
         score: 69.44
@@ -149,6 +167,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: multiif
         score: 77.35
@@ -157,6 +176,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: multiif
         score: 55.67
@@ -165,6 +185,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: multiif
         score: 62.55
@@ -173,6 +194,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "IFStruct"
@@ -182,6 +204,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "IFStruct"
@@ -191,6 +214,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "IFStruct"
@@ -200,6 +224,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "IFStruct"
@@ -209,6 +234,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "IFStruct"
@@ -218,6 +244,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: bfcl
         score: 56.88
@@ -226,6 +253,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: bfcl
         score: 36.98
@@ -234,6 +262,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: bfcl
         score: 46.39
@@ -242,6 +271,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: bfcl
         score: 50.56
@@ -250,6 +280,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: bfcl
         score: 60.13
@@ -258,6 +289,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "ToolSandbox"
@@ -267,6 +299,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "ToolSandbox"
@@ -276,6 +309,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "ToolSandbox"
@@ -285,6 +319,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "ToolSandbox"
@@ -294,6 +329,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "ToolSandbox"
@@ -303,6 +339,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -312,6 +349,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -321,6 +359,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -330,6 +369,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -339,6 +379,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -348,6 +389,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval average (EN)"
@@ -357,6 +399,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval average (EN)"
@@ -366,6 +409,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval average (EN)"
@@ -375,6 +419,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval average (EN)"
@@ -384,6 +429,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval average (EN)"
@@ -393,6 +439,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -402,6 +449,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -411,6 +459,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -420,6 +469,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -429,6 +479,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -438,6 +489,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp+ (OpenClaw)"
@@ -447,6 +499,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp+ (OpenClaw)"
@@ -456,6 +509,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp+ (OpenClaw)"
@@ -465,6 +519,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp+ (OpenClaw)"
@@ -474,6 +529,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp+ (OpenClaw)"

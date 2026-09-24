@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp"
 publisher: "DeepSeek"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Text and multimodal agent capabilities"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: terminal_bench_v2_1
         score: 83.9
@@ -21,6 +23,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -29,6 +32,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85.0
@@ -37,6 +41,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -46,6 +51,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. NL2Repo"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -55,6 +61,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. NL2Repo"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -64,6 +71,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. NL2Repo"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: cybergym
         score: 75.3
@@ -72,6 +80,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Cybergym"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: cybergym
         score: 76.7
@@ -80,6 +89,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Cybergym"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: cybergym
         score: 78.3
@@ -88,6 +98,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Cybergym"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -97,6 +108,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DeepSWE"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -106,6 +118,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DeepSWE"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -115,6 +128,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DeepSWE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -124,6 +138,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -133,6 +148,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -142,6 +158,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard"
@@ -151,6 +168,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DSBench-Hard"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard"
@@ -160,6 +178,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DSBench-Hard"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard"
@@ -169,6 +188,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. DSBench-Hard"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "ApexBench (Pass@1)"
@@ -178,6 +198,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. ApexBench (Pass@1)"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "ApexBench (Pass@1)"
@@ -187,6 +208,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. ApexBench (Pass@1) Dagger: multimodal parts of the input were ignored."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ApexBench (Pass@1)"
@@ -196,6 +218,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. ApexBench (Pass@1)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -205,6 +228,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Agents' Last Exam"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -214,6 +238,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Agents' Last Exam Dagger: multimodal parts of the input were ignored."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -223,6 +248,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Agents' Last Exam"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -232,6 +258,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Chartography"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -241,6 +268,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Chartography"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: zerobench
         score: 35.0
@@ -249,6 +277,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. ZeroBench (Pass@5) Pass@5, without tools."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: zerobench
         score: 34.0

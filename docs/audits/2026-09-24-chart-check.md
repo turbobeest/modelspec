@@ -867,3 +867,52 @@ The resolved 53.9 is the NVFP4 bar on the accuracy figure, configuration `NVFP4`
 | competitor_unresolved | 193 |
 | disputed | 0 |
 
+The per-bar confirmation below marks 11 further bars on the Liquid 8B blog disputed.
+
+## Per-bar confirmation
+
+`confirmed_by` on a bar names the readers whose reading agrees with the stored score. A pair that agrees names both readers. A two-of-three resolution names the two who agree. A bar one reader recorded names that reader. A chart can list two readers and still have bars only one of them confirmed. One confirming reader does not fail the check. A bar two readers paired with different values is disputed until a third reading settles it two-of-three. That bar names no confirming reader. A bar that already carries a two-of-three resolution stays settled.
+
+Pairing was recomputed on the current fixtures. `only_a` is a fixture bar the second reading did not pair. The before column is that recompute before the label rules. Phase 2b batch 2 was 760 on this tree. After the rules, phase 1 and phase 2a are unchanged.
+
+| Phase | only_a before | only_a after |
+| --- | ---: | ---: |
+| phase 1 | 45 | 45 |
+| phase 2a | 213 | 213 |
+| phase 2b batch 1 | 604 | 588 |
+| phase 2b batch 2 | 760 | 739 |
+| phase 2b batch 3 | 986 | 753 |
+| phase 2b batch 4 | 448 | 370 |
+
+The rules pair a different spelling of the same bar. `AIME 26` pairs with `aime_2026`. `SWEBench` pairs with `swe_bench`, and `StrongREJECT` with `strong_reject`. `Public` on SWE-bench Pro and `Lite` on Global-MMLU count whether they were written on the name or the setting. `HMMT Feb 2026` is `hmmt2026`. `HMMT Nov. 2025` stays a different benchmark. `ForecastBench` glued to the next word is split, and with search stays apart from no search. `Qwen3.5397B` is Qwen 3.5 and 397B. `N-3-Ultra` is Nemotron 3 Ultra, and BF16 stays apart from NVFP4. Nano Banana is the Gemini image nickname. `3.6 Flash` and `3.5 Flash-Lite` are Gemini. `Diffusion Gemma` pairs with `DiffusionGemma`. `TauBench V3 — Average` is the TauBench V3 headline. A `(column …)` note is not a second model. A matching number is not enough to pair, and a missing version is not filled in.
+
+Phase 2b batch 3 disagreements went from 2 to 13. `AIME26` now meets `aime_2026`, and `Multi-IF` meets `multiif`. Eleven of those disagreements are on the Liquid 8B blog, `https://www.liquid.ai/blog/lfm2-5-8b-a1b`. Three are Multi-IF: Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT. Eight are AIME 2026: LFM2.5-8B-A1B, Granite-4.0-H-Tiny, Qwen3.5-4B, Qwen3-30B-A3B-Thinking-2507, Gemma-4-E2B-IT, Gemma-4-E4B-IT, Gemma-4-26B-A4B-IT, and gpt-oss-20b. Reader A and reader B recorded different numbers. Each bar is `disputed` and keeps both readings. `confirmed_by` is absent. A third reading of the whole page settles a bar when two of the three readings agree. The stored Multi-IF figure for Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT is the same number as that model's IFEval bar. Reader A's Multi-IF cell lines up with the IFEval column. `.chart-check/per-bar/disputes-blind.yaml` lists the 11 bars with no scores. `.chart-check/per-bar/liquid-8b-all-bars-blind.yaml` lists every bar on the page, also with no scores.
+
+This run of the checker counts matched 53, other_configuration 9, mismatched 0, other_metric 52, no_benchmark_page 5356, not_held 4699, competitor_gap 34, competitor_unresolved 219, disputed 11. The confirmation split:
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 663 | 45 |
+| phase 2a | 411 | 213 |
+| phase 2b batch 1 | 1479 | 884 |
+| phase 2b batch 2 | 1841 | 729 |
+| phase 2b batch 3 | 1548 | 891 |
+| phase 2b batch 4 | 1364 | 354 |
+| Total | 7306 | 3116 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 38 | 15 |
+| other_configuration | 0 | 9 |
+| other_metric | 6 | 46 |
+| no_benchmark_page | 3752 | 1604 |
+| not_held | 3282 | 1417 |
+| competitor_gap | 33 | 1 |
+| competitor_unresolved | 195 | 24 |
+
+Matched bars confirmed by two or more readers: 38 of 53. By phase, that is 17 and 2 in phase 1, 11 and 13 in phase 2a, 7 and 0 in phase 2b batch 1, 3 and 0 in batch 2, and none in batches 3 and 4.
+
+3,116 bars are confirmed by one reader. 7,306 are confirmed by two or more. The 11 disputed bars name no confirming reader and are in neither column. `single-read-blind.yaml` was written before this correction and still has 3,127 rows, including those 11. The rows to re-read are in `disputes-blind.yaml`. 37 charts have every bar confirmed by one reader. The corrected per-fixture and per-chart counts are in `.chart-check/per-bar/report.md`.
+
+The phase 1 section above says the 11 OpenAI charts still have one reading. That was before the browser reading. Phase 1 now confirms 663 of 708 bars with both readers and 45 with one.
+

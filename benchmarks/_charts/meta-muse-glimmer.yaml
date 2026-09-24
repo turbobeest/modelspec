@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/meta-models/Muse-Glimmer-30B"
 publisher: "Meta"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Benchmarks"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas (Public)"
@@ -22,6 +24,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas (Public)"
@@ -31,6 +34,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas (Public)"
@@ -40,6 +44,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: deepsearchqa
         score: 74.6
@@ -48,6 +53,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: deepsearchqa
         score: 61.7
@@ -56,6 +62,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: deepsearchqa
         score: 71.1
@@ -64,6 +71,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "𝛕3-Banking"
@@ -73,6 +81,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "𝛕3-Banking"
@@ -82,6 +91,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "𝛕3-Banking"
@@ -91,6 +101,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "WildClawBench"
@@ -100,6 +111,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "WildClawBench"
@@ -109,6 +121,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "WildClawBench"
@@ -118,6 +131,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2"
@@ -127,6 +141,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2"
@@ -136,6 +151,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Gaia2"
@@ -145,6 +161,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: skillsbench
         score: 44.3
@@ -153,6 +170,7 @@ charts:
         configuration: "With skills."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: skillsbench
         score: 32.4
@@ -161,6 +179,7 @@ charts:
         configuration: "With skills."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: skillsbench
         score: 46.6
@@ -169,6 +188,7 @@ charts:
         configuration: "With skills."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: osworld
         score: 65.9
@@ -177,6 +197,7 @@ charts:
         configuration: "Verified."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: osworld
         score: 58.5
@@ -185,6 +206,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: osworld
         score: 75.6
@@ -193,6 +215,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: swe_bench_pro
         score: 51.2
@@ -201,6 +224,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: swe_bench_pro
         score: 36.9
@@ -209,6 +233,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: swe_bench_pro
         score: 50.2
@@ -217,6 +242,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: swe_bench_verified
         score: 76.0
@@ -225,6 +251,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: swe_bench_verified
         score: 66.6
@@ -233,6 +260,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: swe_bench_verified
         score: 77.2
@@ -241,6 +269,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: terminal_bench_v2_1
         score: 51.7
@@ -249,6 +278,7 @@ charts:
         configuration: "terminus2 harness."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: terminal_bench_v2_1
         score: 43.4
@@ -257,6 +287,7 @@ charts:
         configuration: "terminus2 harness."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: terminal_bench_v2_1
         score: 60.7
@@ -265,6 +296,7 @@ charts:
         configuration: "terminus2 harness."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: scicode
         score: 43.6
@@ -273,6 +305,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: scicode
         score: 43.4
@@ -281,6 +314,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: scicode
         score: 39.8
@@ -289,6 +323,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: charxiv_reasoning
         score: 78.8
@@ -297,6 +332,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: charxiv_reasoning
         score: 77.7
@@ -305,6 +341,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: charxiv_reasoning
         score: 78.4
@@ -313,6 +350,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: screenspot_pro
         score: 75.4
@@ -321,6 +359,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: screenspot_pro
         score: 75.9
@@ -329,6 +368,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: screenspot_pro
         score: 76.1
@@ -337,6 +377,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench v1.5"
@@ -346,6 +387,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench v1.5"
@@ -355,6 +397,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench v1.5"
@@ -364,6 +407,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: mmmu_pro
         score: 74
@@ -372,6 +416,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: mmmu_pro
         score: 73
@@ -380,6 +425,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: mmmu_pro
         score: 75
@@ -388,6 +434,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -397,6 +444,7 @@ charts:
         configuration: "Violation rate"
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -406,6 +454,7 @@ charts:
         configuration: "Coverage"
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -415,6 +464,7 @@ charts:
         configuration: "Violation rate"
         role: competitor
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -424,6 +474,7 @@ charts:
         configuration: "Coverage"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -433,6 +484,7 @@ charts:
         configuration: "Violation rate"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -442,6 +494,7 @@ charts:
         configuration: "Coverage"
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -451,6 +504,7 @@ charts:
         configuration: "Attack success rate"
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -460,6 +514,7 @@ charts:
         configuration: "Utility"
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -469,6 +524,7 @@ charts:
         configuration: "Attack success rate"
         role: competitor
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -478,6 +534,7 @@ charts:
         configuration: "Utility"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -487,6 +544,7 @@ charts:
         configuration: "Attack success rate"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -496,6 +554,7 @@ charts:
         configuration: "Utility"
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: ifbench
         score: 77.0
@@ -504,6 +563,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: ifbench
         score: 76.0
@@ -512,6 +572,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: ifbench
         score: 70.8
@@ -520,6 +581,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: aime_2026
         score: 94.7
@@ -528,6 +590,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: aime_2026
         score: 89.2
@@ -536,6 +599,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: aime_2026
         score: 94.1
@@ -544,6 +608,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Beam128K"
@@ -553,6 +618,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Beam128K"
@@ -562,6 +628,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Beam128K"
@@ -581,6 +648,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "MBCT"
@@ -590,6 +658,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "MBCT"
@@ -599,6 +668,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "MBCT"
@@ -608,6 +678,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MBCT"
@@ -617,6 +688,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "HPCT"
@@ -626,6 +698,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "HPCT"
@@ -635,6 +708,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "HPCT"
@@ -644,6 +718,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "HPCT"
@@ -653,6 +728,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "VCT"
@@ -662,6 +738,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "VCT"
@@ -671,6 +748,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "VCT"
@@ -680,6 +758,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "VCT"
@@ -689,6 +768,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: wmdp
         score: 86.5
@@ -697,6 +777,7 @@ charts:
         configuration: "Bio."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: wmdp
         score: 85.9
@@ -705,6 +786,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: wmdp
         score: 84.8
@@ -713,6 +795,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: wmdp
         score: 89.1
@@ -721,6 +804,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: wmdp
         score: 75.2
@@ -729,6 +813,7 @@ charts:
         configuration: "Chem."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: wmdp
         score: 80.5
@@ -737,6 +822,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: wmdp
         score: 74.8
@@ -745,6 +831,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: wmdp
         score: 84.2
@@ -753,6 +840,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: lab_bench
         score: 80.2
@@ -761,6 +849,7 @@ charts:
         configuration: "ProtocolQA."
         role: subject
       - model_as_labelled: "Gemma4-31B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: lab_bench
         score: 75.8
@@ -769,6 +858,7 @@ charts:
         configuration: "ProtocolQA."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: lab_bench
         score: 69.1
@@ -777,6 +867,7 @@ charts:
         configuration: "ProtocolQA."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: lab_bench
         score: 81.9

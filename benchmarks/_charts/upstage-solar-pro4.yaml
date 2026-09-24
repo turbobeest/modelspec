@@ -1,6 +1,7 @@
 page_url: "https://www.upstage.ai/blog/en/solar-pro-4"
 publisher: "Upstage"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Solar Open 2 and Solar Pro 4"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: browsecomp
         score: 37.3
@@ -21,6 +23,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: browsecomp
         score: 49.2
@@ -29,6 +32,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: swe_bench_verified
         score: 69.2
@@ -37,6 +41,7 @@ charts:
         configuration: "OpenHands harness. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-pro4"
         benchmark_id: swe_bench_verified
         score: 70.6
@@ -45,6 +50,7 @@ charts:
         configuration: "OpenHands harness. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -54,6 +60,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -63,6 +70,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -72,6 +80,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -81,6 +90,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: gpqa_diamond
         score: 85.6
@@ -89,6 +99,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: gpqa_diamond
         score: 89.0
@@ -97,6 +108,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: mmlu_pro
         score: 86.2
@@ -105,6 +117,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: mmlu_pro
         score: 86.3
@@ -113,6 +126,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench"
@@ -122,6 +136,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench"
@@ -131,6 +146,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: aime_2026
         score: 95.7
@@ -139,6 +155,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: aime_2026
         score: 95.3
@@ -147,6 +164,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -156,6 +174,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -165,6 +184,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: kbl
         score: 75.5
@@ -173,6 +193,7 @@ charts:
         configuration: "Law. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-pro4"
         benchmark_id: kbl
         score: 77.5
@@ -181,6 +202,7 @@ charts:
         configuration: "Law. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: kormedmcqa
         score: 93.0
@@ -189,6 +211,7 @@ charts:
         configuration: "Medicine. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-pro4"
         benchmark_id: kormedmcqa
         score: 93.2
@@ -197,6 +220,7 @@ charts:
         configuration: "Medicine. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -206,6 +230,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -215,6 +240,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "Arena-Hard v2 (Japanese)"
@@ -224,6 +250,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "Arena-Hard v2 (Japanese)"
@@ -233,6 +260,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "MMLU (Japanese)"
@@ -242,6 +270,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "upstage/solar-pro4"
         benchmark_id: null
         benchmark_as_labelled: "MMLU (Japanese)"
@@ -251,6 +280,7 @@ charts:
         configuration: "In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Open 2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: ifeval
         score: 82.5
@@ -259,6 +289,7 @@ charts:
         configuration: "Japanese. In-house evaluation."
         role: subject
       - model_as_labelled: "Solar Pro 4"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "upstage/solar-pro4"
         benchmark_id: ifeval
         score: 81.6

@@ -1,6 +1,7 @@
 page_url: "https://www.liquid.ai/blog/lfm2-5-8b-a1b"
 publisher: "Liquid AI"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Improvements over LFM2-8B-A1B"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: ifeval
         score: 79.44
@@ -21,6 +23,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifeval
         score: 91.84
@@ -29,6 +32,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: ifbench
         score: 26.00
@@ -37,6 +41,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifbench
         score: 56.47
@@ -45,6 +50,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: multiif
         score: 58.54
@@ -53,6 +59,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: multiif
         score: 79.93
@@ -61,6 +68,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: math_500
         score: 74.80
@@ -69,6 +77,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: math_500
         score: 88.76
@@ -77,6 +86,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: aime_2025
         score: 20.00
@@ -85,6 +95,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: aime_2025
         score: 42.53
@@ -93,6 +104,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: bfcl
         score: 45.07
@@ -101,6 +113,7 @@ charts:
         configuration: "v3"
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: bfcl
         score: 64.36
@@ -109,6 +122,7 @@ charts:
         configuration: "v3"
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: bfcl
         score: 25.52
@@ -117,6 +131,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: bfcl
         score: 48.50
@@ -125,6 +140,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: tau2
         score: 13.60
@@ -133,6 +149,7 @@ charts:
         configuration: "Telecom."
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: tau2
         score: 88.07
@@ -141,6 +158,7 @@ charts:
         configuration: "Telecom."
         role: subject
       - model_as_labelled: "LFM2-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: tau2
         score: 7.02
@@ -149,6 +167,7 @@ charts:
         configuration: "Retail."
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: tau2
         score: 39.82
@@ -169,6 +188,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -178,6 +198,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifeval
         score: 8.67
@@ -186,6 +207,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifbench
         score: 63.47
@@ -194,6 +216,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: multiif
         score: 91.84
@@ -202,6 +225,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -211,6 +235,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: ifeval
         score: 82.23
@@ -228,6 +253,7 @@ charts:
             - reader: claude-sonnet
               value: 82.23
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: ifbench
         score: 6.38
@@ -236,6 +262,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: multiif
         score: 82.23
@@ -244,6 +271,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -253,6 +281,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: ifeval
         score: 87.8
@@ -270,6 +299,7 @@ charts:
             - reader: claude-sonnet
               value: 87.80
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: ifbench
         score: 50.38
@@ -294,7 +324,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 87.80
+          - reader: claude-opus
+            value: 67.43
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -304,6 +340,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: ifeval
         score: 90.82
@@ -321,6 +358,7 @@ charts:
             - reader: claude-sonnet
               value: 90.82
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: ifbench
         score: 13.87
@@ -329,6 +367,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: multiif
         score: 90.82
@@ -337,6 +376,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -346,6 +386,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: ifeval
         score: 82.93
@@ -363,6 +404,7 @@ charts:
             - reader: claude-sonnet
               value: 82.93
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: ifbench
         score: 33.53
@@ -387,7 +429,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 82.93
+          - reader: claude-opus
+            value: 69.70
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -397,6 +445,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifeval
         score: 87.74
@@ -414,6 +463,7 @@ charts:
             - reader: claude-sonnet
               value: 87.74
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifbench
         score: 39.48
@@ -438,7 +488,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 87.74
+          - reader: claude-opus
+            value: 77.58
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -448,6 +504,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifeval
         score: 91.4
@@ -465,6 +522,7 @@ charts:
             - reader: claude-sonnet
               value: 91.40
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifbench
         score: 10.75
@@ -473,6 +531,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: multiif
         score: 91.40
@@ -481,6 +540,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Non-Hallucination"
@@ -490,6 +550,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: ifeval
         score: 86.73
@@ -507,6 +568,7 @@ charts:
             - reader: claude-sonnet
               value: 86.73
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: ifbench
         score: 24.50
@@ -515,6 +577,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: multiif
         score: 86.73
@@ -542,7 +605,13 @@ charts:
         printed: true
         configuration: ""
         role: subject
+        disputed:
+          - reader: grok-build-4.7
+            value: 88.76
+          - reader: claude-opus
+            value: 50.00
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: bfcl
         score: 42.53
@@ -551,6 +620,7 @@ charts:
         configuration: "v3"
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: bfcl
         score: 50.00
@@ -559,6 +629,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: tau2
         score: 64.79
@@ -567,6 +638,7 @@ charts:
         configuration: "Telecom."
         role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: tau2
         score: 49.73
@@ -582,7 +654,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 59.20
+          - reader: claude-opus
+            value: 3.33
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: bfcl
         score: 56.89
@@ -600,6 +678,7 @@ charts:
             - reader: claude-sonnet
               value: 56.89
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: bfcl
         score: 28.52
@@ -617,6 +696,7 @@ charts:
             - reader: claude-sonnet
               value: 28.52
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: tau2
         score: 56.89
@@ -625,6 +705,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Granite-4.0-H-Tiny"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: tau2
         score: 28.52
@@ -640,7 +721,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 80.76
+          - reader: claude-opus
+            value: 58.33
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: bfcl
         score: 54.28
@@ -649,6 +736,7 @@ charts:
         configuration: "v3"
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: bfcl
         score: 58.33
@@ -657,6 +745,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: tau2
         score: 71.06
@@ -665,6 +754,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: tau2
         score: 54.01
@@ -680,7 +770,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 86.48
+          - reader: claude-opus
+            value: 66.67
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: bfcl
         score: 73.39
@@ -698,6 +794,7 @@ charts:
             - reader: claude-sonnet
               value: 73.39
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: bfcl
         score: 50.53
@@ -715,6 +812,7 @@ charts:
             - reader: claude-sonnet
               value: 50.53
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: tau2
         score: 73.39
@@ -723,6 +821,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: tau2
         score: 50.53
@@ -738,7 +837,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 64.00
+          - reader: claude-opus
+            value: 30
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: bfcl
         score: 26
@@ -747,6 +852,7 @@ charts:
         configuration: "v3"
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: bfcl
         score: 30
@@ -755,6 +861,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: tau2
         score: 56.44
@@ -763,6 +870,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: tau2
         score: 31.91
@@ -778,7 +886,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 65.00
+          - reader: claude-opus
+            value: 40.67
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: bfcl
         score: 34.33
@@ -787,6 +901,7 @@ charts:
         configuration: "v3"
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: bfcl
         score: 40.67
@@ -795,6 +910,7 @@ charts:
         configuration: "v4"
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: tau2
         score: 57.31
@@ -803,6 +919,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: tau2
         score: 33.92
@@ -818,7 +935,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 94.20
+          - reader: claude-opus
+            value: 72.00
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: bfcl
         score: 68.87
@@ -836,6 +959,7 @@ charts:
             - reader: claude-sonnet
               value: 68.87
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: bfcl
         score: 55.87
@@ -853,6 +977,7 @@ charts:
             - reader: claude-sonnet
               value: 55.87
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
         score: 68.87
@@ -861,6 +986,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
         score: 55.87
@@ -876,7 +1002,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 92.40
+          - reader: claude-opus
+            value: 68.67
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: bfcl
         score: 62.52
@@ -894,6 +1026,7 @@ charts:
             - reader: claude-sonnet
               value: 62.52
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: bfcl
         score: 49.88
@@ -911,6 +1044,7 @@ charts:
             - reader: claude-sonnet
               value: 49.88
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: tau2
         score: 62.52
@@ -919,6 +1053,7 @@ charts:
         configuration: "Telecom."
         role: competitor
       - model_as_labelled: "gpt-oss-20b"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: tau2
         score: 49.88

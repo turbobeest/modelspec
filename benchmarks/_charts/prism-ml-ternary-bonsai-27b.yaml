@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf"
 publisher: "PrismML"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Thinking-mode average"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -22,6 +24,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B Q4_K_XL (\"4-bit\")"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -31,6 +34,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B IQ2_XXS (\"2-bit\")"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -40,6 +44,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Gemma-4-31B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "google/gemma-4-31b"
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -49,6 +54,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Gemma-4-31B QAT (\"4-bit\")"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -58,6 +64,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Gemma-4-31B Q2_K_XL (\"2-bit\")"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -67,6 +74,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -76,6 +84,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "1-bit Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "15-benchmark thinking average"
@@ -95,6 +104,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: mmlu_redux
         score: 93.42
@@ -103,6 +113,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: mmlu_redux
         score: 88.05
@@ -111,6 +122,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: musr
         score: 72.88
@@ -119,6 +131,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: musr
         score: 65.87
@@ -127,6 +140,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: gsm8k
         score: 95.30
@@ -135,6 +149,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: gsm8k
         score: 96.06
@@ -143,6 +158,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: math_500
         score: 99.40
@@ -151,6 +167,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: math_500
         score: 99.20
@@ -159,6 +176,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: aime_2025
         score: 93.29
@@ -167,6 +185,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: aime_2025
         score: 90.84
@@ -175,6 +194,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: aime_2026
         score: 93.33
@@ -183,6 +203,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: aime_2026
         score: 87.50
@@ -191,6 +212,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: humaneval_plus
         score: 95.12
@@ -199,6 +221,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: humaneval_plus
         score: 93.90
@@ -207,6 +230,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: mbpp_plus
         score: 83.33
@@ -215,6 +239,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: mbpp_plus
         score: 81.22
@@ -223,6 +248,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench"
@@ -232,6 +258,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench"
@@ -241,6 +268,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: ifeval
         score: 88.91
@@ -249,6 +277,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: ifeval
         score: 85.03
@@ -257,6 +286,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: ifbench
         score: 68.03
@@ -266,6 +296,7 @@ charts:
         role: competitor
         metric: prompt_loose
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: ifbench
         score: 58.50
@@ -275,6 +306,7 @@ charts:
         role: subject
         metric: prompt_loose
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: bfcl
         score: 77.10
@@ -283,6 +315,7 @@ charts:
         configuration: "Thinking mode. v3."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: bfcl
         score: 74.41
@@ -291,6 +324,7 @@ charts:
         configuration: "Thinking mode. v3."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: tau2
         score: 82.90
@@ -299,6 +333,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: tau2
         score: 73.61
@@ -307,6 +342,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: mmmu_pro
         score: 79.94
@@ -315,6 +351,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: mmmu_pro
         score: 68.96
@@ -323,6 +360,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "OCR Bench v2"
@@ -332,6 +370,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "OCR Bench v2"
@@ -351,6 +390,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Knowledge & reasoning average"
@@ -360,6 +400,7 @@ charts:
         configuration: "Average of MMLU-Redux, MuSR. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Knowledge & reasoning average"
@@ -369,6 +410,7 @@ charts:
         configuration: "Average of MMLU-Redux, MuSR. Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Math average"
@@ -378,6 +420,7 @@ charts:
         configuration: "Average of GSM8K, MATH-500, AIME25, AIME26. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Math average"
@@ -387,6 +430,7 @@ charts:
         configuration: "Average of GSM8K, MATH-500, AIME25, AIME26. Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Coding average"
@@ -396,6 +440,7 @@ charts:
         configuration: "Average of HumanEval+, MBPP+, LiveCodeBench. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Coding average"
@@ -405,6 +450,7 @@ charts:
         configuration: "Average of HumanEval+, MBPP+, LiveCodeBench. Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Instruction following average"
@@ -414,6 +460,7 @@ charts:
         configuration: "Average of IFEval, IFBench. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Instruction following average"
@@ -423,6 +470,7 @@ charts:
         configuration: "Average of IFEval, IFBench. Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Agentic / tool calling average"
@@ -432,6 +480,7 @@ charts:
         configuration: "Average of BFCL v3, τ²-Bench. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Agentic / tool calling average"
@@ -441,6 +490,7 @@ charts:
         configuration: "Average of BFCL v3, τ²-Bench. Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.6-27B FP16"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Vision average"
@@ -450,6 +500,7 @@ charts:
         configuration: "Average of MMMU-Pro, OCR Bench v2. Thinking mode."
         role: competitor
       - model_as_labelled: "Ternary Bonsai 27B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "prism-ml/ternary-bonsai-27b"
         benchmark_id: null
         benchmark_as_labelled: "Vision average"
@@ -469,6 +520,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: aime_2026
         score: 57.5
@@ -477,6 +529,7 @@ charts:
         configuration: "Thinking mode. IQ2_XXS."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench"
@@ -486,6 +539,7 @@ charts:
         configuration: "Thinking mode. IQ2_XXS."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: mmlu_redux
         score: 88.93

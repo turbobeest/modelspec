@@ -1,6 +1,7 @@
 page_url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12b/"
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Gemma 4 12B benchmarks"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: gpqa_diamond
         score: 78.8
@@ -23,6 +25,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: bbeh
         score: 53
@@ -31,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmlu_pro
         score: 77.2
@@ -39,6 +43,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: live_code_bench
         score: 72
@@ -47,6 +52,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: docvqa
         score: 94.9
@@ -55,6 +61,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "InfoVQA"
@@ -64,6 +71,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmmu_pro
         score: 69.1
@@ -72,6 +80,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
+        confirmed_by: ["grok-build-4.7"]
         model_id: google/gemma-4-12b-it
         benchmark_id: deepmind_mrcr_v2
         score: 43.4

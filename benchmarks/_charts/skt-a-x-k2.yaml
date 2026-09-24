@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/skt/A.X-K2"
 publisher: "SK Telecom"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Thinking-mode benchmark table"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: aime_2026
         score: 97.1
@@ -21,6 +23,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: aime_2026
         score: 91.3
@@ -29,6 +32,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: aime_2026
         score: 92.5
@@ -37,6 +41,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: aime_2026
         score: 85.4
@@ -45,6 +50,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: aime_2026
         score: 96.7
@@ -53,6 +59,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: aime_2026
         score: 95.4
@@ -61,6 +68,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: aime_2026
         score: 95.4
@@ -69,6 +77,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: aime_2026
         score: 88.8
@@ -77,6 +86,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -86,6 +96,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -95,6 +106,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -104,6 +116,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -113,6 +126,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -122,6 +136,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -131,6 +146,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -140,6 +156,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -149,6 +166,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -158,6 +176,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -167,6 +186,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -176,6 +196,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -185,6 +206,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -194,6 +216,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -203,6 +226,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -212,6 +236,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Apex-shortlist"
@@ -221,6 +246,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -230,6 +256,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -239,6 +266,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -248,6 +276,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -257,6 +286,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -266,6 +296,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -275,6 +306,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -284,6 +316,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "KMO26 (1st round)"
@@ -293,6 +326,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -302,6 +336,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -311,6 +346,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -320,6 +356,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -329,6 +366,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -338,6 +376,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -347,6 +386,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -356,6 +396,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "KMMLU-Pro"
@@ -365,6 +406,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -374,6 +416,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -383,6 +426,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -392,6 +436,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -401,6 +446,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -410,6 +456,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -419,6 +466,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -428,6 +476,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "KoBALT"
@@ -437,6 +486,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: click
         score: 91.6
@@ -445,6 +495,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: click
         score: 85.3
@@ -453,6 +504,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: click
         score: 88.4
@@ -461,6 +513,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: click
         score: 84.1
@@ -469,6 +522,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: click
         score: 89.6
@@ -477,6 +531,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: click
         score: 88.8
@@ -485,6 +540,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: click
         score: 80.9
@@ -493,6 +549,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: click
         score: 76.1
@@ -501,6 +558,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -510,6 +568,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -519,6 +578,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -528,6 +588,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -537,6 +598,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -546,6 +608,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -555,6 +618,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -564,6 +628,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
@@ -573,6 +638,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: scicode
         score: 41.0
@@ -581,6 +647,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: scicode
         score: 24.1
@@ -589,6 +656,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: scicode
         score: 42.0
@@ -597,6 +665,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: scicode
         score: 39.9
@@ -605,6 +674,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: scicode
         score: 44.9
@@ -613,6 +683,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: scicode
         score: 43.8
@@ -621,6 +692,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: scicode
         score: 53.5
@@ -629,6 +701,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: scicode
         score: 47.0
@@ -637,6 +710,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -646,6 +720,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -655,6 +730,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -664,6 +740,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -673,6 +750,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -682,6 +760,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -691,6 +770,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -700,6 +780,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Humanity’s Last Exam"
@@ -709,6 +790,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: gpqa_diamond
         score: 85.6
@@ -717,6 +799,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gpqa_diamond
         score: 76.4
@@ -725,6 +808,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: gpqa_diamond
         score: 89.3
@@ -733,6 +817,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: gpqa_diamond
         score: 86.7
@@ -741,6 +826,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: gpqa_diamond
         score: 89.4
@@ -749,6 +835,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: gpqa_diamond
         score: 86.8
@@ -757,6 +844,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: gpqa_diamond
         score: 91.1
@@ -765,6 +853,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: gpqa_diamond
         score: 87.4
@@ -773,6 +862,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ifbench
         score: 75.9
@@ -781,6 +871,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "A.X K1 (519B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ifbench
         score: 63.2
@@ -789,6 +880,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ifbench
         score: 78.8
@@ -797,6 +889,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ifbench
         score: 81.4
@@ -805,6 +898,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: ifbench
         score: 79.2
@@ -813,6 +907,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: ifbench
         score: 76.3
@@ -821,6 +916,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: ifbench
         score: 76.0
@@ -829,6 +925,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: ifbench
         score: 75.7
@@ -837,6 +934,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "A.X K2 (688B-A33B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -846,6 +944,7 @@ charts:
         configuration: "Thinking mode."
         role: subject
       - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -855,6 +954,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Nemotron 3 Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -864,6 +964,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -873,6 +974,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "GLM-5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -882,6 +984,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -891,6 +994,7 @@ charts:
         configuration: "Thinking mode."
         role: competitor
       - model_as_labelled: "MiniMax M2.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp (≤10 searches)"
@@ -910,6 +1014,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 97.5
@@ -918,6 +1023,7 @@ charts:
         configuration: "Context 4K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 97.2
@@ -926,6 +1032,7 @@ charts:
         configuration: "Context 8K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 97.5
@@ -934,6 +1041,7 @@ charts:
         configuration: "Context 16K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 96.5
@@ -942,6 +1050,7 @@ charts:
         configuration: "Context 32K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 94.3
@@ -950,6 +1059,7 @@ charts:
         configuration: "Context 64K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 92.7
@@ -958,6 +1068,7 @@ charts:
         configuration: "Context 128K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 86.6
@@ -966,6 +1077,7 @@ charts:
         configuration: "Context 256K."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 94.6
@@ -986,6 +1098,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -994,6 +1107,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1002,6 +1116,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1010,6 +1125,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1018,6 +1134,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1026,6 +1143,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1034,6 +1152,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1042,6 +1161,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1050,6 +1170,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1058,6 +1179,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1066,6 +1188,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1074,6 +1197,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1082,6 +1206,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1090,6 +1215,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1098,6 +1224,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1106,6 +1233,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1114,6 +1242,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1122,6 +1251,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1130,6 +1260,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1138,6 +1269,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1146,6 +1278,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1154,6 +1287,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1162,6 +1296,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1170,6 +1305,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1178,6 +1314,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1186,6 +1323,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1194,6 +1332,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1202,6 +1341,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1210,6 +1350,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1218,6 +1359,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1226,6 +1368,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1234,6 +1377,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1242,6 +1386,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1250,6 +1395,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1258,6 +1404,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1266,6 +1413,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1274,6 +1422,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1282,6 +1431,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1290,6 +1440,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1298,6 +1449,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1306,6 +1458,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1314,6 +1467,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1322,6 +1476,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1330,6 +1485,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1338,6 +1494,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1346,6 +1503,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1354,6 +1512,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1362,6 +1521,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1370,6 +1530,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1378,6 +1539,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1386,6 +1548,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1394,6 +1557,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1402,6 +1566,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1410,6 +1575,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1418,6 +1584,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1426,6 +1593,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1434,6 +1602,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1442,6 +1611,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1450,6 +1620,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1458,6 +1629,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1466,6 +1638,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1474,6 +1647,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1482,6 +1656,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1490,6 +1665,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1498,6 +1674,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1506,6 +1683,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1514,6 +1692,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1522,6 +1701,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1530,6 +1710,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1538,6 +1719,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1546,6 +1728,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1554,6 +1737,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1562,6 +1746,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1570,6 +1755,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1578,6 +1764,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1586,6 +1773,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1594,6 +1782,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1602,6 +1791,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1610,6 +1800,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1618,6 +1809,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1626,6 +1818,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 254000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1634,6 +1827,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1642,6 +1836,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 37143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1650,6 +1845,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 73286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1658,6 +1854,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 109429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1666,6 +1863,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 145571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1674,6 +1872,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 181714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1682,6 +1881,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 217857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1702,6 +1902,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1710,6 +1911,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1718,6 +1920,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1726,6 +1929,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1734,6 +1938,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1742,6 +1947,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1750,6 +1956,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1758,6 +1965,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1766,6 +1974,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1774,6 +1983,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1782,6 +1992,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1790,6 +2001,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1798,6 +2010,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1806,6 +2019,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1814,6 +2028,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1822,6 +2037,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1830,6 +2046,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1838,6 +2055,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1846,6 +2064,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1854,6 +2073,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1862,6 +2082,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1870,6 +2091,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1878,6 +2100,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1886,6 +2109,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1894,6 +2118,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1902,6 +2127,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1910,6 +2136,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1918,6 +2145,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1926,6 +2154,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1934,6 +2163,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1942,6 +2172,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1950,6 +2181,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1958,6 +2190,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1966,6 +2199,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1974,6 +2208,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1982,6 +2217,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1990,6 +2226,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -1998,6 +2235,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2006,6 +2244,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2014,6 +2253,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2022,6 +2262,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2030,6 +2271,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2038,6 +2280,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2046,6 +2289,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2054,6 +2298,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2062,6 +2307,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2070,6 +2316,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2078,6 +2325,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2086,6 +2334,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2094,6 +2343,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2102,6 +2352,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2110,6 +2361,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2118,6 +2370,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2126,6 +2379,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2134,6 +2388,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2142,6 +2397,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2150,6 +2406,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2158,6 +2415,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2166,6 +2424,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2174,6 +2433,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2182,6 +2442,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2190,6 +2451,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2198,6 +2460,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2206,6 +2469,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2214,6 +2478,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2222,6 +2487,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2230,6 +2496,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2238,6 +2505,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2246,6 +2514,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2254,6 +2523,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2262,6 +2532,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2270,6 +2541,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2278,6 +2550,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2286,6 +2559,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2294,6 +2568,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2302,6 +2577,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2310,6 +2586,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2318,6 +2595,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2326,6 +2604,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2334,6 +2613,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2342,6 +2622,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 510000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2350,6 +2631,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 1000 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2358,6 +2640,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 73714 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2366,6 +2649,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 146429 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2374,6 +2658,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 219143 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2382,6 +2667,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 291857 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2390,6 +2676,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 364571 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100
@@ -2398,6 +2685,7 @@ charts:
         configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 437286 tokens."
         role: subject
       - model_as_labelled: "A.X K2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "skt/a-x-k2"
         benchmark_id: niah
         score: 100

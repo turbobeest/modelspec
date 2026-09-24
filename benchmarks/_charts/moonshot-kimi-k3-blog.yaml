@@ -1,6 +1,7 @@
 page_url: "https://www.kimi.com/blog/kimi-k3"
 publisher: "Moonshot AI"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Coding"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -24,6 +26,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -33,6 +36,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -42,6 +46,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -51,6 +56,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -60,6 +66,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -69,6 +76,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v2_1
         score: 88.8
@@ -77,6 +85,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_v2_1
         score: 88.3
@@ -85,6 +94,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 84.6
@@ -93,6 +103,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_v2_1
         score: 84.6
@@ -101,6 +112,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 83.4
@@ -109,6 +121,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -117,6 +130,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -126,6 +140,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -135,6 +150,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -144,6 +160,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -153,6 +170,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -162,6 +180,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -171,6 +190,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -180,6 +200,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -189,6 +210,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -198,6 +220,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -207,6 +230,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -216,6 +240,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Program Bench"
@@ -225,6 +250,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -234,6 +260,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -243,6 +270,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -252,6 +280,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -261,6 +290,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -270,6 +300,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -279,6 +310,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -288,6 +320,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -297,6 +330,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -306,6 +340,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -315,6 +350,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -324,6 +360,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SWE Marathon"
@@ -345,6 +382,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -354,6 +392,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -363,6 +402,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -372,6 +412,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -381,6 +422,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -390,6 +432,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -399,6 +442,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -408,6 +452,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -417,6 +462,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -426,6 +472,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -435,6 +482,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -444,6 +492,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SpreadsheetBench 2"
@@ -453,6 +502,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: browsecomp
         score: 91.2
@@ -461,6 +511,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: browsecomp
         score: 90.4
@@ -469,6 +520,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: browsecomp
         score: 88.0
@@ -477,6 +529,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: browsecomp
         score: 84.4
@@ -485,6 +538,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 84.3
@@ -493,6 +547,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: charxiv_reasoning_tools
         score: 93.5
@@ -501,6 +556,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: charxiv_reasoning_tools
         score: 91.3
@@ -509,6 +565,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: charxiv_reasoning_tools
         score: 89.9
@@ -517,6 +574,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: charxiv_reasoning_tools
         score: 89.1
@@ -525,6 +583,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: charxiv_reasoning_tools
         score: 89.0
@@ -533,6 +592,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: zerobench
         score: 46.0
@@ -541,6 +601,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: zerobench
         score: 41.0
@@ -549,6 +610,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-5"
         benchmark_id: zerobench
         score: 41.0
@@ -557,6 +619,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: zerobench
         score: 35.0
@@ -565,6 +628,7 @@ charts:
         configuration: "Launch chart. Max or xhigh."
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: zerobench
         score: 34.0

@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/news/claude-sonnet-5"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+phase: "phase2a"
 charts:
   - title: "Launch benchmark table"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: swe_bench_pro
         score: 63.2
@@ -23,6 +25,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: swe_bench_pro
         score: 58.1
@@ -31,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -39,6 +43,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: terminal_bench_v2_1
         score: 80.4
@@ -47,6 +52,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: terminal_bench_v2_1
         score: 67.0
@@ -55,6 +61,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -63,6 +70,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: hle
         score: 43.2
@@ -71,6 +79,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: hle
         score: 34.6
@@ -79,6 +88,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -87,6 +97,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: hle_tools
         score: 57.4
@@ -95,6 +106,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: hle_tools
         score: 46.8
@@ -103,6 +115,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -111,6 +124,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: osworld
         score: 81.2
@@ -119,6 +133,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: osworld
         score: 78.5
@@ -127,6 +142,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: osworld
         score: 83.4
@@ -147,6 +163,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -156,6 +173,7 @@ charts:
         configuration: "Working exploit, pass@1."
         role: subject
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -166,6 +184,7 @@ charts:
         metric: register_control
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -175,6 +194,7 @@ charts:
         configuration: "Working exploit, pass@1."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -185,6 +205,7 @@ charts:
         metric: register_control
         role: subject
       - model_as_labelled: "Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -194,6 +215,7 @@ charts:
         configuration: "Working exploit, pass@1."
         role: subject
       - model_as_labelled: "Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -204,6 +226,7 @@ charts:
         metric: register_control
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -213,6 +236,7 @@ charts:
         configuration: "Working exploit, pass@1."
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Firefox 147 exploit development"
@@ -235,6 +259,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Sonnet 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Misaligned behavior"
@@ -244,6 +269,7 @@ charts:
         configuration: "Score on a 1 to 10 scale."
         role: subject
       - model_as_labelled: "Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-mythos-preview"
         benchmark_id: null
         benchmark_as_labelled: "Misaligned behavior"
@@ -253,6 +279,7 @@ charts:
         configuration: "Score on a 1 to 10 scale."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Misaligned behavior"
@@ -262,6 +289,7 @@ charts:
         configuration: "Score on a 1 to 10 scale."
         role: subject
       - model_as_labelled: "Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Misaligned behavior"
