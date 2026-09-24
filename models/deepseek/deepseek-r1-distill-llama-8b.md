@@ -669,27 +669,12 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1370
-    arena_elo_math: 1400
-    arena_elo_overall: 1360
-    artificial_analysis_quality_index: 84
-    artificial_analysis_speed_index: 40
     bbh: 39.8
     gpqa_diamond: 36.2
     humaneval: 62.5
     ifeval: 64
     math_500: 72.1
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
     mmlu_pro: 48.5
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
     musr: 14.1
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
@@ -877,7 +862,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-23'
 ---
 
 
