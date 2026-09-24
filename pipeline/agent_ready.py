@@ -138,6 +138,12 @@ def robots_txt(base: str) -> str:
     preferences; also https://blog.cloudflare.com/content-signals-policy/).
     search / ai-input / ai-train are independent yes|no signals; they do
     not replace Allow/Disallow. Agent Readiness looks for this directive.
+
+    ``ai-train=yes`` is a deliberate choice, confirmed by Jamie on 2026-09-23:
+    the catalogue is meant to end up in models' knowledge, so training on it is
+    permitted, not merely tolerated. It cannot be withdrawn for anything
+    already crawled, which is why it is recorded here rather than left as a
+    default. Changing it is his decision.
     """
     return (
         f"# Content-Signal syntax: {CONTENT_SIGNALS}\n"

@@ -210,11 +210,23 @@ ACCESS record kind: the privacy statement lists those, and this needs none.
 subscription, and a Dispute names no customer, so nothing this Worker is
 allowed to keep links a plan invoice's charge to a key. Matching one needs a
 customer → subscription (or PaymentIntent → subscription) index: a new ACCESS
-record kind, which the adopted privacy statement does not list, so it is
-Jamie's decision, not this module's. Until then a plan refund or dispute is
-`action: unmatched`, and **refunding a plan means cancelling it**: cancel the
-subscription immediately in the Dashboard with the refund, and
-`customer.subscription.deleted` zeros the monthly allowance at once, as above.
+record kind, which the adopted privacy statement does not list.
+
+**Decided (Jamie, 2026-09-23, MODEL-107): plan refunds stay manual.** No such
+index is kept, and the privacy statement is not amended for it. A plan refund
+or dispute is `action: unmatched`, visible for review, and **refunding a plan
+means cancelling it**:
+
+1. Refund the invoice in the Stripe Dashboard.
+2. In the same sitting, **cancel the subscription immediately** (not at period
+   end). `customer.subscription.deleted` zeros the monthly allowance at once,
+   as above.
+3. For a chargeback on a plan, cancel the subscription the same way once the
+   dispute opens.
+
+Plans are $10 and $50 a month, so plan refunds are expected to be rare.
+Automate them — the index, and privacy statement 1.2 — only if that stops
+being true.
 
 **Idempotent twice over.** The event id is remembered like every other event.
 Underneath, each ledger operation is idempotent on its own: the refund share is
