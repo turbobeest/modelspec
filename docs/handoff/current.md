@@ -9,6 +9,11 @@ instructions are not current policy.
 deployed: the Worker and the live export both report
 `export_schema_version: 3.0`.
 
+> **2026-09-24: both sites are in holding mode, and Checkout is closed.**
+> Production shows a holding page; `/api/**`, `/legal/**` and `api.modelspec.dev`
+> stay up; the real site is on the `internal` Pages preview. The switch is the
+> `SITE_MODE` repository variable. See [`holding-mode.md`](holding-mode.md).
+
 ## Read this first if you are picking the work up
 
 Three draft PRs are open and **all three are finished work waiting on Jamie's

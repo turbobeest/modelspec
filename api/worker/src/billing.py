@@ -513,8 +513,18 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
 
 
 async def webhook(*, payload: str, signature: str | None, secret: str | None,
-                  flag: bool, kv: Any, policy: AccessPolicy, now: datetime,
+                  kv: Any, policy: AccessPolicy, now: datetime,
                   service_commit: str, ledger: Any = None) -> Outcome:
+    """Apply one signed Stripe event, whatever `BILLING_ENABLED` says.
+
+    The flag closes the shop: it gates `checkout` and nothing after it. Every
+    event Stripe sends is about money that has already moved (a purchase made
+    before the flag went off, a renewal of an existing plan, a refund, a
+    chargeback), so refusing one would keep a refunded pack's credits, or take
+    a renewal's payment and grant nothing. Before 2026-09-24 this returned
+    `503 billing_not_enabled` with the flag off, which was harmless before the
+    first sale and wrong after it.
+    """
     endpoint = "billing.stripe-webhook"
     if not secret:
         return _refusal(
@@ -528,11 +538,6 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
     except SignatureError as exc:
         return _refusal(INVALID_SIGNATURE, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
-    if not flag:
-        return _refusal(
-            BILLING_NOT_ENABLED,
-            "billing is wired and the signature is valid, but BILLING_ENABLED is off",
-            service_commit=service_commit, endpoint=endpoint)
     if isinstance(kv, UnboundKV):
         return _refusal(
             STORE_NOT_CONFIGURED,
@@ -571,12 +576,10 @@ def session_id_from_request(*, query: str, payload: Any) -> str:
     return ""
 
 
-async def claim(*, session_id: str, flag: bool, kv: Any, policy: AccessPolicy,
+async def claim(*, session_id: str, kv: Any, policy: AccessPolicy,
                 now: datetime, service_commit: str, ledger: Any = None) -> Outcome:
+    """Not gated by `BILLING_ENABLED`: a claim only delivers a purchase already paid for."""
     endpoint = "billing.claim"
-    if not flag:
-        return _refusal(BILLING_NOT_ENABLED, "BILLING_ENABLED is off",
-                        service_commit=service_commit, endpoint=endpoint)
     if isinstance(kv, UnboundKV):
         return _refusal(STORE_NOT_CONFIGURED, "ACCESS KV is not bound",
                         service_commit=service_commit, endpoint=endpoint)
@@ -640,12 +643,10 @@ async def claim(*, session_id: str, flag: bool, kv: Any, policy: AccessPolicy,
     return Outcome(HTTP_OK, _envelope(endpoint, service_commit, body))
 
 
-async def rotate(*, api_key: str | None, flag: bool, kv: Any, policy: AccessPolicy,
+async def rotate(*, api_key: str | None, kv: Any, policy: AccessPolicy,
                  now: datetime, service_commit: str, ledger: Any = None) -> Outcome:
+    """Not gated by `BILLING_ENABLED`: an existing key holder must always be able to rotate."""
     endpoint = "billing.rotate"
-    if not flag:
-        return _refusal(BILLING_NOT_ENABLED, "BILLING_ENABLED is off",
-                        service_commit=service_commit, endpoint=endpoint)
     if isinstance(kv, UnboundKV):
         return _refusal(STORE_NOT_CONFIGURED, "ACCESS KV is not bound",
                         service_commit=service_commit, endpoint=endpoint)

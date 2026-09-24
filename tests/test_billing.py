@@ -104,12 +104,12 @@ def serve(key: str, kv: Any, policy: access_config.AccessPolicy, now: datetime =
 
 
 async def apply(kv: Any, policy: access_config.AccessPolicy, body: str, *,
-                header: str | None = None, flag: bool = True,
+                header: str | None = None,
                 secret: str | None = WEBHOOK_SECRET, now: datetime = T0,
                 ledger: Any = None):
     return await billing.webhook(
         payload=body, signature=header if header is not None else signed(body),
-        secret=secret, flag=flag, kv=kv, policy=policy, now=now,
+        secret=secret, kv=kv, policy=policy, now=now,
         service_commit=COMMIT, ledger=ledger)
 
 
@@ -146,7 +146,7 @@ def test_changing_a_price_mapping_needs_no_code_change(policy):
     body = payload("checkout.session.completed", checkout_obj(), "evt_map")
     outcome = run(apply(kv, mapped, body))
     assert outcome.status == 200
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=mapped,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=mapped,
                                 now=T0, service_commit=COMMIT))
     assert claimed.status == 200
     assert claimed.body["tier"] == "free"
@@ -164,7 +164,7 @@ def test_changing_a_price_credit_amount_needs_no_code_change(policy):
     ledger = credits.MemoryLedger()
     body = payload("checkout.session.completed", checkout_obj(), "evt_amt")
     assert run(apply(kv, mapped, body, ledger=ledger)).status == 200
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=mapped,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=mapped,
                                 now=T0, service_commit=COMMIT, ledger=ledger))
     assert claimed.status == 200
     holder = credits.holder_from_fingerprint(keys.fingerprint(claimed.body["key"]))
@@ -180,7 +180,7 @@ def test_a_missing_signature_is_rejected(policy):
     outcome = run(apply(kv, policy, body, header=""))
     assert outcome.status == 400
     assert outcome.body["error"]["code"] == "invalid_webhook_signature"
-    not_ready = run(billing.claim(session_id=SESSION, flag=True, kv=kv,
+    not_ready = run(billing.claim(session_id=SESSION, kv=kv,
                                   policy=policy, now=T0, service_commit=COMMIT))
     assert not_ready.status == 409
     assert not_ready.body["error"]["code"] == "claim_not_ready"
@@ -213,7 +213,7 @@ def test_a_signed_checkout_event_produces_a_working_key_at_the_purchased_tier(po
     assert outcome.status == 200
     assert outcome.body["action"] == "entitled"
     assert not [n for n in kv.data if n.startswith("key:")]
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                 now=T0, service_commit=COMMIT))
     assert claimed.status == 200
     key = claimed.body["key"]
@@ -231,9 +231,9 @@ def test_the_key_is_shown_once(policy):
     kv = MemoryKV()
     body = payload("checkout.session.completed", checkout_obj(), "evt_once")
     assert run(apply(kv, policy, body)).status == 200
-    first = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    first = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                               now=T0, service_commit=COMMIT))
-    second = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    second = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                now=T0, service_commit=COMMIT))
     assert first.status == 200
     assert second.status == 410
@@ -261,9 +261,9 @@ def test_checkout_then_invoice_paid_does_not_mint_a_second_key(policy):
     assert run(apply(kv, policy, a)).body["action"] == "entitled"
     assert run(apply(kv, policy, b)).body["action"] == "already_entitled"
     assert len([n for n in kv.data if n.startswith("key:")]) == 0
-    first = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    first = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                               now=T0, service_commit=COMMIT))
-    second = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    second = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                now=T0, service_commit=COMMIT))
     assert first.status == 200
     assert second.status == 410
@@ -277,7 +277,7 @@ def test_invoice_then_checkout_still_lets_the_session_claim(policy):
     assert run(apply(kv, policy, paid)).body["action"] == "entitled"
     assert run(apply(kv, policy, checkout)).body["action"] == "already_entitled"
     assert not [n for n in kv.data if n.startswith("key:")]
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                 now=T0, service_commit=COMMIT))
     assert claimed.status == 200
     assert len([n for n in kv.data if n.startswith("key:")]) == 1
@@ -285,7 +285,7 @@ def test_invoice_then_checkout_still_lets_the_session_claim(policy):
 
 def test_claim_before_webhook_does_not_mint(policy):
     kv = MemoryKV()
-    outcome = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    outcome = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                 now=T0, service_commit=COMMIT))
     assert outcome.status == 409
     assert outcome.body["error"]["code"] == "claim_not_ready"
@@ -303,7 +303,7 @@ def test_no_access_record_written_by_billing_contains_the_key_plaintext(policy):
         parsed = json.loads(value)
         assert "secret" not in parsed
         assert "key" not in parsed
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                 now=T0, service_commit=COMMIT))
     assert claimed.status == 200
     key = claimed.body["key"]
@@ -314,7 +314,7 @@ def test_no_access_record_written_by_billing_contains_the_key_plaintext(policy):
         parsed = json.loads(value)
         assert "secret" not in parsed
         assert parsed.get("key") != key
-    rotated = run(billing.rotate(api_key=key, flag=True, kv=kv, policy=policy,
+    rotated = run(billing.rotate(api_key=key, kv=kv, policy=policy,
                                  now=T0, service_commit=COMMIT))
     new_key = rotated.body["key"]
     for name, value in kv.data.items():
@@ -330,7 +330,7 @@ def test_no_access_record_written_by_billing_contains_the_key_plaintext(policy):
 def _provision(kv: Any, policy: access_config.AccessPolicy) -> str:
     body = payload("checkout.session.completed", checkout_obj(), "evt_have")
     assert run(apply(kv, policy, body)).status == 200
-    claimed = run(billing.claim(session_id=SESSION, flag=True, kv=kv, policy=policy,
+    claimed = run(billing.claim(session_id=SESSION, kv=kv, policy=policy,
                                 now=T0, service_commit=COMMIT))
     return claimed.body["key"]
 
@@ -386,7 +386,7 @@ def test_subscription_expiry_downgrades_to_free(policy):
 def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
     kv = MemoryKV()
     key = _provision(kv, policy)
-    rotated = run(billing.rotate(api_key=key, flag=True, kv=kv, policy=policy,
+    rotated = run(billing.rotate(api_key=key, kv=kv, policy=policy,
                                  now=T0, service_commit=COMMIT))
     assert rotated.status == 200
     new_key = rotated.body["key"]
@@ -399,14 +399,13 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 
 # ── the switch ───────────────────────────────────────────────────────────────
 
-def test_billing_is_on_with_live_prices():
-    """Billing is live on the Sparks and Sawdust LLC account's own Prices, with
-    the Rhode Island registration in place so Stripe Tax actually collects
-    (MODEL-96). Paused 2026-09-20 for exactly that reason; re-enabled once the
-    LLC registered."""
+def test_billing_is_off_while_the_sites_are_in_holding_mode():
+    """Checkout is closed (Jamie, 2026-09-24): modelspec.dev is dark until he
+    says go, and nobody can buy meanwhile. The Prices stay mapped, so past
+    purchases keep resolving and reopening is one flag."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"BILLING_ENABLED": "true"' in live
+    assert '"BILLING_ENABLED": "false"' in live
     policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
     assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
     assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())
@@ -414,13 +413,18 @@ def test_billing_is_on_with_live_prices():
     assert billing.enabled("true") is True
 
 
-def test_a_valid_event_is_refused_when_the_flag_is_off(policy):
+def test_the_webhook_applies_a_valid_event_whatever_the_flag(policy):
+    """The flag gates Checkout only. An event is money that already moved."""
+    import inspect
+    for handler in (billing.webhook, billing.claim, billing.rotate):
+        assert "flag" not in inspect.signature(handler).parameters, handler.__name__
+    for handler in (billing.checkout, billing.checkout_form):
+        assert "flag" in inspect.signature(handler).parameters, handler.__name__
     kv = MemoryKV()
     body = payload("checkout.session.completed", checkout_obj(), "evt_off")
-    outcome = run(apply(kv, policy, body, flag=False))
-    assert outcome.status == 503
-    assert outcome.body["error"]["code"] == "billing_not_enabled"
-    assert not [n for n in kv.data if n.startswith("key:")]
+    outcome = run(apply(kv, policy, body))
+    assert outcome.status == 200
+    assert outcome.body["action"] == "entitled"
 
 
 def test_checkout_with_a_stubbed_stripe_returns_a_hosted_url(policy):
@@ -576,6 +580,79 @@ def test_entry_rejects_a_bad_signature_before_the_flag_matters(entry):
     assert response.json()["error"]["code"] == "invalid_webhook_signature"
 
 
+def test_with_billing_off_nobody_can_buy_and_past_purchases_are_honoured(entry):
+    """Holding mode (2026-09-24), end to end through entry.py with the flag off.
+
+    Checkout refuses before any Stripe call. A pack paid for before the flag
+    went off still arrives by webhook and is claimed; its key keeps drawing
+    credits on /v1/rank; a dispute holds and restores them, and a refund takes
+    them back. Stripe is never reached: `js.fetch` raises in this fixture.
+    """
+    env = _billing_env(_Bind(), flag="false")
+    worker = entry.Default()
+    worker.env = env
+    stamp = int(datetime.now(UTC).timestamp())
+
+    def hook(type_: str, obj: dict[str, Any], event_id: str):
+        body = payload(type_, obj, event_id)
+        response = run(worker.fetch(_Req(
+            "/v1/billing/stripe-webhook", body=body,
+            headers={"stripe-signature": signed(body, timestamp=stamp)})))
+        assert response.status == 200, response.json()
+        return response.json()
+
+    refused = run(worker.fetch(_Req(
+        "/v1/billing/checkout", body=json.dumps({"price_id": PACK5}),
+        headers={"content-type": "application/json"})))
+    assert refused.status == 503
+    assert refused.json()["error"]["code"] == "billing_not_enabled"
+
+    pi, amount = "pi_holding_fixture", 535
+    hook("checkout.session.completed", {
+        "id": "cs_holding_fixture", "object": "checkout.session", "mode": "payment",
+        "payment_status": "paid", "customer": None, "payment_intent": pi,
+        "amount_total": amount, "metadata": {"modelspec_price_id": PACK5},
+    }, "evt_holding_buy")
+    claimed = run(worker.fetch(_Req(
+        "/v1/billing/claim?session_id=cs_holding_fixture", method="GET", body="")))
+    assert claimed.status == 200, claimed.json()
+    key = claimed.json()["key"]
+    holder = x402_holder(key)
+
+    async def ranked(payload, service_commit, origin):
+        return 200, {"schema_version": "1.0", "service_commit": service_commit,
+                     "result": [{"model_id": "example/ok"}]}
+
+    worker._rank = ranked
+    answer = run(worker.fetch(_Req(
+        "/v1/rank", body=json.dumps({"use_case": "coding"}),
+        headers={"authorization": f"Bearer {key}"})))
+    assert answer.status == 200, answer.json()
+    assert "exhausted" not in json.dumps(answer.json())
+    assert run(env.CREDITS.balance(holder)).available == 1249
+
+    dispute = {"id": "dp_holding", "object": "dispute", "amount": amount,
+               "currency": "usd", "charge": "ch_holding", "payment_intent": pi,
+               "status": "needs_response", "metadata": {}}
+    hook("charge.dispute.created", dispute, "evt_holding_dispute")
+    assert run(env.CREDITS.balance(holder)).available == 0
+    hook("charge.dispute.closed", {**dispute, "status": "won"}, "evt_holding_won")
+    assert run(env.CREDITS.balance(holder)).available == 1249
+
+    refund = hook("charge.refunded", {
+        "id": "ch_holding", "object": "charge", "amount": amount,
+        "amount_captured": amount, "amount_refunded": amount, "refunded": True,
+        "currency": "usd", "customer": None, "payment_intent": pi,
+        "status": "succeeded", "metadata": {},
+    }, "evt_holding_refund")
+    assert refund["credits"]["removed"] == 1249
+    assert run(env.CREDITS.balance(holder)).available == 0
+
+
+def x402_holder(key: str) -> str:
+    return credits.holder_from_fingerprint(keys.fingerprint(key))
+
+
 def test_docs_name_the_human_steps():
     text = (REPO_ROOT / "docs" / "billing.md").read_text(encoding="utf-8")
     for needle in ("Turning it on", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
@@ -590,7 +667,7 @@ def _holder(key: str) -> str:
 
 
 def _claim(kv, policy, ledger, session_id: str = SESSION):
-    return run(billing.claim(session_id=session_id, flag=True, kv=kv, policy=policy,
+    return run(billing.claim(session_id=session_id, kv=kv, policy=policy,
                              now=T0, service_commit=COMMIT, ledger=ledger))
 
 
