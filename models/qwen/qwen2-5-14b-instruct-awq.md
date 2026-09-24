@@ -667,14 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    bbh: 51.2
-    gpqa_diamond: 42.1
-    humaneval: 72.5
-    ifeval: 74
-    math_500: 68.5
-    mmlu_pro: 58.2
-    musr: 18.6
+  scores: {}
   benchmark_source: provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:
@@ -834,7 +827,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
