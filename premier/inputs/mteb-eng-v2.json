@@ -1,0 +1,3389 @@
+{
+  "source_url": "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores",
+  "licence": "The MTEB results repository is CC0. This table is the leaderboard API ranking read on 2026-09-24.",
+  "read_date": "2026-09-24",
+  "benchmark": "MTEB(eng, v2)",
+  "api": "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores",
+  "rows": [
+    {
+      "rank": 1,
+      "name": "jcorners/ingot-8b-r3",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2026-05-23",
+      "mean_task": 0.7597950975609756,
+      "reranking": 0.50934,
+      "retrieval": 0.700033
+    },
+    {
+      "rank": 2,
+      "name": "infgrad/Jasper-Token-Compression-600M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-14",
+      "mean_task": 0.7474843170731708,
+      "reranking": 0.50602,
+      "retrieval": 0.661884
+    },
+    {
+      "rank": 3,
+      "name": "Kingsoft-LLM/QZhou-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-08-24",
+      "mean_task": 0.7597192439024391,
+      "reranking": 0.517683,
+      "retrieval": 0.6712279999999999
+    },
+    {
+      "rank": 4,
+      "name": "ByteDance-Seed/Seed1.5-Embedding",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-04-25",
+      "mean_task": 0.747613243902439,
+      "reranking": 0.506698,
+      "retrieval": 0.674536
+    },
+    {
+      "rank": 5,
+      "name": "Qwen/Qwen3-Embedding-8B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-05",
+      "mean_task": 0.7522560487804878,
+      "reranking": 0.515644,
+      "retrieval": 0.694402
+    },
+    {
+      "rank": 6,
+      "name": "annamodels/LGAI-Embedding-Preview",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-11",
+      "mean_task": 0.7412059024390244,
+      "reranking": 0.491291,
+      "retrieval": 0.661797
+    },
+    {
+      "rank": 7,
+      "name": "Qwen/Qwen3-Embedding-4B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-05",
+      "mean_task": 0.7460537804878049,
+      "reranking": 0.5076175,
+      "retrieval": 0.6845829999999999
+    },
+    {
+      "rank": 8,
+      "name": "Bytedance/Seed1.6-embedding",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-06-18",
+      "mean_task": 0.7407039268292683,
+      "reranking": 0.5027820000000001,
+      "retrieval": 0.649036
+    },
+    {
+      "rank": 9,
+      "name": "google/gemini-embedding-001",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-07-14",
+      "mean_task": 0.7329878292682926,
+      "reranking": 0.48595,
+      "retrieval": 0.643503
+    },
+    {
+      "rank": 10,
+      "name": "codefuse-ai/F2LLM-v2-8B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.7286161219512195,
+      "reranking": 0.50211,
+      "retrieval": 0.5982050000000001
+    },
+    {
+      "rank": 11,
+      "name": "codefuse-ai/F2LLM-v2-14B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.7307962926829269,
+      "reranking": 0.50323,
+      "retrieval": 0.606316
+    },
+    {
+      "rank": 12,
+      "name": "ai-sage/Giga-Embeddings-instruct-3B-0826",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-08-19",
+      "mean_task": 0.7190430731707318,
+      "reranking": 0.496215,
+      "retrieval": 0.594491
+    },
+    {
+      "rank": 13,
+      "name": "ai-sage/Giga-Embeddings-instruct-10B-A1.8B-0826",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-08-19",
+      "mean_task": 0.7223401463414635,
+      "reranking": 0.49307999999999996,
+      "retrieval": 0.6003360000000001
+    },
+    {
+      "rank": 14,
+      "name": "jinaai/jina-embeddings-v5-omni-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-01",
+      "mean_task": 0.7177546341463414,
+      "reranking": 0.493845,
+      "retrieval": 0.6007389999999999
+    },
+    {
+      "rank": 15,
+      "name": "jinaai/jina-embeddings-v5-text-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-02-17",
+      "mean_task": 0.7177513414634146,
+      "reranking": 0.493845,
+      "retrieval": 0.6007389999999999
+    },
+    {
+      "rank": 16,
+      "name": "NovaSearch/jasper_en_vision_language_v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-11",
+      "mean_task": 0.7141166097560976,
+      "reranking": 0.5000465,
+      "retrieval": 0.560511
+    },
+    {
+      "rank": 17,
+      "name": "codefuse-ai/F2LLM-v2-4B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.7241223902439025,
+      "reranking": 0.50068,
+      "retrieval": 0.5912919999999999
+    },
+    {
+      "rank": 18,
+      "name": "codefuse-ai/F2LLM-4B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-18",
+      "mean_task": 0.7367060487804877,
+      "reranking": 0.5004945,
+      "retrieval": 0.5962989999999999
+    },
+    {
+      "rank": 19,
+      "name": "jinaai/jina-embeddings-v5-omni-nano",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-01",
+      "mean_task": 0.7111337804878048,
+      "reranking": 0.492255,
+      "retrieval": 0.588002
+    },
+    {
+      "rank": 19,
+      "name": "jinaai/jina-embeddings-v5-text-nano",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-02-17",
+      "mean_task": 0.7111337804878048,
+      "reranking": 0.492255,
+      "retrieval": 0.588002
+    },
+    {
+      "rank": 21,
+      "name": "codefuse-ai/F2LLM-v2-1.7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.7163071951219512,
+      "reranking": 0.492355,
+      "retrieval": 0.566459
+    },
+    {
+      "rank": 22,
+      "name": "KaLM-Embedding/KaLM-embedding-multilingual-mini-instruct-v2.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-30",
+      "mean_task": 0.7128882096750967,
+      "reranking": 0.4742189319516338,
+      "retrieval": 0.5845499999999999
+    },
+    {
+      "rank": 23,
+      "name": "Linq-AI-Research/Linq-Embed-Mistral",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-05-29",
+      "mean_task": 0.6979659305421375,
+      "reranking": 0.4943883644018372,
+      "retrieval": 0.60144
+    },
+    {
+      "rank": 24,
+      "name": "Salesforce/SFR-Embedding-Mistral",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-01-24",
+      "mean_task": 0.6931134522826353,
+      "reranking": 0.5015379899906125,
+      "retrieval": 0.593257
+    },
+    {
+      "rank": 25,
+      "name": "nvidia/NV-Embed-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-09",
+      "mean_task": 0.6980760203301699,
+      "reranking": 0.49612067452004033,
+      "retrieval": 0.6283860000000001
+    },
+    {
+      "rank": 26,
+      "name": "codefuse-ai/F2LLM-1.7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-18",
+      "mean_task": 0.7201440243902439,
+      "reranking": 0.498376,
+      "retrieval": 0.5782579999999999
+    },
+    {
+      "rank": 27,
+      "name": "Qwen/Qwen3-Embedding-0.6B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-05",
+      "mean_task": 0.704719512195122,
+      "reranking": 0.481812,
+      "retrieval": 0.618285
+    },
+    {
+      "rank": 28,
+      "name": "google/text-embedding-005",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-11-18",
+      "mean_task": 0.6959541707317073,
+      "reranking": 0.48835999999999996,
+      "retrieval": 0.587664
+    },
+    {
+      "rank": 29,
+      "name": "Alibaba-NLP/gte-Qwen2-7B-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-15",
+      "mean_task": 0.7071656789982222,
+      "reranking": 0.5046753938274228,
+      "retrieval": 0.580936
+    },
+    {
+      "rank": 30,
+      "name": "google/text-embedding-004",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-05-14",
+      "mean_task": 0.6952770487804878,
+      "reranking": 0.484756,
+      "retrieval": 0.59059
+    },
+    {
+      "rank": 31,
+      "name": "ai-sage/Giga-Embeddings-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-23",
+      "mean_task": 0.7107208048780488,
+      "reranking": 0.49716799999999994,
+      "retrieval": 0.596766
+    },
+    {
+      "rank": 32,
+      "name": "IEITYuan/Yuan-embedding-2.0-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-27",
+      "mean_task": 0.7174371951219511,
+      "reranking": 0.5327470000000001,
+      "retrieval": 0.7069300000000001
+    },
+    {
+      "rank": 33,
+      "name": "NovaSearch/stella_en_1.5B_v5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-12",
+      "mean_task": 0.6942559205904169,
+      "reranking": 0.5019023178889546,
+      "retrieval": 0.5241819999999999
+    },
+    {
+      "rank": 34,
+      "name": "google/embeddinggemma-300m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-04",
+      "mean_task": 0.6967362195121951,
+      "reranking": 0.474271,
+      "retrieval": 0.5569230000000001
+    },
+    {
+      "rank": 35,
+      "name": "KiteFishAI/Nano-Em1-0.6B-v2.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-08-11",
+      "mean_task": 0.6786009512195122,
+      "reranking": 0.494945,
+      "retrieval": 0.466293
+    },
+    {
+      "rank": 36,
+      "name": "NovaSearch/stella_en_400M_v5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-12",
+      "mean_task": 0.6939390178691194,
+      "reranking": 0.4960277897976523,
+      "retrieval": 0.5273399999999999
+    },
+    {
+      "rank": 37,
+      "name": "codefuse-ai/F2LLM-v2-0.6B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.6997131707317074,
+      "reranking": 0.4768,
+      "retrieval": 0.543077
+    },
+    {
+      "rank": 38,
+      "name": "ICT-TIME-and-Querit/ICT-TIME-and-Querit-embedding-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-05-02",
+      "mean_task": 0.7011618780487805,
+      "reranking": 0.495345,
+      "retrieval": 0.593661
+    },
+    {
+      "rank": 39,
+      "name": "intfloat/e5-mistral-7b-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6797131612883873,
+      "reranking": 0.49784491825229615,
+      "retrieval": 0.57622
+    },
+    {
+      "rank": 40,
+      "name": "BidirLM/BidirLM-Omni-2.5B-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-07",
+      "mean_task": 0.6746906341463413,
+      "reranking": 0.47818499999999997,
+      "retrieval": 0.5506819999999999
+    },
+    {
+      "rank": 41,
+      "name": "Tarka-AIR/Tarka-Embedding-350M-V1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-11",
+      "mean_task": 0.6929310731707317,
+      "reranking": 0.477775,
+      "retrieval": 0.551454
+    },
+    {
+      "rank": 42,
+      "name": "Salesforce/SFR-Embedding-2_R",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-14",
+      "mean_task": 0.6981742694733529,
+      "reranking": 0.4898785444565596,
+      "retrieval": 0.537538
+    },
+    {
+      "rank": 43,
+      "name": "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-29",
+      "mean_task": 0.6719870460269243,
+      "reranking": 0.49247218818904315,
+      "retrieval": 0.502504
+    },
+    {
+      "rank": 44,
+      "name": "ai-sage/Giga-Embeddings-instruct-480M-0826",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-08-10",
+      "mean_task": 0.6951773902439025,
+      "reranking": 0.479165,
+      "retrieval": 0.5630240000000001
+    },
+    {
+      "rank": 45,
+      "name": "codefuse-ai/F2LLM-0.6B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-09-18",
+      "mean_task": 0.7003470731707317,
+      "reranking": 0.47880449999999997,
+      "retrieval": 0.557003
+    },
+    {
+      "rank": 46,
+      "name": "ICT-TIME-and-Querit/BOOM_4B_v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-01-31",
+      "mean_task": null,
+      "reranking": 0.49312,
+      "retrieval": 0.569994
+    },
+    {
+      "rank": 47,
+      "name": "GeoGPT-Research-Project/GeoEmbedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-04-22",
+      "mean_task": 0.7020541219512195,
+      "reranking": 0.483153,
+      "retrieval": 0.609051
+    },
+    {
+      "rank": 48,
+      "name": "GritLM/GritLM-7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-15",
+      "mean_task": 0.670707780399812,
+      "reranking": 0.49590824795166166,
+      "retrieval": 0.5494579999999999
+    },
+    {
+      "rank": 49,
+      "name": "avsolatorio/GIST-large-Embedding-v0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-14",
+      "mean_task": 0.6625134256133556,
+      "reranking": 0.487630431063124,
+      "retrieval": 0.545214
+    },
+    {
+      "rank": 50,
+      "name": "codefuse-ai/F2LLM-v2-330M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.6885837804878049,
+      "reranking": 0.469995,
+      "retrieval": 0.533447
+    },
+    {
+      "rank": 51,
+      "name": "nvidia/NV-Embed-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-13",
+      "mean_task": 0.6831500238312479,
+      "reranking": 0.49157101318336127,
+      "retrieval": 0.601322
+    },
+    {
+      "rank": 52,
+      "name": "mixedbread-ai/mxbai-embed-large-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-07",
+      "mean_task": 0.662622240804676,
+      "reranking": 0.48054600000000003,
+      "retrieval": 0.553958
+    },
+    {
+      "rank": 53,
+      "name": "GritLM/GritLM-8x7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-15",
+      "mean_task": 0.6615586695812335,
+      "reranking": 0.4921982620031392,
+      "retrieval": 0.524551
+    },
+    {
+      "rank": 54,
+      "name": "WhereIsAI/UAE-Large-V1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-12-04",
+      "mean_task": 0.664018798636645,
+      "reranking": 0.48353581823748504,
+      "retrieval": 0.559072
+    },
+    {
+      "rank": 55,
+      "name": "google/text-multilingual-embedding-002",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-05-14",
+      "mean_task": 0.6767027073170732,
+      "reranking": 0.4748335,
+      "retrieval": 0.547
+    },
+    {
+      "rank": 56,
+      "name": "Cohere/Cohere-embed-english-v3.0",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-11-02",
+      "mean_task": 0.662088595731706,
+      "reranking": 0.47186301577254186,
+      "retrieval": 0.556851
+    },
+    {
+      "rank": 57,
+      "name": "Alibaba-NLP/gte-Qwen1.5-7B-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-20",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.561924
+    },
+    {
+      "rank": 58,
+      "name": "Cohere/Cohere-embed-multilingual-v3.0",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-11-02",
+      "mean_task": 0.6600906022277376,
+      "reranking": 0.47357932979782225,
+      "retrieval": 0.556906
+    },
+    {
+      "rank": 59,
+      "name": "jinaai/jina-embeddings-v3",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-18",
+      "mean_task": null,
+      "reranking": 0.4793681638662314,
+      "retrieval": 0.542859
+    },
+    {
+      "rank": 60,
+      "name": "intfloat/multilingual-e5-large-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6556360607936779,
+      "reranking": 0.487404963793465,
+      "retrieval": 0.534715
+    },
+    {
+      "rank": 61,
+      "name": "mongodb/voyage-3-m-exp",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-01-08",
+      "mean_task": null,
+      "reranking": 0.4830955,
+      "retrieval": null
+    },
+    {
+      "rank": 62,
+      "name": "avsolatorio/GIST-Embedding-v0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-01-31",
+      "mean_task": 0.6550466210091898,
+      "reranking": 0.47521996398943445,
+      "retrieval": 0.5359170000000001
+    },
+    {
+      "rank": 63,
+      "name": "mongodb/voyage-large-2-instruct",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-05-05",
+      "mean_task": null,
+      "reranking": 0.500875,
+      "retrieval": null
+    },
+    {
+      "rank": 64,
+      "name": "BAAI/bge-large-en-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-09-12",
+      "mean_task": 0.6588837954348157,
+      "reranking": 0.48263293660404705,
+      "retrieval": 0.554422
+    },
+    {
+      "rank": 65,
+      "name": "McGill-NLP/LLM2Vec-Mistral-7B-Instruct-v2-mntp-supervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": 0.6456632207605192,
+      "reranking": 0.47739478298506677,
+      "retrieval": 0.512717
+    },
+    {
+      "rank": 66,
+      "name": "infgrad/stella-base-en-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-19",
+      "mean_task": 0.6490399096837327,
+      "reranking": 0.47313763226567485,
+      "retrieval": 0.5156000000000001
+    },
+    {
+      "rank": 67,
+      "name": "avsolatorio/GIST-small-Embedding-v0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-03",
+      "mean_task": 0.6475937830352264,
+      "reranking": 0.4734565232869447,
+      "retrieval": 0.5200089999999999
+    },
+    {
+      "rank": 68,
+      "name": "thenlper/gte-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-27",
+      "mean_task": 0.6476698050696447,
+      "reranking": 0.47844359042433404,
+      "retrieval": 0.5328759999999999
+    },
+    {
+      "rank": 68,
+      "name": "Tarka-AIR/Tarka-Embedding-150M-V1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-04",
+      "mean_task": 0.6639085365853659,
+      "reranking": 0.45661,
+      "retrieval": 0.515193
+    },
+    {
+      "rank": 70,
+      "name": "avsolatorio/NoInstruct-small-Embedding-v0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-05-01",
+      "mean_task": null,
+      "reranking": 0.4702243973524701,
+      "retrieval": 0.5371330000000001
+    },
+    {
+      "rank": 71,
+      "name": "Lajavaness/bilingual-embedding-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-24",
+      "mean_task": 0.6376620272557522,
+      "reranking": 0.46247305169229724,
+      "retrieval": 0.468557
+    },
+    {
+      "rank": 72,
+      "name": "BAAI/bge-base-en-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-09-11",
+      "mean_task": 0.6513711720715847,
+      "reranking": 0.46662496206779525,
+      "retrieval": 0.5475070000000001
+    },
+    {
+      "rank": 73,
+      "name": "prdev/mini-gte",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-28",
+      "mean_task": 0.6505740731707317,
+      "reranking": 0.4686335,
+      "retrieval": 0.532266
+    },
+    {
+      "rank": 74,
+      "name": "VPLabs/SearchMap_Preview",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-03-05",
+      "mean_task": 0.6408451219512196,
+      "reranking": 0.47901699999999997,
+      "retrieval": 0.5220779999999999
+    },
+    {
+      "rank": 75,
+      "name": "codefuse-ai/F2LLM-v2-160M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.6592689512195123,
+      "reranking": 0.45263,
+      "retrieval": 0.49333799999999994
+    },
+    {
+      "rank": 76,
+      "name": "Cohere/Cohere-embed-english-light-v3.0",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-11-02",
+      "mean_task": 0.645923725218829,
+      "reranking": 0.4599105348665765,
+      "retrieval": 0.5316839999999999
+    },
+    {
+      "rank": 77,
+      "name": "Haon-Chen/speed-embedding-7b-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-31",
+      "mean_task": 0.6062405328330405,
+      "reranking": 0.5029151103055246,
+      "retrieval": 0.390608
+    },
+    {
+      "rank": 78,
+      "name": "LCO-Embedding/LCO-Embedding-Omni-7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-10-15",
+      "mean_task": 0.6324147560975609,
+      "reranking": 0.467425,
+      "retrieval": 0.45271800000000006
+    },
+    {
+      "rank": 79,
+      "name": "w601sxs/b1ade-embed",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-03-10",
+      "mean_task": null,
+      "reranking": 0.48600756425517266,
+      "retrieval": null
+    },
+    {
+      "rank": 80,
+      "name": "MongoDB/mdbr-leaf-mt",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-08-27",
+      "mean_task": 0.6396570975609756,
+      "reranking": 0.4731055,
+      "retrieval": 0.513767
+    },
+    {
+      "rank": 81,
+      "name": "thenlper/gte-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-27",
+      "mean_task": 0.6390384426519456,
+      "reranking": 0.47169440311694244,
+      "retrieval": 0.519022
+    },
+    {
+      "rank": 82,
+      "name": "HIT-TMG/KaLM-embedding-multilingual-mini-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-08-27",
+      "mean_task": 0.6413111871230771,
+      "reranking": 0.46093294988912953,
+      "retrieval": 0.542196
+    },
+    {
+      "rank": 83,
+      "name": "KiteFishAI/Nano-Em1-0.6B-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-07-20",
+      "mean_task": 0.6408008536585366,
+      "reranking": 0.45665999999999995,
+      "retrieval": 0.43249200000000004
+    },
+    {
+      "rank": 84,
+      "name": "BAAI/bge-small-en-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-09-12",
+      "mean_task": 0.6430120254016622,
+      "reranking": 0.46938362591675786,
+      "retrieval": 0.5385989999999999
+    },
+    {
+      "rank": 85,
+      "name": "sdadas/mmlw-e5-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-11-17",
+      "mean_task": 0.6232231463414634,
+      "reranking": 0.476252,
+      "retrieval": 0.41365799999999997
+    },
+    {
+      "rank": 86,
+      "name": "openai/text-embedding-3-large",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-01-25",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.5797640000000001
+    },
+    {
+      "rank": 87,
+      "name": "abhinand/MedEmbed-small-v0.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-20",
+      "mean_task": 0.6397950769087808,
+      "reranking": 0.47201194613074976,
+      "retrieval": 0.5285230000000001
+    },
+    {
+      "rank": 88,
+      "name": "sdadas/mmlw-roberta-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-11-17",
+      "mean_task": 0.6180039268292683,
+      "reranking": 0.4755635,
+      "retrieval": 0.39690000000000003
+    },
+    {
+      "rank": 88,
+      "name": "mixedbread-ai/deepset-mxbai-embed-de-large-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-12",
+      "mean_task": 0.6342877041386201,
+      "reranking": 0.4373479348417123,
+      "retrieval": 0.519509
+    },
+    {
+      "rank": 90,
+      "name": "nomic-ai/nomic-embed-text-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-01-31",
+      "mean_task": 0.6360401547037337,
+      "reranking": 0.4570616452405284,
+      "retrieval": 0.507184
+    },
+    {
+      "rank": 91,
+      "name": "thenlper/gte-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-27",
+      "mean_task": 0.6321994180544178,
+      "reranking": 0.46963560933903237,
+      "retrieval": 0.502558
+    },
+    {
+      "rank": 92,
+      "name": "codefuse-ai/F2LLM-v2-80M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-09",
+      "mean_task": 0.6454793658536585,
+      "reranking": 0.449395,
+      "retrieval": 0.475371
+    },
+    {
+      "rank": 93,
+      "name": "intfloat/e5-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-12-26",
+      "mean_task": 0.6312911305854119,
+      "reranking": 0.45428272483228355,
+      "retrieval": 0.496434
+    },
+    {
+      "rank": 94,
+      "name": "LCO-Embedding/LCO-Embedding-Omni-3B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-10-23",
+      "mean_task": 0.6232579756097562,
+      "reranking": 0.45170999999999994,
+      "retrieval": 0.43785500000000005
+    },
+    {
+      "rank": 95,
+      "name": "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-23",
+      "mean_task": 0.6219683040043787,
+      "reranking": 0.458725716129204,
+      "retrieval": 0.443815
+    },
+    {
+      "rank": 96,
+      "name": "ManiacLabs/miniac-embed",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-02-19",
+      "mean_task": 0.6208456218717296,
+      "reranking": 0.463635,
+      "retrieval": 0.45002200000000003
+    },
+    {
+      "rank": 97,
+      "name": "nomic-ai/nomic-embed-text-v2-moe",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-02-07",
+      "mean_task": 0.6363502926829268,
+      "reranking": 0.45228,
+      "retrieval": 0.54808
+    },
+    {
+      "rank": 98,
+      "name": "Snowflake/snowflake-arctic-embed-l-v2.0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-04",
+      "mean_task": 0.6360280243902439,
+      "reranking": 0.4746825,
+      "retrieval": 0.585609
+    },
+    {
+      "rank": 99,
+      "name": "sdadas/mmlw-e5-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-11-17",
+      "mean_task": 0.6142770243902439,
+      "reranking": 0.4639735,
+      "retrieval": 0.402081
+    },
+    {
+      "rank": 100,
+      "name": "ibm-granite/granite-embedding-english-r2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-08-15",
+      "mean_task": 0.6283573902439025,
+      "reranking": 0.491014,
+      "retrieval": 0.5643469999999999
+    },
+    {
+      "rank": 101,
+      "name": "intfloat/e5-large-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6279303728815129,
+      "reranking": 0.457205768177493,
+      "retrieval": 0.493126
+    },
+    {
+      "rank": 102,
+      "name": "sdadas/mmlw-roberta-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-11-17",
+      "mean_task": 0.6115019512195122,
+      "reranking": 0.466869,
+      "retrieval": 0.40152400000000005
+    },
+    {
+      "rank": 103,
+      "name": "deepvk/USER-bge-m3",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-05",
+      "mean_task": 0.6205859512195122,
+      "reranking": 0.4648685,
+      "retrieval": 0.46547299999999997
+    },
+    {
+      "rank": 104,
+      "name": "avsolatorio/GIST-all-MiniLM-L6-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-03",
+      "mean_task": 0.6206267877701865,
+      "reranking": 0.47137740732734323,
+      "retrieval": 0.47417299999999996
+    },
+    {
+      "rank": 105,
+      "name": "nomic-ai/nomic-embed-text-v1-ablated",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-01-15",
+      "mean_task": 0.6292927790245313,
+      "reranking": 0.4443737871156309,
+      "retrieval": 0.508117
+    },
+    {
+      "rank": 106,
+      "name": "intfloat/e5-base-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6266703590913638,
+      "reranking": 0.45134782506547727,
+      "retrieval": 0.49667399999999995
+    },
+    {
+      "rank": 107,
+      "name": "Lajavaness/bilingual-embedding-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-26",
+      "mean_task": 0.6132028292635484,
+      "reranking": 0.4546524076517182,
+      "retrieval": 0.432489
+    },
+    {
+      "rank": 108,
+      "name": "TencentBAC/Conan-embedding-v2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-04-10",
+      "mean_task": null,
+      "reranking": 0.4906725,
+      "retrieval": null
+    },
+    {
+      "rank": 109,
+      "name": "Alibaba-NLP/gte-multilingual-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-20",
+      "mean_task": null,
+      "reranking": 0.46814122132684755,
+      "retrieval": 0.508742
+    },
+    {
+      "rank": 110,
+      "name": "hotchpotch/bekko-embedding-v1-a25m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-07-28",
+      "mean_task": 0.6225406829268293,
+      "reranking": 0.456045,
+      "retrieval": 0.49742700000000006
+    },
+    {
+      "rank": 111,
+      "name": "ibm-granite/granite-embedding-125m-english",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-18",
+      "mean_task": 0.6207979268292683,
+      "reranking": 0.49350950000000005,
+      "retrieval": 0.556529
+    },
+    {
+      "rank": 112,
+      "name": "openai/text-embedding-3-small",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-01-25",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.5347620000000001
+    },
+    {
+      "rank": 113,
+      "name": "Snowflake/snowflake-arctic-embed-m-v2.0",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-04",
+      "mean_task": 0.6256529756097561,
+      "reranking": 0.46880900000000003,
+      "retrieval": 0.584093
+    },
+    {
+      "rank": 114,
+      "name": "Cohere/Cohere-embed-multilingual-light-v3.0",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-11-02",
+      "mean_task": 0.6274740812892552,
+      "reranking": 0.44953369677245114,
+      "retrieval": 0.521413
+    },
+    {
+      "rank": 115,
+      "name": "nomic-ai/nomic-embed-text-v1-unsupervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-01-15",
+      "mean_task": 0.622929334085075,
+      "reranking": 0.45086777085887964,
+      "retrieval": 0.49365800000000004
+    },
+    {
+      "rank": 116,
+      "name": "nomic-ai/nomic-embed-text-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-10",
+      "mean_task": 0.6219673472399526,
+      "reranking": 0.46012129300087856,
+      "retrieval": 0.479661
+    },
+    {
+      "rank": 117,
+      "name": "yibinlei/LENS-d8000",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-17",
+      "mean_task": null,
+      "reranking": 0.48604417973364666,
+      "retrieval": null
+    },
+    {
+      "rank": 118,
+      "name": "OrdalieTech/Solon-embeddings-large-0.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-12-09",
+      "mean_task": 0.6148004390243902,
+      "reranking": 0.4500605,
+      "retrieval": 0.47512
+    },
+    {
+      "rank": 119,
+      "name": "intfloat/e5-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-12-26",
+      "mean_task": 0.6178992076453981,
+      "reranking": 0.44862464681167824,
+      "retrieval": 0.476983
+    },
+    {
+      "rank": 120,
+      "name": "yibinlei/LENS-d4000",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-17",
+      "mean_task": null,
+      "reranking": 0.48681008664039216,
+      "retrieval": null
+    },
+    {
+      "rank": 121,
+      "name": "sentence-transformers/all-mpnet-base-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-08-30",
+      "mean_task": null,
+      "reranking": 0.48409903849775304,
+      "retrieval": 0.44536999999999993
+    },
+    {
+      "rank": 122,
+      "name": "intfloat/multilingual-e5-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": null,
+      "reranking": 0.447404,
+      "retrieval": 0.515292
+    },
+    {
+      "rank": 123,
+      "name": "manu/bge-m3-custom-fr",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-11",
+      "mean_task": 0.6122317073170732,
+      "reranking": 0.46012549999999997,
+      "retrieval": 0.459099
+    },
+    {
+      "rank": 124,
+      "name": "Snowflake/snowflake-arctic-embed-l",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-12",
+      "mean_task": 0.6204052527763326,
+      "reranking": 0.44714243101144535,
+      "retrieval": 0.59036
+    },
+    {
+      "rank": 125,
+      "name": "dwzhu/e5-base-4k",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-28",
+      "mean_task": 0.6032403106889277,
+      "reranking": 0.45134782506547727,
+      "retrieval": 0.41497600000000007
+    },
+    {
+      "rank": 126,
+      "name": "ibm-granite/granite-embedding-small-english-r2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-08-15",
+      "mean_task": 0.610681024390244,
+      "reranking": 0.476251,
+      "retrieval": 0.539255
+    },
+    {
+      "rank": 127,
+      "name": "izhx/udever-bloom-7b1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-24",
+      "mean_task": null,
+      "reranking": 0.4640991552501482,
+      "retrieval": null
+    },
+    {
+      "rank": 128,
+      "name": "mongodb/voyage-3",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-09-18",
+      "mean_task": 0.6137765609756097,
+      "reranking": 0.467243,
+      "retrieval": 0.5346409999999999
+    },
+    {
+      "rank": 129,
+      "name": "Mihaiii/Ivysaur",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-27",
+      "mean_task": 0.608025992501295,
+      "reranking": 0.4573699969269214,
+      "retrieval": 0.458331
+    },
+    {
+      "rank": 130,
+      "name": "Snowflake/snowflake-arctic-embed-m-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-08",
+      "mean_task": 0.6150532944035461,
+      "reranking": 0.45901352528103634,
+      "retrieval": 0.580539
+    },
+    {
+      "rank": 131,
+      "name": "Snowflake/snowflake-arctic-embed-s",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-12",
+      "mean_task": 0.6159299468389157,
+      "reranking": 0.4587555884047392,
+      "retrieval": 0.548508
+    },
+    {
+      "rank": 132,
+      "name": "Snowflake/snowflake-arctic-embed-m-long",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-12",
+      "mean_task": null,
+      "reranking": 0.45632858743244353,
+      "retrieval": 0.570202
+    },
+    {
+      "rank": 133,
+      "name": "hotchpotch/bekko-embedding-v1-a8m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-07-28",
+      "mean_task": 0.6080209756097561,
+      "reranking": 0.452055,
+      "retrieval": 0.47704599999999997
+    },
+    {
+      "rank": 134,
+      "name": "Snowflake/snowflake-arctic-embed-m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-12",
+      "mean_task": 0.61087565533609,
+      "reranking": 0.44850885075956015,
+      "retrieval": 0.575263
+    },
+    {
+      "rank": 135,
+      "name": "intfloat/e5-small-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6132269161875277,
+      "reranking": 0.4410249417991122,
+      "retrieval": 0.4846069999999999
+    },
+    {
+      "rank": 136,
+      "name": "intfloat/e5-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6040957544710008,
+      "reranking": 0.44461291302267736,
+      "retrieval": 0.45068400000000003
+    },
+    {
+      "rank": 137,
+      "name": "sdadas/mmlw-e5-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-11-17",
+      "mean_task": 0.5886495365853658,
+      "reranking": 0.45513250000000005,
+      "retrieval": 0.363614
+    },
+    {
+      "rank": 138,
+      "name": "intfloat/multilingual-e5-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.6100213457411223,
+      "reranking": 0.44281096533631553,
+      "retrieval": 0.48974700000000004
+    },
+    {
+      "rank": 139,
+      "name": "mongodb/voyage-multilingual-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-06-10",
+      "mean_task": null,
+      "reranking": 0.474027,
+      "retrieval": null
+    },
+    {
+      "rank": 140,
+      "name": "Lajavaness/bilingual-embedding-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-17",
+      "mean_task": 0.5962482625119004,
+      "reranking": 0.43852930589459693,
+      "retrieval": 0.41684099999999996
+    },
+    {
+      "rank": 141,
+      "name": "ibm-granite/granite-embedding-30m-english",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-18",
+      "mean_task": 0.6019757560975609,
+      "reranking": 0.4750795,
+      "retrieval": 0.518212
+    },
+    {
+      "rank": 142,
+      "name": "mongodb/voyage-3-lite",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-09-18",
+      "mean_task": 0.604377,
+      "reranking": 0.46202450000000006,
+      "retrieval": 0.502957
+    },
+    {
+      "rank": 143,
+      "name": "BAAI/bge-en-icl",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-25",
+      "mean_task": null,
+      "reranking": 0.4787502469982664,
+      "retrieval": null
+    },
+    {
+      "rank": 144,
+      "name": "sentence-transformers/all-MiniLM-L6-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-08-30",
+      "mean_task": 0.5903039027409025,
+      "reranking": 0.4713960230360513,
+      "retrieval": 0.42916299999999996
+    },
+    {
+      "rank": 145,
+      "name": "Haon-Chen/e5-omni-3B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-01-06",
+      "mean_task": 0.5969691463414635,
+      "reranking": 0.45548,
+      "retrieval": 0.51187
+    },
+    {
+      "rank": 146,
+      "name": "brahmairesearch/slx-v0.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-08-13",
+      "mean_task": null,
+      "reranking": 0.471385,
+      "retrieval": 0.429177
+    },
+    {
+      "rank": 147,
+      "name": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-supervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": 0.48930010457796785,
+      "retrieval": null
+    },
+    {
+      "rank": 148,
+      "name": "izhx/udever-bloom-3b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-24",
+      "mean_task": null,
+      "reranking": 0.4544527277982198,
+      "retrieval": null
+    },
+    {
+      "rank": 149,
+      "name": "ibm-granite/granite-embedding-278m-multilingual",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-18",
+      "mean_task": 0.6036324390243902,
+      "reranking": 0.464412,
+      "retrieval": 0.5144569999999999
+    },
+    {
+      "rank": 150,
+      "name": "deepfile/embedder-100p",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-24",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.40546000000000004
+    },
+    {
+      "rank": 151,
+      "name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2019-11-01",
+      "mean_task": 0.5826828776243406,
+      "reranking": 0.4515655448761502,
+      "retrieval": 0.371397
+    },
+    {
+      "rank": 152,
+      "name": "Mihaiii/gte-micro-v4",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-22",
+      "mean_task": 0.5889789209527495,
+      "reranking": 0.44783408776699885,
+      "retrieval": 0.39512100000000006
+    },
+    {
+      "rank": 153,
+      "name": "Haon-Chen/e5-omni-7B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-01-06",
+      "mean_task": 0.5867044634146341,
+      "reranking": 0.452935,
+      "retrieval": 0.48829700000000004
+    },
+    {
+      "rank": 154,
+      "name": "intfloat/multilingual-e5-small",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": 0.5968822955065252,
+      "reranking": 0.431942,
+      "retrieval": 0.464342
+    },
+    {
+      "rank": 155,
+      "name": "Tevatron/OmniEmbed-v0.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-04-12",
+      "mean_task": 0.576976243902439,
+      "reranking": 0.45088,
+      "retrieval": 0.521625
+    },
+    {
+      "rank": 156,
+      "name": "zeta-alpha-ai/Zeta-Alpha-E5-Mistral",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-08-30",
+      "mean_task": null,
+      "reranking": 0.4839129209984794,
+      "retrieval": null
+    },
+    {
+      "rank": 157,
+      "name": "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-25",
+      "mean_task": null,
+      "reranking": 0.47081568212127456,
+      "retrieval": null
+    },
+    {
+      "rank": 158,
+      "name": "sentence-transformers/all-MiniLM-L12-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-08-30",
+      "mean_task": null,
+      "reranking": 0.47542862723972007,
+      "retrieval": 0.436708
+    },
+    {
+      "rank": 159,
+      "name": "jxm/cde-small-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-13",
+      "mean_task": null,
+      "reranking": 0.453514,
+      "retrieval": null
+    },
+    {
+      "rank": 160,
+      "name": "Snowflake/snowflake-arctic-embed-xs",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-08",
+      "mean_task": 0.5976673272696803,
+      "reranking": 0.4525506231693296,
+      "retrieval": 0.526473
+    },
+    {
+      "rank": 161,
+      "name": "BAAI/bge-multilingual-gemma2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-25",
+      "mean_task": null,
+      "reranking": 0.48194317966395694,
+      "retrieval": null
+    },
+    {
+      "rank": 162,
+      "name": "jinaai/jina-embedding-b-en-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-07",
+      "mean_task": null,
+      "reranking": 0.469792241690967,
+      "retrieval": 0.46381999999999995
+    },
+    {
+      "rank": 163,
+      "name": "Omartificial-Intelligence-Space/Arabic-all-nli-triplet-Matryoshka",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-14",
+      "mean_task": 0.5692984460286736,
+      "reranking": 0.4400805,
+      "retrieval": 0.337977
+    },
+    {
+      "rank": 164,
+      "name": "McGill-NLP/LLM2Vec-Mistral-7B-Instruct-v2-mntp-unsup-simcse",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": 0.5619834999667115,
+      "reranking": 0.44168074017966386,
+      "retrieval": 0.31045
+    },
+    {
+      "rank": 165,
+      "name": "llmrails/ember-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-10",
+      "mean_task": null,
+      "reranking": 0.48365346809414334,
+      "retrieval": null
+    },
+    {
+      "rank": 166,
+      "name": "Mihaiii/Bulbasaur",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-27",
+      "mean_task": 0.5774624020975746,
+      "reranking": 0.4463370110261584,
+      "retrieval": 0.36960899999999997
+    },
+    {
+      "rank": 167,
+      "name": "Octen/Octen-Embedding-8B",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-12-23",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 168,
+      "name": "mixedbread-ai/mxbai-embed-2d-large-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-04",
+      "mean_task": null,
+      "reranking": 0.47812119656507,
+      "retrieval": null
+    },
+    {
+      "rank": 169,
+      "name": "microsoft/harrier-oss-v1-27b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 170,
+      "name": "ibm-granite/granite-embedding-107m-multilingual",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-18",
+      "mean_task": 0.5876386829268293,
+      "reranking": 0.4610245,
+      "retrieval": 0.47910299999999995
+    },
+    {
+      "rank": 171,
+      "name": "McGill-NLP/LLM2Vec-Llama-2-7b-chat-hf-mntp-supervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 172,
+      "name": "Gameselo/STS-multilingual-mpnet-base-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-07",
+      "mean_task": 0.5121227860460326,
+      "reranking": 0.4246645,
+      "retrieval": 0.255358
+    },
+    {
+      "rank": 173,
+      "name": "bigscience/sgpt-bloom-7b1-msmarco",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-08-26",
+      "mean_task": 0.5608368916035635,
+      "reranking": 0.45879111793338834,
+      "retrieval": 0.39451
+    },
+    {
+      "rank": 174,
+      "name": "jinaai/jina-embeddings-v2-base-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-09-27",
+      "mean_task": 0.4596777257608364,
+      "reranking": 0.46394322375943287,
+      "retrieval": 0.26674999999999993
+    },
+    {
+      "rank": 175,
+      "name": "nvidia/llama-embed-nemotron-8b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-10-23",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 176,
+      "name": "izhx/udever-bloom-1b1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-24",
+      "mean_task": null,
+      "reranking": 0.4500271994375147,
+      "retrieval": null
+    },
+    {
+      "rank": 176,
+      "name": "mongodb/voyage-code-3",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-12-04",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 178,
+      "name": "manu/sentence_croissant_alpha_v0.4",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-27",
+      "mean_task": 0.5770828048780487,
+      "reranking": 0.446542,
+      "retrieval": 0.431809
+    },
+    {
+      "rank": 179,
+      "name": "jxm/cde-small-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-24",
+      "mean_task": null,
+      "reranking": 0.4568683829076947,
+      "retrieval": null
+    },
+    {
+      "rank": 180,
+      "name": "microsoft/harrier-oss-v1-0.6b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 181,
+      "name": "Alibaba-NLP/gme-Qwen2-VL-7B-Instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-24",
+      "mean_task": null,
+      "reranking": 0.4902555010825085,
+      "retrieval": null
+    },
+    {
+      "rank": 182,
+      "name": "McGill-NLP/LLM2Vec-Sheared-LLaMA-mntp-supervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": 0.46337397115604295,
+      "retrieval": null
+    },
+    {
+      "rank": 183,
+      "name": "HIT-TMG/KaLM-embedding-multilingual-mini-instruct-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-26",
+      "mean_task": null,
+      "reranking": 0.46134425839622095,
+      "retrieval": null
+    },
+    {
+      "rank": 184,
+      "name": "tencent/KaLM-Embedding-Gemma3-12B-2511",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-06",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 185,
+      "name": "mongodb/voyage-law-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-04-15",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 186,
+      "name": "Alibaba-NLP/gte-modernbert-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-21",
+      "mean_task": null,
+      "reranking": 0.47625100000000004,
+      "retrieval": null
+    },
+    {
+      "rank": 187,
+      "name": "manu/sentence_croissant_alpha_v0.3",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-26",
+      "mean_task": 0.5780170000000001,
+      "reranking": 0.44226350000000003,
+      "retrieval": 0.42615
+    },
+    {
+      "rank": 188,
+      "name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2019-11-01",
+      "mean_task": 0.5641676699090004,
+      "reranking": 0.45429195986814797,
+      "retrieval": 0.359308
+    },
+    {
+      "rank": 189,
+      "name": "Bytedance/Seed1.6-embedding-1215",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-12-15",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 190,
+      "name": "BAAI/bge-large-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-08-05",
+      "mean_task": null,
+      "reranking": 0.4748658770930063,
+      "retrieval": null
+    },
+    {
+      "rank": 191,
+      "name": "Alibaba-NLP/gte-base-en-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-20",
+      "mean_task": null,
+      "reranking": 0.46582478426092416,
+      "retrieval": null
+    },
+    {
+      "rank": 192,
+      "name": "manu/sentence_croissant_alpha_v0.2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-15",
+      "mean_task": 0.5655929268292683,
+      "reranking": 0.4335915,
+      "retrieval": 0.40617200000000003
+    },
+    {
+      "rank": 193,
+      "name": "ai-forever/ru-en-RoSBERTa",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-29",
+      "mean_task": 0.5726126097560975,
+      "reranking": 0.43797400000000003,
+      "retrieval": 0.431423
+    },
+    {
+      "rank": 194,
+      "name": "jinaai/jina-embeddings-v2-small-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-09-27",
+      "mean_task": null,
+      "reranking": 0.4530477447727866,
+      "retrieval": 0.26472599999999996
+    },
+    {
+      "rank": 195,
+      "name": "sergeyzh/LaBSE-ru-turbo",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-27",
+      "mean_task": 0.5567629756097561,
+      "reranking": 0.42552249999999997,
+      "retrieval": 0.34179
+    },
+    {
+      "rank": 196,
+      "name": "BAAI/bge-base-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-08-05",
+      "mean_task": null,
+      "reranking": 0.4649360128599484,
+      "retrieval": null
+    },
+    {
+      "rank": 197,
+      "name": "Alibaba-NLP/gme-Qwen2-VL-2B-Instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-24",
+      "mean_task": null,
+      "reranking": 0.4703327758722682,
+      "retrieval": null
+    },
+    {
+      "rank": 198,
+      "name": "Omartificial-Intelligence-Space/Arabic-MiniLM-L12-v2-all-nli-triplet",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-25",
+      "mean_task": 0.5443176110241625,
+      "reranking": 0.44146299999999994,
+      "retrieval": 0.29374399999999995
+    },
+    {
+      "rank": 199,
+      "name": "Mihaiii/Wartortle",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-30",
+      "mean_task": 0.5411143792694679,
+      "reranking": 0.4218421919860817,
+      "retrieval": 0.269077
+    },
+    {
+      "rank": 200,
+      "name": "Mihaiii/gte-micro",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-21",
+      "mean_task": 0.5388580641928595,
+      "reranking": 0.4315615539336851,
+      "retrieval": 0.27662899999999996
+    },
+    {
+      "rank": 201,
+      "name": "Omartificial-Intelligence-Space/Arabic-labse-Matryoshka",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-16",
+      "mean_task": 0.5297848826642666,
+      "reranking": 0.414597,
+      "retrieval": 0.242134
+    },
+    {
+      "rank": 202,
+      "name": "nomic-ai/modernbert-embed-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-29",
+      "mean_task": null,
+      "reranking": 0.46477526025589394,
+      "retrieval": null
+    },
+    {
+      "rank": 203,
+      "name": "omarelshehy/arabic-english-sts-matryoshka",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-13",
+      "mean_task": 0.5119084125839304,
+      "reranking": 0.4026555,
+      "retrieval": 0.15741299999999997
+    },
+    {
+      "rank": 204,
+      "name": "minishlab/potion-base-32M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-22",
+      "mean_task": 0.5462935609756097,
+      "reranking": 0.424485,
+      "retrieval": 0.3267
+    },
+    {
+      "rank": 205,
+      "name": "amazon/Titan-text-embeddings-v2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-04-30",
+      "mean_task": null,
+      "reranking": 0.472926420351501,
+      "retrieval": null
+    },
+    {
+      "rank": 206,
+      "name": "Mira190/Euler-Legal-Embedding-V1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-06",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 207,
+      "name": "jinaai/jina-embedding-s-en-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-07",
+      "mean_task": null,
+      "reranking": 0.4546472380352006,
+      "retrieval": 0.416697
+    },
+    {
+      "rank": 208,
+      "name": "shibing624/text2vec-base-multilingual",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-06-22",
+      "mean_task": null,
+      "reranking": 0.4377830731410284,
+      "retrieval": 0.24627400000000002
+    },
+    {
+      "rank": 209,
+      "name": "BidirLM/BidirLM-1.7B-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 210,
+      "name": "microsoft/harrier-oss-v1-270m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 211,
+      "name": "mongodb/voyage-large-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-10-29",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 212,
+      "name": "mongodb/voyage-code-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-01-23",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 213,
+      "name": "minishlab/potion-retrieval-32M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-23",
+      "mean_task": 0.5392212195121951,
+      "reranking": 0.41895,
+      "retrieval": 0.350607
+    },
+    {
+      "rank": 214,
+      "name": "encord-team/ebind-full",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-19",
+      "mean_task": 0.5263819268292683,
+      "reranking": 0.413895,
+      "retrieval": 0.31943900000000003
+    },
+    {
+      "rank": 215,
+      "name": "BidirLM/BidirLM-1B-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 216,
+      "name": "BAAI/bge-small-en",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-08-05",
+      "mean_task": null,
+      "reranking": 0.46372772950929353,
+      "retrieval": null
+    },
+    {
+      "rank": 217,
+      "name": "BAAI/bge-m3",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-28",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 218,
+      "name": "Mihaiii/Squirtle",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-30",
+      "mean_task": 0.5200412681968019,
+      "reranking": 0.4121644336309773,
+      "retrieval": 0.24023699999999998
+    },
+    {
+      "rank": 219,
+      "name": "minishlab/potion-base-8M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-29",
+      "mean_task": 0.5332783730985786,
+      "reranking": 0.41785615499474255,
+      "retrieval": 0.311114
+    },
+    {
+      "rank": 220,
+      "name": "ibm-granite/granite-embedding-311m-multilingual-r2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-29",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.525489
+    },
+    {
+      "rank": 221,
+      "name": "Mihaiii/Venusaur",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-29",
+      "mean_task": 0.5198573527620314,
+      "reranking": 0.4184788941302494,
+      "retrieval": 0.252409
+    },
+    {
+      "rank": 222,
+      "name": "aari1995/German_Semantic_STS_V2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-11-17",
+      "mean_task": 0.5031185365853658,
+      "reranking": 0.421609,
+      "retrieval": 0.1777
+    },
+    {
+      "rank": 223,
+      "name": "jinaai/jina-embeddings-v4",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-24",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.5614929999999999
+    },
+    {
+      "rank": 224,
+      "name": "BidirLM/BidirLM-0.6B-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 225,
+      "name": "mongodb/voyage-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2023-10-29",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 226,
+      "name": "mongodb/voyage-finance-2",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-05-30",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 227,
+      "name": "sentence-transformers/sentence-t5-xxl",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 228,
+      "name": "izhx/udever-bloom-560m",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-10-24",
+      "mean_task": null,
+      "reranking": 0.4395151321635189,
+      "retrieval": null
+    },
+    {
+      "rank": 229,
+      "name": "openai/text-embedding-ada-002",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2022-12-15",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 230,
+      "name": "sentence-transformers/sentence-t5-xl",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-03-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 231,
+      "name": "minishlab/potion-base-4M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-29",
+      "mean_task": 0.5179691030231456,
+      "reranking": 0.41414386990790775,
+      "retrieval": 0.284292
+    },
+    {
+      "rank": 232,
+      "name": "sentence-transformers/LaBSE",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2019-11-01",
+      "mean_task": 0.4880703676191831,
+      "reranking": 0.4127608631507832,
+      "retrieval": 0.180533
+    },
+    {
+      "rank": 233,
+      "name": "sentence-transformers/static-similarity-mrl-multilingual-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-15",
+      "mean_task": 0.5082728780487805,
+      "reranking": 0.4158935,
+      "retrieval": 0.288084
+    },
+    {
+      "rank": 234,
+      "name": "sentence-transformers/static-retrieval-mrl-en-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-24",
+      "mean_task": 0.5125121951219511,
+      "reranking": 0.4178955,
+      "retrieval": 0.34951699999999997
+    },
+    {
+      "rank": 235,
+      "name": "minishlab/M2V_base_glove",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-21",
+      "mean_task": 0.508092942153539,
+      "reranking": 0.40859245178098436,
+      "retrieval": 0.280599
+    },
+    {
+      "rank": 236,
+      "name": "cointegrated/LaBSE-en-ru",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-06-10",
+      "mean_task": 0.4821785776075582,
+      "reranking": 0.4112005,
+      "retrieval": 0.165802
+    },
+    {
+      "rank": 237,
+      "name": "consciousAI/cai-lunaris-text-embeddings",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-06-22",
+      "mean_task": 0.49503329269811414,
+      "reranking": 0.4098910473524562,
+      "retrieval": 0.259987
+    },
+    {
+      "rank": 238,
+      "name": "minishlab/M2V_base_glove_subword",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-21",
+      "mean_task": 0.49799925782544757,
+      "reranking": 0.4069317960607679,
+      "retrieval": 0.254065
+    },
+    {
+      "rank": 239,
+      "name": "ibm-granite/granite-embedding-97m-multilingual-r2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-29",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.500947
+    },
+    {
+      "rank": 240,
+      "name": "deepvk/USER-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-10",
+      "mean_task": 0.4884698780487805,
+      "reranking": 0.391517,
+      "retrieval": 0.24315199999999998
+    },
+    {
+      "rank": 241,
+      "name": "sentence-transformers/sentence-t5-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 242,
+      "name": "minishlab/potion-base-2M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-29",
+      "mean_task": 0.4870834407957508,
+      "reranking": 0.40462098159651216,
+      "retrieval": 0.22994799999999999
+    },
+    {
+      "rank": 243,
+      "name": "Jaume/gemma-2b-embeddings",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-29",
+      "mean_task": 0.37718144504276213,
+      "reranking": 0.37343649999999995,
+      "retrieval": 0.078847
+    },
+    {
+      "rank": 244,
+      "name": "minishlab/M2V_base_output",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-21",
+      "mean_task": 0.48993722944975676,
+      "reranking": 0.39305326415729536,
+      "retrieval": 0.25357399999999997
+    },
+    {
+      "rank": 245,
+      "name": "minishlab/potion-multilingual-128M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-05-23",
+      "mean_task": null,
+      "reranking": 0.40329000000000004,
+      "retrieval": 0.240983
+    },
+    {
+      "rank": 246,
+      "name": "cnmoro/static-nomic-384-pten-v2-st",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-08-04",
+      "mean_task": 0.4864763658536585,
+      "reranking": 0.39693500000000004,
+      "retrieval": 0.252445
+    },
+    {
+      "rank": 247,
+      "name": "sergeyzh/rubert-tiny-turbo",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-21",
+      "mean_task": 0.4598470655733913,
+      "reranking": 0.3930725,
+      "retrieval": 0.186207
+    },
+    {
+      "rank": 248,
+      "name": "sentence-transformers/gtr-t5-xxl",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 249,
+      "name": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-unsup-simcse",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": 0.43627867130813874,
+      "retrieval": null
+    },
+    {
+      "rank": 250,
+      "name": "McGill-NLP/LLM2Vec-Llama-2-7b-chat-hf-mntp-unsup-simcse",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": 0.4321242623159566,
+      "retrieval": null
+    },
+    {
+      "rank": 251,
+      "name": "sentence-transformers/gtr-t5-xl",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 252,
+      "name": "BidirLM/BidirLM-270M-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 253,
+      "name": "Omartificial-Intelligence-Space/Arabic-mpnet-base-all-nli-triplet",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-15",
+      "mean_task": 0.41461050490202594,
+      "reranking": 0.365475,
+      "retrieval": 0.070178
+    },
+    {
+      "rank": 253,
+      "name": "cointegrated/rubert-tiny",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-05-24",
+      "mean_task": 0.4010163658536585,
+      "reranking": 0.3672525,
+      "retrieval": 0.063074
+    },
+    {
+      "rank": 255,
+      "name": "cointegrated/rubert-tiny2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-10-28",
+      "mean_task": 0.4156474390243902,
+      "reranking": 0.37421,
+      "retrieval": 0.091055
+    },
+    {
+      "rank": 256,
+      "name": "Omartificial-Intelligence-Space/Marbert-all-nli-triplet-Matryoshka",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-17",
+      "mean_task": 0.3976659506396052,
+      "reranking": 0.37451650000000003,
+      "retrieval": 0.046844
+    },
+    {
+      "rank": 257,
+      "name": "sentence-transformers/sentence-t5-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 258,
+      "name": "silma-ai/silma-embeddding-matryoshka-v0.1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-12",
+      "mean_task": 0.4009250301338436,
+      "reranking": 0.3760655,
+      "retrieval": 0.075416
+    },
+    {
+      "rank": 259,
+      "name": "DeepPavlov/distilrubert-small-cased-conversational",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-06-28",
+      "mean_task": 0.36611760975609753,
+      "reranking": 0.3521305,
+      "retrieval": 0.07083500000000001
+    },
+    {
+      "rank": 260,
+      "name": "mongodb/voyage-3.5",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-01-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 261,
+      "name": "Omartificial-Intelligence-Space/Arabert-all-nli-triplet-Matryoshka",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-16",
+      "mean_task": 0.39042342463565616,
+      "reranking": 0.379897,
+      "retrieval": 0.059603
+    },
+    {
+      "rank": 262,
+      "name": "Hum-Works/lodestone-base-4096-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-08-25",
+      "mean_task": null,
+      "reranking": 0.45404620235676085,
+      "retrieval": null
+    },
+    {
+      "rank": 263,
+      "name": "sentence-transformers/gtr-t5-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 264,
+      "name": "ai-forever/sbert_large_mt_nlu_ru",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-05-18",
+      "mean_task": 0.3550000243902439,
+      "reranking": 0.3663615,
+      "retrieval": 0.038169
+    },
+    {
+      "rank": 265,
+      "name": "DeepPavlov/rubert-base-cased-sentence",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2020-03-04",
+      "mean_task": 0.3532973414634146,
+      "reranking": 0.35920050000000003,
+      "retrieval": 0.033423999999999995
+    },
+    {
+      "rank": 266,
+      "name": "ai-forever/sbert_large_nlu_ru",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2020-11-20",
+      "mean_task": 0.3292892195121951,
+      "reranking": 0.3525805,
+      "retrieval": 0.031733
+    },
+    {
+      "rank": 267,
+      "name": "DeepPavlov/rubert-base-cased",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2020-03-04",
+      "mean_task": 0.30788297560975614,
+      "reranking": 0.3725945,
+      "retrieval": 0.023676999999999997
+    },
+    {
+      "rank": 268,
+      "name": "deepvk/deberta-v1-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-02-07",
+      "mean_task": 0.3289740731707317,
+      "reranking": 0.357922,
+      "retrieval": 0.021203
+    },
+    {
+      "rank": 269,
+      "name": "malenia1/ternary-weight-embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-10-23",
+      "mean_task": 0.32813273170731705,
+      "reranking": 0.357003,
+      "retrieval": 0.017824
+    },
+    {
+      "rank": 270,
+      "name": "sentence-transformers/gtr-t5-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-09",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 271,
+      "name": "mteb/baseline-random-encoder",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": null,
+      "mean_task": 0.13264697560975608,
+      "reranking": 0.307375,
+      "retrieval": 0.000637
+    },
+    {
+      "rank": 272,
+      "name": "geevec-ai/geevec-embeddings-1.0",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2026-04-02",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.687581
+    },
+    {
+      "rank": 273,
+      "name": "McGill-NLP/LLM2Vec-Sheared-LLaMA-mntp-unsup-simcse",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-04-09",
+      "mean_task": null,
+      "reranking": 0.41108983305463076,
+      "retrieval": null
+    },
+    {
+      "rank": 274,
+      "name": "infly/inf-retriever-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-24",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.64067
+    },
+    {
+      "rank": 275,
+      "name": "zeroentropy/zembed-1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-03-02",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 276,
+      "name": "geevec-ai/geevec-embeddings-1.0-lite",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-02",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.622267
+    },
+    {
+      "rank": 277,
+      "name": "infly/inf-retriever-v1-1.5b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-02-08",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": 0.60828
+    },
+    {
+      "rank": 278,
+      "name": "facebook/SONAR",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-05-21",
+      "mean_task": null,
+      "reranking": 0.3888361324474078,
+      "retrieval": null
+    },
+    {
+      "rank": 279,
+      "name": "keeeeenw/MicroLlama-text-embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-11-10",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 280,
+      "name": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2021-08-30",
+      "mean_task": null,
+      "reranking": 0.4699355,
+      "retrieval": null
+    },
+    {
+      "rank": 281,
+      "name": "consciousAI/cai-stellaris-text-embeddings",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-06-23",
+      "mean_task": null,
+      "reranking": 0.4566499428496644,
+      "retrieval": null
+    },
+    {
+      "rank": 282,
+      "name": "manveertamber/cadet-embed-base-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-05-11",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 283,
+      "name": "mteb/baseline-bm25s",
+      "model_type": "sparse",
+      "open_weights": true,
+      "release_date": "2026-05-06",
+      "mean_task": null,
+      "reranking": 0.365595,
+      "retrieval": 0.42072200000000004
+    },
+    {
+      "rank": 284,
+      "name": "lightonai/DenseOn",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 285,
+      "name": "lightonai/LateOn",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-04-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 286,
+      "name": "lightonai/mDenseOn",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-07-30",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 287,
+      "name": "lightonai/mLateOn",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-07-30",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 288,
+      "name": "lightonai/DenseOn-unsupervised",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 289,
+      "name": "lightonai/LateOn-unsupervised",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-04-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 290,
+      "name": "lightonai/ColBERT-Zero-unsupervised",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-02-19",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 291,
+      "name": "lightonai/GTE-ModernColBERT-v1",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2025-04-30",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 292,
+      "name": "lightonai/ColBERT-Zero-supervised",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-02-19",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 293,
+      "name": "lightonai/ColBERT-Zero",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2026-02-19",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 294,
+      "name": "openbmb/MiniCPM-Embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-04",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 295,
+      "name": "spartan8806/atles-champion-embedding",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-15",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 296,
+      "name": "mixedbread-ai/mxbai-embed-xsmall-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-08-13",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 297,
+      "name": "BeastyZ/e5-R-mistral-7b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-06-28",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 298,
+      "name": "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-gte",
+      "model_type": "sparse",
+      "open_weights": true,
+      "release_date": "2025-06-18",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 299,
+      "name": "opensearch-project/opensearch-neural-sparse-encoding-doc-v3-distill",
+      "model_type": "sparse",
+      "open_weights": true,
+      "release_date": "2025-03-28",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 300,
+      "name": "perplexity-ai/pplx-embed-v1-4b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-02-11",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 301,
+      "name": "mongodb/voyage-3-large",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-01-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 302,
+      "name": "MongoDB/mdbr-leaf-ir",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-08-27",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 303,
+      "name": "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
+      "model_type": "sparse",
+      "open_weights": true,
+      "release_date": "2024-07-17",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 304,
+      "name": "perplexity-ai/pplx-embed-v1-0.6b",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-02-11",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 305,
+      "name": "Singaraj/sante-embed",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-09-15",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 306,
+      "name": "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini",
+      "model_type": "sparse",
+      "open_weights": true,
+      "release_date": "2024-07-18",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 307,
+      "name": "dmedhi/PawanEmbd-68M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-12-08",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 308,
+      "name": "Querit/Querit-4B",
+      "model_type": "cross-encoder",
+      "open_weights": true,
+      "release_date": "2026-06-14",
+      "mean_task": null,
+      "reranking": 0.492015,
+      "retrieval": null
+    },
+    {
+      "rank": 309,
+      "name": "Querit/Querit",
+      "model_type": "cross-encoder",
+      "open_weights": true,
+      "release_date": "2026-05-14",
+      "mean_task": null,
+      "reranking": 0.48273,
+      "retrieval": null
+    },
+    {
+      "rank": 310,
+      "name": "openai/text-embedding-3-large (embed_dim=512)",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-01-25",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 311,
+      "name": "mongodb/voyage-3.5 (output_dtype=int8)",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-01-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 312,
+      "name": "NeuML/pubmedbert-base-embeddings-2M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-03",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 313,
+      "name": "NeuML/pubmedbert-base-embeddings-1M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-03",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 314,
+      "name": "openai/text-embedding-3-small (embed_dim=512)",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-01-25",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 315,
+      "name": "NeuML/pubmedbert-base-embeddings-8M",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-03",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 315,
+      "name": "mongodb/voyage-3.5 (output_dtype=binary)",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2025-01-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 317,
+      "name": "mongodb/voyage-multimodal-3",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2024-11-10",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 318,
+      "name": "McGill-NLP/AfriE5-Large-instruct",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-02-08",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 319,
+      "name": "NeuML/pubmedbert-base-embeddings-500K",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-03",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 320,
+      "name": "KFST/XLMRoberta-en-da-sv-nb",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2022-02-22",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 321,
+      "name": "NeuML/pubmedbert-base-embeddings-100K",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-01-03",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 322,
+      "name": "jinaai/jina-reranker-v3",
+      "model_type": "cross-encoder",
+      "open_weights": true,
+      "release_date": "2025-09-18",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 323,
+      "name": "nlpai-lab/KoE5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-24",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 324,
+      "name": "google/gemini-embedding-2-preview",
+      "model_type": "dense",
+      "open_weights": false,
+      "release_date": "2026-03-10",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 325,
+      "name": "KennethEnevoldsen/dfm-sentence-encoder-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-12",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 326,
+      "name": "dragonkue/multilingual-e5-small-ko",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-05-11",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 327,
+      "name": "telepix/PIXIE-Rune-v1.5",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2026-04-22",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 328,
+      "name": "dragonkue/snowflake-arctic-embed-l-v2.0-ko",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-03-07",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 329,
+      "name": "Omartificial-Intelligence-Space/Arabic-Triplet-Matryoshka-V2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-07-28",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 330,
+      "name": "dragonkue/BGE-m3-ko",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-09-17",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 331,
+      "name": "nlpai-lab/KURE-v1",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2024-12-18",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 332,
+      "name": "dragonkue/multilingual-e5-small-ko-v2",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-06-10",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 333,
+      "name": "andersborges/model2vecdk-stem",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 334,
+      "name": "andersborges/model2vecdk",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2025-11-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 335,
+      "name": "FacebookAI/xlm-roberta-large",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2019-11-05",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 336,
+      "name": "KennethEnevoldsen/dfm-sentence-encoder-medium",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2023-07-12",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 337,
+      "name": "FacebookAI/xlm-roberta-base",
+      "model_type": "dense",
+      "open_weights": true,
+      "release_date": "2019-11-05",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    },
+    {
+      "rank": 338,
+      "name": "colbert-ir/colbertv2.0",
+      "model_type": "late-interaction",
+      "open_weights": true,
+      "release_date": "2024-09-21",
+      "mean_task": null,
+      "reranking": null,
+      "retrieval": null
+    }
+  ]
+}
