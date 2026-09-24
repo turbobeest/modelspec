@@ -7,7 +7,10 @@ from failing the run, and a mark that now matches is stale.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+import pytest
 
 from pipeline.load import Model
 from scripts.chart_check import (
@@ -1077,7 +1080,6 @@ def test_pdf_source_pairs_by_document_hash():
 
 
 def test_phase2a_system_card_pdfs_use_the_manifest_digest():
-    manifest = load_manifest(Path("/Users/terbeest/dev/worktrees/.chart-cache/manifest-phase2a.tsv"))
     fixtures = {item["_slug"]: item for item in load_fixtures()}
     expected = {
         "anthropic-opus-5-5-system-card.pdf": "anthropic-claude-opus-5-5-system-card",
@@ -1086,6 +1088,14 @@ def test_phase2a_system_card_pdfs_use_the_manifest_digest():
         "anthropic-sonnet-5-system-card.pdf": "anthropic-claude-sonnet-5-system-card",
         "anthropic-opus-4-8-system-card.pdf": "anthropic-claude-opus-4-8-system-card",
     }
+    for slug in expected.values():
+        assert re.fullmatch(r"[0-9a-f]{64}", fixtures[slug]["document_sha256"])
+    # The chart cache holds the PDFs and lives outside the repository, so CI
+    # can only check the digests' shape.
+    manifest_path = Path("/Users/terbeest/dev/worktrees/.chart-cache/manifest-phase2a.tsv")
+    if not manifest_path.is_file():
+        pytest.skip("the chart cache is not on this machine")
+    manifest = load_manifest(manifest_path)
     for name, slug in expected.items():
         assert fixtures[slug]["document_sha256"] == manifest[name]
 
