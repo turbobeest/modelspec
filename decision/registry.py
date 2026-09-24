@@ -635,3 +635,21 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
 def default() -> Registry:
     """The repository's own registries, loaded once."""
     return load()
+
+
+# Module-level shortcuts over the default registry. Other `decision` modules
+# (the contract, the engine) call these rather than holding a Registry.
+def facet(id_: str) -> Facet:
+    return default().facet(id_)
+
+
+def provider(id_: str) -> Provider:
+    return default().provider(id_)
+
+
+def harness(id_: str) -> Harness:
+    return default().harness(id_)
+
+
+def domain(id_: str) -> Domain:
+    return default().domain(id_)

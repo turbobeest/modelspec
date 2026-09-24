@@ -388,3 +388,11 @@ def test_proxy_only_domains_are_never_tagged_direct(registry):
 def test_slice_1_domains_have_direct_benchmarks(benchmark, domain):
     card = next(BenchmarkCard.model_validate(b.front) for b in _tagged() if b.benchmark_id == benchmark)
     assert {"id": domain, "directness": "direct"} in [t.model_dump() for t in card.domains]
+
+
+def test_module_level_shortcuts_use_the_default_registry():
+    from decision import registry
+
+    assert registry.facet("origin.lab_jurisdiction").tier == "guaranteed"
+    with pytest.raises(KeyError):
+        registry.facet("no.such.facet")
