@@ -252,9 +252,9 @@ balance is the free answer plus `credits.exhausted`. Prices:
   `.ranking_policy.neutrality`, and `policy.neutrality` on every `/v1/rank`
   answer. No referral fees, no paid placement, no provider-paid visibility.
   As prose: [neutrality commitment](https://modelspec.dev/legal/neutrality/).
-* **Terms and privacy are in force** (version 1.0, effective 2026-09-19):
-  [terms of service](https://modelspec.dev/legal/terms/) and
-  [privacy statement](https://modelspec.dev/legal/privacy/).
+* **Terms and privacy are in force**, adopted 2026-09-19; each page states its
+  current version: [terms](https://modelspec.dev/legal/terms/),
+  [privacy](https://modelspec.dev/legal/privacy/).
 
 ## Stability
 

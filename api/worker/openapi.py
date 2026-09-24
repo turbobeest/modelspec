@@ -172,8 +172,8 @@ DESCRIPTIONS: dict[str, str] = {
     "RankResponse.policy.neutrality": (
         "The honest-broker commitment, as data: what ModelSpec takes no money for. The "
         "same object as https://modelspec.dev/api/rank/profiles.json .ranking_policy"
-        ".neutrality. The terms and privacy pages it links are unadopted drafts, not "
-        "terms in force."
+        ".neutrality. The terms, privacy statement and neutrality commitment it links are "
+        "adopted and in force (https://modelspec.dev/legal/)."
     ),
     "RankResponse.ranking_status": (
         "Whether every candidate could be ordered. `partial` is the normal state of the "
