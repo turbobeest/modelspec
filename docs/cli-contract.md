@@ -14,6 +14,12 @@ modelspec offline fit [<hardware-id>]     what a given machine can run, or list 
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
 
+`modelspec decide SPEC.yaml [--explain …] [--json]` is the decision engine's
+command (MODEL-135). It speaks the **decision contract**, which is versioned on
+its own (`contract_version`) and documented in
+[`decision-contract.md`](decision-contract.md); nothing on this page applies to
+it, and it changes nothing on this page.
+
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
 `--json`, `--require-fresh`, `--include-rehosts`.

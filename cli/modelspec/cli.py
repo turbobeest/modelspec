@@ -42,6 +42,12 @@ app = typer.Typer(
 app.add_typer(_offline.app, name="offline")
 app.add_typer(_offline.snapshot_app, name="snapshot")
 
+# The decision contract (MODEL-135). Parses and validates a spec; the engine
+# behind it lands in MODEL-141/142/145.
+from . import decide_cmd as _decide_cmd  # noqa: E402
+
+app.command("decide")(_decide_cmd.decide)
+
 console = Console()
 
 # ───────────────────────────────────────────────────────────────
