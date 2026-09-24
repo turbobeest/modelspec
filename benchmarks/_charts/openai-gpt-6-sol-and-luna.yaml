@@ -1,0 +1,122 @@
+page_url: "https://openai.com/index/introducing-gpt-6-sol-and-luna/"
+publisher: "OpenAI"
+read_on: "2026-09-24"
+charts:
+  - title: "AutomationBench selected points"
+    kind: html_table
+    footnotes: "The page prints one HTML table of selected points beside a scatter chart. AutomationBench 1.0.6 uses 47 tools. The Fable 5.1 cost omits Opus 5 fallbacks on about 40% of tasks. The scatter itself is drawn in the page and is listed separately."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-6 Sol (xhigh)"
+        model_id: "openai/gpt-6-sol"
+        benchmark_id: automationbench
+        score: 33.2
+        unit: "percent"
+        printed: true
+        configuration: "xhigh effort"
+        role: subject
+      - model_as_labelled: "GPT-6 Astra (low)"
+        model_id: "openai/gpt-6-astra"
+        benchmark_id: automationbench
+        score: 30.3
+        unit: "percent"
+        printed: true
+        configuration: "low effort"
+        role: subject
+      - model_as_labelled: "Claude Opus 5 (max)"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: automationbench
+        score: 26.9
+        unit: "percent"
+        printed: true
+        configuration: "max effort"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5.1 w/ Opus 5 Fallback (max)"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: automationbench
+        score: 31.4
+        unit: "percent"
+        printed: true
+        configuration: "max effort, Opus 5 fallback"
+        role: competitor
+  - title: "OSWorld 2.0 offline, stated in prose"
+    kind: text
+    footnotes: "Partial reward on the offline set from the v2026.08.08 release. Stated in the post, not printed on a chart image."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-6 Sol"
+        model_id: "openai/gpt-6-sol"
+        benchmark_id: osworld
+        score: 60.5
+        unit: "percent"
+        printed: true
+        configuration: "xhigh effort, OSWorld 2.0 offline, partial reward, v2026.08.08"
+        role: subject
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: osworld
+        score: 60.3
+        unit: "percent"
+        printed: true
+        configuration: "medium effort, OSWorld 2.0 offline, partial reward"
+        role: competitor
+  - title: "AutomationBench scatter"
+    kind: text
+    needs_reading: true
+    footnotes: "Interactive chart. Axis ticks and legend are in the page; point values are not printed except the selected points in the HTML table."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      []
+  - title: "Agents' Last Exam, FrontierCode, DeepSWE, factuality and deception charts"
+    kind: text
+    footnotes: "The drawn charts do not print point values. The bars are the figures the prose states."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-6 Sol"
+        model_id: "openai/gpt-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: "Max effort."
+        role: subject
+      - model_as_labelled: "GPT-6 Sol"
+        model_id: "openai/gpt-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 68.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort."
+        role: subject
+      - model_as_labelled: "Claude Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: "xhigh."
+        role: competitor
+      - model_as_labelled: "GPT-6 Luna"
+        model_id: "openai/gpt-6-luna"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 66.6
+        unit: "percent"
+        printed: true
+        configuration: "Max effort."
+        role: subject
