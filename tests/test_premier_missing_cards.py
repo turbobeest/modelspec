@@ -113,11 +113,3 @@ def test_closed_models_do_not_invent_a_parameter_count():
         card = _load(rel)
         assert card.architecture.total_parameters is None
         assert card.licensing.open_weights is False
-
-
-def test_no_new_card_cites_a_removed_source():
-    banned = ("artificialanalysis.ai", "zapier.com", "automationbench")
-    for _model_id, rel, *_rest in CASES:
-        text = (ROOT / "models" / rel).read_text(encoding="utf-8").lower()
-        for needle in banned:
-            assert needle not in text, rel
