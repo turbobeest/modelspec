@@ -38,3 +38,6 @@ benchmarks/_curation/drafts/
 api/worker/python_modules/
 # Wrangler's local state and cache, written by `wrangler dev`.
 .wrangler/
+
+# Chart screenshots a browser reader wrote into the checkout.
+.playwright-mcp/

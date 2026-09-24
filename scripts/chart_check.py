@@ -966,6 +966,13 @@ _MODEL_ALIASES = {
 # Longer phrases first. A version marker "v" before a digit is already gone.
 # "gdpval aa 2" stays "gdpval aa 2". v2 and v2.1 are different benchmarks.
 _BENCH_ALIASES = (
+    ("internal computer use safety benchmark w autoreview", "computer use safety autoreview"),
+    ("computer use safety with autoreview", "computer use safety autoreview"),
+    ("computer use safety w autoreview", "computer use safety autoreview"),
+    ("internal computer use safety benchmark", "computer use safety"),
+    ("internal circumvention benchmark", "circumvention"),
+    ("internal hallucination benchmark", "hallucination"),
+    ("artificial analysis coding agent index", "coding agent index"),
     ("humanity s last exam with tools", "hle tools"),
     ("humanity s last exam tools", "hle tools"),
     ("humanity s last exam", "hle"),
@@ -1080,6 +1087,7 @@ _GLOSS = {
     "agentic", "coding", "analyst", "financial", "multidisciplinary", "biology", "real",
     "world", "capabilities", "computer", "use", "except", "readme", "names", "another",
     "where", "agents", "minimal", "passed", "stacked", "axis", "not",
+    "metric",
     "prose", "open", "cost", "objectives", "completed", "objective", "met",
     "guardrail", "violation", "zeroes", "held", "out", "set", "share",
     "every", "no", "benchmark",
@@ -1087,6 +1095,20 @@ _GLOSS = {
 _SCAFFOLDS = {
     "claudecode", "codex", "dshminimal", "dshstandard", "dshptc", "miniswe", "opencode", "pi",
 }
+# A harness phrase collapses to one token. A shorter phrase follows the longer one.
+_HARNESS_PHRASES = (
+    ("codex-like developer message", "codex"),
+    ("codex like developer message", "codex"),
+    ("responses api harness", "responsesapi"),
+    ("responses api", "responsesapi"),
+    ("without the 6-hour time limit", "nocap"),
+    ("without the 6 hour time limit", "nocap"),
+    ("no 6-hour time limit", "nocap"),
+    ("no 6 hour time limit", "nocap"),
+    ("no 6-hour cap", "nocap"),
+    ("no 6 hour cap", "nocap"),
+)
+_HARNESS_TOKENS = frozenset(name for _, name in _HARNESS_PHRASES)
 _EFFORT = {"max", "high", "xhigh", "low", "medium"}
 
 
@@ -1116,15 +1138,30 @@ def _basic_label(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _split_outside_parens(text: str) -> tuple[str, str]:
+    """A setting after ' - ' belongs with the metric. A dash inside parentheses does not."""
+    depth = 0
+    found = -1
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0 and text.startswith(" - ", index):
+            found = index
+    if found < 0:
+        return text, ""
+    return text[:found].strip(), text[found + 3 :].strip()
+
+
 def _benchmark_parts(value: Any) -> tuple[str, str]:
     """Drop a section header. A row setting after ' - ' belongs with the metric."""
     text = _present(value)
     if " / " in text:
         text = text.split(" / ", 1)[1].strip()
-    extra = ""
-    if " - " in text:
-        text, extra = text.rsplit(" - ", 1)
-        text, extra = text.strip(), extra.strip()
+    text, extra = _split_outside_parens(text)
+    text = re.sub(r"\blower is better\b", " ", text, flags=re.I)
+    text = re.sub(r"\(\s*score\s*\)", " ", text, flags=re.I)
     text = re.sub(r"\((?:partial\s*/\s*strict|strict\s*/\s*partial)\)", " ", text, flags=re.I)
     return text, extra
 
@@ -1251,6 +1288,18 @@ def _one_effort(model_efforts: list[str], metric_efforts: list[str]) -> str:
     return ""
 
 
+def _with_caption_version(benchmark: str, notes: str) -> str:
+    """A caption that names one dotted version of an unversioned benchmark supplies it."""
+    text = str(benchmark or "")
+    label = _basic_label(text)
+    if not label or re.search(r"\d", label):
+        return text
+    found = set(re.findall(rf"\b{re.escape(label)}\s+(\d+\.\d+)\b", _basic_label(notes)))
+    if len(found) != 1:
+        return text
+    return f"{text} {found.pop()}"
+
+
 def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
     """GDPval-AA v2 stays v2. v2.1 and AA-Briefcase v1.1 stay on the benchmark."""
     if re.search(r"\d", bench):
@@ -1271,7 +1320,34 @@ def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
 
 def canon_benchmark(value: Any) -> str:
     text = _join_version(_basic_label(value))
+    text = re.sub(r"\baug\b", "august", text)
     return _apply_aliases(text, _BENCH_ALIASES)
+
+
+def _prepare_setting(value: Any) -> str:
+    """Drop how a cell was read. Keep effort and harness, spelled the same on both sides."""
+    raw = str(value or "")
+    found: list[str] = []
+    for phrase, name in _HARNESS_PHRASES:
+        if phrase in raw.casefold():
+            found.append(name)
+            raw = re.sub(re.escape(phrase), " ", raw, flags=re.I)
+    raw = re.sub(r"footnote\s*\d+\s*:.*", " ", raw, flags=re.I | re.S)
+    raw = re.sub(r"\(table note\)", " ", raw, flags=re.I)
+    raw = re.sub(r"table value\s*=", " ", raw, flags=re.I)
+    raw = re.sub(r"\(in row label\)", " ", raw, flags=re.I)
+    raw = re.sub(r"\bbar label\b", " ", raw, flags=re.I)
+    raw = re.sub(r"cost per task\s*:.*", " ", raw, flags=re.I | re.S)
+    raw = re.sub(r"\bmaximum at any effort\b", " ", raw, flags=re.I)
+    raw = re.sub(r"\bmaximum\b", "max", raw, flags=re.I)
+    if found:
+        raw = f"{raw} {' '.join(dict.fromkeys(found))}"
+    return raw
+
+
+def _is_tooltip(footnotes: Any, metric: Any) -> bool:
+    blob = f"{footnotes or ''} {metric or ''}".casefold()
+    return "tooltip" in blob or "hover" in blob
 
 
 def _prose_number(token: str) -> bool:
@@ -1321,6 +1397,7 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     model_key = _finish_model(model_body)
     bench_body, row_extra = _benchmark_parts(benchmark)
     metric_bits = " ".join(bit for bit in (str(metric or ""), row_extra) if str(bit).strip())
+    metric_bits = _prepare_setting(metric_bits)
     bench = _mark_settings(canon_benchmark(bench_body))
     metric_text = _mark_settings(_basic_label(metric_bits))
     metric_text, metric_efforts = _peel_effort_tokens(metric_text)
@@ -1377,6 +1454,7 @@ def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
         benchmark = item.get("benchmark_as_labelled") or item.get("benchmark_id") or ""
         metric = item.get("metric_or_setting") if "metric_or_setting" in item else _metric_setting(item)
         model = item.get("model_as_labelled") or ""
+    benchmark = _with_caption_version(benchmark, item.get("chart_notes") or "")
     parsed = parse_score(item.get("score"))
     text = item.get("score_text")
     if text is None or text == "":
@@ -1399,6 +1477,7 @@ def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
         "bar_index": item.get("bar_index"),
         "chart_index": item.get("chart_index"),
         "chart": item.get("chart") or "",
+        "tooltip": bool(item.get("tooltip")),
     }
 
 
@@ -1452,6 +1531,7 @@ def _pair_record(
             "score_text": a_item.get("score_text"),
             "unit": a_item.get("unit") or "",
             "printed": a_item.get("printed"),
+            "tooltip": bool(a_item.get("tooltip")),
         },
         "b": None
         if not b_item
@@ -1460,6 +1540,7 @@ def _pair_record(
             "score_text": b_item.get("score_text"),
             "unit": b_item.get("unit") or "",
             "printed": b_item.get("printed"),
+            "tooltip": bool(b_item.get("tooltip")),
             "uncertainty": b_item.get("uncertainty"),
         },
     }
@@ -1472,6 +1553,11 @@ def _effort_conflict(a_item: dict[str, Any], b_item: dict[str, Any]) -> bool:
     a_eff = _EFFORT.intersection(a_toks)
     b_eff = _EFFORT.intersection(b_toks)
     if a_eff and b_eff and a_eff != b_eff:
+        return True
+    harness = _HARNESS_TOKENS | _SCAFFOLDS
+    a_harness = harness.intersection(a_toks)
+    b_harness = harness.intersection(b_toks)
+    if a_harness and b_harness and a_harness != b_harness:
         return True
     # "raw" on one side is a different HealthBench number from the summary row.
     return ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks)
@@ -1523,6 +1609,9 @@ def _pair_rows(
         group = a_by3.get(key) or []
         other = b_by3.get(key) or []
         count = min(len(group), len(other))
+        # A table cell and a hover point can share a setting. Pair the printed cell first.
+        group.sort(key=lambda row: (1 if row.get("tooltip") else 0, row.get("chart_index") or 0))
+        other.sort(key=lambda row: (1 if row.get("tooltip") else 0, row.get("chart_index") or 0))
         for index in range(count):
             pairs.append(
                 _pair_record(
@@ -1550,18 +1639,23 @@ def _a_rows(charts: list[tuple[int, dict[str, Any]]]) -> list[dict[str, Any]]:
             item["bar_index"] = bar_index
             item["chart_index"] = chart_index
             item["chart"] = chart.get("title") or ""
+            item["chart_notes"] = chart.get("footnotes") or ""
+            item["tooltip"] = _is_tooltip(chart.get("footnotes"), item.get("configuration"))
             rows.append(_reading_row(item, side="a"))
     return rows
 
 
 def _b_rows(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = []
-    for chart in charts:
+    for chart_index, chart in enumerate(charts):
         for item in chart.get("items") or []:
             if not isinstance(item, dict):
                 continue
             copied = dict(item)
             copied["chart"] = chart.get("title") or ""
+            copied["chart_index"] = chart_index
+            copied["chart_notes"] = chart.get("footnotes") or ""
+            copied["tooltip"] = _is_tooltip(chart.get("footnotes"), item.get("metric_or_setting"))
             rows.append(_reading_row(copied, side="b"))
     return rows
 

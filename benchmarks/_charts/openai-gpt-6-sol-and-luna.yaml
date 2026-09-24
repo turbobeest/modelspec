@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Sol (xhigh)"
         model_id: "openai/gpt-6-sol"
@@ -40,7 +42,7 @@ charts:
         score: 31.4
         unit: "percent"
         printed: true
-        configuration: "max effort, Opus 5 fallback"
+        configuration: "max effort"
         role: competitor
   - title: "OSWorld 2.0 offline, stated in prose"
     kind: text
@@ -49,22 +51,26 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Sol"
         model_id: "openai/gpt-6-sol"
         benchmark_id: osworld
+        benchmark_as_labelled: "OSWorld 2.0, offline set"
         score: 60.5
         unit: "percent"
         printed: true
-        configuration: "xhigh effort, OSWorld 2.0 offline, partial reward, v2026.08.08"
+        configuration: "xhigh effort"
         role: subject
       - model_as_labelled: "Claude Opus 5"
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
+        benchmark_as_labelled: "OSWorld 2.0, offline set"
         score: 60.3
         unit: "percent"
         printed: true
-        configuration: "medium effort, OSWorld 2.0 offline, partial reward"
+        configuration: "medium effort"
         role: competitor
   - title: "AutomationBench scatter"
     kind: text
@@ -74,6 +80,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       []
   - title: "Agents' Last Exam, FrontierCode, DeepSWE, factuality and deception charts"
@@ -82,6 +90,8 @@ charts:
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Sol"

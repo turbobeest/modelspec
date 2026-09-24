@@ -480,3 +480,13 @@ The Grok 4.5 page prints 78.9, labelled max. The Opus 4.8 card prints 66.1, labe
 The Grok 4.5 page prints 80.4, labelled Fable max, resolve rate. The Opus 5 card prints 80 for Fable 5 on SWE-bench Pro. Both readers recorded both. The Grok label is Fable. The Opus 5 card label is Fable 5.
 
 `anthropic/claude-fable-5` has no `swe_bench_pro` row. `anthropic/claude-fable-5-1` holds `swe_bench_pro` 81.2, `source_kind: provider_self_report`, from its own system card.
+
+## OpenAI second reading
+
+Reader B (claude-opus, 2026-09-24) read both OpenAI pages in a browser. Before this pairing change the two pages were agree 40, disagree 0, only_a 109, only_b 735. After it they are agree 149, disagree 0, only_a 0, only_b 626. Every paired value agrees. There is no disagreement between two printed numbers, and no disagreement between two hover-tooltip numbers. The OpenAI charts now record reader B. No bar is `disputed`. The checker classes are unchanged: matched 53, other_configuration 9, mismatched 0, unit_differs 2, other_metric 6, no_benchmark_page 604, not_held 898, competitor_gap 11, competitor_unresolved 14.
+
+Reader B's Astra file says the Coding table prints "-" for Claude Opus 5 on Internal Database Migration Tasks, and the chart on that page plots Opus 5 at 61.1%. That 61.1% is the dashed score-only line on the Database Migration chart. Reader A's fixture has no Internal Database Migration row and no 61.1.
+
+The Coding table's FrontierCode 1.1 Extended cell for Claude Opus 5 is 63.6%. On the FrontierCode 1.1 Extended chart the Medium point is 63.6%. Low is 55.8%, High is 58.5%, Xhigh is 56.9%, and Max is 58.9%. Reader A's fixture holds 63.6% for that table cell, for Claude Opus 5 and for Claude Fable 5.1. It does not hold the other effort points.
+
+Agents' Last Exam, Claude Opus 5 at high effort, is 55.2% on the Astra page and 55.9% on the Sol and Luna page. GPT-5.6 Sol at max effort is 52.7% on the Astra page and 52.8% on the Sol and Luna page. Reader A's fixture does not hold these four chart points. The 55.9 in the Astra fixture is GPT-5.6 Sol on SRE-Bench. The Sol and Luna fixture holds GPT-6 Sol at max effort, 56.4%, which is a different point and agrees with reader B.

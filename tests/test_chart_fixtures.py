@@ -1108,3 +1108,187 @@ def test_disputed_bar_is_not_a_match():
     report = classify_fixtures([marked], [model])
     assert report["charts_detail"][0]["bars"][0]["status"] == "disputed"
     assert mismatch_errors(report) == []
+
+
+def test_table_cells_pair_across_chart_titles_on_the_same_page():
+    fixture = _one_bar_fixture(
+        "GPT-6 Astra",
+        "Terminal-Bench 4.0",
+        score=57.9,
+        score_text="57.9",
+        configuration="Maximum at any effort.",
+    )
+    fixture["charts"][0]["title"] = "Coding"
+    reading = _one_reading(
+        "GPT-6 Astra",
+        "Terminal-Bench 4.0",
+        score=57.9,
+        metric_or_setting="table value = maximum at any effort (table note)",
+    )
+    reading["charts"][0]["title"] = "Results table: Coding"
+    assert _classes(fixture, reading) == ["agree"]
+    other = _one_bar_fixture("GPT-6 Astra", "Terminal-Bench 4.0", score=57.9, score_text="57.9")
+    other["page_url"] = "https://example.com/other"
+    apart = reconcile_readings([other], [reading], {})
+    assert apart["by_class"]["unpaired_source"] == 1
+    assert apart["by_class"].get("agree", 0) == 0
+
+
+def test_effort_phrases_normalise_and_a_table_cell_stays_off_a_tooltip_effort():
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "Terminal-Bench 4.0", score=57.9, score_text="57.9", configuration="max effort"),
+        _one_reading("GPT-6 Astra", "Terminal-Bench 4.0", score=57.9, metric_or_setting="reasoning effort: Max"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("GPT-6 Sol", "AutomationBench", score=33.2, score_text="33.2", configuration="xhigh effort"),
+        _one_reading(
+            "GPT-6 Sol",
+            "AutomationBench",
+            score=33.2,
+            metric_or_setting="effort: xhigh (in row label); cost per task: $0.27",
+        ),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "DeepSWE", score=1, score_text="1", configuration="max effort"),
+        _one_reading("GPT-6 Astra", "DeepSWE", score=1, metric_or_setting="effort: maximum (caption)"),
+    ) == ["agree"]
+    fixture = _one_bar_fixture(
+        "Claude Opus 5",
+        "FrontierCode 1.1 Extended",
+        score=63.6,
+        score_text="63.6",
+        configuration="Maximum at any effort.",
+    )
+    reading = _one_reading("Claude Opus 5", "FrontierCode 1.1 Extended", score=63.6, metric_or_setting="reasoning effort: Medium")
+    reading["charts"][0]["items"].append(
+        {
+            "model_as_labelled": "Claude Opus 5",
+            "benchmark_as_labelled": "FrontierCode 1.1 Extended",
+            "score": 70,
+            "metric_or_setting": "reasoning effort: Max",
+            "printed": True,
+        }
+    )
+    assert sorted(_classes(fixture, reading)) == ["only_a", "only_b", "only_b"]
+
+
+def test_harness_phrases_normalise_and_different_harnesses_stay_apart():
+    assert _classes(
+        _one_bar_fixture(
+            "GPT-6 Astra",
+            "FrontierCode 1.1 Extended",
+            score=64.5,
+            score_text="64.5",
+            configuration="Codex-like developer message",
+        ),
+        _one_reading(
+            "GPT-6 Astra",
+            "FrontierCode 1.1 Extended (score)",
+            score=64.5,
+            metric_or_setting="table value = maximum at any effort (table note); footnote 8: Astra run with a Codex-like developer message",
+        ),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "ARC-AGI-3", score=99.9, score_text="99.9", configuration="responses API harness"),
+        _one_reading(
+            "GPT-6 Astra",
+            "ARC-AGI-3",
+            score=99.9,
+            metric_or_setting="footnote 1: Astra run with OpenAI's responses API harness (two settings changed)",
+        ),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "ExploitGym", score=42.4, score_text="42.4", configuration="no 6-hour cap"),
+        _one_reading(
+            "GPT-6 Astra",
+            "ExploitGym",
+            score=42.4,
+            metric_or_setting="footnote 13: run without the 6-hour time limit",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "Terminal-Bench 2.1", configuration="Codex-like developer message"),
+            _one_reading("Opus 5", "Terminal-Bench 2.1", metric_or_setting="claude code"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_version_labels_have_to_agree():
+    assert _classes(
+        _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1, score_text="63.1"),
+        _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1"),
+            _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.2"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "FrontierCode 1.1 Extended"),
+        _one_reading("Opus 5", "FrontierCode 1.1 Extended (score)"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "FrontierCode 1.1 Extended"),
+            _one_reading("Opus 5", "FrontierCode 1.1 Main"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "ExploitBench June-August 2026"),
+        _one_reading("Opus 5", "ExploitBench (June-Aug 2026)"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "ExploitBench June-August 2026"),
+            _one_reading("Opus 5", "ExploitBench June-August 2025"),
+        )
+    ) == ["only_a", "only_b"]
+    captioned = _one_reading("GPT-6 Sol", "DeepSWE", score=68.8, metric_or_setting="reasoning effort: max")
+    captioned["charts"][0]["footnotes"] = "Caption identifies DeepSWE 1.1."
+    assert _classes(
+        _one_bar_fixture("GPT-6 Sol", "DeepSWE v1.1", score=68.8, score_text="68.8", configuration="Max effort."),
+        captioned,
+    ) == ["agree"]
+    both = _one_reading("GPT-6 Sol", "DeepSWE", metric_or_setting="max")
+    both["charts"][0]["footnotes"] = "DeepSWE 1.1 and DeepSWE 1.2 are both named."
+    assert sorted(
+        _classes(_one_bar_fixture("GPT-6 Sol", "DeepSWE v1.1", configuration="max"), both)
+    ) == ["only_a", "only_b"]
+
+
+def test_openscore_dash_stays_on_the_benchmark_and_internal_names_pair():
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "OpenScore String Quartets (1 - OMR-NED)", score=0.84, score_text="0.84"),
+        _one_reading("GPT-6 Astra", "OpenScore String Quartets (1 - OMR-NED)", score=0.84),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("GPT-6 Astra", "Computer-use safety", score=2.4, score_text="2.4"),
+        _one_reading("GPT-6 Astra", "Internal computer use safety benchmark (lower is better)", score=2.4),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("GPT-6 Astra", "Computer-use safety"),
+            _one_reading("GPT-6 Astra", "Internal computer use safety benchmark, w/ AutoReview (lower is better)"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_openai_fixture_settings_name_the_harness_and_the_version():
+    astra = (CHARTS / "openai-gpt-6-astra.yaml").read_text(encoding="utf-8")
+    sol = (CHARTS / "openai-gpt-6-sol-and-luna.yaml").read_text(encoding="utf-8")
+    for gone in (
+        "Codex-like developer message for Astra",
+        "Responses API harness for Astra",
+        "Tier 4, v2",
+        "No 6-hour cap for Astra and Sol",
+        "max effort, Opus 5 fallback",
+    ):
+        assert gone not in astra
+        assert gone not in sol
+    assert 'benchmark_as_labelled: "FrontierCode 1.1 Extended"' in astra
+    assert 'benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"' in astra
+    assert 'configuration: "Codex-like developer message"' in astra
+    assert 'configuration: "responses API harness"' in astra
+    assert 'configuration: "no 6-hour cap"' in astra
