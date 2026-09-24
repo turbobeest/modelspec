@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-Flash-Next"
         model_id: qwen/qwen3-8-flash-next
@@ -522,6 +524,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-Flash-Next"

@@ -11,6 +11,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Pro"
         model_id: google/gemini-3-1-pro-preview
@@ -123,6 +125,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Flash-Lite"
         model_id: google/gemini-3-1-flash-lite
@@ -164,6 +168,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3 Flash"
@@ -208,6 +214,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Mythos Preview"

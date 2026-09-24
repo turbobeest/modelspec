@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma 4 31B"
         model_id: google/gemma-4-31b-it

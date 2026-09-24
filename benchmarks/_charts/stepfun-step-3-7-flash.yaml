@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Step 3.7 Flash"
         model_id: "stepfun/step-3-7-flash"
@@ -968,6 +970,8 @@ charts:
     competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Step 3.7 Flash"

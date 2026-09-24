@@ -197,6 +197,13 @@ def parse_score(score: Any) -> ParsedScore:
         return ParsedScore("blank", None, text, None)
     match = _SCORE_VALUE.match(text)
     if match is None:
+        # ``1415.8 (ii 45.8%)`` prints the Elo and the index in one cell.
+        lead = re.match(
+            r"^\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*\(",
+            text,
+        )
+        if lead:
+            return parse_score(lead.group(1))
         return ParsedScore("unparsed", None, text, None)
     number = match.group("number").replace(",", "")
     frac = match.group("frac") or ""
@@ -948,6 +955,27 @@ def load_manifest(path: Path) -> dict[str, str]:
     return found
 
 
+def _manifest_digest(manifest: dict[str, str], source: str) -> str:
+    """A cache stem and the same name with an extension are one file.
+
+    Two manifest rows that share a stem and carry different digests do not pair.
+    """
+    if source in manifest:
+        return manifest[source].lower()
+    name = source.rsplit("/", 1)[-1]
+    stem = name.rsplit(".", 1)[0] if "." in name else name
+    hits: list[str] = []
+    for key, digest in manifest.items():
+        key_name = key.rsplit("/", 1)[-1]
+        key_stem = key_name.rsplit(".", 1)[0] if "." in key_name else key_name
+        if key_name == name or key_stem == stem:
+            hits.append(digest.lower())
+    unique = list(dict.fromkeys(hits))
+    if len(unique) == 1:
+        return unique[0]
+    return ""
+
+
 def _metric_setting(bar: dict[str, Any]) -> str:
     metric = str(bar.get("metric") or "").strip()
     if metric:
@@ -996,6 +1024,13 @@ _BENCH_ALIASES = (
     ("arena hard", "arenahard"),
     ("automation bench", "automationbench"),
     ("simple qa", "simpleqa"),
+    ("big bench extra hard", "bbeh"),
+    ("deepmind mrcr", "mrcr"),
+    ("hle with search", "hle tools"),
+    ("arena text", "arena"),
+    ("deepsearchqa f 1", "deepsearchqa"),
+    ("charxiv reasoning", "charxiv rq"),
+    ("hle full", "hle"),
     ("hle w tools", "hle tools"),
     ("hle with tools", "hle tools"),
     ("osworld 2", "osworld"),
@@ -1040,9 +1075,10 @@ _QUALIFIERS = (
     ("passall", "passall"),
     ("pass1", "pass1"),
     ("pass3", "pass3"),
+    ("pass5", "pass5"),
     ("turns", "turns"),
 )
-_PASS_QUALIFIERS = {"pass1", "pass3", "passall"}
+_PASS_QUALIFIERS = {"pass1", "pass3", "pass5", "passall"}
 _EFFORT_PHRASES = (
     ("maximum effort", "max"),
     ("max effort", "max"),
@@ -1117,6 +1153,10 @@ def _present(value: Any) -> str:
     text = str(value or "")
     text = text.replace("**", " ").replace("__", " ").replace("~~", " ").replace("*", " ")
     text = text.replace("\u0332", "")
+    # τ³ and the doubled TeX form τ3\tau^{3} are one benchmark name. A trailing ¹ is a footnote.
+    text = re.sub(r"τ\s*3\s*\\tau\s*\^\s*\{?\s*3\s*\}?", " tau3 ", text, flags=re.I)
+    text = re.sub(r"\\tau\s*\^\s*\{?\s*3\s*\}?", " tau3 ", text, flags=re.I)
+    text = text.replace("τ³", " tau3 ").replace("τ3", " tau3 ").replace("τ", " tau ")
     text = re.sub(r"(?i)pass\s*[\^³]\s*3", " passall ", text)
     text = re.sub(r"\[\d+\]", " ", text)
     text = text.translate({ord(ch): None for ch in "⁰¹²³⁴⁵⁶⁷⁸⁹"})
@@ -1133,7 +1173,8 @@ def _basic_label(value: Any) -> str:
     text = re.sub(r"([a-z])(\d)", r"\1 \2", text)
     text = re.sub(r"(\d)([a-z])", r"\1 \2", text)
     text = re.sub(r"(\d{4})\.(\d{2})", r"\1 \2", text)
-    text = re.sub(r"\b(\d+)\.0+\b", r"\1", text)
+    # ``2.0`` is ``2``. ``1.0.6`` keeps the middle zero; the dot after it is another component.
+    text = re.sub(r"\b(\d+)\.0+(?!\.\d)\b", r"\1", text)
     text = text.replace("w o ", "without ")
     return re.sub(r"\s+", " ", text).strip()
 
@@ -1168,7 +1209,7 @@ def _benchmark_parts(value: Any) -> tuple[str, str]:
 
 def _join_version(text: str) -> str:
     text = re.sub(r"\b(\d{1,2}) (\d)\b", r"\1.\2", text)
-    return re.sub(r"\b(\d+)\.0+\b", r"\1", text)
+    return re.sub(r"\b(\d+)\.0+(?!\.\d)\b", r"\1", text)
 
 
 def _apply_aliases(text: str, aliases: tuple[tuple[str, str], ...]) -> str:
@@ -1180,6 +1221,10 @@ def _apply_aliases(text: str, aliases: tuple[tuple[str, str], ...]) -> str:
 
 def _mark_settings(text: str) -> str:
     """One token for a setting, so 'no tools' and 'w/o tool use' compare equal."""
+    text = text.replace("multimodal", "mm")
+    text = text.replace("with python tools", "tools")
+    text = text.replace("python tools", "tools")
+    text = text.replace("tool augmentation", "tools")
     text = text.replace("without tool use", "notools")
     text = text.replace("no tool use", "notools")
     text = text.replace("without tools", "notools")
@@ -1191,8 +1236,10 @@ def _mark_settings(text: str) -> str:
     text = text.replace("all trials correct", "passall")
     text = text.replace("average turns", "turns")
     text = text.replace("avg turns", "turns")
+    text = text.replace("pass at 5", "pass5")
     text = text.replace("pass at 3", "pass3")
     text = text.replace("pass at 1", "pass1")
+    text = re.sub(r"\bpass 5\b", "pass5", text)
     text = re.sub(r"\bpass 3\b", "pass3", text)
     text = re.sub(r"\bpass 1\b", "pass1", text)
     return re.sub(r"\s+", " ", text).strip()
@@ -1247,6 +1294,8 @@ def _peel_model(text: str) -> tuple[str, list[str], list[str]]:
 
 
 def _finish_model(text: str) -> str:
+    # ``Claude-opus-4-8`` and ``Claude Opus 4.8`` are one product.
+    text = _join_version(text)
     if text.startswith("ds "):
         text = "deepseek " + text[3:]
     parts = text.split()
@@ -1294,10 +1343,50 @@ def _with_caption_version(benchmark: str, notes: str) -> str:
     label = _basic_label(text)
     if not label or re.search(r"\d", label):
         return text
-    found = set(re.findall(rf"\b{re.escape(label)}\s+(\d+\.\d+)\b", _basic_label(notes)))
+    found = set(re.findall(rf"\b{re.escape(label)}\s+(\d+(?:\.\d+)+)\b", _basic_label(notes)))
     if len(found) != 1:
         return text
     return f"{text} {found.pop()}"
+
+
+def _marked_version(benchmark: Any, metric: Any) -> str:
+    """A lowercase ``v6`` on the benchmark, or in a short setting. ``V4`` is a model."""
+    in_name = set(re.findall(r"(?<![A-Za-z])v(\d+(?:\.\d+)*)\b", str(benchmark or "")))
+    setting = str(metric or "").strip()
+    in_setting: set[str] = set()
+    if len(setting) <= 80:
+        in_setting = set(re.findall(r"(?<![A-Za-z])v(\d+(?:\.\d+)*)\b", setting))
+    found = in_name | in_setting
+    if len(found) != 1:
+        return ""
+    version = found.pop()
+    return re.sub(r"(\d+)\.0+(?!\.\d)$", r"\1", version)
+
+
+def _slice_tokens_for(bench_tokens: list[str]) -> frozenset[str]:
+    """Language codes only on the benchmarks that print them. ``it`` is also an English word."""
+    stem = set(bench_tokens)
+    allowed: set[str] = set()
+    if stem & {"covost", "fleurs", "mtob"}:
+        allowed |= {"en", "de", "fr", "es", "it", "ja", "ru", "zh", "ko", "hi", "ar", "pt", "br", "eng", "kgv", "asr", "avg"}
+    if "tau" in stem:
+        allowed |= {"airline", "retail", "telecom"}
+    if "medxpertqa" in stem:
+        allowed.add("mm")
+    return frozenset(allowed)
+
+
+def _fold_slices(bench: str, metric_key: str) -> tuple[str, str]:
+    """Language and domain tokens are part of the benchmark, wherever they were written."""
+    bench_tokens = bench.split()
+    allowed = _slice_tokens_for(bench_tokens)
+    if not allowed:
+        return bench, metric_key
+    moved = [tok for tok in metric_key.split() if tok in allowed]
+    kept = [tok for tok in metric_key.split() if tok not in allowed]
+    head = [tok for tok in bench_tokens if tok not in allowed]
+    slices = sorted({tok for tok in bench_tokens if tok in allowed} | set(moved))
+    return " ".join([*head, *slices]), " ".join(kept)
 
 
 def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
@@ -1315,13 +1404,25 @@ def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
         bench = f"{stem} {version}"
         metric = padded.replace(f" {stem} {version} ", f" {stem} ", 1)
         return bench, re.sub(r"\s+", " ", metric).strip()
+    # AutomationBench v1.0.6 written beside the name, in the setting or the subtitle.
+    versions = set(re.findall(rf" {re.escape(bench)} (\d+(?:\.\d+)+) ", padded))
+    if len(versions) == 1:
+        version = versions.pop()
+        metric = padded.replace(f" {bench} {version} ", f" {bench} ", 1)
+        metric = re.sub(r"\s+", " ", metric).strip()
+        bench = f"{bench} {version}"
     return bench, metric
 
 
 def canon_benchmark(value: Any) -> str:
     text = _join_version(_basic_label(value))
     text = re.sub(r"\baug\b", "august", text)
-    return _apply_aliases(text, _BENCH_ALIASES)
+    text = _apply_aliases(text, _BENCH_ALIASES)
+    parts = text.split()
+    # ``(Elo)`` is the unit of GDPval-AA and AA-Briefcase, already stored on the bar.
+    if len(parts) > 1 and parts[-1] == "elo":
+        text = " ".join(parts[:-1])
+    return text
 
 
 def _prepare_setting(value: Any) -> str:
@@ -1414,10 +1515,15 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     if quals:
         bench = f"{bench} {quals}".strip()
     bench, metric_text = _attach_named_version(bench, metric_text)
+    if not re.search(r"\d", bench):
+        version = _marked_version(benchmark, metric)
+        if version:
+            bench = f"{bench} {version}"
     effort = _one_effort(model_efforts, metric_efforts)
     metric_key = canon_metric(metric_text, model_key)
     if effort:
         metric_key = " ".join(sorted({*metric_key.split(), effort}))
+    bench, metric_key = _fold_slices(bench, metric_key)
     return (model_key, bench, metric_key)
 
 
@@ -1445,6 +1551,18 @@ def _scores_agree(
     return abs(float(a_score) - float(b_score)) <= tolerance + 1e-9
 
 
+def _labelled_model(model: Any, metric: Any) -> str:
+    """A logo with no printed name still records the name in ``names it '...'``."""
+    text = str(model or "")
+    folded = text.casefold()
+    if "unlabelled" not in folded and "unlabeled" not in folded:
+        return text
+    match = re.search(r"names it ['\"]([^'\"]+)['\"]", str(metric or ""), flags=re.I)
+    if match is None:
+        return text
+    return match.group(1).strip()
+
+
 def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
     if side == "a":
         benchmark = item.get("benchmark_as_labelled") or item.get("benchmark_id") or ""
@@ -1454,6 +1572,7 @@ def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
         benchmark = item.get("benchmark_as_labelled") or item.get("benchmark_id") or ""
         metric = item.get("metric_or_setting") if "metric_or_setting" in item else _metric_setting(item)
         model = item.get("model_as_labelled") or ""
+    model = _labelled_model(model, metric)
     benchmark = _with_caption_version(benchmark, item.get("chart_notes") or "")
     parsed = parse_score(item.get("score"))
     text = item.get("score_text")
@@ -1661,6 +1780,8 @@ def _b_rows(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _is_stub(reading: dict[str, Any]) -> bool:
+    if str(reading.get("status") or "") == "not_fetched":
+        return True
     charts = [chart for chart in reading.get("charts") or [] if isinstance(chart, dict)]
     if not charts:
         return False
@@ -1752,7 +1873,7 @@ def reconcile_readings(
             ]
             scope.append((fixture, charts))
         else:
-            digest = (manifest.get(source) or "").lower()
+            digest = _manifest_digest(manifest, source)
             documents = by_document.get(digest) or []
             located = by_hash.get(digest) or []
             if documents:

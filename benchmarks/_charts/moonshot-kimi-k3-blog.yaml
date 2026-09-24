@@ -11,6 +11,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-5.6 Sol"
         model_id: "openai/gpt-5-6-sol"
@@ -338,6 +340,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Fable 5"

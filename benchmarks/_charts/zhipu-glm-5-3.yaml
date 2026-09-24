@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GLM-5.3"
         model_id: "zhipu/glm-5-3"

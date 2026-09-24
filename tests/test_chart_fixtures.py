@@ -1302,3 +1302,256 @@ def test_openai_fixture_settings_name_the_harness_and_the_version():
     assert 'configuration: "Codex-like developer message"' in astra
     assert 'configuration: "responses API harness"' in astra
     assert 'configuration: "no 6-hour cap"' in astra
+
+
+def test_hyphenated_model_version_pairs_and_the_next_version_stays_apart():
+    assert _classes(
+        _one_bar_fixture("Claude Opus 4.8", "SWE-bench Pro"),
+        _one_reading("Claude-opus-4-8", "SWE-bench Pro"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Claude Opus 4.8", "SWE-bench Pro"),
+            _one_reading("Claude-opus-4-7", "SWE-bench Pro"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_printed_benchmark_names_pair_with_the_catalogue_id():
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3 (max)",
+            "hle",
+            score=43.5,
+            score_text="43.5",
+            configuration="Model card. HLE-Full Full set, without tools.",
+        ),
+        _one_reading(
+            "Kimi K3 (max)",
+            "HLE-Full",
+            score=43.5,
+            metric_or_setting="first value = without tools",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture(
+                "Kimi K3 (max)",
+                "hle",
+                configuration="HLE text-only, without tools.",
+            ),
+            _one_reading("Kimi K3 (max)", "HLE-Full", metric_or_setting="without tools"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3",
+            "charxiv_reasoning",
+            configuration="CharXiv (RQ) Without tools.",
+        ),
+        _one_reading("Kimi K3", "CharXiv (RQ)", metric_or_setting="without tools"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "gdpval_aa", configuration="GDPval-AA v2 (Elo)"),
+        _one_reading("Kimi K3", "GDPval-AA v2 (Elo)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "aa_briefcase", configuration="AA-Briefcase (Elo)"),
+        _one_reading("Kimi K3", "AA-Briefcase (Elo)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "deepsearchqa", configuration="DeepSearchQA (F1)"),
+        _one_reading("Kimi K3", "DeepSearchQA (F1)"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "deepsearchqa", configuration="DeepSearchQA (F1)"),
+            _one_reading("Kimi K3", "DeepSearchQA (EM)"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_pass_at_5_and_python_tools_pair_and_pass_at_1_stays_apart():
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3",
+            "zerobench",
+            configuration="ZeroBench (pass@5) Pass@5, without tools.",
+        ),
+        _one_reading("Kimi K3", "ZeroBench (pass@5)", metric_or_setting="without tools"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "zerobench", configuration="ZeroBench (pass@5), without tools."),
+            _one_reading("Kimi K3", "ZeroBench", metric_or_setting="pass@1, without tools"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "MMMU-Pro", configuration="With Python tools."),
+        _one_reading(
+            "Kimi K3",
+            "MMMU-Pro",
+            metric_or_setting="second value = with tool augmentation (Python)",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "MMMU-Pro", configuration="With Python tools."),
+            _one_reading("Kimi K3", "MMMU-Pro", metric_or_setting="without tools"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_tau3_banking_spellings_pair_and_plain_banking_stays_apart():
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "τ³-Banking"),
+        _one_reading("Kimi K3", r"τ3\tau^{3}-Banking"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "τ³-Banking"),
+            _one_reading("Kimi K3", "Banking"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_three_part_version_stays_intact_and_pairs_from_the_caption():
+    fixture = _one_bar_fixture(
+        "GLM-5.3 Flash",
+        "AutomationBench",
+        configuration="Card chart. AutomationBench (v1.0.6)",
+    )
+    reading = _one_reading("GLM-5.3-Flash", "AutomationBench")
+    reading["charts"][0]["footnotes"] = "Subtitle: AutomationBench v1.0.6"
+    assert _classes(fixture, reading) == ["agree"]
+    assert sorted(
+        _classes(
+            fixture,
+            _one_reading("GLM-5.3-Flash", "AutomationBench v1.6"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "Terminal-Bench 2.0"),
+        _one_reading("Opus 5", "Terminal-Bench 2"),
+    ) == ["agree"]
+
+
+def test_logo_tooltip_name_pairs_and_a_different_tooltip_name_stays_apart():
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Flash", "SWE-Bench Pro", score=55.6, score_text="55.6"),
+        _one_reading(
+            "(unlabelled: DeepSeek whale logo)",
+            "SWE-Bench Pro",
+            score=55.6,
+            metric_or_setting="the blog's hover tooltip names it 'DeepSeek V4 Flash'",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("DeepSeek V4 Flash", "SWE-Bench Pro"),
+            _one_reading(
+                "(unlabelled: DeepSeek whale logo)",
+                "SWE-Bench Pro",
+                metric_or_setting="names it 'DeepSeek V4 Pro'",
+            ),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_a_cell_with_a_parenthetical_second_number_uses_the_first():
+    assert _classes(
+        _one_bar_fixture("Step 3.7 Flash", "GDPval-Stirrup", score=1415.8, score_text="1415.8"),
+        _one_reading("Step 3.7 Flash", "GDPval-Stirrup", score="1415.8 (ii 45.8%)"),
+    ) == ["agree"]
+
+
+def test_cache_stem_pairs_with_the_filename_extension():
+    digest = "c" * 64
+    other = "d" * 64
+    fixture = _one_bar_fixture("Opus 5", "SWE-bench Pro", score=79.2, score_text="79.2")
+    fixture["document_sha256"] = digest
+    fixture["charts"][0]["kind"] = "html_table"
+    reading = _one_reading("Opus 5", "SWE-bench Pro", score=79.2)
+    reading["source"] = "gemma-4-technical-report.pdf"
+    paired = reconcile_readings([fixture], [reading], {"gemma-4-technical-report": digest})
+    assert [row["class"] for row in paired["pairs"]] == ["agree"]
+    image = _one_bar_fixture("Gemini 3.5 Flash", "SWE-bench Pro", score=70.3, score_text="70.3")
+    image["charts"][0]["kind"] = "image"
+    image["charts"][0]["image_sha256"] = digest
+    image_reading = _one_reading("Gemini 3.5 Flash", "SWE-bench Pro", score=70.3)
+    image_reading["source"] = "gemini-35-flash-benchmarks.gif"
+    image_report = reconcile_readings(
+        [image],
+        [image_reading],
+        {"gemini-35-flash-benchmarks": digest},
+    )
+    assert [row["class"] for row in image_report["pairs"]] == ["agree"]
+    ambiguous = reconcile_readings(
+        [fixture],
+        [reading],
+        {"gemma-4-technical-report": digest, "gemma-4-technical-report.pdf": other},
+    )
+    assert ambiguous["by_class"]["unpaired_source"] == 1
+
+
+def test_not_fetched_reading_is_an_unpaired_source():
+    fixture = _one_bar_fixture("LongCat", "SWE-bench Pro")
+    fixture["page_url"] = "https://longcat.chat/blog/longcat-2.0"
+    reading = _one_reading("LongCat", "SWE-bench Pro")
+    reading["source"] = fixture["page_url"]
+    reading["status"] = "not_fetched"
+    reading["charts"] = []
+    report = reconcile_readings([fixture], [reading], {})
+    assert report["pairs"][0]["class"] == "unpaired_source"
+    assert report["pairs"][0]["reason"] == "source was not fetched"
+
+
+def test_slice_and_version_wording_stays_on_the_benchmark():
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "tau2", configuration="Airline. Thinking."),
+        _one_reading("Gemma 4 31B", "Tau2 – airline", metric_or_setting="thinking mode"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 31B", "tau2", configuration="Airline. Thinking."),
+            _one_reading("Gemma 4 31B", "Tau2 – retail", metric_or_setting="thinking mode"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 E2B", "CoVoST", configuration="ja→en. CorpusBLEU."),
+        _one_reading("Gemma 4 E2B", "CoVoST ja → en"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 E2B", "FLEURS", configuration="FLEURS ASR, en, word error rate."),
+        _one_reading("Gemma 4 E2B", "FLEURS ASR en"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "live_code_bench", configuration="v6. Thinking."),
+        _one_reading("Gemma 4 31B", "LiveCodeBench v6", metric_or_setting="thinking mode"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 31B", "live_code_bench", configuration="v6. Thinking."),
+            _one_reading("Gemma 4 31B", "LiveCodeBench v5"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "bbeh", configuration="Micro average."),
+        _one_reading("Gemma 4 31B", "Big Bench Extra Hard"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "hle_tools", configuration="With search. Thinking."),
+        _one_reading("Gemma 4 31B", "HLE with search"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Claude Fable 5", "arena_elo", configuration="Arena Text, 19 June 2026."),
+        _one_reading("Claude Fable 5", "Arena Text"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "deepmind_mrcr_v2", configuration="8-needle. Thinking."),
+        _one_reading("Gemma 4 31B", "MRCR v2"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "medxpertqa", configuration="Multimodal. Thinking."),
+        _one_reading("Gemma 4 31B", "MedXPertQA MM"),
+    ) == ["agree"]

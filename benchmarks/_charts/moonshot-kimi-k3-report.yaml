@@ -9,6 +9,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
         model_id: "moonshot/kimi-k3"
@@ -2325,6 +2327,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
         model_id: "moonshot/kimi-k3"
@@ -2882,6 +2886,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3"
         model_id: "moonshot/kimi-k3"
@@ -2997,6 +3003,8 @@ charts:
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
