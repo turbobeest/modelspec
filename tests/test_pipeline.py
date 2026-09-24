@@ -38,7 +38,8 @@ from pipeline.render import format_score  # noqa: E402
 _models = functools.lru_cache(maxsize=1)(load_models)
 _benchmarks = functools.lru_cache(maxsize=1)(load_benchmarks)
 _catalogue = functools.lru_cache(maxsize=1)(load_catalogue)
-_coverage = functools.lru_cache(maxsize=1)(lambda: models_by_benchmark(_models()))
+_coverage = functools.lru_cache(maxsize=1)(
+    lambda: models_by_benchmark(_models(), _benchmarks()))
 
 
 # ── loading ──────────────────────────────────────────────────────────────────
@@ -111,13 +112,16 @@ def test_future_dated_report_refuses_to_publish(tmp_path: Path, monkeypatch) -> 
 
 def test_coverage_is_derived_from_the_cards() -> None:
     """Every coverage row must trace back to a score on that model's own card."""
-    models = _models()
-    scores_by_model = {m.model_id: m.scores for m in models}
-    coverage = models_by_benchmark(models)
-    for key, rows in coverage.items():
+    cards = {m.model_id: m for m in _models()}
+    for key, rows in _coverage().items():
         for row in rows:
-            assert key in scores_by_model[row["model_id"]]
-            assert scores_by_model[row["model_id"]][key] == row["score"]
+            card = cards[row["model_id"]]
+            evidence = [r["score"] for r in card.front["benchmarks"].get("evidence") or []
+                        if r["benchmark_id"] == key]
+            if row["attribution"] == "verified":
+                assert row["score"] in evidence
+            else:
+                assert evidence == [] and card.scores[key] == row["score"]
 
 
 def test_coverage_is_ordered_by_score() -> None:
@@ -128,9 +132,9 @@ def test_coverage_is_ordered_by_score() -> None:
 
 def test_legacy_card_scores_are_marked_unverified() -> None:
     """Card scores carry no per-score source, so they must never read as evidence."""
-    coverage = _coverage()
-    rows = coverage["gpqa_diamond"]
-    assert rows and all(r["attribution"] == "unverified-legacy" for r in rows)
+    rows = _coverage()["gpqa_diamond"]
+    legacy = [r for r in rows if r["source_kind"] is None]
+    assert legacy and all(r["attribution"] == "unverified-legacy" for r in legacy)
 
 
 # ── coverage from evidence records ───────────────────────────────────────────
@@ -368,7 +372,8 @@ def test_benchgraph_headline_counts_pages_apart_from_scored_keys() -> None:
     stats = builder.benchgraph_headline_stats(_models(), _benchmarks(), _coverage())
     assert stats["pages"] == len(_benchmarks())
     assert stats["scored_benchmarks"] == len(_coverage())
-    assert stats["scored_models"] == sum(1 for m in _models() if m.scores)
+    assert stats["scored_models"] == len(
+        {r["model_id"] for rows in _coverage().values() for r in rows})
     assert stats["scores"] == sum(len(rows) for rows in _coverage().values())
     assert stats["pages"] > stats["scored_benchmarks"]
     source = (REPO_ROOT / "site/benchgraph/index.html").read_text(encoding="utf-8")

@@ -21,7 +21,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from pipeline.export import Build
+from pipeline.export import Build, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.applicability import FIELD_RULES
 from schema.card import applicability_block
@@ -1393,6 +1393,26 @@ def fact_notes(facts: list[tuple[str, str]]) -> str:
     return _section("Notes", f'<div class="notes">{notes}</div>' if notes else "")
 
 
+def _covered_row(c: dict[str, Any]) -> str:
+    """One coverage row. A flat card score is dated by its card, not by a run."""
+    evaluated_as = c.get("model_id_as_evaluated")
+    model = (f'<a href="https://modelspec.dev/m/{esc(c["model_id"])}/">{esc(c["display_name"])}</a>'
+             + (f'<div class="meta">evaluated as {esc(evaluated_as)}</div>'
+                if evaluated_as and evaluated_as != c["display_name"] else ""))
+    when = esc(c.get("as_of") or "undated")
+    if c.get("as_of"):
+        when += f' <span class="pill">{esc(c.get("date_type") or "card")}</span>'
+    basis = str(c["attribution"])
+    attribution = f'<span class="pill basis-{esc(basis)}">{esc(basis)}</span>'
+    if c.get("source_kind"):
+        attribution += f' <span class="pill">{esc(str(c["source_kind"]).replace("_", " "))}</span>'
+    if basis == "verified" and c.get("source"):
+        attribution += f' {_safe_link(c["source"], "source")}'
+    return (f'<tr><td>{model}</td><td>{esc(c["provider_display"])}</td>'
+            f'<td class="num">{esc(format_score(c["score"], c.get("unit")))}</td>'
+            f'<td>{when}</td><td>{attribution}</td></tr>')
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -1427,20 +1447,25 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 
     covered_block = '<p class="lede">No model card in ModelSpec reports this benchmark yet.</p>'
     if covered:
-        rows = "".join(
-            f'<tr><td><a href="https://modelspec.dev/m/{esc(c["model_id"])}/">{esc(c["display_name"])}</a></td>'
-            f'<td>{esc(c["provider_display"])}</td><td class="num">{esc(c["score"])}</td>'
-            f'<td>{esc(c.get("as_of") or "undated")}</td></tr>'
-            for c in covered[:200]
-        )
+        rows = "".join(_covered_row(c) for c in covered[:200])
         more = (f'<p class="meta">Showing the top 200 of {len(covered)}.</p>'
                 if len(covered) > 200 else "")
+        attributions = {c["attribution"] for c in covered}
+        notices = ""
+        if "verified" in attributions:
+            notices += ('<div class="notice ok">Rows marked verified come from a card\'s '
+                        'evidence records. A reviewer checked each against its source, and each '
+                        'carries its own date and source kind.</div>')
+        if "unverified-legacy" in attributions:
+            notices += ('<div class="notice">Rows marked unverified-legacy come from a card\'s '
+                        'flat score list, which carries one collection date per card and no '
+                        'per-score source. They are shown as reported, not as verified '
+                        'evidence.</div>')
         covered_block = (
-            '<div class="notice">These figures come from the model cards, which carry one '
-            'collection date per card and no per-score attribution. They are shown as reported, '
-            'not as verified evidence.</div>'
-            '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'
-            f'<th>Card as of</th></tr></thead><tbody>{rows}</tbody></table></div>{more}')
+            notices
+            + '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'
+            f'<th>Date</th><th>Attribution</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            f'{more}')
 
     front = bench.front
     facts = benchmark_facts(front)
@@ -1496,7 +1521,7 @@ def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Bui
             f'<tr><td><a href="/b/{esc(b.benchmark_id)}/">{esc(b.name)}</a></td>'
             f'<td class="mono">{esc(b.benchmark_id)}</td>'
             f'<td>{esc(b.category)}</td>'
-            f'<td class="num">{len(coverage.get(b.benchmark_id, []))}</td></tr>'
+            f'<td class="num">{models_reporting(coverage.get(b.benchmark_id, []))}</td></tr>'
             for b in sorted(items, key=lambda b: b.name.lower())
         )
         return ('<div class="scroll"><table><thead><tr><th>Benchmark</th><th>ID</th>'

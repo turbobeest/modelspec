@@ -201,14 +201,16 @@ def benchgraph_headline_stats(models, benchmarks, coverage: dict | None = None) 
     """The four figures the benchgraph landing quotes.
 
     `scored_benchmarks` is distinct keys with a numeric score on a card, not
-    the number of published pages. Those two used to ship as one number.
+    the number of published pages. Those two used to ship as one number. The
+    three score figures count evidence records as well as flat card scores, so
+    they agree with the coverage tables they summarise.
     """
     if coverage is None:
-        coverage = exporter.models_by_benchmark(models)
+        coverage = exporter.models_by_benchmark(models, benchmarks)
     return {
         "pages": len(benchmarks),
         "scored_benchmarks": len(coverage),
-        "scored_models": sum(1 for m in models if m.scores),
+        "scored_models": len({row["model_id"] for rows in coverage.values() for row in rows}),
         "scores": sum(len(rows) for rows in coverage.values()),
     }
 
@@ -382,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         ms / "api", cards, build.to_json())
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
-    coverage = exporter.models_by_benchmark(models)
+    coverage = exporter.models_by_benchmark(models, benchmarks)
 
     # modelspec.dev
     pages = {m.model_id for m in models}
