@@ -735,7 +735,7 @@ benchmarks:
     limitations: ''
   - benchmark_id: gdp_pdf_aa
     model_id_as_evaluated: GLM-5.3 (max)
-    score: 12.0
+    score: 11.8
     unit: percent
     source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
     source_kind: independent_evaluator

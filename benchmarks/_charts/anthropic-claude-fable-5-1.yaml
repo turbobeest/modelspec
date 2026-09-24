@@ -1,0 +1,282 @@
+page_url: "https://www.anthropic.com/claude-fable-and-mythos-5-1"
+publisher: "Anthropic"
+read_on: "2026-09-24"
+charts:
+  - title: "Launch benchmark grid"
+    kind: html_table
+    footnotes: "Fable 5.1 was run with production safeguards. On OSWorld, a safeguard intervention scored zero. Terminal-Bench 4.0 prints Mythos 5.1 in the same cell as Fable 5.1. The post says the two are the same model and the gap is the safeguard. Competitor figures follow the developers' published numbers. GDPval-AA v2 is Elo."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: terminal_bench_science
+        score: 52.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: terminal_bench_science
+        score: 24.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: terminal_bench_science
+        score: 29.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: terminal_bench_science
+        score: 22.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: terminal_bench_v4_0
+        score: 55.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mythos 5.1"
+        model_id: "anthropic/claude-mythos-5-1"
+        benchmark_id: terminal_bench_v4_0
+        score: 60.9
+        unit: "percent"
+        printed: true
+        configuration: "Printed in the Fable 5.1 cell."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: terminal_bench_v4_0
+        score: 42.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: terminal_bench_v4_0
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: terminal_bench_v4_0
+        score: 37.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: gdpval_aa
+        score: 1853
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: gdpval_aa
+        score: 1723
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: gdpval_aa
+        score: 1824
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: gdpval_aa
+        score: 1711
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: competitor
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: osworld
+        score: 77.9
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 partial."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: osworld
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 partial."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: osworld
+        score: 75.4
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 partial."
+        role: subject
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: osworld
+        score: 41.7
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 strict."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: osworld
+        score: 36.1
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 strict."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: osworld
+        score: 39.6
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0 strict."
+        role: subject
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: hle
+        score: 60.9
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle
+        score: 57.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: hle
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: hle_tools
+        score: 65.0
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle_tools
+        score: 63.8
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: hle_tools
+        score: 63.6
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: automationbench
+        score: 31.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: automationbench
+        score: 17.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: automationbench
+        score: 26.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: automationbench
+        score: 19.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5.1"
+        model_id: "anthropic/claude-fable-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "CursorBench 3.2.0"
+        score: 73.4
+        unit: "percent"
+        printed: true
+        configuration: "Max effort for Fable 5.1."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CursorBench 3.2.0"
+        score: 70.5
+        unit: "percent"
+        printed: true
+        configuration: "Max effort for Fable 5.1."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CursorBench 3.2.0"
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort for Fable 5.1."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "CursorBench 3.2.0"
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: "Max effort for Fable 5.1."
+        role: competitor

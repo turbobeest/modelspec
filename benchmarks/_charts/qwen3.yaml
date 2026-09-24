@@ -1,0 +1,1484 @@
+page_url: "https://qwenlm.github.io/blog/qwen3/"
+publisher: "Qwen"
+read_on: "2026-09-24"
+charts:
+  - title: "Qwen3-235B-A22B"
+    kind: image
+    image_url: "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3/qwen3-235a22.jpg"
+    image_sha256: "85992a4471a0222e6c54d6414f77d04200a043688380cf1e86baa9d73510b861"
+    footnotes: "AIME is a 64-sample average. AIME 2025 is parts I and II, 30 questions. Aider left think mode off. BFCL v3 uses the function-call format for Qwen3 and the higher of the two formats for baselines. o1 is dated 2024-12-17. o3-mini is Medium. Grok 3 Beta is Think."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: aime_2024
+        score: 85.7
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: aime_2024
+        score: 81.4
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: aime_2024
+        score: 74.3
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: aime_2024
+        score: 79.8
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Grok 3 Beta"
+        model_id: null
+        benchmark_id: aime_2024
+        score: 83.9
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: aime_2024
+        score: 92.0
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: aime_2024
+        score: 79.6
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: aime_2025
+        score: 81.5
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: aime_2025
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: aime_2025
+        score: 79.2
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: aime_2025
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: competitor
+      - model_as_labelled: "Grok 3 Beta"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: aime_2025
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: aime_2025
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average, parts I and II"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: live_code_bench
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: live_code_bench
+        score: 65.7
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: live_code_bench
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: live_code_bench
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "Grok 3 Beta"
+        model_id: null
+        benchmark_id: live_code_bench
+        score: 70.6
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: live_code_bench
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: live_code_bench
+        score: 66.3
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: aider_polyglot
+        score: 61.8
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: aider_polyglot
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: aider_polyglot
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: aider_polyglot
+        score: 56.9
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: competitor
+      - model_as_labelled: "Grok 3 Beta"
+        model_id: null
+        benchmark_id: aider_polyglot
+        score: 53.3
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: aider_polyglot
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: aider_polyglot
+        score: 53.8
+        unit: "percent"
+        printed: true
+        configuration: "Pass@2. Qwen3 think mode off."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: livebench
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: livebench
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: livebench
+        score: 75.7
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: livebench
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: livebench
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: livebench
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: bfcl
+        score: 70.8
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: bfcl
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: bfcl
+        score: 67.8
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: bfcl
+        score: 56.9
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: bfcl
+        score: 62.9
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: bfcl
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: "v3. Qwen3 on the function-call format."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 95.6
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 93.8
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 92.1
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 93.2
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 96.4
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "ArenaHard"
+        score: 89.0
+        unit: "percent"
+        printed: true
+        configuration: "Think mode where the chart names it."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 2056
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 1977
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 1891
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 2029
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 2001
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "CodeForces"
+        score: 2036
+        unit: "elo"
+        printed: true
+        configuration: "Elo."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: multiif
+        score: 71.9
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: subject
+      - model_as_labelled: "Qwen3-32B"
+        model_id: "qwen/qwen3-32b"
+        benchmark_id: multiif
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: subject
+      - model_as_labelled: "OpenAI-o1"
+        model_id: "openai/o1"
+        benchmark_id: multiif
+        score: 48.8
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: competitor
+      - model_as_labelled: "Deepseek-R1"
+        model_id: "deepseek/deepseek-r1"
+        benchmark_id: multiif
+        score: 67.7
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: competitor
+      - model_as_labelled: "Gemini2.5-Pro"
+        model_id: "google/gemini-2-5-pro"
+        benchmark_id: multiif
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: competitor
+      - model_as_labelled: "OpenAI-o3-mini"
+        model_id: "openai/o3-mini"
+        benchmark_id: multiif
+        score: 48.4
+        unit: "percent"
+        printed: true
+        configuration: "MultiIF."
+        role: competitor
+  - title: "Qwen3-30B-A3B and Qwen3-4B"
+    kind: image
+    image_url: "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3/qwen3-30a3.jpg"
+    image_sha256: "71c71772e30a8fe68e2bb9c054120eee92a5e752c594386c142bf238642534b2"
+    footnotes: "AIME is a 64-sample average. AIME 2025 is parts I and II, 30 questions. Aider left think mode off. BFCL v3 uses the function-call format for Qwen3. o3-mini is Medium. Grok 3 Beta is Think. GPQA on this chart is not labelled Diamond."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: aime_2024
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: aime_2024
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: aime_2024
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: aime_2024
+        score: 18.9
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: aime_2024
+        score: 32.6
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: aime_2024
+        score: 39.2
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: aime_2024
+        score: 11.1
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: aime_2025
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 69.5
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: aime_2025
+        score: 65.6
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 15.0
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 24.0
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: aime_2025
+        score: 28.8
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: aime_2025
+        score: 7.6
+        unit: "percent"
+        printed: true
+        configuration: "64-sample average"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: live_code_bench
+        score: 62.6
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: live_code_bench
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: live_code_bench
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: live_code_bench
+        score: 30.7
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: live_code_bench
+        score: 26.9
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: live_code_bench
+        score: 33.1
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: live_code_bench
+        score: 32.7
+        unit: "percent"
+        printed: true
+        configuration: "v5, 2024-10 to 2025-02"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: gpqa
+        score: 65.8
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: gpqa
+        score: 65.6
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: gpqa
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: gpqa
+        score: 49.0
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: gpqa
+        score: 42.4
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: gpqa
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: gpqa
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "Not labelled Diamond"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: livebench
+        score: 74.3
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: livebench
+        score: 72.0
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: livebench
+        score: 63.6
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: livebench
+        score: 51.4
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: livebench
+        score: 49.2
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: livebench
+        score: 60.5
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: livebench
+        score: 52.2
+        unit: "percent"
+        printed: true
+        configuration: "2024-11 to 2025"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B"
+        model_id: "qwen/qwen3-30b-a3b"
+        benchmark_id: bfcl
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "QwQ-32B"
+        model_id: null
+        benchmark_id: bfcl
+        score: 66.4
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "Qwen3-4B"
+        model_id: "qwen/qwen3-4b"
+        benchmark_id: bfcl
+        score: 65.9
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Instruct"
+        model_id: null
+        benchmark_id: bfcl
+        score: 63.4
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "Gemma3-27B-IT"
+        model_id: null
+        benchmark_id: bfcl
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: bfcl
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "GPT-4o"
+        model_id: "openai/gpt-4o-2024-11-20"
+        benchmark_id: bfcl
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+  - title: "Qwen3-235B-A22B base"
+    kind: image
+    image_url: "https://qianwen-res.oss-accelerate-overseas.aliyuncs.com/qwen3-base.jpg"
+    image_sha256: "4fd261d25074d035b50aca8ee484622ae2eb1f5fa9b05b75918908e2fef9957d"
+    footnotes: "Pre-trained bases. An underline marks the best cell in a row."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 86.06
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 85.02
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 85.16
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mmlu
+        score: 87.19
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mmlu
+        score: 87.81
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mmlu_redux
+        score: 83.91
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mmlu_redux
+        score: 82.69
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mmlu_redux
+        score: 84.05
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mmlu_redux
+        score: 86.14
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mmlu_redux
+        score: 87.40
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 58.07
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 63.52
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 63.91
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mmlu_pro
+        score: 59.84
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mmlu_pro
+        score: 68.18
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: supergpqa
+        score: 36.20
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: supergpqa
+        score: 37.18
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: supergpqa
+        score: 40.85
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: supergpqa
+        score: 41.53
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: supergpqa
+        score: 44.06
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 86.30
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 85.60
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 83.62
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: bbh
+        score: 86.22
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: bbh
+        score: 88.87
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: gpqa
+        score: 45.88
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base. Not labelled Diamond."
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: gpqa
+        score: 41.92
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base. Not labelled Diamond."
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: gpqa
+        score: 43.94
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base. Not labelled Diamond."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: gpqa
+        score: 41.92
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base. Not labelled Diamond."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: gpqa
+        score: 47.47
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base. Not labelled Diamond."
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: gsm8k
+        score: 91.50
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: gsm8k
+        score: 91.89
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: gsm8k
+        score: 87.72
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: gsm8k
+        score: 87.57
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: gsm8k
+        score: 94.39
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: math
+        score: 62.12
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: math
+        score: 62.78
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: math
+        score: 63.32
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: math
+        score: 62.62
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: math
+        score: 71.84
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mgsm
+        score: 82.40
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mgsm
+        score: 82.21
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mgsm
+        score: 79.69
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mgsm
+        score: 82.68
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mgsm
+        score: 83.53
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mmmlu
+        score: 84.40
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mmmlu
+        score: 83.49
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mmmlu
+        score: 83.09
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mmmlu
+        score: 85.88
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mmmlu
+        score: 86.70
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: humaneval_plus
+        score: 65.93
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint EvalPlus, base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: humaneval_plus
+        score: 61.43
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint EvalPlus, base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: humaneval_plus
+        score: 68.38
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint EvalPlus, base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: humaneval_plus
+        score: 63.75
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint EvalPlus, base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: humaneval_plus
+        score: 77.60
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint EvalPlus, base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: multipl_e
+        score: 58.70
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: multipl_e
+        score: 62.16
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: multipl_e
+        score: 57.28
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: multipl_e
+        score: 62.26
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: multipl_e
+        score: 65.94
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: mbpp
+        score: 76.00
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: mbpp
+        score: 74.60
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: mbpp
+        score: 75.40
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: mbpp
+        score: 74.20
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: mbpp
+        score: 81.40
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint Base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: cruxeval
+        score: 66.20
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint CRUX-O, base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: cruxeval
+        score: 68.50
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint CRUX-O, base"
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: cruxeval
+        score: 77.00
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint CRUX-O, base"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: cruxeval
+        score: 76.60
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint CRUX-O, base"
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: cruxeval
+        score: 79.00
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base checkpoint CRUX-O, base"
+        role: subject
+      - model_as_labelled: "Qwen2.5-72B-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 69.05
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base."
+        role: subject
+      - model_as_labelled: "Qwen2.5-Plus-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 66.97
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base."
+        role: subject
+      - model_as_labelled: "LLaMA-4-Maverick-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 73.47
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V3-Base"
+        model_id: "deepseek/deepseek-v3"
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 75.17
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base."
+        role: competitor
+      - model_as_labelled: "Qwen3-235B-A22B-Base"
+        model_id: "qwen/qwen3-235b-a22b"
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 73.46
+        unit: "percent"
+        printed: true
+        configuration: "Pre-trained base."
+        role: subject
+  - title: "Thinking budget"
+    kind: image
+    image_url: "https://qianwen-res.oss-accelerate.aliyuncs.com/assets/blog/qwen3/thinking_budget.png"
+    image_sha256: "c5f419ee6561fff031fff03aadb74fa1452c8508baf6d424d3ef63ad81a338ab"
+    needs_reading: true
+    footnotes: "Four curves, pass@1 against thinking budget from 1k to 32k tokens, plus a non-thinking dashed line. The points are not numerically labelled. The caption says AIME and GPQA are averaged over 64 samples, or 16 for LiveCodeBench."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      []
+  - title: "Post-training pipeline"
+    kind: image
+    image_url: "https://qianwen-res.oss-accelerate.aliyuncs.com/assets/blog/qwen3/post-training.png"
+    image_sha256: "ccfacc471cac678e95ffb5b732c2697ffdde1ddba52ede7d51479293bc073ccf"
+    footnotes: "A diagram of cold start, reasoning RL, thinking-mode fusion, general RL, and distillation. No scores."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      []
