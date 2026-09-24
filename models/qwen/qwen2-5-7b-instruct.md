@@ -666,6 +666,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: qwen2.5-7b-instruct
+    score: 35.48
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2026-08-30'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-08-30T22:42:14.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.29 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:

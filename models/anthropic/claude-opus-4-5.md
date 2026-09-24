@@ -690,6 +690,24 @@ benchmarks:
     multipl_e_kotlin: 81.8
     live_code_bench: 73.8
     terminal_bench_2: 59.3
+  evidence:
+  - benchmark_id: tau3_banking
+    model_id_as_evaluated: Claude Opus 4.5 (high)
+    score: 24.74
+    unit: percent
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-4-5_sierra_2026-02-26/submission.json
+    source_kind: benchmark_author
+    evidence_date: '2026-05-05'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
+    configuration: τ-bench leaderboard submission claude-opus-4-5_sierra_2026-02-26, submitted
+      by Sierra; retrieval config alltools; reasoning effort high; user simulator gpt-5.2; tau2-bench
+      1.0.1. pass^4 11.34.
+    limitations: 'Evaluated using AllTools retrieval (BM25 + dense OpenAI text-embedding-3-large
+      + sandboxed shell). User simulator: gpt-5.2 with reasoning_effort: low. 4 trials. Seed:
+      300. Banking_knowledge domain only — other domains intentionally excluded from this comparison;
+      the AllTools setting standardizes ret'
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

@@ -683,6 +683,21 @@ benchmarks:
     configuration: 'OpenAI "Building more with GPT-5.1-Codex-Max" table: GPT-5.1-Codex (high) 52.8%, run with Codex
       CLI in the Harbor harness.'
     limitations: ''
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: gpt-5.1-codex
+    score: 1336.02
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1336.02 [1324.28, 1347.76], 4865 votes, rank 105.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

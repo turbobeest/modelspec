@@ -671,6 +671,21 @@ benchmarks:
     ifeval: 80
     math_500: 90.2
     mmlu_pro: 72.5
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: qwq-plus
+    score: 65.4
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-04-11'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-04-11T15:34:21.181Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.85 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: provider-reports
   benchmark_as_of: 2026-04
 deployment:

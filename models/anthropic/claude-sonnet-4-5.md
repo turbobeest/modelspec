@@ -730,6 +730,39 @@ benchmarks:
     multipl_e_scala: 68.5
     multipl_e_kotlin: 79.8
     live_code_bench: 59.0
+  evidence:
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: Claude-Sonnet-4.5 (Think)
+    score: 84.17
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort thinking; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
+  - benchmark_id: tau3_banking
+    model_id_as_evaluated: Claude Sonnet 4.5 (enabled)
+    score: 25.26
+    unit: percent
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-sonnet-4-5_sierra_2026-02-26/submission.json
+    source_kind: benchmark_author
+    evidence_date: '2026-02-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
+    configuration: τ-bench leaderboard submission claude-sonnet-4-5_sierra_2026-02-26, submitted
+      by Sierra; retrieval config terminal; reasoning effort enabled; user simulator gpt-5.2;
+      tau2-bench 1.0.1. pass^4 10.31.
+    limitations: 'Evaluated using Claude Sonnet 4.5 (claude-sonnet-4-5-20250929) with extended
+      thinking enabled. User simulator: gpt-5.2 with reasoning_effort: low. 4 trials. Seed:
+      300. Banking domain evaluated with terminal-based agentic search retrieval. banking_knowledge
+      re-graded under tau2-bench v1.0.1 grading f'
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals
   benchmark_as_of: 2026-04

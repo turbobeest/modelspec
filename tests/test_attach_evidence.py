@@ -208,9 +208,14 @@ def test_glm52_live_aa_arena_rows_are_on_the_product_card():
         if e.get("benchmark_id") == "arena_elo_style_control"
         and e.get("model_id_as_evaluated") == "glm-5.2-max"
     ]
-    assert arena and arena[0]["score"] == 1471.72
+    # MODEL-123 replaced the 2026-09-10 lmarena.ai reading (1471.72) with the
+    # CC BY dataset's 2026-09-13 snapshot of the same row, dated as published.
+    assert arena and arena[0]["score"] == 1472.1
+    assert arena[0]["evidence_date"] == "2026-09-13"
     assert all(e.get("source_url", "").startswith("https://") for e in rows)
-    assert all(e.get("date_type") == "evaluated" for e in rows)
+    scraped = [e for e in rows if e.get("source_url", "").startswith(
+        ("https://artificialanalysis.ai", "https://lmarena.ai"))]
+    assert all(e.get("date_type") == "evaluated" for e in scraped)
 
 
 def test_glm53_published_scicode_is_the_chart_correction():

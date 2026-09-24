@@ -669,21 +669,49 @@ availability:
 benchmarks:
   scores: {}
   evidence:
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: grok-4.7-xhigh
+    score: 1632.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: xhigh;
+      MODEL-123 max-effort rule). Rating 1632.30 [1616.23, 1648.37], 1650 votes, rank 12.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Grok 4.7 (xhigh)
+    model_id_as_evaluated: Grok 4.7 (xhigh) with Grok Build
     score: 37.58
     unit: percent
-    source_url: https://www.tbench.ai/leaderboard
+    source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
     source_kind: benchmark_author
     evidence_date: '2026-09-21'
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Terminal-Bench 4.0
-    configuration: Official Terminal-Bench 4.0 leaderboard (tbench.ai; /leaderboard
-      now serves from the site root), row 'Grok 4.7', reasoning effort xhigh, agent
-      Grok Build, 330 trials. The row's own date (Sep 21, 2026) is used. Read 2026-09-24.
-      xAI's launch post (Sep 21, 2026) quotes the same run as 37.6%.
-    limitations: ''
+    configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Grok Build (xAI), reasoning
+      effort xhigh, 330 trials, accuracy 37.58 ± 3.54 (95% CI). The board''s row date is the
+      evidence date. Highest-effort row for the model, best agent on a tie.'
+    limitations: The agent harness differs between rows; compare rows with the same agent.
+  - benchmark_id: cursorbench_4
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 46.3
+    unit: percent
+    source_url: https://cursor.com/cursorbench
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: CursorBench 4.0
+    configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
+      per its changelog); the board states no row date, so the reading is dated by the observation.
+      Highest-effort row (xhigh); $6.01 a task.
+    limitations: Runs only in Cursor's production agent harness.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
