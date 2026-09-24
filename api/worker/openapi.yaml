@@ -2202,6 +2202,56 @@ components:
         service_commit:
           description: The sha of the deployed Worker. Fixed per deployment.
           type: string
+        unranked_candidates:
+          description: 'The models this answer could not rank, named: they passed every filter, match
+            the use case''s model types, and lack the benchmark evidence to be ordered. Always present.
+            Disclosure only; nothing in result depends on it.'
+          type: object
+          properties:
+            cap:
+              description: How many are named in models, at most.
+              type: integer
+            count:
+              description: How many such models there are. Never capped; at most unranked_count.
+              type: integer
+            models:
+              description: Newest release_date first; undated last; then by model_id.
+              type: array
+              items:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  missing_benchmarks:
+                    description: The use case's weighted benchmarks this model has no score for.
+                    type: array
+                    items:
+                      type: string
+                  model_id:
+                    type: string
+                  reason:
+                    description: no_scores (no score on any benchmark this use case weighs), below_count_floor
+                      (fewer than policy.min_benchmark_count), or below_coverage_floor (under policy.min_benchmark_coverage).
+                      A model failing both floors is below_count_floor.
+                    type: string
+                    enum:
+                    - below_count_floor
+                    - below_coverage_floor
+                    - no_scores
+                  release_date:
+                    description: The card's release date, or null when the card has none.
+                    type: string
+                    nullable: true
+                required:
+                - display_name
+                - missing_benchmarks
+                - model_id
+                - reason
+                - release_date
+          required:
+          - cap
+          - count
+          - models
         unranked_count:
           type: integer
       required:
@@ -2219,6 +2269,7 @@ components:
       - result
       - schema_version
       - service_commit
+      - unranked_candidates
       - unranked_count
     Health:
       type: object

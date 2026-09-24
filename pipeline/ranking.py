@@ -15,6 +15,7 @@ cost and context scaled by the profile's weights, a type-match bonus to 15.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -79,6 +80,10 @@ class Candidate:
     #: accelerator (offload fit, MODEL-26). Additive to candidates.json.
     total_parameters: float | None = None
     active_parameters: float | None = None
+    #: `identity.release_date` as the card has it, or None. Orders the
+    #: `unranked_candidates` disclosure (MODEL-110); never scored. Additive to
+    #: candidates.json: an export without it reads as None everywhere.
+    release_date: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -93,6 +98,7 @@ class Candidate:
             "rehost_of": self.rehost_of,
             "total_parameters": self.total_parameters,
             "active_parameters": self.active_parameters,
+            "release_date": self.release_date,
         }
 
 
@@ -158,6 +164,7 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             rehost_of=rehost_of(card),
             total_parameters=card.architecture.total_parameters,
             active_parameters=card.architecture.active_parameters,
+            release_date=str(ident.release_date or "").strip() or None,
         ))
     return out
 
@@ -294,7 +301,9 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
 
     `limit` caps the ranked shortlist only. Unranked entries are alphabetical,
     have null rank/score, and are never truncated or presented as ranked last.
-    Default coverage floor is the CLI floor (0.50). Pass
+    `unranked_candidates` names, newest first and capped, the unranked models
+    whose type the profile prefers — the disclosure every rank surface carries
+    (MODEL-110); see `unranked_candidates()`. Default coverage floor is the CLI floor (0.50). Pass
     `WIZARD_BENCHMARK_COVERAGE` for the browser surface.
     """
     if limit < 0:
@@ -308,6 +317,7 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
     if hardware_id:
         pool = [c for c in pool if hardware_id in c.fits]
     scored = [score(c, profile, cost_weight, min_benchmark_coverage) for c in pool]
+    disclosure = unranked_candidates(pool, scored, profile)
     ranked = [r for r in scored if r["rank_status"] == "ranked"]
     unranked = [r for r in scored if r["rank_status"] == "unranked"]
     ranked.sort(key=lambda r: (-r["score"], r["display_name"].lower(), r["model_id"]))
@@ -320,7 +330,69 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
         "policy": ranking_policy(min_benchmark_coverage=min_benchmark_coverage),
         "ranked_count": len(ranked), "unranked_count": len(unranked),
         "ranked": ranked[:limit], "unranked": unranked,
+        "unranked_candidates": disclosure,
     }
+
+
+#: How many `unranked_candidates` are named. The count beside them is never capped.
+UNRANKED_CANDIDATES_CAP = 10
+
+#: Why a candidate could not be ordered, in the order they are checked: a model
+#: that fails both floors is named for the count floor, the more basic one.
+UNRANKED_REASONS = ("no_scores", "below_count_floor", "below_coverage_floor")
+
+#: What the ordering accepts as a date: `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. These
+#: sort correctly as strings. Anything else is published verbatim but ordered
+#: with the undated, so prose in a card cannot jump the queue.
+_ORDERABLE_DATE = re.compile(r"\d{4}(-\d{2}(-\d{2})?)?")
+
+
+def _unranked_reason(row: dict[str, Any]) -> str:
+    """Which floor withheld this row. Reads the evidence `score` already computed."""
+    if row["benchmark_count"] == 0:
+        return "no_scores"
+    if row["benchmark_count"] < row["required_benchmark_count"]:
+        return "below_count_floor"
+    return "below_coverage_floor"
+
+
+def _matches_profile_type(candidate: Candidate, profile: dict[str, Any]) -> bool:
+    """The type test `score` uses for its type bonus, as a membership test."""
+    preferred = set(profile.get("preferred_types", []))
+    return bool(candidate.model_type) and bool(
+        preferred & {candidate.model_type, *candidate.model_subtypes})
+
+
+def unranked_candidates(pool: list[Candidate], scored: list[dict[str, Any]],
+                        profile: dict[str, Any]) -> dict[str, Any]:
+    """Name the models that would have been candidates but lack the evidence (MODEL-110).
+
+    `pool` is what survived the request's filters, `scored` its rows in the same
+    order. A model is named when it is unranked *and* its type is one the
+    profile prefers: an embedding model with no coding scores is not a coding
+    candidate waiting for evidence, and listing it would bury the ones that are.
+    Newest `release_date` first, undated last, then by id. Disclosure only:
+    nothing here reads or changes a ranked row.
+    """
+    rows = []
+    for candidate, row in zip(pool, scored):
+        if row["rank_status"] != "unranked" or not _matches_profile_type(candidate, profile):
+            continue
+        released = (candidate.release_date or "").strip() or None
+        rows.append({
+            "model_id": candidate.model_id,
+            "display_name": candidate.display_name,
+            "release_date": released,
+            "reason": _unranked_reason(row),
+            "missing_benchmarks": list(row["missing_benchmarks"]),
+        })
+    rows.sort(key=lambda r: r["model_id"])
+    # Stable, so equal dates keep id order; "" (undated or unparseable) sorts last.
+    rows.sort(key=lambda r: r["release_date"]
+              if r["release_date"] and _ORDERABLE_DATE.fullmatch(r["release_date"]) else "",
+              reverse=True)
+    return {"count": len(rows), "cap": UNRANKED_CANDIDATES_CAP,
+            "models": rows[:UNRANKED_CANDIDATES_CAP]}
 
 
 #: Guide `status` values the export will carry. Anything else is dropped rather

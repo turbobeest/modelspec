@@ -131,6 +131,10 @@ Every response — success or failure — carries `build.commit` and
   "policy":  { "min_benchmark_coverage": 0.5, "min_benchmark_count": 2, … },
   "ranking_status": "partial",
   "ranked_count": 126, "unranked_count": 1213, "candidates_considered": 1339,
+  "unranked_candidates": { "count": 848, "cap": 10, "models": [
+    { "model_id": "anthropic/claude-opus-5-5", "display_name": "Claude Opus 5.5",
+      "release_date": "2026-09-22", "reason": "no_scores",
+      "missing_benchmarks": ["aider_polyglot", …] }, … ] },
   "authoring_guide": {
     "state": "current",
     "model_id": "openai/gpt-5-6",
@@ -190,6 +194,23 @@ would also bump policy-check: the two endpoints share one OpenAPI
 `info.version`. `build.export_schema_version` was unmoved by that change: the new
 `authoring_guides` map on `candidates.json` is an optional object, not a
 widened field.
+
+**`unranked_candidates`** (MODEL-110) names up to ten models the answer could
+not rank: they passed every filter, their type is one the use case prefers, and
+they lack the evidence — `reason` is `no_scores`, `below_count_floor` or
+`below_coverage_floor`, with the profile benchmarks each is missing. Newest
+`release_date` first, undated last. `count` is the uncapped total and never
+exceeds `unranked_count`. It rides on a 200 and a 422 alike — on an
+`insufficient_evidence` 422 it is the list of what would have ranked. It comes
+from `rank_report`, like `result`, so `tests/test_rank_worker.py` holds it to
+the CLI's bytes on every vector; the full semantics are in
+[`cli-contract.md`](cli-contract.md). The Worker reads `release_date` from
+`candidates.json`; an older export without it degrades to all-undated.
+
+**MODEL-59, again.** A new always-present field, not a widened one: the
+envelope stays `"1.0"`, `result` rows are unchanged, and the new
+`release_date` on `candidates.json` rows leaves `export_schema_version` at
+`"3.0"`.
 
 `policy` comes from `api.ranking.engine.ranking_policy()`. The floors —
 `MIN_BENCHMARK_COVERAGE = 0.50`, `MIN_BENCHMARK_COUNT = 2` — are not written

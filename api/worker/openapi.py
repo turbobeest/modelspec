@@ -199,6 +199,29 @@ DESCRIPTIONS: dict[str, str] = {
         "The card's guide, including source URL and accessed date on every claim. Null "
         "when absent. Never generated at request time."
     ),
+    "RankResponse.unranked_candidates": (
+        "The models this answer could not rank, named: they passed every filter, match the "
+        "use case's model types, and lack the benchmark evidence to be ordered. Always "
+        "present. Disclosure only; nothing in result depends on it."
+    ),
+    "RankResponse.unranked_candidates.count": (
+        "How many such models there are. Never capped; at most unranked_count."
+    ),
+    "RankResponse.unranked_candidates.cap": "How many are named in models, at most.",
+    "RankResponse.unranked_candidates.models": (
+        "Newest release_date first; undated last; then by model_id."
+    ),
+    "RankResponse.unranked_candidates.models[].release_date": (
+        "The card's release date, or null when the card has none."
+    ),
+    "RankResponse.unranked_candidates.models[].reason": (
+        "no_scores (no score on any benchmark this use case weighs), below_count_floor "
+        "(fewer than policy.min_benchmark_count), or below_coverage_floor (under "
+        "policy.min_benchmark_coverage). A model failing both floors is below_count_floor."
+    ),
+    "RankResponse.unranked_candidates.models[].missing_benchmarks": (
+        "The use case's weighted benchmarks this model has no score for."
+    ),
     "RankedModel.score": "Composite, 0–100, on the conservative lower bound.",
     "RankedModel.evidence_basis": (
         "Provenance of the benchmark inputs — none, unverified-legacy, mixed, "
@@ -345,6 +368,7 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
                 "fits": {"example_device": True} if c.open_weights else {},
                 "verified_benchmarks": sorted(c.verified_benchmarks),
                 "rehost_of": c.rehost_of,
+                "release_date": c.release_date,
             }
             for c in pool
         ],
@@ -654,6 +678,9 @@ VOCABULARIES: dict[str, Any] = {
     # `state` is unique on RankResponse (authoring_guide.state). Do not add
     # `why` here: applied.unbound[].why is free-text, not this enum.
     "state": lambda: list(service.AUTHORING_GUIDE_STATES),
+    # `reason` is unique on RankResponse (unranked_candidates.models[].reason).
+    "reason": lambda: returned_strings(REPO_ROOT / "pipeline" / "ranking.py",
+                                       "_unranked_reason"),
 }
 
 

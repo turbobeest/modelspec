@@ -50,6 +50,9 @@ from pipeline.ranking import Candidate, rank_report
 #: new field, not a widening of an existing one, so this stays 1.0 under
 #: MODEL-59. `result` rows are unchanged. A bump here would also bump
 #: policy-check: the two endpoints share one OpenAPI `info.version`.
+#:
+#: MODEL-110 added `unranked_candidates` the same way: a new always-present
+#: field, not a widened one, so still 1.0.
 SCHEMA_VERSION = "1.0"
 
 #: Serving states for `authoring_guide.state`. `absent` is a state, never an
@@ -300,7 +303,7 @@ def candidates_from_export(export: dict[str, Any]) -> list[Candidate]:
             open_weights=bool(c.get("open_weights")), scores_as_of=c.get("scores_as_of"),
             fits=c.get("fits") or {},
             verified_benchmarks=set(c.get("verified_benchmarks") or []),
-            rehost_of=c.get("rehost_of"),
+            rehost_of=c.get("rehost_of"), release_date=c.get("release_date"),
         )
         for c in export["candidates"]
     ]
@@ -522,6 +525,9 @@ def rank(payload: Any, export: dict[str, Any], hardware_export: dict[str, Any] |
         "ranking_status": report["ranking_status"],
         "ranked_count": report["ranked_count"],
         "unranked_count": report["unranked_count"],
+        # MODEL-110: the models this ranking could not order, named. Straight
+        # from `rank_report`, on a 200 and a 422 alike.
+        "unranked_candidates": report["unranked_candidates"],
         "candidates_considered": total,
         "authoring_guide": authoring_guide_block(
             report["ranked"][0]["model_id"] if report["ranked"] else None, export),
