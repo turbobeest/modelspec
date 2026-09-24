@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-sonnet-5-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+document_sha256: "33573adb9f1871b903f79b77d7755a44cc20bb913ef48ac9000ddb090e41f7ed"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -8,6 +9,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Sonnet 5"
@@ -393,6 +396,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Sonnet 5"

@@ -16,6 +16,7 @@ from scripts.chart_check import (
     fixture_errors,
     load_fixture,
     load_fixtures,
+    load_manifest,
     load_models,
     mismatch_errors,
     parse_score,
@@ -707,6 +708,45 @@ def test_unparsed_score_is_reported_and_does_not_crash():
     assert [row["class"] for row in paired["pairs"]] == ["unparsed"]
 
 
+def _one_bar_fixture(model: str, benchmark: str, **extra) -> dict:
+    bar = {
+        "model_as_labelled": model,
+        "benchmark_as_labelled": benchmark,
+        "score": extra.pop("score", 1),
+        "score_text": extra.pop("score_text", "1"),
+        "printed": True,
+        "configuration": extra.pop("configuration", ""),
+    }
+    bar.update(extra)
+    return {
+        "page_url": "https://example.com/post",
+        "charts": [{"title": "Bars", "bars": [bar]}],
+        "_path": "example.yaml",
+        "_slug": "example",
+    }
+
+
+def _one_reading(model: str, benchmark: str, **extra) -> dict:
+    item = {
+        "model_as_labelled": model,
+        "benchmark_as_labelled": benchmark,
+        "score": extra.pop("score", 1),
+        "metric_or_setting": extra.pop("metric_or_setting", ""),
+        "printed": True,
+    }
+    item.update(extra)
+    return {
+        "source": "https://example.com/post",
+        "reader": "reader-b",
+        "read_on": "2026-09-24",
+        "charts": [{"title": "Bars", "items": [item]}],
+    }
+
+
+def _classes(fixture: dict, reading: dict) -> list[str]:
+    return [row["class"] for row in reconcile_readings([fixture], [reading], {})["pairs"]]
+
+
 def test_label_normalisation_pairs_the_same_bar():
     fixture = {
         "page_url": "https://example.com/post",
@@ -764,6 +804,290 @@ def test_label_normalisation_pairs_the_same_bar():
     }
     classes = [row["class"] for row in reconcile_readings([fixture], [reading], {})["pairs"]]
     assert classes == ["agree", "agree"]
+
+
+def test_effort_suffix_pairs_and_max_stays_apart_from_high():
+    paired = _classes(
+        _one_bar_fixture("GPT-6 Astra (max)", "Terminal-Bench 2.1", score=90.6, score_text="90.6"),
+        _one_reading("GPT-6 Astra", "Terminal-Bench 2.1", score=90.6, metric_or_setting="max effort"),
+    )
+    assert paired == ["agree"]
+    also = _classes(
+        _one_bar_fixture("Grok 4.7", "DeepSWE v1.1", configuration="xhigh"),
+        _one_reading("Grok 4.7 xHigh", "DeepSWE v1.1"),
+    )
+    assert also == ["agree"]
+    fixture = {
+        "page_url": "https://example.com/post",
+        "charts": [
+            {
+                "title": "Bars",
+                "bars": [
+                    {
+                        "model_as_labelled": "Opus 5 (max)",
+                        "benchmark_as_labelled": "Terminal-Bench 2.1",
+                        "score": 90,
+                        "score_text": "90",
+                        "printed": True,
+                        "configuration": "max",
+                    },
+                    {
+                        "model_as_labelled": "Opus 5 (high)",
+                        "benchmark_as_labelled": "Terminal-Bench 2.1",
+                        "score": 80,
+                        "score_text": "80",
+                        "printed": True,
+                        "configuration": "high",
+                    },
+                ],
+            }
+        ],
+        "_path": "example.yaml",
+        "_slug": "example",
+    }
+    reading = {
+        "source": "https://example.com/post",
+        "reader": "reader-b",
+        "read_on": "2026-09-24",
+        "charts": [
+            {
+                "title": "Bars",
+                "items": [
+                    {
+                        "model_as_labelled": "Opus 5",
+                        "benchmark_as_labelled": "Terminal-Bench 2.1",
+                        "score": 80,
+                        "metric_or_setting": "high",
+                        "printed": True,
+                    },
+                    {
+                        "model_as_labelled": "Opus 5 max effort",
+                        "benchmark_as_labelled": "Terminal-Bench 2.1",
+                        "score": 90,
+                        "metric_or_setting": "Max",
+                        "printed": True,
+                    },
+                ],
+            }
+        ],
+    }
+    classes = sorted(_classes(fixture, reading))
+    assert classes == ["agree", "agree"]
+    apart = _classes(
+        _one_bar_fixture("Opus 5 (max)", "Terminal-Bench 2.1", score=90, score_text="90"),
+        _one_reading("Opus 5", "Terminal-Bench 2.1", score=80, metric_or_setting="high"),
+    )
+    assert sorted(apart) == ["only_a", "only_b"]
+
+
+def test_claude_product_name_pairs_without_collapsing_the_version():
+    assert _classes(
+        _one_bar_fixture("Claude Opus 5.5", "SWE-bench Pro"),
+        _one_reading("Opus 5.5", "SWE-bench Pro"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Claude Sonnet 4.6", "SWE-bench Pro"),
+        _one_reading("Sonnet 4.6", "SWE-bench Pro"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "SWE-bench Pro"),
+            _one_reading("Opus 5.5", "SWE-bench Pro"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Gemini 3.5 Flash", "SWE-bench Pro"),
+        _one_reading("3.5 Flash", "SWE-bench Pro"),
+    ) == ["agree"]
+
+
+def test_percent_bold_and_underline_marks_pair():
+    assert _classes(
+        _one_bar_fixture("**Opus 5.5**", "SWE-bench Pro (%)"),
+        _one_reading("__Opus 5.5__", "SWE-bench Pro"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5.5", "Terminal-Bench 4.0"),
+        _one_reading("Opus 5.5", "Terminal-Bench 4.0¹"),
+    ) == ["agree"]
+
+
+def test_section_header_and_main_set_pair():
+    assert _classes(
+        _one_bar_fixture("Opus 5", "SWE-bench Pro"),
+        _one_reading("Opus 5", "Agentic coding / SWE-bench Pro"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "FrontierCode v1.1 (Main)"),
+        _one_reading("Opus 5", "FrontierCode v1.1, main set"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "FrontierCode v1.1 (Main)"),
+            _one_reading("Opus 5", "FrontierCode v1.1 (Extended)"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_version_labels_stay_part_of_the_benchmark():
+    assert _classes(
+        _one_bar_fixture("Opus 5", "gdpval_aa", configuration="GDPval-AA v2, Elo."),
+        _one_reading("Opus 5", "GDPval-AA v2"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "GDPval-AA v2"),
+        _one_reading("Opus 5", "GDPval-AA v2.1"),
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "AA-Briefcase"),
+        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "aa_briefcase", configuration="AA Briefcase v1.1 Elo."),
+        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+    ) == ["agree"]
+
+
+def test_harvey_and_biomystery_wording_pairs():
+    assert _classes(
+        _one_bar_fixture("Claude Sonnet 5", "Harvey Legal Agent Benchmark held-out"),
+        _one_reading("Sonnet 5", "Legal Agent Benchmark (Harvey's Held-Out Set)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "BioMysteryBench", configuration="hard"),
+        _one_reading("Opus 5", "Biology / BioMysteryBench (hard)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "BioMysteryBench", configuration="human solved"),
+        _one_reading("Opus 5", "BioMysteryBench (human solved)"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Opus 5", "BioMysteryBench", configuration="hard"),
+            _one_reading("Opus 5", "BioMysteryBench (human solved)"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_working_exploit_and_register_control_stay_apart():
+    fixture = {
+        "page_url": "https://example.com/post",
+        "charts": [
+            {
+                "title": "Firefox",
+                "bars": [
+                    {
+                        "model_as_labelled": "Sonnet 5",
+                        "benchmark_as_labelled": "Firefox 147 exploit development",
+                        "score": 0.0,
+                        "score_text": "0.0",
+                        "printed": True,
+                        "configuration": "Working exploit, pass@1.",
+                    },
+                    {
+                        "model_as_labelled": "Sonnet 5",
+                        "benchmark_as_labelled": "Firefox 147 exploit development",
+                        "score": 13.2,
+                        "score_text": "13.2",
+                        "printed": True,
+                        "configuration": "Register control only, pass@1.",
+                        "metric": "register_control",
+                    },
+                ],
+            }
+        ],
+        "_path": "example.yaml",
+        "_slug": "example",
+    }
+    reading = {
+        "source": "https://example.com/post",
+        "reader": "reader-b",
+        "read_on": "2026-09-24",
+        "charts": [
+            {
+                "title": "Firefox",
+                "items": [
+                    {
+                        "model_as_labelled": "Sonnet 5",
+                        "benchmark_as_labelled": "Firefox 147 exploit development",
+                        "score": 0.0,
+                        "metric_or_setting": "darker bar; legend 'Working exploit (1.0)'",
+                        "printed": True,
+                    },
+                    {
+                        "model_as_labelled": "Sonnet 5",
+                        "benchmark_as_labelled": "Firefox 147 exploit development",
+                        "score": 13.2,
+                        "metric_or_setting": "lighter bar; legend 'Register control only (0.5)'. It may be a partial-credit score",
+                        "printed": True,
+                    },
+                ],
+            }
+        ],
+    }
+    assert sorted(_classes(fixture, reading)) == ["agree", "agree"]
+
+
+def test_raw_healthbench_does_not_take_the_summary_number():
+    assert sorted(
+        _classes(
+            _one_bar_fixture(
+                "Claude Opus 5.5",
+                "healthbench",
+                score=77.1,
+                score_text="77.1",
+                configuration="HealthBench Professional, raw score.",
+            ),
+            _one_reading(
+                "Claude Opus 5.5",
+                "HealthBench Professional",
+                score=65.6,
+                metric_or_setting="standard config",
+            ),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_partial_and_strict_stay_apart():
+    assert _classes(
+        _one_bar_fixture("Opus 5", "osworld", configuration="OSWorld 2.0 partial."),
+        _one_reading("Opus 5", "OSWorld 2.0 (partial/strict) - partial"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "osworld", configuration="OSWorld 2.0 partial."),
+        _one_reading("Opus 5", "OSWorld 2.0 (partial/strict) - strict"),
+    ) == ["only_a", "only_b"]
+
+
+def test_pdf_source_pairs_by_document_hash():
+    digest = "a" * 64
+    fixture = _one_bar_fixture("Opus 5", "SWE-bench Pro", score=79.2, score_text="79.2")
+    fixture["document_sha256"] = digest
+    fixture["charts"][0]["kind"] = "html_table"
+    reading = _one_reading("Claude Opus 5", "SWE-bench Pro", score=79.2)
+    reading["source"] = "anthropic-opus-5-system-card.pdf"
+    report = reconcile_readings([fixture], [reading], {"anthropic-opus-5-system-card.pdf": digest})
+    assert [row["class"] for row in report["pairs"]] == ["agree"]
+    missing = reconcile_readings(
+        [fixture],
+        [{**reading, "source": "other.pdf"}],
+        {"other.pdf": "b" * 64},
+    )
+    assert missing["by_class"]["unpaired_source"] == 1
+
+
+def test_phase2a_system_card_pdfs_use_the_manifest_digest():
+    manifest = load_manifest(Path("/Users/terbeest/dev/worktrees/.chart-cache/manifest-phase2a.tsv"))
+    fixtures = {item["_slug"]: item for item in load_fixtures()}
+    expected = {
+        "anthropic-opus-5-5-system-card.pdf": "anthropic-claude-opus-5-5-system-card",
+        "anthropic-fable-5-1-system-card.pdf": "anthropic-claude-fable-5-1-system-card",
+        "anthropic-opus-5-system-card.pdf": "anthropic-claude-opus-5-system-card",
+        "anthropic-sonnet-5-system-card.pdf": "anthropic-claude-sonnet-5-system-card",
+        "anthropic-opus-4-8-system-card.pdf": "anthropic-claude-opus-4-8-system-card",
+    }
+    for name, slug in expected.items():
+        assert fixtures[slug]["document_sha256"] == manifest[name]
 
 
 def test_disputed_bar_is_not_a_match():

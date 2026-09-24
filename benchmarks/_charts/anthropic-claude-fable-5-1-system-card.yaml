@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-fable-5-1-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+document_sha256: "b0d59edc7a60eef32a879c13d713cce60c3fefd7e6b5183afdc8b835af3c8c39"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -8,6 +9,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Fable 5.1"

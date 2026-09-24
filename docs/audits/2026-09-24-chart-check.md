@@ -310,3 +310,173 @@ Twelve bars print GDPval-AA or AA-Briefcase as Elo. Each rival card holds an `in
 | ARC-AGI-1 | 7 |
 | ARC-AGI-3 | 6 |
 | BioMysteryBench | 6 |
+
+## Publisher inconsistencies (phase 2a)
+
+Reader A is the fixture. Reader B is the second reading in `.chart-check/reader-b-2a`. A figure is double-read when both files hold it for the same document, model, and benchmark. Card rows below are context. The cards were not edited.
+
+### Fable 5 on Frontier-Bench v0.1
+
+The Opus 5 launch table prints 33.7. The Opus 5 system card prints 33.8. Both readers recorded both. Both rows are labelled Frontier-Bench v0.1.
+
+`anthropic/claude-fable-5` has no evidence row for this benchmark.
+
+### Opus 4.8 on Terminal-Bench 2.1
+
+The Sonnet 5 launch table, in the column marked for reference, prints 82.7. The Opus 4.8 system card and the Opus 4.8 launch table print 74.6. The card row is labelled Terminus-2 public harness. The Grok 4.5 page prints 78.9, labelled max. Both readers recorded 82.7, 74.6, and 78.9. Every row is Terminal-Bench 2.1. The harness name is on the 74.6 card row. The max label is on the 78.9 row.
+
+`anthropic/claude-opus-4-8` has no `terminal_bench_v2_1` evidence row.
+
+### Opus 4.8 on GDPval-AA v2
+
+The Sonnet 5 launch table prints 1615. The Opus 5 system card and the Opus 5 launch table print 1593. Both readers recorded both. Both rows are labelled GDPval-AA v2.
+
+`anthropic/claude-opus-4-8` holds `gdpval_aa` 49.45 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`. That row is the normalized percent, not these Elo figures.
+
+### Opus 5 on FrontierCode v1.1 Main
+
+The Opus 5 card and the Opus 5 launch table print 53.4. Both readers recorded both.
+
+The Opus 5.5 system card prints 48.0, labelled max effort on the summary table, and 53.4, labelled best reasoning effort. Reader A recorded both. Reader B recorded 48.0 on that card.
+
+The Opus 5.5 page table prints 48.0. Both readers recorded it. Reader A also recorded 54.6 on that page, labelled default effort, called medium in the post. Reader B's page chart records 53.4 at med and 48.0 at max. Reader A's page fixture has no 53.4 bar.
+
+The benchmark label is FrontierCode v1.1 Main on these rows. Effort labels sit on the Opus 5.5 card rows.
+
+`anthropic/claude-opus-5` has no FrontierCode evidence row.
+
+### Opus 5 on HLE
+
+The Opus 5 card prints 56.3 with no tools and 64.7 with tools. The Fable 5.1 card and page print 56.6 and 63.6. The Opus 5.5 card and page print 56.6 and 63.6. Both readers recorded all six. The 56.3, 56.6, and 56.6 rows are all labelled no tools. The 64.7, 63.6, and 63.6 rows are all labelled with tools. No separate benchmark version is written on either side.
+
+`anthropic/claude-opus-5` has no `hle` or `hle_tools` row. `anthropic/claude-opus-5-5` holds `hle` 64.4 and `hle_tools` 67.7, both `source_kind: provider_self_report`, from its own system card, Table 8.1.A, Opus 5.5 column.
+
+### Opus 5 on OSWorld 2.0
+
+The Opus 5 card prints 70.6, one OSWorld 2.0 figure. The Fable 5.1 card and page print 75.4 partial and 39.6 strict. The Opus 5.5 card and page print 74.0 partial and 37.2 strict. Both readers recorded all five. Partial and strict are labelled on the Fable 5.1 and Opus 5.5 rows. The Opus 5 card row has no partial or strict label.
+
+`anthropic/claude-opus-5` has no `osworld` row.
+
+### Opus 5 on GDPval-AA v2
+
+The Opus 5 card and launch table print 1861. The Fable 5.1 card and page print 1824. Both readers recorded both. Both rows are labelled GDPval-AA v2.
+
+`anthropic/claude-opus-5` holds `gdpval_aa` 61.75 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`.
+
+### Opus 5 on AA-Briefcase
+
+The Opus 5 card prints 1720, labelled AA-Briefcase. The Fable 5.1 card prints 1685, labelled AA-Briefcase. The Opus 5.5 card prints 1673, labelled AA-Briefcase v1.1. Both readers recorded all three. The v1.1 label is on the 1673 row.
+
+`anthropic/claude-opus-5` has no `aa_briefcase` row.
+
+### Opus 5 on AutomationBench
+
+The Opus 5 card prints 26.0. The Fable 5.1 card and page, and the Opus 5.5 card, print 26.9. Both readers recorded both figures. The rows share the AutomationBench label.
+
+`anthropic/claude-opus-5` has no `automationbench` row. `anthropic/claude-opus-5-5` holds `automationbench` 40.0, `source_kind: provider_self_report`, from its own card, and 42.47, `source_kind: benchmark_author`, from Zapier. Those rows are the Opus 5.5 score.
+
+### Fable 5 on the Opus 5 card and the Fable 5.1 card
+
+The Opus 5 card, labelled Fable 5, prints HLE 56.5 and 63.9, GDPval-AA v2 1747, AA-Briefcase 1574, and AutomationBench 17.4. Both readers recorded these.
+
+The Fable 5.1 card prints HLE 57.8 and 63.8, GDPval-AA v2 1723, AA-Briefcase 1572, AutomationBench 17.1, and HealthBench Professional 63.3. Reader A labelled the model Fable 5. Reader B labelled the column Claude Fable 5/ Mythos 5. Both readers recorded the numbers.
+
+HealthBench Professional 66.0 is on the Opus 5 card. Reader A labelled that bar Mythos 5 and noted the footnote on the Fable 5 cell. Reader B labelled the bar Fable 5 and recorded the footnote. Both recorded 66.0, and both recorded 63.3 on the Fable 5.1 card. Both rows are HealthBench Professional.
+
+`anthropic/claude-fable-5` has no evidence row for these benchmarks. `anthropic/claude-mythos-5` has no evidence rows.
+
+### Mythos 5 on Terminal-Bench 4.0
+
+The Fable 5.1 card prints 45 as a whole percent, the parenthetical under the Fable 5 / Mythos 5 column. Reader B recorded (45%) on the column Claude Fable 5/ Mythos 5. Both readers have 45.
+
+Reader B recorded 45.8 for Mythos 5 at max on the Fable page chart, from the point data. Reader A's page fixture has no 45.8 bar. The max label is on Reader B's chart point.
+
+`anthropic/claude-mythos-5` has no `terminal_bench_v4_0` row. `anthropic/claude-mythos-5-1` holds `terminal_bench_v4_0` 60.9, `source_kind: provider_self_report`, from the Fable 5.1 system card.
+
+### Fable 5.1 on HLE with tools
+
+The Fable 5.1 card and page print 65.0. The Opus 5.5 card and page print 65.6. Both readers recorded both. Both rows are labelled with tools.
+
+`anthropic/claude-fable-5-1` has no `hle_tools` row. `anthropic/claude-opus-5-5` holds `hle_tools` 67.7, `source_kind: provider_self_report`, Opus 5.5 column of its own card.
+
+### Fable 5.1 on OSWorld 2.0
+
+The Fable 5.1 card and page print 77.9 partial and 41.7 strict. The Opus 5.5 card and page print 80.7 partial and 42.8 strict. Both readers recorded all four. The 77.9 and 80.7 rows are both labelled partial. The 41.7 and 42.8 rows are both labelled strict. No other version label is written on either side.
+
+`anthropic/claude-fable-5-1` has no `osworld` row.
+
+### GPT-5.6 Sol
+
+GDPval-AA v2 is 1736 on the Opus 5 card and launch table, 1711 on the Fable 5.1 card and page, and 1728 on the Grok 4.6 page. Both readers recorded all three. All three rows are labelled GDPval-AA v2.
+
+AA-Briefcase is 1505 on the Opus 5 card and 1502 on the Fable 5.1 card and the Grok 4.6 page. Both readers recorded both. These rows have no v1.1 label.
+
+AutomationBench is 18.1 on the Opus 5 card, 19.6 on the Fable 5.1 card and page, and 28.8 on the Opus 5.5 page. Both readers recorded all three.
+
+ARC-AGI-1 is 97.5 on the Opus 5 card. Reader A's bar there is labelled xhigh. The Fable 5.1 card prints 96.5 with no xhigh label. Both readers recorded both numbers. The xhigh label is on the 97.5 row.
+
+`openai/gpt-5-6-sol` holds `gdpval_aa` 56.21 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`. The card has no `aa_briefcase`, `automationbench`, or `arc_agi_1` row.
+
+### GPT-5.5 on Terminal-Bench 2.1
+
+The Opus 4.8 card and launch table print 78.2. The card row is labelled Terminus-2 public harness. The Sonnet 5 card prints 83.4, labelled Codex CLI. Both readers recorded both. Both rows are Terminal-Bench 2.1. The harness name differs.
+
+`openai/gpt-5-5` has no `terminal_bench_v2_1` row.
+
+### Opus 4.8 on AutomationBench
+
+The Opus 4.8 card prints 15.5. The Opus 5 card prints 17.0. Both readers recorded both. Both rows are AutomationBench.
+
+`anthropic/claude-opus-4-8` has no `automationbench` row.
+
+### Toolathlon Pass@1
+
+Opus 5 card, Table 8.13.6.A: Sonnet 5 74.7, Opus 4.8 79.9, Mythos 5 79.3. Sonnet 5 card, Table 8.11.5.A: Sonnet 5 54.3, Opus 4.8 59.9, Mythos 5 61.7. Both readers recorded all six. Reader A's benchmark label is Toolathlon on both tables. Reader B's Opus 5 card setting says Toolathlon-Verified, June 2026 release. Reader B's Sonnet 5 card label is Toolathlon.
+
+None of these model cards has a Toolathlon evidence row.
+
+### Fable 5.1 on Terminal-Bench 4.0
+
+The Grok 4.7 table prints 57.9 in the Fable 5.1 column. Both readers recorded that.
+
+The Opus 5.5 card and page print 55.8 for Fable 5.1 and 57.9 for GPT-6 Astra. Both readers recorded both. Reader A's Astra bar says high thinking effort, as OpenAI reported.
+
+The Fable 5.1 card's summary bar is a whole percent. Reader A recorded 56 for Fable 5.1 there. The card's evidence rows, which are not chart bars, are `terminal_bench_v4_0` 55.8, `source_kind: provider_self_report`, from the system card, and 57.88, `source_kind: benchmark_author`, from https://www.tbench.ai/leaderboard.
+
+57.9 is the Grok 4.7 table's Fable 5.1 column, and it is the GPT-6 Astra figure on the Opus 5.5 card and page. 55.8 is the Fable 5.1 figure on those Opus 5.5 documents and on the Fable 5.1 card's self-report row. 57.88 is the tbench.ai row on the Fable 5.1 card.
+
+### Fable 5.1 on DeepSWE v1.1
+
+The Grok 4.7 table prints 70.0. Both readers recorded it. Reader A recorded 67.4 on the Fable 5.1 card, labelled DeepSWE v1.1, mean of five trials. Reader B's item file for that PDF has no DeepSWE row and no 67.4.
+
+`anthropic/claude-fable-5-1` has no DeepSWE evidence row.
+
+### Grok 4.6 on DeepSWE v1.1
+
+The Grok 4.6 page prints 65.9. The Grok 4.7 page prints 65.2. Both readers recorded both. Both rows are labelled DeepSWE v1.1.
+
+`xai/grok-4-6` has no evidence rows.
+
+### Grok 4.5 on DeepSWE 1.1
+
+The Grok 4.6 table prints 54. The Grok 4.5 page prints 53. Both readers recorded both. Both rows are DeepSWE 1.1.
+
+`xai/grok-4-5` has no DeepSWE evidence row.
+
+### Grok 4.6 on its page and on the Grok 4.7 page
+
+The Grok 4.6 page prints GDPval-AA v2 Elo 1753 and AA-Briefcase 1577. Both readers recorded both. The Grok 4.7 page prints GDPval 1605, labelled high on the chart tab, and AA-Briefcase 1546. Both readers recorded both. Reader A's 1605 bar uses benchmark id `gdpval`. Reader A's 1546 table bar is labelled AA Briefcase v1.1. Reader A's 1577 bar has no v1.1 label. Reader A's 1753 bar is labelled GDPVal-AA v2.
+
+`xai/grok-4-6` has no evidence rows. `xai/grok-4-7` holds `terminal_bench_v4_0` 37.58, `source_kind: benchmark_author`, from https://www.tbench.ai/leaderboard. It has no GDPval or AA-Briefcase row.
+
+### Opus 4.7 on Terminal-Bench 2.1, from the Grok 4.5 page
+
+The Grok 4.5 page prints 78.9, labelled max. The Opus 4.8 card prints 66.1, labelled Terminus-2 public harness. Both readers recorded both. Both rows are Terminal-Bench 2.1.
+
+`anthropic/claude-opus-4-7` has no `terminal_bench_v2_1` row. It holds `gdpval_aa` 44.79 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard.
+
+### Fable on SWE-bench Pro, from the Grok 4.5 page
+
+The Grok 4.5 page prints 80.4, labelled Fable max, resolve rate. The Opus 5 card prints 80 for Fable 5 on SWE-bench Pro. Both readers recorded both. The Grok label is Fable. The Opus 5 card label is Fable 5.
+
+`anthropic/claude-fable-5` has no `swe_bench_pro` row. `anthropic/claude-fable-5-1` holds `swe_bench_pro` 81.2, `source_kind: provider_self_report`, from its own system card.

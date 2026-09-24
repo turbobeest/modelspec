@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-opus-5-5-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+document_sha256: "7311c9c6bbb16d012f1c12c7418b05949fcf7ae3e30d2c40f22050074b2a7378"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -8,6 +9,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
@@ -826,6 +829,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Sonnet 5"
         model_id: "anthropic/claude-sonnet-5"
@@ -871,6 +876,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
@@ -1015,6 +1022,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
         model_id: "anthropic/claude-opus-5-5"
@@ -1094,6 +1103,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
@@ -1175,6 +1186,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
         model_id: "anthropic/claude-opus-5-5"
@@ -1255,6 +1268,8 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
         model_id: "anthropic/claude-opus-5-5"
@@ -1298,6 +1313,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"

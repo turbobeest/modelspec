@@ -14,6 +14,9 @@ A fixture:
 - An image chart has `image_url` and `image_sha256` (64 hex digits, no file
   extension). An HTML or Markdown table is `kind: html_table`. A number stated
   in prose, with no chart behind it, is `kind: text`.
+- `document_sha256` on the page is the sha256 of a PDF the page was read from.
+  A second reading names that PDF file. The manifest maps the file name to
+  this digest. Reconcile does not match a PDF name by similarity.
 - `needs_reading: true` means this pass did not transcribe bars. That is not a
   green bar.
 

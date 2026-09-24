@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-opus-4-8-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+document_sha256: "0df5d061b6688c2d5839476620d66960011cb69043185dbed87ed1f68ab76d8f"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -8,6 +9,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 4.8"

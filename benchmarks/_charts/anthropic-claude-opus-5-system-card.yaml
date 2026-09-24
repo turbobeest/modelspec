@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-opus-5-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+document_sha256: "0950dae1ba6b341e4f1a009e535e0f025625efeca21bd043a9a5ae148a3f2e6b"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -8,6 +9,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus 5"
@@ -530,6 +533,8 @@ charts:
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5"

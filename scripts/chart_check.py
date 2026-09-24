@@ -887,6 +887,9 @@ def fixture_errors(fixtures: list[dict[str, Any]], models: list[Model]) -> list[
             digest = chart.get("image_sha256")
             if digest and not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
                 errors.append(f"{where}: image_sha256 is not 64 hex digits")
+        document = fixture.get("document_sha256")
+        if document and not re.fullmatch(r"[0-9a-f]{64}", str(document)):
+            errors.append(f"{name}: document_sha256 is not 64 hex digits")
             for bar in chart.get("bars") or []:
                 if bar.get("role") not in ROLES:
                     errors.append(f"{where}: bar role {bar.get('role')!r}")
@@ -929,7 +932,7 @@ def mismatch_errors(report: dict[str, Any]) -> list[str]:
 
 
 def load_manifest(path: Path) -> dict[str, str]:
-    """Image file name to the 64-hex digest stored on the fixture."""
+    """Cache file name to the 64-hex digest stored on the fixture."""
     found: dict[str, str] = {}
     if not path.is_file():
         return found
@@ -953,23 +956,28 @@ def _metric_setting(bar: dict[str, Any]) -> str:
 
 
 _DROP_VENDORS = {"openai", "google", "anthropic", "alibaba", "meta"}
+_CLAUDE_FAMILY = {"opus", "sonnet", "haiku", "fable", "mythos"}
 _MODEL_ALIASES = {
     "opus 5": "claude opus 5",
     "sonnet 5": "claude sonnet 5",
     "k 3": "kimi k 3",
+    "3.5 flash": "gemini 3.5 flash",
 }
 # Longer phrases first. A version marker "v" before a digit is already gone.
+# "gdpval aa 2" stays "gdpval aa 2". v2 and v2.1 are different benchmarks.
 _BENCH_ALIASES = (
     ("humanity s last exam with tools", "hle tools"),
     ("humanity s last exam tools", "hle tools"),
     ("humanity s last exam", "hle"),
     ("artificial analysis intelligence index", "artificial analysis"),
     ("aa briefcase elo", "aa briefcase"),
+    ("legal agent benchmark harvey s held out set", "harvey legal"),
+    ("harvey legal agent benchmark held out", "harvey legal"),
     ("harvey s legal agent benchmark", "harvey legal"),
     ("harvey legal agent benchmark", "harvey legal"),
+    ("harvey legal held out", "harvey legal"),
     ("gray swan ipi benchmark", "gray swan ipi"),
     ("simple qa verified", "simpleqa verified"),
-    ("gdpval aa 2", "gdpval aa"),
     ("gdp pdf aa", "gdp pdf"),
     ("swe bench verified", "swe verified"),
     ("live code bench", "livecodebench"),
@@ -991,9 +999,12 @@ _BENCH_ALIASES = (
     ("deep swe", "deepswe"),
     ("c eval", "ceval"),
     ("nl 2 repo bench", "nl 2 repo"),
+    ("main set", "main"),
     ("zerobench main", "zerobench"),
     ("tone 1", "tone"),
 )
+# A version written beside the benchmark id, not in the benchmark name.
+_VERSION_STEMS = ("gdpval aa", "aa briefcase")
 _QUALIFIERS = (
     ("text only", "textonly"),
     ("with tools", "tools"),
@@ -1001,10 +1012,38 @@ _QUALIFIERS = (
     ("without tools", "notools"),
     ("no tools", "notools"),
     ("human solvable", "humansolvable"),
+    ("human solved", "humansolved"),
     ("human difficult", "humandifficult"),
+    ("working exploit", "working"),
+    ("register control", "register"),
+    ("length adjusted", "lengthadjusted"),
+    ("multi agent", "multiagent"),
+    ("single agent", "singleagent"),
+    ("all trials correct", "passall"),
+    ("average turns", "turns"),
+    ("avg turns", "turns"),
     ("static", "static"),
     ("notools", "notools"),
     ("tools", "tools"),
+    ("partial", "partial"),
+    ("strict", "strict"),
+    ("hard", "hard"),
+    ("professional", "professional"),
+    ("verified", "verified"),
+    ("passall", "passall"),
+    ("pass1", "pass1"),
+    ("pass3", "pass3"),
+    ("turns", "turns"),
+)
+_PASS_QUALIFIERS = {"pass1", "pass3", "passall"}
+_EFFORT_PHRASES = (
+    ("maximum effort", "max"),
+    ("max effort", "max"),
+    ("xhigh effort", "xhigh"),
+    ("extra high effort", "xhigh"),
+    ("high effort", "high"),
+    ("medium effort", "medium"),
+    ("low effort", "low"),
 )
 _FILLER_PHRASES = (
     "effort in the label",
@@ -1051,10 +1090,21 @@ _SCAFFOLDS = {
 _EFFORT = {"max", "high", "xhigh", "low", "medium"}
 
 
+def _present(value: Any) -> str:
+    """Drop marks that are not part of the name. Pass³ is a metric, not a footnote."""
+    text = str(value or "")
+    text = text.replace("**", " ").replace("__", " ").replace("~~", " ").replace("*", " ")
+    text = text.replace("\u0332", "")
+    text = re.sub(r"(?i)pass\s*[\^³]\s*3", " passall ", text)
+    text = re.sub(r"\[\d+\]", " ", text)
+    text = text.translate({ord(ch): None for ch in "⁰¹²³⁴⁵⁶⁷⁸⁹"})
+    return text
+
+
 def _basic_label(value: Any) -> str:
-    text = str(value or "").casefold()
+    text = _present(value).casefold()
     text = text.replace("–", " ").replace("—", " ").replace("−", " ").replace("_", " ")
-    text = text.replace("&", " and ").replace("@", " ").replace("/", " ")
+    text = text.replace("&", " and ").replace("@", " ").replace("/", " ").replace("%", " ")
     text = re.sub(r"\.(?!\d)", " ", text)
     text = re.sub(r"[^a-z0-9.+]+", " ", text)
     text = re.sub(r"v(?=\d)", " ", text)
@@ -1064,6 +1114,19 @@ def _basic_label(value: Any) -> str:
     text = re.sub(r"\b(\d+)\.0+\b", r"\1", text)
     text = text.replace("w o ", "without ")
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _benchmark_parts(value: Any) -> tuple[str, str]:
+    """Drop a section header. A row setting after ' - ' belongs with the metric."""
+    text = _present(value)
+    if " / " in text:
+        text = text.split(" / ", 1)[1].strip()
+    extra = ""
+    if " - " in text:
+        text, extra = text.rsplit(" - ", 1)
+        text, extra = text.strip(), extra.strip()
+    text = re.sub(r"\((?:partial\s*/\s*strict|strict\s*/\s*partial)\)", " ", text, flags=re.I)
+    return text, extra
 
 
 def _join_version(text: str) -> str:
@@ -1087,6 +1150,14 @@ def _mark_settings(text: str) -> str:
     text = text.replace("with tools", "tools")
     text = text.replace("w tools", "tools")
     text = text.replace("tool use", "tools")
+    text = text.replace("partial credit", "partialcredit")
+    text = text.replace("all trials correct", "passall")
+    text = text.replace("average turns", "turns")
+    text = text.replace("avg turns", "turns")
+    text = text.replace("pass at 3", "pass3")
+    text = text.replace("pass at 1", "pass1")
+    text = re.sub(r"\bpass 3\b", "pass3", text)
+    text = re.sub(r"\bpass 1\b", "pass1", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -1102,16 +1173,100 @@ def _pull_qualifiers(text: str) -> tuple[str, list[str]]:
     return text, found
 
 
-def canon_model(value: Any) -> str:
-    text = _basic_label(value)
+def _peel_trailing_effort(text: str) -> tuple[str, list[str]]:
+    """'(max)', 'max effort', and a trailing 'Max' are the effort, not the product."""
+    padded = f" {text} ".strip()
+    for phrase, name in _EFFORT_PHRASES:
+        if padded == phrase or padded.endswith(f" {phrase}"):
+            return padded[: -len(phrase)].strip(), [name]
+    parts = padded.split()
+    if len(parts) >= 2 and parts[-1] in _EFFORT:
+        return " ".join(parts[:-1]), [parts[-1]]
+    return padded, []
+
+
+def _peel_effort_tokens(text: str) -> tuple[str, list[str]]:
+    """One effort stays. A caption that lists several efforts names the columns, not this bar."""
+    padded = f" {text} "
+    found: list[str] = []
+    for phrase, name in _EFFORT_PHRASES:
+        needle = f" {phrase} "
+        if needle in padded:
+            found.append(name)
+            padded = padded.replace(needle, " ")
+    tokens = padded.split()
+    distinct = list(dict.fromkeys(found + [tok for tok in tokens if tok in _EFFORT]))
+    kept = [tok for tok in tokens if tok not in _EFFORT]
+    if len(distinct) == 1:
+        return " ".join(kept), distinct
+    return " ".join(kept), []
+
+
+def _peel_model(text: str) -> tuple[str, list[str], list[str]]:
+    text = _mark_settings(text)
+    text, quals = _pull_qualifiers(text)
+    text, efforts = _peel_trailing_effort(text)
+    return text, efforts, quals
+
+
+def _finish_model(text: str) -> str:
     if text.startswith("ds "):
         text = "deepseek " + text[3:]
     parts = text.split()
     while parts and parts[0] in _DROP_VENDORS and any(any(ch.isdigit() for ch in part) for part in parts[1:]):
         parts = parts[1:]
+    if parts and parts[0] in _CLAUDE_FAMILY:
+        parts = ["claude", *parts]
     text = " ".join(parts)
     text = re.sub(r" a \d+ b$", "", text)
     return _MODEL_ALIASES.get(text, text)
+
+
+def canon_model(value: Any) -> str:
+    body, _efforts, _quals = _peel_model(_basic_label(value))
+    return _finish_model(body)
+
+
+def _merge_quals(bench_quals: list[str], other_quals: list[str]) -> list[str]:
+    """A benchmark that names one pass metric keeps it. A caption that names all three does not."""
+    bench_pass = list(dict.fromkeys(q for q in bench_quals if q in _PASS_QUALIFIERS))
+    other_pass = list(dict.fromkeys(q for q in other_quals if q in _PASS_QUALIFIERS))
+    rest = [q for q in bench_quals + other_quals if q not in _PASS_QUALIFIERS]
+    if len(bench_pass) == 1:
+        rest.append(bench_pass[0])
+    elif not bench_pass and len(other_pass) == 1:
+        rest.append(other_pass[0])
+    if "working" in rest or "register" in rest:
+        rest = [name for name in rest if name not in _PASS_QUALIFIERS]
+    return rest
+
+
+def _one_effort(model_efforts: list[str], metric_efforts: list[str]) -> str:
+    model_u = list(dict.fromkeys(model_efforts))
+    metric_u = list(dict.fromkeys(metric_efforts))
+    if len(model_u) == 1 and (not metric_u or metric_u == model_u):
+        return model_u[0]
+    if not model_u and len(metric_u) == 1:
+        return metric_u[0]
+    return ""
+
+
+def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
+    """GDPval-AA v2 stays v2. v2.1 and AA-Briefcase v1.1 stay on the benchmark."""
+    if re.search(r"\d", bench):
+        return bench, metric
+    padded = f" {metric} "
+    for stem in _VERSION_STEMS:
+        if bench != stem:
+            continue
+        match = re.search(rf" {re.escape(stem)} (\d+(?:\.\d+)?) ", padded)
+        if match is None:
+            continue
+        version = match.group(1)
+        bench = f"{stem} {version}"
+        metric = padded.replace(f" {stem} {version} ", f" {stem} ", 1)
+        return bench, re.sub(r"\s+", " ", metric).strip()
+    return bench, metric
 
 
 def canon_benchmark(value: Any) -> str:
@@ -1162,8 +1317,13 @@ def canon_metric(value: Any, model: Any = "") -> str:
 
 
 def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
-    bench = _mark_settings(canon_benchmark(benchmark))
-    metric_text = _mark_settings(_basic_label(metric))
+    model_body, model_efforts, model_quals = _peel_model(_basic_label(model))
+    model_key = _finish_model(model_body)
+    bench_body, row_extra = _benchmark_parts(benchmark)
+    metric_bits = " ".join(bit for bit in (str(metric or ""), row_extra) if str(bit).strip())
+    bench = _mark_settings(canon_benchmark(bench_body))
+    metric_text = _mark_settings(_basic_label(metric_bits))
+    metric_text, metric_efforts = _peel_effort_tokens(metric_text)
     if "verified" in metric_text.split() or bench.endswith(" verified") or " verified " in f" {bench} ":
         if bench == "hle" or bench.startswith("hle "):
             bench = "hle verified"
@@ -1173,10 +1333,15 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
             metric_text = " ".join(tok for tok in metric_text.split() if tok != "verified")
     bench, bench_quals = _pull_qualifiers(bench)
     metric_text, metric_quals = _pull_qualifiers(metric_text)
-    quals = " ".join(sorted(set(bench_quals + metric_quals)))
+    quals = " ".join(sorted(set(_merge_quals(bench_quals, metric_quals + model_quals))))
     if quals:
         bench = f"{bench} {quals}".strip()
-    return (canon_model(model), bench, canon_metric(metric_text, model))
+    bench, metric_text = _attach_named_version(bench, metric_text)
+    effort = _one_effort(model_efforts, metric_efforts)
+    metric_key = canon_metric(metric_text, model_key)
+    if effort:
+        metric_key = " ".join(sorted({*metric_key.split(), effort}))
+    return (model_key, bench, metric_key)
 
 
 def _pair_key(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
@@ -1300,6 +1465,18 @@ def _pair_record(
     }
 
 
+def _effort_conflict(a_item: dict[str, Any], b_item: dict[str, Any]) -> bool:
+    """Max and high are different bars, even when each model has only one of them."""
+    a_toks = set(str(a_item.get("metric_key") or "").split())
+    b_toks = set(str(b_item.get("metric_key") or "").split())
+    a_eff = _EFFORT.intersection(a_toks)
+    b_eff = _EFFORT.intersection(b_toks)
+    if a_eff and b_eff and a_eff != b_eff:
+        return True
+    # "raw" on one side is a different HealthBench number from the summary row.
+    return ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks)
+
+
 def _pair_rows(
     a_rows: list[dict[str, Any]],
     b_rows: list[dict[str, Any]],
@@ -1320,7 +1497,7 @@ def _pair_rows(
     pairs: list[dict[str, Any]] = []
     for key, group in a_by2.items():
         other = b_by2.get(key) or []
-        if len(group) == 1 and len(other) == 1:
+        if len(group) == 1 and len(other) == 1 and not _effort_conflict(group[0], other[0]):
             used_a.add(id(group[0]))
             used_b.add(id(other[0]))
             pairs.append(
@@ -1403,9 +1580,13 @@ def reconcile_readings(
 ) -> dict[str, Any]:
     """Pair a second reading onto fixture charts. Does not touch reader-b itself."""
     by_hash: dict[str, list[tuple[dict[str, Any], int, dict[str, Any]]]] = defaultdict(list)
+    by_document: dict[str, list[dict[str, Any]]] = defaultdict(list)
     by_page: dict[str, dict[str, Any]] = {}
     for fixture in fixtures:
         by_page[norm_page(str(fixture.get("page_url") or ""))] = fixture
+        document = str(fixture.get("document_sha256") or "").lower()
+        if re.fullmatch(r"[0-9a-f]{64}", document):
+            by_document[document].append(fixture)
         for index, chart in enumerate(fixture.get("charts") or []):
             digest = str(chart.get("image_sha256") or "").lower()
             if digest:
@@ -1477,16 +1658,32 @@ def reconcile_readings(
             ]
             scope.append((fixture, charts))
         else:
-            digest = manifest.get(source)
-            located = by_hash.get(digest or "") or []
-            if not digest or not located:
+            digest = (manifest.get(source) or "").lower()
+            documents = by_document.get(digest) or []
+            located = by_hash.get(digest) or []
+            if documents:
+                for fixture in documents:
+                    charts = [
+                        (index, chart)
+                        for index, chart in enumerate(fixture.get("charts") or [])
+                        if chart.get("bars")
+                    ]
+                    if charts:
+                        scope.append((fixture, charts))
+            elif digest and located:
+                grouped: dict[int, tuple[dict[str, Any], list[tuple[int, dict[str, Any]]]]] = {}
+                for fixture, index, chart in located:
+                    bucket = grouped.setdefault(id(fixture), (fixture, []))
+                    bucket[1].append((index, chart))
+                scope.extend(grouped.values())
+            if not scope:
                 rows.append(
                     {
                         "class": "unpaired_source",
                         "source": source,
                         "reader": reader,
                         "read_on": read_on,
-                        "reason": "no fixture chart with this image hash",
+                        "reason": "no fixture with this file hash",
                     }
                 )
                 by_source[source] = {
@@ -1501,11 +1698,6 @@ def reconcile_readings(
                     "unpaired_source": 1,
                 }
                 continue
-            grouped: dict[int, tuple[dict[str, Any], list[tuple[int, dict[str, Any]]]]] = {}
-            for fixture, index, chart in located:
-                bucket = grouped.setdefault(id(fixture), (fixture, []))
-                bucket[1].append((index, chart))
-            scope.extend(grouped.values())
         source_rows: list[dict[str, Any]] = []
         for fixture, charts in scope:
             for chart_index, _chart in charts:
