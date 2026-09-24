@@ -1,0 +1,887 @@
+page_url: "https://z.ai/blog/glm-5.3-flash"
+publisher: "Z.ai"
+read_on: "2026-09-24"
+charts:
+  - title: "Coding, agent, and vision comparison"
+    kind: html_table
+    footnotes: "The comparison columns are GLM-5.3-Flash, GLM-5.2, DeepSeek-V4-Vision-Exp, Opus 4.8, GPT-5.6 Terra, and Gemini 3.7 Flash. HLE with tools uses temperature 1.0, top_p 0.95, 163840 tokens, and a 300000 context, judged by GPT-5.6-luna medium. NL2Repo uses temperature 1.0, top_p 1.0, 64k new tokens, 1M context. DeepSWE uses mini-swe-agent, temperature 0.95, top_p 1.0, 6h, 400K context. Terminal-Bench 2.1 uses Claude Code 2.1.207, temperature 1.0, top_p 1, 65536 tokens, 6h. Toolathlon Verified is pass@1 over 3 official runs. AutomationBench is v1.0.6. GDPval-AA v2 is Artificial Analysis. BabyVision uses temperature 1.0, top_p 0.95, 164K context, and images resized so the short side is at least 1.5K pixels."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: terminal_bench_v2_1
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: terminal_bench_v2_1
+        score: 81
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: terminal_bench_v2_1
+        score: 83.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 85
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: terminal_bench_v2_1
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: terminal_bench_v2_1
+        score: 85.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 63.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 46.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 58
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 69.6
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE (v1.1)"
+        score: 65.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. DeepSWE (v1.1)"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 56.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. NL2Repo"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 48.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. NL2Repo"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 57.7
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. NL2Repo"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 69.7
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. NL2Repo"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Toolathlon Verified"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Toolathlon Verified"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 75.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Toolathlon Verified"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Toolathlon Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Toolathlon Verified"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: automationbench
+        score: 48.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: automationbench
+        score: 26.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: automationbench
+        score: 38.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: automationbench
+        score: 41
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: automationbench
+        score: 37.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: automationbench
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. AutomationBench (v1.0.6)"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 26.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Agents' Last Exam"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 20.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Agents' Last Exam"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 27.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Agents' Last Exam"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 27
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Agents' Last Exam"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 28
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Agents' Last Exam"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: hle_tools
+        score: 55.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. HLE w/ Tools"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: hle_tools
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. HLE w/ Tools"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: hle_tools
+        score: 55.1
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. HLE w/ Tools"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle_tools
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. HLE w/ Tools"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: gdpval_aa
+        score: 1773
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: gdpval_aa
+        score: 1504
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: gdpval_aa
+        score: 1675
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gdpval_aa
+        score: 1582
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: gdpval_aa
+        score: 1571
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: gdpval_aa
+        score: 1527
+        unit: "elo"
+        printed: true
+        configuration: "Instruct comparison. GDPval-AA v2"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 62.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OfficeQA Pro"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 48.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. CharXiv Reasoning (w/ Tools)"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: charxiv_reasoning_tools
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. CharXiv Reasoning (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. CharXiv Reasoning (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: charxiv_reasoning_tools
+        score: 88
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. CharXiv Reasoning (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: charxiv_reasoning_tools
+        score: 88.7
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. CharXiv Reasoning (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Chartography (w/ Tools)"
+        score: 78
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Chartography (w/ Tools)"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "Chartography (w/ Tools)"
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Chartography (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Chartography (w/ Tools)"
+        score: 75
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Chartography (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "Chartography (w/ Tools)"
+        score: 68
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Chartography (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Chartography (w/ Tools)"
+        score: 65
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Chartography (w/ Tools)"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 53.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. BabyVision"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 35.1
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. BabyVision"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 46.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. BabyVision"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 61.6
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. BabyVision"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. BabyVision"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MVbench"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MVbench"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "MVbench"
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MVbench"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MVbench"
+        score: 67.1
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MVbench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "MVbench"
+        score: 75
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MVbench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MVbench"
+        score: 82.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MVbench"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MMVU"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MMVU"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 67.4
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MMVU"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MMVU"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 82.3
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. MMVU"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OSWorld 2.0"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 54.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 54.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 47.9
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Vision2Web"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Vision-Exp"
+        model_id: "deepseek/deepseek-v4-flash-vision-exp"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 67.6
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Vision2Web"
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Vision2Web"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: "openai/gpt-5-6-terra"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 67.5
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Vision2Web"
+        role: competitor
+      - model_as_labelled: "Gemini 3.7 Flash"
+        model_id: "google/gemini-3-7-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 76.5
+        unit: "percent"
+        printed: true
+        configuration: "Instruct comparison. Vision2Web"
+        role: competitor
+      - model_as_labelled: "GLM-4.5-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. MMLU"
+        role: subject
+      - model_as_labelled: "GLM-5-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. MMLU"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 88.5
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. MMLU"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash-Base"
+        model_id: null
+        benchmark_id: mmlu
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. MMLU"
+        role: subject
+      - model_as_labelled: "GLM-4.5-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 86.2
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. BBH"
+        role: subject
+      - model_as_labelled: "GLM-5-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. BBH"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. BBH"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash-Base"
+        model_id: null
+        benchmark_id: bbh
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. BBH"
+        role: subject
+      - model_as_labelled: "GLM-4.5-Base"
+        model_id: null
+        benchmark_id: hellaswag
+        score: 87.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. HellaSwag"
+        role: subject
+      - model_as_labelled: "GLM-5-Base"
+        model_id: null
+        benchmark_id: hellaswag
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. HellaSwag"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        model_id: null
+        benchmark_id: hellaswag
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. HellaSwag"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash-Base"
+        model_id: null
+        benchmark_id: hellaswag
+        score: 87.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. HellaSwag"
+        role: subject
+      - model_as_labelled: "GLM-4.5-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench-Base"
+        score: 28.1
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. LiveCodeBench-Base"
+        role: subject
+      - model_as_labelled: "GLM-5-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench-Base"
+        score: 34.4
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. LiveCodeBench-Base"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench-Base"
+        score: 29.9
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. LiveCodeBench-Base"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash-Base"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench-Base"
+        score: 37.6
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. LiveCodeBench-Base"
+        role: subject
+      - model_as_labelled: "GLM-4.5-Base"
+        model_id: null
+        benchmark_id: simpleqa
+        score: 30
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. SimpleQA"
+        role: subject
+      - model_as_labelled: "GLM-5-Base"
+        model_id: null
+        benchmark_id: simpleqa
+        score: 36
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. SimpleQA"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        model_id: null
+        benchmark_id: simpleqa
+        score: 31.2
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. SimpleQA"
+        role: competitor
+      - model_as_labelled: "GLM-5.3-Flash-Base"
+        model_id: null
+        benchmark_id: simpleqa
+        score: 33.5
+        unit: "percent"
+        printed: true
+        configuration: "Base checkpoints, not the instruct models. SimpleQA"
+        role: subject
+      - model_as_labelled: "GLM-5.3-Flash"
+        model_id: "zhipu/glm-5-3-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Z.ai Code Bench v1.0"
+        score: 29.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. Stated in prose beside the in-house chart."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Z.ai Code Bench v1.0"
+        score: 29.5
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. Stated in prose beside the in-house chart."
+        role: competitor

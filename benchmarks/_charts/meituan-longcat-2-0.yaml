@@ -1,0 +1,978 @@
+page_url: "https://huggingface.co/meituan-longcat/LongCat-2.0"
+publisher: "Meituan"
+read_on: "2026-09-24"
+charts:
+  - title: "Evaluation Results, in-house"
+    kind: html_table
+    footnotes: "Unless a cell is starred, the score was measured in-house under one harness. A star is cited from that model's official report. A dash means no comparable public score."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: terminal_bench_v2_1
+        score: 70.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Terminal-Bench 2.1"
+        role: subject
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: swe_bench_pro
+        score: 59.5
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. SWE-bench Pro"
+        role: subject
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: swe_bench_multilingual
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. SWE-bench Multilingual"
+        role: subject
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: browsecomp
+        score: 79.9
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. BrowseComp"
+        role: subject
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 76.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 81.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: ifeval
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: ifeval
+        score: 96.1
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: ifeval
+        score: 95.0
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: ifeval
+        score: 92.2
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: ifeval
+        score: 88.7
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: ifeval
+        score: 86.0
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IFEval"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: writingbench
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Writing Bench"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: writingbench
+        score: 83.7
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Writing Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: writingbench
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Writing Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: writingbench
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Writing Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: writingbench
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. Writing Bench"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: gpqa_diamond
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. GPQA-diamond"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gpqa_diamond
+        score: 92.4
+        unit: "percent"
+        printed: true
+        configuration: "In-house harness. Unstarred cells. GPQA-diamond"
+        role: competitor
+  - title: "Evaluation Results, cited official reports"
+    kind: html_table
+    footnotes: "Unless a cell is starred, the score was measured in-house under one harness. A star is cited from that model's official report. A dash means no comparable public score."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: terminal_bench_v2_1
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: terminal_bench_v2_1
+        score: 71.7
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: swe_bench_pro
+        score: 57.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_pro
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_multilingual
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: swe_bench_multilingual
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_multilingual
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_multilingual
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: browsecomp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. BrowseComp"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: browsecomp
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: browsecomp
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: browsecomp
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: browsecomp
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: gpqa_diamond
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: gpqa_diamond
+        score: 93.6
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: gpqa_diamond
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: gpqa_diamond
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
+        role: competitor
+  - title: "Benchmark charts"
+    kind: image
+    image_url: "https://huggingface.co/meituan-longcat/LongCat-2.0/resolve/main/figures/longcat-pro-benchmark-charts-2026-06-29.svg"
+    image_sha256: "be072468a4f38ee30ed72f165c1a3ee8283bb15dd369defd1375fc37f2283f62"
+    footnotes: "The SVG prints the same figures as the table, including starred official-report cells."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: terminal_bench_v2_1
+        score: 70.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Terminal-Bench 2.1"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: terminal_bench_v2_1
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Terminal-Bench 2.1 Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Terminal-Bench 2.1 Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: terminal_bench_v2_1
+        score: 71.7
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Terminal-Bench 2.1 Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Terminal-Bench 2.1 Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: swe_bench_pro
+        score: 59.5
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: swe_bench_pro
+        score: 57.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_pro
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Pro Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: swe_bench_multilingual
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Multilingual"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_multilingual
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Multilingual Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: swe_bench_multilingual
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Multilingual Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_multilingual
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Multilingual Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_multilingual
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. SWE-bench Multilingual Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "FORTE ↗"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. FORTE ↗"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: browsecomp
+        score: 79.9
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: browsecomp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: browsecomp
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: browsecomp
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: browsecomp
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: browsecomp
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. BrowseComp Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 76.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 81.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "RWSearch ↗"
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: ifeval
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: ifeval
+        score: 96.1
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: ifeval
+        score: 95.0
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: ifeval
+        score: 92.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: ifeval
+        score: 88.7
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: ifeval
+        score: 86.0
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: writingbench
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: writingbench
+        score: 83.7
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: writingbench
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: writingbench
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: writingbench
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
+        role: competitor
+      - model_as_labelled: "LongCat-2.0"
+        model_id: "meituan/longcat-2-0"
+        benchmark_id: gpqa_diamond
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: gpqa_diamond
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: gpqa_diamond
+        score: 93.6
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.6"
+        model_id: "anthropic/claude-opus-4-6"
+        benchmark_id: gpqa_diamond
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: gpqa_diamond
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gpqa_diamond
+        score: 92.4
+        unit: "percent"
+        printed: true
+        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond"
+        role: competitor
