@@ -1,0 +1,1350 @@
+schema_version: 1
+status: pending-jamie-approval
+read_date: '2026-09-24'
+release_window_start: '2026-06-26'
+rule:
+- Top 10 of its class on a slice-1 board, after collapsing effort settings of the same model.
+- Released on or after the window start by a lab that has a model in the first clause.
+- At least three major providers recorded on the card.
+- A reviewer added it. Slice 1 adds the TypeSafe Jev card.
+quota:
+  frontier-generation: 12
+  open-weights-generation: 6
+  embedding: 4
+  rerank: 2
+  vision: 4
+  decision: 1
+models:
+- model_id: anthropic/claude-opus-4-6
+  display_name: Claude Opus 4.6
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-02-05'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 3
+    score: 1502.9605
+    model_on_board: claude-opus-4-6-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 10
+    score: 34.44
+    model_on_board: claude-opus-4-6-thinking-max
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 4
+    score: 0.7872
+    model_on_board: claude-opus-4-6
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: swe-bench-pro
+    rank: 4
+    score: 51.9
+    model_on_board: claude-opus-4-6 (thinking)
+    url: https://labs.scale.com/leaderboard/swe_bench_pro
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: swe-bench-verified-bash
+    rank: 4
+    score: 75.6
+    model_on_board: Claude 4.6 Opus
+    url: https://www.swebench.com/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 6
+    score: 1315.1412
+    model_on_board: claude-opus-4-6-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+- model_id: anthropic/claude-opus-5-5
+  display_name: Claude Opus 5.5
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-22'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 3
+    score: 83.4421
+    model_on_board: Claude-Opus-5.5 (high)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 1
+    score: 1818.4081
+    model_on_board: claude-opus-5.5-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-22'
+    lab: anthropic
+    note: Released on or after 2026-06-26 by anthropic, a lab with a top-10 model on a current board.
+- model_id: google/gemini-3-1-pro-preview
+  display_name: Gemini 3.1 Pro Preview
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: preview
+  release_date: '2026-02-19'
+  lab: google
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-gpqa-diamond
+    rank: 5
+    score: 0.9444
+    model_on_board: gemini-3.1-pro-preview_high
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 3
+    score: 46.44
+    model_on_board: gemini-3.1-pro-preview (thinking high)
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: swe-bench-pro
+    rank: 5
+    score: 46.1
+    model_on_board: gemini-3.1-pro (thinking)
+    url: https://labs.scale.com/leaderboard/swe_bench_pro
+    read_date: '2026-09-24'
+- model_id: google/gemini-3-5-flash
+  display_name: Gemini 3.5 Flash
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-05-19'
+  lab: google
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 10
+    score: 1482.1079
+    model_on_board: gemini-3.5-flash-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 3
+    score: 0.7934
+    model_on_board: gemini-3.5-flash_high
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 8
+    score: 1310.1636
+    model_on_board: gemini-3.5-flash-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+- model_id: google/gemini-3-7-flash
+  display_name: Gemini 3.7 Flash
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-08-13'
+  lab: google
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 6
+    score: 1490.492
+    model_on_board: gemini-3.7-flash-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-gpqa-diamond
+    rank: 3
+    score: 0.9482
+    model_on_board: gemini-3.7-flash_high
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-08-13'
+    lab: google
+    note: Released on or after 2026-06-26 by google, a lab with a top-10 model on a current board.
+- model_id: google/gemini-3-8-flash
+  display_name: Gemini 3.8 Flash
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-02'
+  lab: google
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 4
+    score: 1494.674
+    model_on_board: gemini-3.8-flash-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-gpqa-diamond
+    rank: 2
+    score: 0.9539
+    model_on_board: gemini-3.8-flash_high
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 4
+    score: 44.52
+    model_on_board: Gemini 3.8 Flash
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-02'
+    lab: google
+    note: Released on or after 2026-06-26 by google, a lab with a top-10 model on a current board.
+- model_id: meta/muse-spark
+  display_name: Muse Spark
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-04-08'
+  lab: meta
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 6
+    score: 40.56
+    model_on_board: Muse Spark
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: swe-bench-pro
+    rank: 3
+    score: 55.0
+    model_on_board: Muse Spark
+    url: https://labs.scale.com/leaderboard/swe_bench_pro
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 9
+    score: 1306.1326
+    model_on_board: muse-spark
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+- model_id: openai/gpt-5-4
+  display_name: GPT-5.4
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-03-05'
+  lab: openai
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 8
+    score: 36.24
+    model_on_board: gpt-5.4-2026-03-05 (xhigh thinking)
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 8
+    score: 0.7686
+    model_on_board: gpt-5.4-2026-03-05_high
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: swe-bench-pro
+    rank: 2
+    score: 59.1
+    model_on_board: gpt-5.4 (xHigh)
+    url: https://labs.scale.com/leaderboard/swe_bench_pro
+    read_date: '2026-09-24'
+- model_id: openai/gpt-5-5-pro
+  display_name: GPT-5.5 Pro
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-04-23'
+  lab: openai
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 4
+    score: 0.8772
+    model_on_board: gpt-5.5-pro_xhigh
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+- model_id: openai/gpt-5-6-sol
+  display_name: GPT-5.6 Sol
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-07-09'
+  lab: openai
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 3
+    score: 0.8912
+    model_on_board: gpt-5.6-sol_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 6
+    score: 66.7353
+    model_on_board: GPT-5.6-Sol (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 7
+    score: 37.27
+    model_on_board: GPT-5.6 Sol
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-07-09'
+    lab: openai
+    note: Released on or after 2026-06-26 by openai, a lab with a top-10 model on a current board.
+- model_id: openai/gpt-6-astra
+  display_name: GPT-6 Astra
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-04'
+  lab: openai
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 1
+    score: 0.9368
+    model_on_board: gpt-6-astra_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-gpqa-diamond
+    rank: 1
+    score: 0.9577
+    model_on_board: gpt-6-astra_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 1
+    score: 87.955
+    model_on_board: GPT-6 Astra (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 1
+    score: 54.8
+    model_on_board: GPT 6 Astra
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 2
+    score: 1792.1796
+    model_on_board: gpt-6-astra-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 1
+    score: 58.18
+    model_on_board: GPT-6 Astra
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-04'
+    lab: openai
+    note: Released on or after 2026-06-26 by openai, a lab with a top-10 model on a current board.
+  - clause: 3
+    providers:
+    - lab_api
+    - aws_bedrock
+    - azure_ai_foundry
+    note: At least three recorded major providers on the card.
+- model_id: openai/gpt-6-sol
+  display_name: GPT-6 Sol
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-22'
+  lab: openai
+  clauses:
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 2
+    score: 84.9645
+    model_on_board: GPT-6 Sol (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 5
+    score: 1685.8986
+    model_on_board: gpt-6-sol-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-22'
+    lab: openai
+    note: Released on or after 2026-06-26 by openai, a lab with a top-10 model on a current board.
+- model_id: xai/grok-4-7
+  display_name: Grok 4.7
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-21'
+  lab: xai
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 6
+    score: 37.58
+    model_on_board: Grok 4.7
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-21'
+    lab: xai
+    note: Released on or after 2026-06-26 by xai, a lab with a top-10 model on a current board.
+- model_id: deepseek/deepseek-v4-pro
+  display_name: DeepSeek V4 Pro
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-08-12'
+  lab: deepseek
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 6
+    score: 0.7764
+    model_on_board: deepseek-v4-pro_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-08-12'
+    lab: deepseek
+    note: Released on or after 2026-06-26 by deepseek, a lab with a top-10 model on a current board.
+- model_id: moonshot/kimi-k2-6
+  display_name: Kimi K2.6
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-04-21'
+  lab: moonshot
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 10
+    score: 0.7665
+    model_on_board: kimi-k2.6
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+- model_id: moonshot/kimi-k3
+  display_name: Kimi K3
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-07-16'
+  lab: moonshot
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 8
+    score: 1659.5718
+    model_on_board: kimi-k3-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-07-16'
+    lab: moonshot
+    note: Released on or after 2026-06-26 by moonshot, a lab with a top-10 model on a current board.
+- model_id: qwen/qwen3-8-flash-next
+  display_name: Qwen3.8-Flash-Next
+  class: text-generator
+  model_type: vlm
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-08-24'
+  lab: qwen
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 10
+    score: 1636.2727
+    model_on_board: qwen3.8-flash-next
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-08-24'
+    lab: qwen
+    note: Released on or after 2026-06-26 by qwen, a lab with a top-10 model on a current board.
+- model_id: zhipu/glm-5-2
+  display_name: GLM-5.2
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-06-13'
+  lab: zhipu
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 5
+    score: 0.787
+    model_on_board: glm-5.2_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+- model_id: zhipu/glm-5-3
+  display_name: GLM-5.3
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: open-weights-generation
+  open_weights: true
+  status: active
+  release_date: '2026-08-14'
+  lab: zhipu
+  clauses:
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 5
+    score: 41.82
+    model_on_board: GLM-5.3
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-08-14'
+    lab: zhipu
+    note: Released on or after 2026-06-26 by zhipu, a lab with a top-10 model on a current board.
+  - clause: 3
+    providers:
+    - lab_api
+    - together_ai
+    - fireworks_ai
+    note: At least three recorded major providers on the card.
+- model_id: google/gemini-embedding-001
+  display_name: Gemini Embedding 001
+  class: vectoriser
+  model_type: embedding-text
+  slice1_group: embedding
+  open_weights: false
+  status: active
+  release_date: '2025-05-20'
+  lab: google
+  clauses:
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-eng-v2
+    rank: 10
+    score: 0.733
+    model_on_board: google/gemini-embedding-001
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-multilingual-v2
+    rank: 9
+    score: 0.6837
+    model_on_board: google/gemini-embedding-001
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    read_date: '2026-09-24'
+- model_id: qwen/qwen3-embedding-4b
+  display_name: Qwen3 Embedding 4B
+  class: vectoriser
+  model_type: embedding-text
+  slice1_group: embedding
+  open_weights: true
+  status: active
+  release_date: '2025-06-03'
+  lab: qwen
+  clauses:
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-eng-v2
+    rank: 6
+    score: 0.7461
+    model_on_board: Qwen/Qwen3-Embedding-4B
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-multilingual-v2
+    rank: 6
+    score: 0.6945
+    model_on_board: Qwen/Qwen3-Embedding-4B
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    read_date: '2026-09-24'
+- model_id: qwen/qwen3-embedding-8b
+  display_name: Qwen3 Embedding 8B
+  class: vectoriser
+  model_type: embedding-text
+  slice1_group: embedding
+  open_weights: true
+  status: active
+  release_date: '2025-06-03'
+  lab: qwen
+  clauses:
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-eng-v2
+    rank: 3
+    score: 0.7523
+    model_on_board: Qwen/Qwen3-Embedding-8B
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-multilingual-v2
+    rank: 3
+    score: 0.7058
+    model_on_board: Qwen/Qwen3-Embedding-8B
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    read_date: '2026-09-24'
+- model_id: tencent/kalm-embedding-gemma3-12b-2511
+  display_name: KaLM Embedding Gemma3 12B 2511
+  class: vectoriser
+  model_type: embedding-text
+  slice1_group: embedding
+  open_weights: true
+  status: active
+  release_date: '2025-11-04'
+  lab: tencent
+  clauses:
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-multilingual-v2
+    rank: 2
+    score: 0.7232
+    model_on_board: tencent/KaLM-Embedding-Gemma3-12B-2511
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    read_date: '2026-09-24'
+- model_id: jina/jina-reranker-v3
+  display_name: jina reranker v3
+  class: orderer
+  model_type: reranker
+  slice1_group: rerank
+  open_weights: true
+  status: active
+  release_date: '2025-09-18'
+  lab: jina
+  clauses:
+  - clause: 1
+    domain: retrieval-and-embedding
+    board: mteb-multilingual-v2-rerank
+    rank: 2
+    score: 0.6784
+    model_on_board: jinaai/jina-reranker-v3
+    url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    read_date: '2026-09-24'
+- model_id: anthropic/claude-fable-5
+  display_name: Claude Fable 5
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: vision
+  open_weights: false
+  status: active
+  release_date: '2026-06-07'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 5
+    score: 1492.6259
+    model_on_board: claude-fable-5
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 5
+    score: 0.8702
+    model_on_board: claude-fable-5_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 9
+    score: 55.3644
+    model_on_board: Claude-Fable-5 (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 4
+    score: 44.55
+    model_on_board: Fable 5
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 1
+    score: 1325.8647
+    model_on_board: claude-fable-5
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+- model_id: anthropic/claude-fable-5-1
+  display_name: Claude Fable 5.1
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: vision
+  open_weights: false
+  status: active
+  release_date: '2026-09-01'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 1
+    score: 1507.5817
+    model_on_board: claude-fable-5.1-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 2
+    score: 0.9018
+    model_on_board: claude-fable-5-1_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 4
+    score: 82.6736
+    model_on_board: Claude-Fable-5.1 (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 2
+    score: 46.5
+    model_on_board: Fable 5.1 (xhigh)
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 3
+    score: 1754.6666
+    model_on_board: claude-fable-5.1-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 2
+    score: 57.88
+    model_on_board: Fable 5.1
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 2
+    score: 1322.3403
+    model_on_board: claude-fable-5.1-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-09-01'
+    lab: anthropic
+    note: Released on or after 2026-06-26 by anthropic, a lab with a top-10 model on a current board.
+- model_id: anthropic/claude-opus-4-7
+  display_name: Claude Opus 4.7
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: vision
+  open_weights: false
+  status: active
+  release_date: '2026-04-14'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 7
+    score: 1489.9999
+    model_on_board: claude-opus-4-7-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: scale-hle
+    rank: 9
+    score: 36.2
+    model_on_board: claude-opus-4-7
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: epoch-swe-bench-verified
+    rank: 1
+    score: 0.8347
+    model_on_board: claude-opus-4-7_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 4
+    score: 1317.5147
+    model_on_board: claude-opus-4-7
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+- model_id: anthropic/claude-opus-5
+  display_name: Claude Opus 5
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: vision
+  open_weights: false
+  status: active
+  release_date: '2026-07-24'
+  lab: anthropic
+  clauses:
+  - clause: 1
+    domain: chat-or-preference
+    board: arena-text
+    rank: 2
+    score: 1504.9593
+    model_on_board: claude-opus-5-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-frontiermath-tiers-1-3-v2
+    rank: 7
+    score: 0.8561
+    model_on_board: claude-opus-5_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: epoch-gpqa-diamond
+    rank: 10
+    score: 0.9388
+    model_on_board: claude-opus-5_max
+    url: https://epoch.ai/benchmarks/use-this-data
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: reasoning-and-maths
+    board: matharena-expected
+    rank: 5
+    score: 73.5191
+    model_on_board: Claude-Opus-5 (max)
+    url: https://matharena.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: arena-webdev
+    rank: 4
+    score: 1692.4435
+    model_on_board: claude-opus-5-max
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: software-engineering
+    board: terminal-bench-4.0
+    rank: 3
+    score: 53.94
+    model_on_board: Opus 5
+    url: https://www.tbench.ai/
+    read_date: '2026-09-24'
+  - clause: 1
+    domain: vision
+    board: arena-vision
+    rank: 3
+    score: 1321.2118
+    model_on_board: claude-opus-5-high
+    url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    read_date: '2026-09-24'
+  - clause: 2
+    release_date: '2026-07-24'
+    lab: anthropic
+    note: Released on or after 2026-06-26 by anthropic, a lab with a top-10 model on a current board.
+- model_id: typesafe/jev-1-13
+  display_name: Jev 1.13
+  class: decider
+  model_type: decision-model
+  slice1_group: decision
+  open_weights: false
+  status: active
+  release_date: null
+  lab: typesafe
+  clauses:
+  - clause: 4
+    note: Reviewer addition. The MODEL-136 brief requires one decision model, and this card is the TypeSafe
+      Jev card.
+archived: []
+missing_cards:
+- board: arena-text
+  domain: chat-or-preference
+  rank: 8
+  score: 1489.7406
+  name: muse-spark-1.3-max
+  organization: meta
+  slug: muse-spark-1-3
+- board: arena-text
+  domain: chat-or-preference
+  rank: 9
+  score: 1489.4389
+  name: muse-spark-1.2 (xHigh)
+  organization: meta
+  slug: muse-spark-1-2
+- board: arena-vision
+  domain: vision
+  rank: 7
+  score: 1314.5612
+  name: muse-spark-1.3-max
+  organization: meta
+  slug: muse-spark-1-3
+- board: arena-webdev
+  domain: software-engineering
+  rank: 7
+  score: 1660.5849
+  name: qwen3.8-max-0902
+  organization: alibaba
+  slug: qwen3-8-max-0902
+- board: arena-webdev
+  domain: software-engineering
+  rank: 9
+  score: 1658.2156
+  name: muse-spark-1.3-max
+  organization: meta
+  slug: muse-spark-1-3
+- board: epoch-gpqa-diamond
+  domain: reasoning-and-maths
+  rank: 7
+  score: 0.94
+  name: gpt-5.5-pre-release_xhigh
+  organization: OpenAI
+  slug: gpt-5-5-pre-release
+- board: epoch-gpqa-diamond
+  domain: reasoning-and-maths
+  rank: 9
+  score: 0.9392
+  name: gpt-5.5-pro-pre-release_xhigh
+  organization: OpenAI
+  slug: gpt-5-5-pro-pre-release
+- board: epoch-swe-bench-verified
+  domain: software-engineering
+  rank: 2
+  score: 0.8058
+  name: gpt-5.5-pre-release_xhigh
+  organization: OpenAI
+  slug: gpt-5-5-pre-release
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 1
+  score: 0.7598
+  name: jcorners/ingot-8b-r3
+  organization: ''
+  slug: ingot-8b-r3
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 2
+  score: 0.7597
+  name: Kingsoft-LLM/QZhou-Embedding
+  organization: ''
+  slug: qzhou-embedding
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 4
+  score: 0.7476
+  name: ByteDance-Seed/Seed1.5-Embedding
+  organization: ''
+  slug: seed1-5-embedding
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 5
+  score: 0.7475
+  name: infgrad/Jasper-Token-Compression-600M
+  organization: ''
+  slug: jasper-token-compression-600m
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 7
+  score: 0.7412
+  name: annamodels/LGAI-Embedding-Preview
+  organization: ''
+  slug: lgai-embedding-preview
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 8
+  score: 0.7407
+  name: Bytedance/Seed1.6-embedding
+  organization: ''
+  slug: seed1-6-embedding
+- board: mteb-eng-v2
+  domain: retrieval-and-embedding
+  rank: 9
+  score: 0.7367
+  name: codefuse-ai/F2LLM-4B
+  organization: ''
+  slug: f2llm-4b
+- board: mteb-eng-v2-rerank
+  domain: retrieval-and-embedding
+  rank: 1
+  score: 0.492
+  name: Querit/Querit-4B
+  organization: ''
+  slug: querit-4b
+- board: mteb-eng-v2-rerank
+  domain: retrieval-and-embedding
+  rank: 2
+  score: 0.4827
+  name: Querit/Querit
+  organization: ''
+  slug: querit
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 1
+  score: 0.7427
+  name: microsoft/harrier-oss-v1-27b
+  organization: ''
+  slug: harrier-oss-v1-27b
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 4
+  score: 0.7026
+  name: Bytedance/Seed1.6-embedding-1215
+  organization: ''
+  slug: seed1-6-embedding-1215
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 5
+  score: 0.6946
+  name: nvidia/llama-embed-nemotron-8b
+  organization: ''
+  slug: llama-embed-nemotron-8b
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 7
+  score: 0.6901
+  name: microsoft/harrier-oss-v1-0.6b
+  organization: ''
+  slug: harrier-oss-v1-0-6b
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 8
+  score: 0.6874
+  name: codefuse-ai/F2LLM-v2-14B
+  organization: ''
+  slug: f2llm-v2-14b
+- board: mteb-multilingual-v2
+  domain: retrieval-and-embedding
+  rank: 10
+  score: 0.6809
+  name: codefuse-ai/F2LLM-v2-8B
+  organization: ''
+  slug: f2llm-v2-8b
+- board: mteb-multilingual-v2-rerank
+  domain: retrieval-and-embedding
+  rank: 1
+  score: 0.6945
+  name: Querit/Querit-4B
+  organization: ''
+  slug: querit-4b
+- board: mteb-multilingual-v2-rerank
+  domain: retrieval-and-embedding
+  rank: 3
+  score: 0.6584
+  name: Querit/Querit
+  organization: ''
+  slug: querit
+- board: swe-bench-pro
+  domain: software-engineering
+  rank: 1
+  score: 61.5
+  name: Muse Spark 1.1
+  organization: ''
+  slug: muse-spark-1-1
+near_misses:
+- model_id: anthropic/claude-opus-4-5
+  display_name: Claude Opus 4.5 (latest)
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: anthropic/claude-opus-4-8
+  display_name: Claude Opus 4.8
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: anthropic/claude-sonnet-4-20250514
+  display_name: Claude Sonnet 4
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: anthropic/claude-sonnet-4-5
+  display_name: Claude Sonnet 4.5 (latest)
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: google/gemini-3-6-flash
+  display_name: Gemini 3.6 Flash
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: google/gemini-3-flash-preview
+  display_name: Gemini 3 Flash Preview
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: google/gemini-3-pro-preview
+  display_name: Gemini 3 Pro Preview
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: minimax/minimax-m2-5
+  display_name: MiniMax-M2.5
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 1 on open-weights-generation; outside that group's slice-1 quota
+- model_id: moonshot/kimi-k2-5
+  display_name: Kimi K2.5
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 1 on open-weights-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5
+  display_name: GPT-5
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-2
+  display_name: GPT-5.2
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-2-codex
+  display_name: GPT-5.2 Codex
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-4-pro
+  display_name: GPT-5.4 Pro
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-5
+  display_name: GPT-5.5
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-6-luna
+  display_name: GPT-5.6 Luna
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: openai/gpt-5-6-terra
+  display_name: GPT-5.6 Terra
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: qwen/qwen3-6-max-preview
+  display_name: Qwen3.6 Max Preview
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: qwen/qwen3-7-max
+  display_name: Qwen3.7 Max
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: qwen/qwen3-8-max
+  display_name: Qwen3.8 Max
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: xai/grok-4-6
+  display_name: Grok 4.6
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 1 on frontier-generation; outside that group's slice-1 quota
+- model_id: zhipu/glm-5
+  display_name: GLM 5
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 1 on open-weights-generation; outside that group's slice-1 quota
+- model_id: anthropic/claude-mythos-5-1
+  display_name: Claude Mythos 5.1
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest anthropic releases in the window and not needed to fill a quota
+- model_id: anthropic/claude-sonnet-5
+  display_name: Claude Sonnet 5
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest anthropic releases in the window and not needed to fill a quota
+- model_id: deepseek/deepseek-flash
+  display_name: DeepSeek V4.1 Flash
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest deepseek releases in the window and not needed to fill a quota
+- model_id: deepseek/deepseek-v4-flash-vision-exp
+  display_name: DeepSeek V4 Flash Vision Exp
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest deepseek releases in the window and not needed to fill a quota
+- model_id: qwen/deepseek-v4-flash-0731
+  display_name: DeepSeek V4 Flash 0731
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest deepseek releases in the window and not needed to fill a quota
+- model_id: google/gemini-3-5-flash-lite
+  display_name: Gemini 3.5 Flash Lite
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest google releases in the window and not needed to fill a quota
+- model_id: meta/muse-glimmer-30b
+  display_name: Muse Glimmer 30B
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest meta releases in the window and not needed to fill a quota
+- model_id: openai/gpt-6-luna
+  display_name: GPT-6 Luna
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
+- model_id: openai/gpt-5-6
+  display_name: GPT-5.6
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
+- model_id: openai/gpt-realtime-2-1
+  display_name: GPT-Realtime-2.1
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
+- model_id: qwen/qwen3-8-flash
+  display_name: Qwen3.8 Flash
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
+- model_id: cerebras/qwen-3-8-27b
+  display_name: Qwen3.8 27B
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
+- model_id: qwen/qwen3-8-2-4t-a95b
+  display_name: Qwen3.8 2.4T A95B
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
+- model_id: tencent/hy3
+  display_name: Hy3
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest tencent releases in the window and not needed to fill a quota
+- model_id: xai/grok-4-5
+  display_name: Grok 4.5
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest xai releases in the window and not needed to fill a quota
+- model_id: zhipu/glm-5-3-flash
+  display_name: GLM-5.3-Flash
+  class: text-generator
+  slice1_group: open-weights-generation
+  why: clause 2; among the three newest zhipu releases in the window and not needed to fill a quota
+counts:
+  selected: 29
+  clause_1_cards: 49
+  clause_2_pool: 35
+  clause_3_pool: 82
+  missing_top10_rows: 26
