@@ -471,13 +471,13 @@ availability:
     regions: []
     notes: ''
   mistral_plateforme:
-    available: false
-    model_id: ''
+    available: true
+    model_id: zai-glm-5-3
     url: https://console.mistral.ai/
     fine_tuning: false
     gated: false
     regions: []
-    notes: ''
+    notes: Listed on models.dev provider 'mistral'. Availability, not authorship (MODEL-82).
   cohere:
     available: false
     model_id: ''

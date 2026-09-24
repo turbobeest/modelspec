@@ -27,3 +27,12 @@ identities:
       Same GLM-5.2 listed under Alibaba. The seeder maps alibaba → qwen and
       slugifies glm-5.2 → glm-5-2, which is how daily research opened
       models/qwen/glm-5-2.md in PR #43.
+  - models_dev: mistral/zai-glm-5-3
+    canonical: zhipu/glm-5-3
+    note: >
+      Z.ai GLM-5.3 listed under Mistral as mistral/zai-glm-5-3. The page
+      slug would be models/mistral/zai-glm-5-3.md; PR #106 (2026-09-20)
+      wrote models/zhipu/zai-glm-5-3.md, creator zhipu, with the Mistral
+      listing kept as availability. Dropped as the same model as
+      zhipu/glm-5-3. Hugging Face repo on the canonical card is
+      zai-org/GLM-5.3.

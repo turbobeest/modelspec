@@ -333,6 +333,191 @@ def already_held(
     return None
 
 
+_HF_REPO_URL = re.compile(r"huggingface\.co/([^/\s\"']+/[^/\s\"'#?]+)", re.I)
+
+
+class CatalogueIdentity:
+    """One existing card, reduced to the fields a duplicate warning compares."""
+
+    def __init__(
+        self,
+        model_id: str,
+        display_name: str,
+        release_date: str,
+        hf_repos: frozenset[str],
+    ) -> None:
+        self.model_id = model_id
+        self.display_name = display_name
+        self.release_date = release_date
+        self.hf_repos = hf_repos
+
+
+def normalize_display_name(name: str) -> str:
+    """Case-fold and collapse whitespace. Punctuation stays, so 5.3 is not 5 3."""
+    return " ".join(name.casefold().split())
+
+
+def release_day(value: object) -> str:
+    if value is None:
+        return ""
+    if hasattr(value, "isoformat"):
+        return str(value.isoformat())[:10]
+    return str(value).strip()[:10]
+
+
+def huggingface_repo(value: str) -> str | None:
+    """``org/name`` from a Hub URL or a bare id. Homepage URLs carry no repo."""
+    if not value:
+        return None
+    match = _HF_REPO_URL.search(value)
+    if match:
+        return match.group(1).casefold().removesuffix(".git")
+    text = value.strip()
+    if text.lower().startswith("hf:"):
+        text = text[3:]
+    if text.startswith("http") or " " in text:
+        return None
+    parts = [part for part in text.split("/") if part]
+    if len(parts) < 2:
+        return None
+    return f"{parts[-2]}/{parts[-1]}".casefold().removesuffix(".git")
+
+
+def repos_in(value: object) -> set[str]:
+    found: set[str] = set()
+    if isinstance(value, str):
+        repo = huggingface_repo(value)
+        if repo:
+            found.add(repo)
+    elif isinstance(value, dict):
+        for item in value.values():
+            found.update(repos_in(item))
+    elif isinstance(value, list):
+        for item in value:
+            found.update(repos_in(item))
+    return found
+
+
+def _front_matter(text: str) -> dict:
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) >= 3:
+            loaded = yaml.safe_load(parts[1]) or {}
+            return loaded if isinstance(loaded, dict) else {}
+    loaded = yaml.safe_load(text) or {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def card_hf_repos(data: dict) -> set[str]:
+    sources = data.get("sources") if isinstance(data.get("sources"), dict) else {}
+    availability = data.get("availability") if isinstance(data.get("availability"), dict) else {}
+    hugging = availability.get("huggingface") if isinstance(availability.get("huggingface"), dict) else {}
+    found: set[str] = set()
+    for value in (
+        sources.get("huggingface_url"),
+        hugging.get("model_id"),
+        hugging.get("url"),
+    ):
+        if isinstance(value, str):
+            repo = huggingface_repo(value)
+            if repo:
+                found.add(repo)
+    return found
+
+
+def load_catalogue_identities(models_dir: Path) -> list[CatalogueIdentity]:
+    """Display name, release day, and Hugging Face repos of every card on disk."""
+    if not models_dir.is_dir():
+        return []
+    identities: list[CatalogueIdentity] = []
+    for path in sorted(models_dir.glob("*/*.md")):
+        data = _front_matter(path.read_text(encoding="utf-8"))
+        model_id = str(data.get("model_id") or "").strip()
+        if not model_id:
+            continue
+        identities.append(
+            CatalogueIdentity(
+                model_id=model_id,
+                display_name=normalize_display_name(str(data.get("display_name") or "")),
+                release_date=release_day(data.get("release_date")),
+                hf_repos=frozenset(card_hf_repos(data)),
+            )
+        )
+    return identities
+
+
+def catalogue_duplicate_warning(
+    *,
+    display_name: str,
+    release_date: object,
+    listing: dict,
+    identities: list[CatalogueIdentity],
+    proposed_model_id: str,
+) -> str | None:
+    """Warn, and still propose. A name match is not an identity.
+
+    A display name on its own never matches: the registry header keeps those
+    proposals unqualified, because dropping a real new model is worse than a
+    duplicate a person can reject. The warning fires only when the release
+    day matches too, or the Hugging Face repo is one a card already cites.
+    """
+    name = normalize_display_name(display_name)
+    day = release_day(release_date)
+    repos = repos_in(listing)
+    hits: list[tuple[str, list[str]]] = []
+    for ident in identities:
+        if ident.model_id == proposed_model_id:
+            continue
+        reasons: list[str] = []
+        if name and day and ident.display_name == name and ident.release_date == day:
+            reasons.append("same normalized display name and release date")
+        overlap = repos & set(ident.hf_repos)
+        if overlap:
+            reasons.append(f"same Hugging Face repo {sorted(overlap)[0]}")
+        if reasons:
+            hits.append((ident.model_id, reasons))
+    if not hits:
+        return None
+    hits.sort(key=lambda item: item[0])
+    return "; ".join(
+        f"POSSIBLE DUPLICATE of {model_id}: {'; '.join(reasons)}"
+        for model_id, reasons in hits
+    )
+
+
+def mark_possible_duplicate(line: str, warning: str | None) -> str:
+    """Put the warning on a ``    NEW`` line.
+
+    Daily research copies those lines into the job summary
+    (``grep '^    NEW' survey.txt``). A following line never gets there.
+    """
+    if not warning:
+        return line
+    return f"{line}  {warning}"
+
+
+def render_duplicate_report(findings: list[tuple[str, str]]) -> str:
+    """Section for ``--attribution-report``.
+
+    The write step passes that path, and the workflow pastes the file into
+    the pull request body. The dry-run survey does not, which is why
+    ``mark_possible_duplicate`` also stamps the ``    NEW`` line.
+    """
+    if not findings:
+        return ""
+    lines = [
+        "### Possible duplicates",
+        "",
+        "These listings were still proposed. A matching name or repo is not "
+        "an identity; the registry is. Drop a card when it is the model named here.",
+        "",
+    ]
+    for proposed, warning in findings:
+        lines.append(f"- `{proposed}`: {warning}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def map_modalities(raw: dict) -> tuple[list[Modality], list[Modality]]:
     """Map models.dev modality strings to Modality enum values."""
     modality_map = {
@@ -663,6 +848,28 @@ def main() -> None:
     total_completeness = 0.0
     seen_model_ids: set[str] = set()
     stale_notices: list[StaleNotice] = []
+    identities = load_catalogue_identities(models_dir)
+    duplicate_findings: list[tuple[str, str]] = []
+
+    def note_proposal(raw: dict, proposed_id: str) -> str | None:
+        warning = catalogue_duplicate_warning(
+            display_name=str(raw.get("name") or ""),
+            release_date=raw.get("release_date"),
+            listing=raw,
+            identities=identities,
+            proposed_model_id=proposed_id,
+        )
+        if warning:
+            duplicate_findings.append((proposed_id, warning))
+        identities.append(
+            CatalogueIdentity(
+                model_id=proposed_id,
+                display_name=normalize_display_name(str(raw.get("name") or "")),
+                release_date=release_day(raw.get("release_date")),
+                hf_repos=frozenset(repos_in(raw)),
+            )
+        )
+        return warning
 
     # MODEL-82: who built each listed model. A dry run settles only what code
     # can settle and never calls out; ambiguous listings print as pending.
@@ -726,12 +933,19 @@ def main() -> None:
                 result = attributor.decide(evidence, deterministic_only=args.dry_run)
                 attributor.results.append(result)
                 if not result.writes_creator:
+                    warning = note_proposal(raw_model, md_id)
                     if args.dry_run and result.status == attribution.UNAVAILABLE:
-                        print(f"    NEW ? {attribution.safe(md_id)} (creator to be judged: "
-                              f"{', '.join(result.candidates)})")
+                        print(mark_possible_duplicate(
+                            f"    NEW ? {attribution.safe(md_id)} (creator to be judged: "
+                            f"{', '.join(result.candidates)})",
+                            warning,
+                        ))
                         total_created += 1
                     else:
-                        print(f"    QUEUE {attribution.safe(md_id)}: {result.basis}")
+                        print(mark_possible_duplicate(
+                            f"    QUEUE {attribution.safe(md_id)}: {result.basis}",
+                            warning,
+                        ))
                     continue
 
                 creator = result.creator
@@ -761,9 +975,10 @@ def main() -> None:
                     continue
                 seen_model_ids.add(card.identity.model_id)
                 file_path = models_dir / creator / f"{file_slug}.md"
+                warning = note_proposal(raw_model, card.identity.model_id)
 
                 if args.dry_run:
-                    print(f"    NEW {card.identity.model_id}")
+                    print(mark_possible_duplicate(f"    NEW {card.identity.model_id}", warning))
                     created_ids.append(card.identity.model_id)
                     total_created += 1
                     continue
@@ -794,7 +1009,10 @@ def main() -> None:
                     flag = "  REVIEW creator"
                 elif result.status == attribution.ESCALATED:
                     flag = "  REVIEW creator (escalated)"
-                print(f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete){flag}")
+                print(mark_possible_duplicate(
+                    f"    OK  {card.identity.model_id:55s} ({completeness:5.1f}% complete){flag}",
+                    warning,
+                ))
 
             except Exception as e:
                 total_errors += 1
@@ -807,6 +1025,11 @@ def main() -> None:
             spent_tokens=attributor.budget.spent,
             escalations=attributor.escalations.spent,
         )
+        duplicate_report = render_duplicate_report(duplicate_findings)
+        if report and duplicate_report:
+            report = report + "\n" + duplicate_report
+        elif duplicate_report:
+            report = duplicate_report
         if report:
             args.attribution_report.write_text(report, encoding="utf-8")
 
@@ -822,6 +1045,7 @@ def main() -> None:
     print(f"  Skipped, creator's page: {total_skipped_creator_page}")
     queued = [r for r in attributor.results if not r.writes_creator]
     print(f"  Creator not established: {len(queued)}")
+    print(f"  Possible duplicates:     {len(duplicate_findings)}")
     print(f"  Judgment input tokens:   {attributor.budget.spent}")
     print(f"  Total errors:            {total_errors}")
     if total_created > 0:
