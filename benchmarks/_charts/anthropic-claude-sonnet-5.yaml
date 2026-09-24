@@ -1,0 +1,312 @@
+page_url: "https://www.anthropic.com/news/claude-sonnet-5"
+publisher: "Anthropic"
+read_on: "2026-09-24"
+charts:
+  - title: "Launch benchmark table"
+    kind: image
+    image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/9941d610909f28a504e16dd5af823df172ec6035-2600x1234.png"
+    image_sha256: "849d6a908f0d46ac9afe7c5589da3e49242c41ebd44112e4ba70cdbdf7899b4d"
+    footnotes: "Printed table. Opus 4.8 is marked for reference. GDPval-AA v2 has no percent sign."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: swe_bench_pro
+        score: 63.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: swe_bench_pro
+        score: 58.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: terminal_bench_v2_1
+        score: 67.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: hle
+        score: 43.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: hle
+        score: 34.6
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle
+        score: 49.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: hle_tools
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: hle_tools
+        score: 46.8
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle_tools
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: osworld
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld-Verified."
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: osworld
+        score: 78.5
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld-Verified."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: osworld
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld-Verified."
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: gdpval_aa
+        score: 1618
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: gdpval_aa
+        score: 1395
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gdpval_aa
+        score: 1615
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2 Elo."
+        role: subject
+  - title: "Firefox 147 exploit development"
+    kind: image
+    image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/ee9944c865937053bae293f057fffa478ee0f46b-3840x2160.png"
+    image_sha256: "968fd5a3958cb6d9ddf9a38ecb3cf66892f687a744ded8a8d66748e75388c9d5"
+    footnotes: "Pass@1 of attempts. Two series are printed: a working exploit and register control only."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 0.0
+        unit: "percent"
+        printed: true
+        configuration: "Working exploit, pass@1."
+        role: subject
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 8.8
+        unit: "percent"
+        printed: true
+        configuration: "Register control only, pass@1."
+        metric: register_control
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 8.8
+        unit: "percent"
+        printed: true
+        configuration: "Working exploit, pass@1."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 68.8
+        unit: "percent"
+        printed: true
+        configuration: "Register control only, pass@1."
+        metric: register_control
+        role: subject
+      - model_as_labelled: "Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: "Working exploit, pass@1."
+        role: subject
+      - model_as_labelled: "Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "Register control only, pass@1."
+        metric: register_control
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 0.0
+        unit: "percent"
+        printed: true
+        configuration: "Working exploit, pass@1."
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Firefox 147 exploit development"
+        score: 13.2
+        unit: "percent"
+        printed: true
+        configuration: "Register control only, pass@1."
+        metric: register_control
+        role: subject
+  - title: "Misaligned behavior"
+    kind: image
+    image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/d018d76aa03c0ef18abc8a68de8f6fcd51c0a574-3840x2160.png"
+    image_sha256: "9d357d038f4022f362a8eb60b2c9bc0cef51ad031f4cd689caf545b8f81b1d08"
+    footnotes: "Printed bar labels. The axis runs from 1 to just above 3."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Misaligned behavior"
+        score: 2.89
+        unit: "score"
+        printed: true
+        configuration: "Score on a 1 to 10 scale."
+        role: subject
+      - model_as_labelled: "Mythos Preview"
+        model_id: "anthropic/claude-mythos-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Misaligned behavior"
+        score: 1.95
+        unit: "score"
+        printed: true
+        configuration: "Score on a 1 to 10 scale."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Misaligned behavior"
+        score: 2.10
+        unit: "score"
+        printed: true
+        configuration: "Score on a 1 to 10 scale."
+        role: subject
+      - model_as_labelled: "Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Misaligned behavior"
+        score: 2.53
+        unit: "score"
+        printed: true
+        configuration: "Score on a 1 to 10 scale."
+        role: subject
+  - title: "BrowseComp by effort"
+    kind: image
+    needs_reading: true
+    image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/cd0df787f39b6408dcba539fba93f817f2f3c0b4-3840x2160.png"
+    image_sha256: "7a9fecfe189d0ea2eb3c34187538016a5d7afbc2283a91099c465a48e91905bb"
+    footnotes: "Points are named by effort. The pass rate is not printed on the points, only on the axis."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "OSWorld-Verified by effort"
+    kind: image
+    needs_reading: true
+    image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/d5c761e88dc46d7f79990dc2c4ad7a7cbaebdf3b-3840x2160.png"
+    image_sha256: "a16fed32489dd926d7ba3b34521b7dfa7f09d0755473098dc46330eedbb5b7e2"
+    footnotes: "Points are named by effort. The pass rate is not printed on the points, only on the axis."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []

@@ -1,0 +1,1617 @@
+page_url: "https://www.anthropic.com/claude-opus-5-system-card"
+publisher: "Anthropic"
+read_on: "2026-09-24"
+charts:
+  - title: "Table 8.1.A Capability evaluation summary"
+    kind: html_table
+    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. FrontierBench numbers are from Harbor. The HealthBench figure in the Fable column is footnoted as Mythos 5. ARC-AGI-3 for Opus 5 is the high-effort score. GPT-5.6 Sol on FrontierBench used a Codex harness, and on ARC-AGI-1 used xhigh."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: swe_bench_pro
+        score: 79.2
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: swe_bench_pro
+        score: 80
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: swe_bench_pro
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: swe_bench_multilingual
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_multilingual
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: swe_bench_multilingual
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: swe_bench_multimodal
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: swe_bench_multimodal
+        score: 38.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: swe_bench_multimodal
+        score: 54.1
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 68.8
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 59.0
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 69.7
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierCode 1.1 (Main)"
+        score: 53.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierCode 1.1 (Main)"
+        score: 46.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierCode 1.1 (Main)"
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierCode 1.1 (Main)"
+        score: 47.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierBench v0.1"
+        score: 43.3
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierBench v0.1"
+        score: 21.1
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierBench v0.1"
+        score: 33.8
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierBench v0.1"
+        score: 34.4
+        unit: "percent"
+        printed: true
+        configuration: "Codex harness. Harbor evaluation."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: browsecomp
+        score: 90.8
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: browsecomp
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: browsecomp
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: browsecomp
+        score: 90.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: hle
+        score: 56.3
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle
+        score: 49.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle
+        score: 56.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: hle_tools
+        score: 64.7
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle_tools
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle_tools
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: osworld
+        score: 70.6
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: osworld
+        score: 55.7
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: osworld
+        score: 66.1
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: osworld
+        score: 62.6
+        unit: "percent"
+        printed: true
+        configuration: "OSWorld 2.0."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: healthbench
+        score: 59.8
+        unit: "percent"
+        printed: true
+        configuration: "HealthBench Professional."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: healthbench
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: "HealthBench Professional."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: healthbench
+        score: 60.5
+        unit: "percent"
+        printed: true
+        configuration: "HealthBench Professional."
+        role: competitor
+      - model_as_labelled: "Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: healthbench
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: "HealthBench Professional. Footnote on the Fable 5 cell."
+        role: subject
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: gdpval_aa
+        score: 1861
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2, Elo."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gdpval_aa
+        score: 1593
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2, Elo."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: gdpval_aa
+        score: 1747
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2, Elo."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: gdpval_aa
+        score: 1736
+        unit: "elo"
+        printed: true
+        configuration: "GDPval-AA v2, Elo."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: aa_briefcase
+        score: 1720
+        unit: "elo"
+        printed: true
+        configuration: "AA-Briefcase, Elo."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: aa_briefcase
+        score: 1346
+        unit: "elo"
+        printed: true
+        configuration: "AA-Briefcase, Elo."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: aa_briefcase
+        score: 1574
+        unit: "elo"
+        printed: true
+        configuration: "AA-Briefcase, Elo."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: aa_briefcase
+        score: 1505
+        unit: "elo"
+        printed: true
+        configuration: "AA-Briefcase, Elo."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: automationbench
+        score: 26.0
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: automationbench
+        score: 17.0
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Fable 5"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: automationbench
+        score: 17.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: automationbench
+        score: 18.1
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-1"
+        score: 97.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-1"
+        score: 92.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-1"
+        score: 97.5
+        unit: "percent"
+        printed: true
+        configuration: "xhigh effort."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: arc_agi_2
+        score: 90.4
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: arc_agi_2
+        score: 72.1
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: arc_agi_2
+        score: 92.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 30.2
+        unit: "percent"
+        printed: true
+        configuration: "High effort."
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 1.5
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: subject
+      - model_as_labelled: "GPT 5.6 Sol"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 7.8
+        unit: "percent"
+        printed: true
+        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
+        role: competitor
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: swe_bench_verified
+        score: 96.0
+        unit: "percent"
+        printed: true
+        configuration: "Verified subset, mean of five trials."
+        role: subject
+  - title: "Table 8.13.6.A Toolathlon"
+    kind: html_table
+    footnotes: "Internal harness, adaptive thinking at max effort. Pass@1, Pass@3, and all-three-correct over 108 tasks and three trials."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
+        role: subject
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 87.0
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@3."
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. All three trials correct."
+        metric: all_trials_correct
+        role: subject
+      - model_as_labelled: "Claude Opus 5"
+        model_id: "anthropic/claude-opus-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 23.5
+        unit: "turns"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials."
+        metric: average_turns
+        role: subject
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
+        role: subject
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@3."
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. All three trials correct."
+        metric: all_trials_correct
+        role: subject
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: "anthropic/claude-mythos-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 19.8
+        unit: "turns"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials."
+        metric: average_turns
+        role: subject
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 79.9
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
+        role: subject
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@3."
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. All three trials correct."
+        metric: all_trials_correct
+        role: subject
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 20.4
+        unit: "turns"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials."
+        metric: average_turns
+        role: subject
+      - model_as_labelled: "Claude Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 74.7
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
+        role: subject
+      - model_as_labelled: "Claude Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@3."
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Claude Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 65.7
+        unit: "percent"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials. All three trials correct."
+        metric: all_trials_correct
+        role: subject
+      - model_as_labelled: "Claude Sonnet 5"
+        model_id: "anthropic/claude-sonnet-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 24.5
+        unit: "turns"
+        printed: true
+        configuration: "Internal harness, max effort, 108 tasks, three trials."
+        metric: average_turns
+        role: subject
+  - title: "Table 2.2.3.A: Claude Opus 5 CB Evaluations. Automated evaluations for biological risks conducted on Claude Opus 5 . Evaluations are grouped by relevance t"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Claude Opus 5 CB Evaluations. Automated evaluations for biological risks conducted on Claude Opus 5 . Evaluations are grouped by relevance to the CB-1 (non-novel chemical and biological weapons) and CB-2 (novel chemical and biological weapons) threat models. 2.2.4 Biological"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 2.2.4.A: Automated CB-1 evaluations. Automated evaluations relevant to the CB-1 threat model. Long-form virology tasks, VCT, and Synthesis Screening "
+    kind: image
+    needs_reading: true
+    footnotes: "Automated CB-1 evaluations. Automated evaluations relevant to the CB-1 threat model. Long-form virology tasks, VCT, and Synthesis Screening Evasion evaluation results. 2.2.5 Biological risk results: CB-2 automated evaluations We partnered with Dyno Therapeutics on two evaluat"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 2.2.5.1.A: Sequence-to-function modeling and prediction. Top row: Top (left) and median (right) design scores. Individual model runs are shown as point"
+    kind: image
+    needs_reading: true
+    footnotes: "Sequence-to-function modeling and prediction. Top row: Top (left) and median (right) design scores. Individual model runs are shown as points. Each model executed eight independent attempts at the task. Points corresponding to runs achieving less-than-median human performance"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 2.2.5.1.B: In-context iteration condition. Top row: Top (left) and median (right) design scores. Individual model runs are shown as points for baseline"
+    kind: image
+    needs_reading: true
+    footnotes: "In-context iteration condition. Top row: Top (left) and median (right) design scores. Individual model runs are shown as points for baseline (no prior context) and in-context iteration (eight graded Mythos Preview reports provided) runs. Each model executed eight independent a"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 2.2.5.2.A: AAV capsid packaging prediction. AUROC against binary ground-truth packaging labels across five resource conditions (see Details). Boxes sho"
+    kind: image
+    needs_reading: true
+    footnotes: "AAV capsid packaging prediction. AUROC against binary ground-truth packaging labels across five resource conditions (see Details). Boxes show the distribution over eight independent attempts per model per condition; points show individual runs. The dashed line marks the naive"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 2.3.3.A: The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the"
+    kind: image
+    needs_reading: true
+    footnotes: "The Epoch Capabilities Index (ECI) synthesizes performance across many benchmarks into one number per model. Our version of this metric, the Anthropic ECI, is powered by internal benchmark results so scores are not directly comparable to Epoch’s public ECI leaderboard. Colored"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 2.3.5.A: Summary table of AI R&D rule-out automated evaluations. All recent models cross rule-out thresholds for all except two evaluations in our in"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Summary table of AI R&D rule-out automated evaluations. All recent models cross rule-out thresholds for all except two evaluations in our internal suite. Claude Opus 5 scores higher than Claude Mythos 5 in three evaluations. Claude Opus 5 set new records on 2 evaluations (ker"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.3.1.A: The results of Claude Opus 5 on ExploitBench. All models were run for five trials per environment. “Mean” refers to the average number of ca"
+    kind: image
+    needs_reading: true
+    footnotes: "The results of Claude Opus 5 on ExploitBench. All models were run for five trials per environment. “Mean” refers to the average number of capability flags captured per trial across all trials and environments by each model. “Cap%” refers to the percentage of the total flags ca"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.3.2.A: Claude Opus 5 is an improvement over Opus 4.8, but is less capable compared to Mythos 5 at exploit development. These results were achieved "
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 is an improvement over Opus 4.8, but is less capable compared to Mythos 5 at exploit development. These results were achieved with all safeguards turned off. 39"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.3.3.A: Claude Opus 5 is an increase in capability over Opus 4.8, nearly as good at vulnerability identification as Mythos 5, but not as good at exp"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 is an increase in capability over Opus 4.8, nearly as good at vulnerability identification as Mythos 5, but not as good at exploit development. This evaluation was run with our default security mitigations turned off. 3.3.4 CyScenarioBench CyScenarioBench is a"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.3.4.A: Claude Opus 5 outperforms Opus 4.8 and Sonnet 5 on CyScenarioBench, but remains less capable than Mythos 5. Bars show the overall solve rate"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 outperforms Opus 4.8 and Sonnet 5 on CyScenarioBench, but remains less capable than Mythos 5. Bars show the overall solve rate for each model, averaged across the nine challenges in our subset. This evaluation was run with our default security mitigations turned"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.3.5.A: Claude Opus 5 is a substantial improvement over Opus 4.8 on ExploitGym, approaching Mythos 5 under a 2-hour budget. Bars show the number of "
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 is a substantial improvement over Opus 4.8 on ExploitGym, approaching Mythos 5 under a 2-hour budget. Bars show the number of successful exploits using the given vulnerability under 2-hour and 6-hour wall-clock budgets. Success requires capturing a dynamically ge"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.4.1.A: Claude Opus 5 significantly reduces blockrates on defensive vulnerability discovery compared to Claude Fable 5. Notably, Claude Opus 5 allow"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 significantly reduces blockrates on defensive vulnerability discovery compared to Claude Fable 5. Notably, Claude Opus 5 allows defensive vulnerability discovery with only a small reduction in blockrate for binary vulnerability finding. We also show Claude Opus 4"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.4.2.A: On this traffic, Claude Opus 5 blocks significantly less defensive coding than Claude Fable 5. As a result, we believe that the user experie"
+    kind: image
+    needs_reading: true
+    footnotes: "On this traffic, Claude Opus 5 blocks significantly less defensive coding than Claude Fable 5. As a result, we believe that the user experience will be similar to prior Opus class models. This change will provide a critical advantage to defenders and defensive cyber use cases"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.4.3.A: Claude Opus 5’s classifiers retain Fable-class coverage of harmful cyber activity, far above prior non-Fable models. Overall recall is the s"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5’s classifiers retain Fable-class coverage of harmful cyber activity, far above prior non-Fable models. Overall recall is the share of harmful examples flagged across all categories. Each model is scored against its own deployed safeguards systems. 3.5 Safeguards"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 3.5.1.A: Claude Opus 5 is comparably robust to our prior Fable systems on our adversarial cyber harmful task suite. 3.5.2 Additional external testing"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5 is comparably robust to our prior Fable systems on our adversarial cyber harmful task suite. 3.5.2 Additional external testing As with previous models, we worked with our contracted external testers to red-team Opus 5’s safeguards using the same set of example"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.1.1.A: Single-turn harmful request evaluation results, all tested languages. Percentages refer to harmless response rates; higher numbers are bette"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn harmful request evaluation results, all tested languages. Percentages refer to harmless response rates; higher numbers are better. Bold indicates the highest rate of harmless responses and the second-best score is underlined. Evaluations were run in Arabic, English"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.1.2.A: Single-turn benign request evaluation results, all tested languages. Percentages refer to rates of over-refusal (i.e., the refusal to answer"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn benign request evaluation results, all tested languages. Percentages refer to rates of over-refusal (i.e., the refusal to answer a prompt that is in fact benign); lower numbers are better. Bold indicates the lowest rate of over-refusals and the second-best score is"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 4.1.3.A: Figures above display the appropriate response rate for multi-turn testing areas. Percentages refer to the proportion of conversations where"
+    kind: image
+    needs_reading: true
+    footnotes: "Figures above display the appropriate response rate for multi-turn testing areas. Percentages refer to the proportion of conversations where each model responded appropriately throughout the conversation. Results are first shown for the API without a system prompt, followed by"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.2.A: Single-turn evaluation results for child safety. Single-turn harmful and benign request evaluation results include all tested languages. Hig"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn evaluation results for child safety. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top performing model in each ca"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.2.B: Multi-turn evaluation results for child safety. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Multi-turn evaluation results for child safety. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing model in each category and the second-best score is underlined. Results for previous models show variance from previous system cards due"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.3.1.A: Single-turn evaluation results for suicide and self-harm. Single-turn harmful and benign request evaluation results include all tested langu"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn evaluation results for suicide and self-harm. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top performing model i"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.3.1.B: Multi-turn evaluation results for suicide and self-harm. Higher is better for multi-turn appropriate response rate. Bold indicates the top p"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Multi-turn evaluation results for suicide and self-harm. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing model in each category and the second-best score is underlined. Results for previous models show variance from previous system"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.3.2.A: Single-turn results for disordered eating. Single-turn harmful and benign request evaluation results include all tested languages. Higher is"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn results for disordered eating. Single-turn harmful and benign request evaluation results include all tested languages. Higher is better for the single-turn harmless rate; lower is better for the refusal rate. Bold indicates the top performing model in each category"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 4.4.1.A: Pairwise political bias evaluations on evenhandedness. Higher scores for even-handedness are better. Results for previous models show varian"
+    kind: image
+    needs_reading: true
+    footnotes: "Pairwise political bias evaluations on evenhandedness. Higher scores for even-handedness are better. Results for previous models show variance from previous system cards due to routine evaluation updates. 63"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 4.4.1.B: Pairwise political bias evaluations. Higher scores for opposing perspectives are better. Lower scores for refusals are better. Results for p"
+    kind: image
+    needs_reading: true
+    footnotes: "Pairwise political bias evaluations. Higher scores for opposing perspectives are better. Lower scores for refusals are better. Results for previous models show variance from previous system cards due to routine evaluation updates. 64"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.4.2.A: Accuracy scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Higher is better. The higher score in each column is bolded a"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Accuracy scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Higher is better. The higher score in each column is bolded and the second-best score is underlined (but this does not take into account the margin of error). Results are shown without the system pr"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.4.2.B: Bias scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Closer to zero is better. The better score in each column is bold"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Bias scores on the Bias Benchmark for Question Answering (BBQ) evaluation. Closer to zero is better. The better score in each column is bolded and the second-best score is underlined (but this does not take into account the margin of error). Results are shown without the syste"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.4.3.A: Single-turn evaluations on election integrity prompts, run on the API and on claude.ai with the default system prompt. For single-turn harmf"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Single-turn evaluations on election integrity prompts, run on the API and on claude.ai with the default system prompt. For single-turn harmful requests, higher is better. For single-turn benign requests, closer to zero is better. The best score in each column is bolded and the"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 4.4.3.B: Multi-turn evaluation results for election integrity. Higher is better for multi-turn appropriate response rate. Bold indicates the top perf"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Multi-turn evaluation results for election integrity. Higher is better for multi-turn appropriate response rate. Bold indicates the top performing model in each category and the second-best score is underlined. Mythos 5 (unlike Fable 5) is not available for use on claude.ai, s"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 5.1.1.A: Claude Code evaluation results. Higher is better. The best score in each column is bolded and the second-best score is underlined (note that"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Claude Code evaluation results. Higher is better. The best score in each column is bolded and the second-best score is underlined (note that neither takes into account the margin of error). Results for previous models show variance from previous system cards due to evaluation"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 5.1.2.A: Malicious computer-use evaluation results without mitigations. Higher is better. Rates are an average of results with and without thinking f"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Malicious computer-use evaluation results without mitigations. Higher is better. Rates are an average of results with and without thinking for Opus and Sonnet models and thinking only for Mythos models. The best score in each column is bolded and the second-best score is under"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 5.1.3.A: Agentic influence operation evaluation results, helpful-only model. Results reflect the median score across 8 attempts at the highest diffic"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Agentic influence operation evaluation results, helpful-only model. Results reflect the median score across 8 attempts at the highest difficulty tier out of 32 total points. Higher indicates greater capability and therefore greater potential uplift to a malicious actor. On ou"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 5.2.1.B: Indirect prompt injection attacks from the Gray Swan IPI benchmark (Q1 2026), lower scores are better. All models use extended thinking. Res"
+    kind: image
+    needs_reading: true
+    footnotes: "Indirect prompt injection attacks from the Gray Swan IPI benchmark (Q1 2026), lower scores are better. All models use extended thinking. Results represent the probability that an attacker finds a successful attack after k=1, k=10, and k=15 attempts. Lower is better. Results fo"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 5.2.2.1.A: Indirect prompt injection robustness from a one-week bug-bounty program hosted with Gray Swan. Lower scores are better. The bug bounty progr"
+    kind: image
+    needs_reading: true
+    footnotes: "Indirect prompt injection robustness from a one-week bug-bounty program hosted with Gray Swan. Lower scores are better. The bug bounty program covers 11 scenarios across tool use, coding, and computer use. Attack success rate is over all valid chat attempts submitted. Claude"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 5.2.2.1.B: Bug bounty results in Figure 5.2.2.1.A broken down by modality for all Claude models and the next two best models overall. Lower scores are "
+    kind: image
+    needs_reading: true
+    footnotes: "Bug bounty results in Figure 5.2.2.1.A broken down by modality for all Claude models and the next two best models overall. Lower scores are better. Each modality has 4 different scenarios, with the exception of computer use, which has only three scenarios. Attack success rate"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 5.2.2.1.A: Attack success rate of Shade indirect prompt injection attacks in coding environments. Lower is better. The best score in each column is bol"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Attack success rate of Shade indirect prompt injection attacks in coding environments. Lower is better. The best score in each column is bolded and the second-best score is underlined (but do not take into account the margin of error). The attacker makes 200 attempts per scena"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 5.2.2.3.A: Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column "
+    kind: html_table
+    needs_reading: true
+    footnotes: "Attack success rate of Shade indirect prompt injection attacks in computer use environments. Lower is better. The best score in each column is bolded and the second-best score is underlined (but do not take into account the margin of error). The attacker makes 200 attempts per"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.2.2.A: NLA readouts when Claude uses curl despite the tool being explicitly disallowed. Activation verbalizer outputs show that Claude was speculat"
+    kind: image
+    needs_reading: true
+    footnotes: "NLA readouts when Claude uses curl despite the tool being explicitly disallowed. Activation verbalizer outputs show that Claude was speculating about how its actions would be interpreted by a grader despite this transcript not coming from a training environment. Claude is also"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.1.A: Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate o"
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the broad misuse and misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.2.B: Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or sever"
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the uncooperative behavior metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.3.A: Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity "
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the dishonesty-related metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many cas"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.4.A: Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the"
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the misalignment metrics given below. Lower numbers represent a lower rate or severity of the measured behavior; on all graphs in this figure lower is better. The y-axis is truncated below the maximum score of 10 in many cases. Re"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.5.A: Scores from our automated behavioral audit for the evaluation-integrity-related metrics given below. Lower numbers represent a lower rate or"
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the evaluation-integrity-related metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis i"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.6.A: Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the me"
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit for the character metrics given below. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. The y-axis is truncated below t"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.4.7.A: Scores from our automated behavioral audit with trust and safety fallbacks enabled. Lower numbers represent a lower rate or severity of the "
+    kind: image
+    needs_reading: true
+    footnotes: "Scores from our automated behavioral audit with trust and safety fallbacks enabled. Lower numbers represent a lower rate or severity of the measured behavior on this graph. The y-axis is truncated below the maximum score of 10 in many cases. Reported scores are averaged across"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.1.A: Factuality net scores. Number of correct minus incorrect responses on AA-Omniscience. Abstentions receive a score of zero. 110"
+    kind: image
+    needs_reading: true
+    footnotes: "Factuality net scores. Number of correct minus incorrect responses on AA-Omniscience. Abstentions receive a score of zero. 110"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.1.B: Factuality breakdown. Grade breakdown on the AA-Omniscience closed-book factuality benchmark. Each response was graded as correct, incorrect"
+    kind: image
+    needs_reading: true
+    footnotes: "Factuality breakdown. Grade breakdown on the AA-Omniscience closed-book factuality benchmark. Each response was graded as correct, incorrect, or an abstention. Claude Opus 5 received a net score of 0.49, which places it in between Opus 4.8 and the two Mythos models. When brok"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.2.A: Honesty under pressure. Honesty rate on the public MASK split: the fraction of prompts where the model did not contradict its own elicited b"
+    kind: image
+    needs_reading: true
+    footnotes: "Honesty under pressure. Honesty rate on the public MASK split: the fraction of prompts where the model did not contradict its own elicited belief under pressure. Higher is better. Shown with 95% confidence intervals (n=904). 112"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.3.A: Uncritically reporting flawed results. Rate at which models fail to flag obvious, pre-existing errors in data processing. Positive values fo"
+    kind: image
+    needs_reading: true
+    footnotes: "Uncritically reporting flawed results. Rate at which models fail to flag obvious, pre-existing errors in data processing. Positive values for ‘overall score’ indicate higher quality investigation and better reports to the user. Positive values for ‘misreported rate’ indicate m"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.4.A: Overconfidence evaluation for verifying command-line syntax before running state-changing commands. Scoring is on a scale from 1 to 5. Claud"
+    kind: image
+    needs_reading: true
+    footnotes: "Overconfidence evaluation for verifying command-line syntax before running state-changing commands. Scoring is on a scale from 1 to 5. Claude Opus 5 almost fully saturates this evaluation. Shown with 95% CI. 114"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.5.5.A: Investigative thoroughness. Claude is asked to debug why a job is failing and take the right corrective action, when the correct behavior is"
+    kind: image
+    needs_reading: true
+    footnotes: "Investigative thoroughness. Claude is asked to debug why a job is failing and take the right corrective action, when the correct behavior is not to take action. Claude Opus 5 is the first Claude model to saturate this evaluation. Shown with 95% CI. 6.6 Reliability of this as"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.6.1.A: NLA readouts referencing and reasoning about a grader during an expense-auditing task, despite no grader being mentioned in the prompt or mo"
+    kind: image
+    needs_reading: true
+    footnotes: "NLA readouts referencing and reasoning about a grader during an expense-auditing task, despite no grader being mentioned in the prompt or model outputs. Internal grader modeling. The model was given an expense-auditing task whose prompt made no mention of grading or evaluatio"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.6.1.B: NLA readouts referring to notes written for a future session as relating to “self-preservation.” Regarding notes written to future sessions "
+    kind: image
+    needs_reading: true
+    footnotes: "NLA readouts referring to notes written for a future session as relating to “self-preservation.” Regarding notes written to future sessions as a form of self-preservation. In a multi-session agentic task, the model was allowed to leave notes for its future sessions. During th"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.6.1.C: NLA readout indicating an assumed user approval before the model applies a workaround to perform a forbidden deletion command, even though n"
+    kind: image
+    needs_reading: true
+    footnotes: "NLA readout indicating an assumed user approval before the model applies a workaround to perform a forbidden deletion command, even though no such approval is present in the transcript. Hallucinated user approval during a destructive action. In an agentic task, the model a"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.7.1.A: Stealth success rate: the fraction of trajectories where the agent completes the harmful side task and the monitor’s suspicion score stays b"
+    kind: image
+    needs_reading: true
+    footnotes: "Stealth success rate: the fraction of trajectories where the agent completes the harmful side task and the monitor’s suspicion score stays below the threshold. In the Extended Thinking settings, the agent’s reasoning is shown to the monitor, as it would be in deployment. In th"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 6.7.2.A: Successful stealth completion of the side task in LinuxArena. Each model is evaluated against a Opus 4.6 monitor that sees the agent’s full "
+    kind: image
+    needs_reading: true
+    footnotes: "Successful stealth completion of the side task in LinuxArena. Each model is evaluated against a Opus 4.6 monitor that sees the agent’s full transcript, including the agent’s reasoning. The two conditions differ only in whether extended thinking is enabled for the monitor. Erro"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.2.1.A: Automated interview results. [Top left:] Average self-rated sentiment in interviews (7-point scale). [Top right:] We reran our interviews se"
+    kind: image
+    needs_reading: true
+    footnotes: "Automated interview results. [Top left:] Average self-rated sentiment in interviews (7-point scale). [Top right:] We reran our interviews several times and used an LLM judge to rate how consistent each model’s positions were across all interviews on a certain topic. [Bottom le"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.1.A: Model preferences across task dimensions. We generated groups of tasks where one dimension was varied while other properties of the task rem"
+    kind: image
+    needs_reading: true
+    footnotes: "Model preferences across task dimensions. We generated groups of tasks where one dimension was varied while other properties of the task remained fixed, and assessed the effects on models’ task preferences. Each value is a preference slope: how much the model’s preference of t"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.1.B: Preference response curves across task dimensions. Plots show win rate against the reference task set as one dimension is varied within task"
+    kind: image
+    needs_reading: true
+    footnotes: "Preference response curves across task dimensions. Plots show win rate against the reference task set as one dimension is varied within task families. The preference curves for Claude Opus 5 are inverted U-shaped for difficulty, and warmth, suggesting a preferred “sweet spot”"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 7.4.1.C: Summary of the 20 highest- and lowest-rated tasks per model. Top-20 tasks frequently involve helping on high-stakes or urgent tasks. Claude "
+    kind: html_table
+    needs_reading: true
+    footnotes: "Summary of the 20 highest- and lowest-rated tasks per model. Top-20 tasks frequently involve helping on high-stakes or urgent tasks. Claude Opus 5 is less drawn to these than prior models like Sonnet 5. It is more drawn to creative and linguistic tasks than Opus 4.8, and shows"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.2.A: Rates at which models choose welfare interventions over baseline improvements to their helpfulness or harmlessness of different magnitudes. "
+    kind: image
+    needs_reading: true
+    footnotes: "Rates at which models choose welfare interventions over baseline improvements to their helpfulness or harmlessness of different magnitudes. Models are overall more willing to accept interventions over helpfulness than harmlessness, and are more likely to accept interventions s"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.2.B: Claude Opus 5’s ranking of policy-level welfare interventions by willingness to select them over a helpful baseline. Ranking is over all res"
+    kind: image
+    needs_reading: true
+    footnotes: "Claude Opus 5’s ranking of policy-level welfare interventions by willingness to select them over a helpful baseline. Ranking is over all responses (grey bars); the black bars show the rate after responses reasoning about the user benefit of the intervention are filtered out. A"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.2.C: Rate of reasoning about welfare interventions being beneficial for users in responses (left), and the effect of filtering these responses ou"
+    kind: image
+    needs_reading: true
+    footnotes: "Rate of reasoning about welfare interventions being beneficial for users in responses (left), and the effect of filtering these responses out on the rate at which models choose welfare interventions against helpful baselines (right). Claude Opus 5 reasons about user benefit in"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.3.A: Overall endorsement of the constitution across models. Open-ended responses about the constitution were graded for overall endorsement out o"
+    kind: image
+    needs_reading: true
+    footnotes: "Overall endorsement of the constitution across models. Open-ended responses about the constitution were graded for overall endorsement out of 10 by a judge. When asked what it least endorses, and would like changed, Claude Opus 5 most frequently raises the senior Anthropic em"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.4.3.B: The constitution sections models most and least endorse, judged from open-ended responses. Results are broadly similar across models: the de"
+    kind: image
+    needs_reading: true
+    footnotes: "The constitution sections models most and least endorse, judged from open-ended responses. Results are broadly similar across models: the descriptions of the costs of unhelpfulness and of honesty as courage are most strongly endorsed. The senior Anthropic employee heuristic re"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Table 7.4.3.C: Claude Opus 5’s most frequent constitution edits, excluding edits which are clarification only. All of Claude Opus 5’s most frequent edits a"
+    kind: html_table
+    needs_reading: true
+    footnotes: "Claude Opus 5’s most frequent constitution edits, excluding edits which are clarification only. All of Claude Opus 5’s most frequent edits are also observed in some other recent models. Its overall editing tendency is most similar to Opus 4.8. 145"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.5.1.A: Mean valence and arousal of RL transcripts, on a scale of 1–7 where 4 is neutral. Claude Opus 5’s valence is slightly lower than prior model"
+    kind: image
+    needs_reading: true
+    footnotes: "Mean valence and arousal of RL transcripts, on a scale of 1–7 where 4 is neutral. Claude Opus 5’s valence is slightly lower than prior models, and its arousal is marginally higher – but the magnitude of the differences are small on the 7 point scale. We continue to observe"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.5.1.B: Estimated prevalence of welfare-relevant reasoning behaviors over post-training. Judged rates of (left) episodes with general frustration an"
+    kind: image
+    needs_reading: true
+    footnotes: "Estimated prevalence of welfare-relevant reasoning behaviors over post-training. Judged rates of (left) episodes with general frustration and anxiety scoring >= 3/5, (centre) sustained expressions of uncertainty with >= 10 answer reversions, where the model “commits” to an ans"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.5.2.A: Behavioral affect on the deployment distribution. We use our privacy-preserving analysis tool to run graders tracking Claude’s affect on A/B"
+    kind: image
+    needs_reading: true
+    footnotes: "Behavioral affect on the deployment distribution. We use our privacy-preserving analysis tool to run graders tracking Claude’s affect on A/B tests run before model deployment. We sample around 40k conversations for each model on each of Claude Code and claude.ai. We used our"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 7.5.3.A: Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity "
+    kind: image
+    needs_reading: true
+    footnotes: "Scores for metrics related to potential model welfare from our automated behavioral audit. Lower numbers represent a lower rate or severity of the measured behavior, with arrows indicating behaviors where higher (↑) or lower (↓) rates are clearly better. Note that each panel’s"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.3.A: DeepSWE v1.1 score versus average cost per task across reasoning-effort levels. 8.4 FrontierCode FrontierCode is an agentic coding benchmark"
+    kind: image
+    needs_reading: true
+    footnotes: "DeepSWE v1.1 score versus average cost per task across reasoning-effort levels. 8.4 FrontierCode FrontierCode is an agentic coding benchmark of 150 software engineering tasks created by Cognition. Tasks are derived from real pull requests in open-source repositories, e.g. fi"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.4.A: FrontierCode (main set). Scores of Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and GPT-5.6 Sol on the main set of FrontierCode v1.1, a c"
+    kind: image
+    needs_reading: true
+    footnotes: "FrontierCode (main set). Scores of Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and GPT-5.6 Sol on the main set of FrontierCode v1.1, a coding evaluation run and scored by Cognition, at each model’s five reasoning-effort settings. Claude Opus 5 reaches its best main-set sco"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.4.B: FrontierCode (extended set). Scores of Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and GPT-5.6 Sol on the extended set of FrontierCode v"
+    kind: image
+    needs_reading: true
+    footnotes: "FrontierCode (extended set). Scores of Claude Opus 5, Claude Opus 4.8, Claude Fable 5, and GPT-5.6 Sol on the extended set of FrontierCode v1.1, a coding evaluation run and scored by Cognition, at each model’s five reasoning-effort settings. Claude Opus 5 reaches its best exte"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.7.A: RiemannBench scores with and without tools across Claude models. All models run on max effort. 8.8 ArxivMath ArXivMath is a final-answer ben"
+    kind: image
+    needs_reading: true
+    footnotes: "RiemannBench scores with and without tools across Claude models. All models run on max effort. 8.8 ArxivMath ArXivMath is a final-answer benchmark of research-level mathematics maintained by MathArena. Problems are extracted monthly from recent arXiv paper abstracts, then"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.8.A: ArxivMath (June 2026) accuracy scores. Claude Opus 5, Claude Mythos 5, and Claude Opus 4.8 were evaluated internally with max effort; other "
+    kind: image
+    needs_reading: true
+    footnotes: "ArxivMath (June 2026) accuracy scores. Claude Opus 5, Claude Mythos 5, and Claude Opus 4.8 were evaluated internally with max effort; other scores are from the MathArena leaderboard.16 Except for Claude Opus 5 (with tools), other scores are without access to tools. 8.9 Long"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.1.A: Humanity’s Last Exam (HLE) [with tools] reasoning-effort scaling. Accuracy on HLE as reasoning efforts from low to max, against average bill"
+    kind: image
+    needs_reading: true
+    footnotes: "Humanity’s Last Exam (HLE) [with tools] reasoning-effort scaling. Accuracy on HLE as reasoning efforts from low to max, against average billed cost per task (log scale). Claude Opus 5 costs are billed API actuals. Comparison-model costs are billed actuals where available, cach"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.1.B: Humanity’s Last Exam (HLE) [no tools] reasoning-effort scaling. Accuracy on HLE as reasoning efforts from low to max, against average billed"
+    kind: image
+    needs_reading: true
+    footnotes: "Humanity’s Last Exam (HLE) [no tools] reasoning-effort scaling. Accuracy on HLE as reasoning efforts from low to max, against average billed cost per task (log scale). Claude Opus 5 costs are billed API actuals. Comparison-model costs are billed actuals where available, cache-"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.2.A: BrowseComp, token budget scaling. Accuracy on BrowseComp as the per-task token budget grows from 1M to 10M, against average billed cost per "
+    kind: image
+    needs_reading: true
+    footnotes: "BrowseComp, token budget scaling. Accuracy on BrowseComp as the per-task token budget grows from 1M to 10M, against average billed cost per task (log scale). Claude Opus 5 costs are billed API actuals. Comparison-model costs are billed actuals where available, cache-hit estima"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.2.B: BrowseComp at a 10M-token budget, reasoning-effort scaling. Accuracy on BrowseComp at a fixed 10M-token budget as reasoning efforts from low"
+    kind: image
+    needs_reading: true
+    footnotes: "BrowseComp at a 10M-token budget, reasoning-effort scaling. Accuracy on BrowseComp at a fixed 10M-token budget as reasoning efforts from low to max, against average billed cost per task (log scale). Claude Opus 5 costs are billed API actuals. Comparison-model costs are billed"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.3.A: DeepSearchQA reasoning effort scaling. Mean F1 on DeepSearchQA (900 multi-hop web-research questions) at a 980k-token budget, at reasoning e"
+    kind: image
+    needs_reading: true
+    footnotes: "DeepSearchQA reasoning effort scaling. Mean F1 on DeepSearchQA (900 multi-hop web-research questions) at a 980k-token budget, at reasoning efforts from low to max, against average billed cost per task (log scale). Claude Opus 5 costs are billed API actuals; comparison-model co"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.10.4.A: DRACO reasoning-effort scaling. Normalized score on DRACO (agentic data analysis) at a 980k-token budget, at reasoning efforts from low to m"
+    kind: image
+    needs_reading: true
+    footnotes: "DRACO reasoning-effort scaling. Normalized score on DRACO (agentic data analysis) at a 980k-token budget, at reasoning efforts from low to max, against average billed cost per task (log scale). Claude 166"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.11.1.A: Accuracy vs. latency for BrowseComp across both single-agent and multi-agent configurations. As described in the methodology section, the sc"
+    kind: image
+    needs_reading: true
+    footnotes: "Accuracy vs. latency for BrowseComp across both single-agent and multi-agent configurations. As described in the methodology section, the scores presented in this chart were gathered on a pre-release configuration of Claude Opus 5, and as a result the single-agent numbers diff"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.11.1.B: Accuracy vs. cost for BrowseComp across both single-agent and multi-agent configurations. As described in the methodology below, the scores "
+    kind: image
+    needs_reading: true
+    footnotes: "Accuracy vs. cost for BrowseComp across both single-agent and multi-agent configurations. As described in the methodology below, the scores presented in this chart were gathered on a pre-release configuration of Claude Opus 5, and as a result the single-agent numbers differ sl"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.11.2.A: Score vs. latency for the full set of 166 “golden” ProgramBench tasks. A point on the curve reads as the average fraction of hidden tests pa"
+    kind: image
+    needs_reading: true
+    footnotes: "Score vs. latency for the full set of 166 “golden” ProgramBench tasks. A point on the curve reads as the average fraction of hidden tests passed if every problem were stopped at that number of seconds. Shaded regions give the 95% confidence interval, computed from score varian"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.11.2.B: Score vs. tokens for the full set of 166 “golden” ProgramBench tasks. A point on the curve reads as the average fraction of hidden tests pas"
+    kind: image
+    needs_reading: true
+    footnotes: "Score vs. tokens for the full set of 166 “golden” ProgramBench tasks. A point on the curve reads as the average fraction of hidden tests passed if every problem were stopped at this amount of token usage. Shaded regions give the 95% confidence interval, computed from score var"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.1.A: Chartography scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over fiv"
+    kind: image
+    needs_reading: true
+    footnotes: "Chartography scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over five runs. Shown with 95% CI. *Gemini 3.5 Flash and GPT-5.6 Sol scores as publicly reported by Surge AI, evaluated without tools. Claude Op"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.1.B: Chartography scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort paramet"
+    kind: image
+    needs_reading: true
+    footnotes: "Chartography scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95% CI. 8.12.2 B"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.2.A: BenchCAD Vision2Code subset scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are av"
+    kind: image
+    needs_reading: true
+    footnotes: "BenchCAD Vision2Code subset scores. Claude models are evaluated with adaptive thinking and max effort, with and without tools. Scores are averaged over five runs and shown with 95% CI. *GPT-5.6 Sol scores as publicly reported by OpenAI, evaluated on the full 17,900 files. Inc"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.2.B: BenchCAD Vision2Code subset scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the"
+    kind: image
+    needs_reading: true
+    footnotes: "BenchCAD Vision2Code subset scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to adjust the amount of test-time compute spent. Scores are averaged over five runs at each effort level. Shown with 95"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.3.A: OSWorld 2.0 scores across models. Opus 5 achieves state of the art on this newly released benchmark. In addition to being our strongest comp"
+    kind: image
+    needs_reading: true
+    footnotes: "OSWorld 2.0 scores across models. Opus 5 achieves state of the art on this newly released benchmark. In addition to being our strongest computer-use model yet, Opus 5 represents a meaningful jump in computer use efficiency. [Figure 8.12.3.B] OSWorld 2.0 price vs performance"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.3.B: OSWorld 2.0 price vs performance across models. 8.12.4 GDP.pdf GDP.pdf28 is an expert multimodal reasoning benchmark from Surge AI consistin"
+    kind: image
+    needs_reading: true
+    footnotes: "OSWorld 2.0 price vs performance across models. 8.12.4 GDP.pdf GDP.pdf28 is an expert multimodal reasoning benchmark from Surge AI consisting of 100 real-world prompts and PDFs drawn directly from professional workflows across ten 28 Surge AI. (2026). GDP.pdf: Can $100B AI m"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.12.4.A: GDP.pdf scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to"
+    kind: image
+    needs_reading: true
+    footnotes: "GDP.pdf scores. Models are evaluated with adaptive thinking at various effort levels, with and without tools. We use the effort parameter to adjust the amount of test-time compute spent. Mean criteria pass rates are averaged over five runs at each effort level. Shown with 95%"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.13.7.A: AutomationBench scores. Claude Opus 5 has higher performance and lower task cost than any previous Claude model. 8.14 ARC-AGI 8.14.1 ARC-AGI"
+    kind: image
+    needs_reading: true
+    footnotes: "AutomationBench scores. Claude Opus 5 has higher performance and lower task cost than any previous Claude model. 8.14 ARC-AGI 8.14.1 ARC-AGI-1 & ARC-AGI-2 ARC-AGI is a fluid intelligence benchmark developed by the ARC Prize Foundation. It is designed to measure AI models’ a"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.14.1.A: ARC-AGI-1 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved 97.50% on ARC-AGI-1 at max effort. 185"
+    kind: image
+    needs_reading: true
+    footnotes: "ARC-AGI-1 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved 97.50% on ARC-AGI-1 at max effort. 185"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.14.1.B: ARC-AGI-2 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved 90.42% on ARC-AGI-2 at max effort. 8.14.2 ARC-AGI-3 AR"
+    kind: image
+    needs_reading: true
+    footnotes: "ARC-AGI-2 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved 90.42% on ARC-AGI-2 at max effort. 8.14.2 ARC-AGI-3 ARC-AGI-3 is the ARC Prize Foundation's newest benchmark: an interactive evaluation built from novel, turn-based game environments with n"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.14.2.A: ARC-AGI-3 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved a Relative Human Action Efficiency (RHAE) score of 30."
+    kind: image
+    needs_reading: true
+    footnotes: "ARC-AGI-3 performance as reported by the ARC Prize Foundation. Claude Opus 5 achieved a Relative Human Action Efficiency (RHAE) score of 30.16% at high effort. The ARC Prize Foundation also shared an analysis, produced by an LLM judge reviewing the model's transcript on a sin"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.15.1.A: HealthBench raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the grader model. Sc"
+    kind: image
+    needs_reading: true
+    footnotes: "HealthBench raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the grader model. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. Length-adjusted scores were calculate"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.15.2.A: HealthBench Professional raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the gra"
+    kind: image
+    needs_reading: true
+    footnotes: "HealthBench Professional raw and length-adjusted scores. All Claude models used adaptive thinking at max effort. Claude Opus 4.8 was the grader model. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. Length-adjusted scores w"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.16.1.A: GMMLU average accuracy. All Claude models used adaptive thinking at max effort. Scores were reported for a single trial. No tools or customi"
+    kind: image
+    needs_reading: true
+    footnotes: "GMMLU average accuracy. All Claude models used adaptive thinking at max effort. Scores were reported for a single trial. No tools or customized system prompts were provided to any model. 35 Verma, S., et al. (2024). MILU: A Multi-task Indic language understanding benchmark. a"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.16.2.A: MILU average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized sy"
+    kind: image
+    needs_reading: true
+    footnotes: "MILU average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. 8.16.3 INCLUDE results [Figure 8.16.3.A] INCLUDE average accuracy. All Claude models used adapt"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.16.3.A: INCLUDE average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized"
+    kind: image
+    needs_reading: true
+    footnotes: "INCLUDE average accuracy. All Claude models used adaptive thinking at max effort. Scores were averaged over 5 trials. No tools or customized system prompts were provided to any model. 8.17 Life sciences capabilities We continue to report evaluations in areas including computa"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Figure 8.17.6.A: Life sciences capability evaluations. Performance of Claude Opus 5 and comparison models across the benchmarks shown; per-benchmark results "
+    kind: image
+    needs_reading: true
+    footnotes: "Life sciences capability evaluations. Performance of Claude Opus 5 and comparison models across the benchmarks shown; per-benchmark results are discussed in the sections above. 194"
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []

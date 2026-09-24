@@ -197,3 +197,118 @@ Reader B's printed all-pass bars agree with reader A. GPT-6 Astra (max) is 33.2 
 g-deepswe was left `needs_reading`, so reader B's 76 points are `only_b`. Within reader B's own files, the labelled Opus 5 point is 73.6 (estimated, uncertainty 0.3) and g-table prints 74.0. The gap is 0.4, outside that uncertainty. The other Opus point on that line is 73.1. The labelled Sonnet 5 point is 49.7 (uncertainty 0.3) and g-table prints 53.8. The other Sonnet points are 48.2, 39.8, and 30.5. None is 53.8.
 
 g-harvey, g-hle, and g-vals each match g-table on all six models. Harvey all-pass is 10.0, 8.8, 6.7, 5.0, 2.5, 0.8. HLE-Verified is 54.9, 53.6, 54.4, 31.0, 54.5, 51.1. Vals Finance Agent v2 is 61.4, 59.0, 58.6, 53.9, 53.8, 54.4. The order is Gemini 3.8 Flash, Gemini 3.7 Flash, Claude Opus 5, Claude Sonnet 5, GPT-5.6 Sol, GPT-5.6 Terra.
+
+## Phase 2a: Anthropic and xAI
+
+Reader A, 2026-09-24. Cards were not edited. Thirteen pages, 552 charts, 26 transcribed, 526 left `needs_reading`. 746 bars. The full checker, including phase 1, is 22 pages, 600 charts, 1,597 bars, and exits clean.
+
+### Pages
+
+Fetched.
+
+| Page | What came back |
+| --- | --- |
+| https://www.anthropic.com/claude-opus-5-5-system-card | PDF, 230 pages. Claude Opus 5.5 System Card, 22 September 2026. |
+| https://www.anthropic.com/claude-fable-5-1-system-card | PDF, 212 pages. Claude Fable 5.1 and Claude Mythos 5.1. |
+| https://www.anthropic.com/claude-opus-5-system-card | PDF, 198 pages. |
+| https://www.anthropic.com/claude-sonnet-5-system-card | PDF, 146 pages. |
+| https://www.anthropic.com/claude-opus-4-8-system-card | PDF, 246 pages. |
+| https://www.anthropic.com/claude-opus-5-5 | Launch page. The `/news/claude-opus-5-5` slug redirects here. |
+| https://www.anthropic.com/claude-fable-and-mythos-5-1 | Launch page. The sitemap has no `/news/` URL for Fable 5.1. |
+| https://www.anthropic.com/news/claude-opus-5 | Launch post. |
+| https://www.anthropic.com/news/claude-sonnet-5 | Launch post. |
+| https://www.anthropic.com/news/claude-opus-4-8 | Launch post. |
+| https://x.ai/news/grok-4-7 | Launch post, 21 September 2026. |
+| https://x.ai/news/grok-4-6 | Launch post, 12 August 2026. |
+| https://x.ai/news/grok-4-5 | Launch post. The page dates itself 16 July 2026. |
+
+Not fetched. `https://x.ai/news` returned 403. The three post URLs returned 200. None of those posts links a model card. `https://www.anthropic.com/news/claude-fable-5-mythos-5` is the earlier Fable 5 post, so it is not a source for 5.1.
+
+The 526 `needs_reading` charts are the Figure and Table captions in the five system cards that this pass did not transcribe, plus launch charts whose points are not labelled: the Sonnet 5 BrowseComp and OSWorld effort plots, the Opus 4.8 misalignment chart, the Grok 4.7 CursorBench scatter, the Opus 5 Frontier-Bench effort plot, and ten other images on the Opus 5 post. Summary tables, the launch grids with printed cells, and the charts whose labels were read are the 26 transcribed charts.
+
+### Bars
+
+| Class | Bars |
+| --- | ---: |
+| matched | 27 |
+| other_configuration | 2 |
+| mismatched | 1 |
+| unit_differs | 12 |
+| other_metric | 2 |
+| no_benchmark_page | 306 |
+| not_held | 394 |
+| competitor_unresolved | 2 |
+
+The two `other_configuration` bars are Claude Opus 5.5 on Terminal-Bench 4.0 from the system card. The summary table's 66.4 matches the card. The section also prints 66.36 at xhigh and 64.8 at max.
+
+### Coverage
+
+Headline subject bars with a catalogue id. Held means a same-source row exists, including a mismatch or another configuration.
+
+| Model | Held / published | Matched |
+| --- | ---: | ---: |
+| anthropic/claude-opus-5-5 | 10/27 | 8 |
+| anthropic/claude-fable-5-1 | 6/44 | 6 |
+| anthropic/claude-mythos-5-1 | 1/3 | 1 |
+| anthropic/claude-opus-5 | 1/66 | 1 |
+| anthropic/claude-sonnet-5 | 1/22 | 1 |
+| anthropic/claude-opus-4-8 | 2/50 | 2 |
+| xai/grok-4-7 | 0/5 | 0 |
+| xai/grok-4-6 | 0/10 | 0 |
+| xai/grok-4-5 | 0/7 | 0 |
+
+Opus 5.5 matches the rows that cite its system card: SWE-bench Pro 89.9, SWE-bench Multilingual 93.9, SWE-bench Multimodal 61.4, Terminal-Bench 4.0 66.4, Terminal-Bench Science 58.7, HLE 64.4, HLE with tools 67.7, AutomationBench 40.0.
+
+Fable 5.1 matches SWE-bench Pro 81.2, SWE-bench Multilingual 89.1, SWE-bench Multimodal 54.7, Terminal-Bench Science 52.6, ARC-AGI-2 90.0, and Terminal-Bench 4.0. The table prints 56. The card holds 55.8. A whole number is ±0.5, so 56 matches 55.8. Mythos 5.1's parenthetical 61 matches the card's 60.9 the same way.
+
+Opus 4.8 matches SWE-bench Verified 88.6 and GPQA Diamond 93.6. Opus 5 matches SWE-bench Verified 96.0. Sonnet 5 matches SWE-bench Verified 85.2. The Grok cards do not cite these posts, so those subject bars are not held.
+
+### Mismatched bars
+
+One new bar. Gemini 3.1 Pro on GPQA Diamond, Table 8.1.A of the Claude Opus 4.8 system card. Marked `known_mismatch`, ticket TBD. The card was not edited.
+
+| Model | Chart | Card | Card source |
+| --- | ---: | ---: | --- |
+| Gemini 3.1 Pro | 94.3 | 94.14 | https://artificialanalysis.ai/leaderboards/models |
+
+The chart page is https://www.anthropic.com/claude-opus-4-8-system-card. Competitor figures on that table are the developers' published numbers, so the bar has to match some row on the Gemini card. 94.3 and 94.14 are outside the printed tenth.
+
+### Gaps above 2 points
+
+No same-unit competitor gap in this pass is larger than 2 points. There is no `competitor_gap` bar. Twelve bars are `unit_differs`: the page prints GDPval-AA or AA-Briefcase as Elo, and the card holds a percent or a normalised Elo percent from another URL.
+
+| Model | Chart | Chart unit | Card | Card unit | Card source |
+| --- | ---: | --- | ---: | --- | --- |
+| GPT-5.6 Sol | 1711 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
+| Gemini 3.1 Pro | 1314 | elo | 20.2 | percent | https://artificialanalysis.ai/leaderboards/models |
+| GPT-6 Astra | 1542 | elo | 54 | normalized Elo percent | https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2 |
+| GPT-6 Astra | 1569 | elo | 53 | normalized Elo percent | https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2 |
+| GPT-5.6 Sol | 1588 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
+| GPT-5.6 Sol | 1736 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
+| Gemini 3.5 Flash | 1357 | elo | 37.95 | percent | https://artificialanalysis.ai/leaderboards/models |
+| GPT-5.6 Sol | 1728 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
+
+1711 is on both the Fable 5.1 system card and https://www.anthropic.com/claude-fable-and-mythos-5-1. 1314 is on both the Opus 4.8 system card and https://www.anthropic.com/news/claude-opus-4-8. 1542 is on both the Opus 5.5 system card and https://www.anthropic.com/claude-opus-5-5. 1588 is on the Opus 5.5 launch page. 1736 is on both the Opus 5 system card and https://www.anthropic.com/news/claude-opus-5. 1357 is on the Sonnet 5 system card. 1728 is on https://x.ai/news/grok-4-6. 1569 is AA-Briefcase on the Opus 5.5 system card.
+
+### Uncatalogued benchmarks
+
+306 bars have `benchmark_id: null`. The count is how many times the label was printed.
+
+| Benchmark as labelled | Bars |
+| --- | ---: |
+| Toolathlon | 52 |
+| FrontierCode v1.1 (Main) | 19 |
+| DeepSWE v1.1 | 17 |
+| CursorBench 4.0 | 15 |
+| ArXivMath | 15 |
+| Shade coding attack success rate | 12 |
+| FrontierCode v1.1 (Extended) | 10 |
+| Finance Agent v2 | 9 |
+| Chartography | 9 |
+| Single-turn harmless response rate | 8 |
+| Single-turn over-refusal rate | 8 |
+| Firefox 147 exploit development | 8 |
+| EEBench | 8 |
+| ARC-AGI-1 | 7 |
+| ARC-AGI-3 | 6 |
+| BioMysteryBench | 6 |
