@@ -302,6 +302,7 @@ Acceptance: every recall test passes, no guaranteed facet is unknown, and each o
 **Slice 4:** the outcome protocol with DPF, and active speed probes.
 
 **Slice 5:** the human downselect experience, saved specs and alerts, and the claims-versus-evidence pages. The downselect page is meant to be exceptional, not a form. It should make choosing a model exciting and intuitive, with benchmark graphs that pop. It is **research-led**: a dedicated UX research phase, contrasting prototypes and usability tests on the recall-set questions, all over the same decision contract and explanations that agents use (MODEL-147).
+The same components produce the **launch report**: when a new model lands, a permalinked, provisional page (claims vs independent evidence, standing per domain against its closest competitors, trade-offs, what the lab didn't report, unknowns), updated at +1, +7 and +30 days. **Social posts are views of it.** Each chart is a saved spec that deep-links into the downselect page, so readers can apply their own constraints (MODEL-114, MODEL-113). Nothing is posted before launch.
 
 **Launch** is Jamie's call, after slice 2 at the earliest.
 
