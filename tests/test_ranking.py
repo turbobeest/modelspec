@@ -329,7 +329,10 @@ def test_reviewed_evidence_beats_the_flat_block_for_the_same_benchmark() -> None
     assert files, "expected a card carrying reviewed evidence"
     cards = [ModelCard.from_yaml_file(files[0])]
     candidate = build_candidates(cards, CollectingSink())[0]
-    for record in cards[0].benchmarks.evidence:
+    # A card may hold two readings of one benchmark (MODEL-123 adds the board's
+    # row beside a provider's own); the ranker reads the last one.
+    last = {record.benchmark_id: record for record in cards[0].benchmarks.evidence}
+    for record in last.values():
         assert candidate.benchmark_scores[record.benchmark_id] == record.score
         assert record.benchmark_id in candidate.verified_benchmarks
 

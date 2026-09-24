@@ -668,6 +668,37 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: arena_text_to_image
+    model_id_as_evaluated: flux-2-dev
+    score: 1145.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_to_image / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_to_image, category overall, leaderboard_publish_date
+      2026-09-22; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1145.48 [1141.28, 1149.68], 73957 votes, rank 36.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_image_edit
+    model_id_as_evaluated: flux-2-dev
+    score: 1225.77
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: image_edit / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset image_edit, category overall, leaderboard_publish_date
+      2026-09-22; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1225.77 [1221.70, 1229.83], 237538 votes, rank 38.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
 deployment:
   api_only: false
   local_inference: true

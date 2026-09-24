@@ -675,6 +675,20 @@ benchmarks:
     mteb_sts: 81.5
     mteb_pair_classification: 83.5
     mteb_summarization: 29.0
+  evidence:
+  - benchmark_id: mteb_v2_classification
+    model_id_as_evaluated: mongodb/voyage-multilingual-2
+    score: 74.45
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Classification task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''

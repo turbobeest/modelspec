@@ -676,6 +676,23 @@ benchmarks:
     helm_safety: 84.2
     bbq: 79.5
     toxigen: 87.8
+  evidence:
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: qwen2.5-vl-72b-instruct
+    score: 1121.49
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1121.49 [1110.70, 1132.28], 3768
+      votes, rank 116.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   benchmark_source: multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''

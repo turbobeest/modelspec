@@ -672,6 +672,23 @@ benchmarks:
     mathvista: 43.9
     chartqa: 81.8
     ai2d: 78.1
+  evidence:
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: phi-3.5-vision-instruct
+    score: 920.2
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 920.20 [904.37, 936.02], 2592 votes,
+      rank 151.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   benchmark_source: multimodal-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''

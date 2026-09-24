@@ -668,6 +668,20 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: mteb_multilingual_v2
+    model_id_as_evaluated: tencent/KaLM-Embedding-Gemma3-12B-2511
+    score: 72.32
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(Multilingual, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 73% zero-shot on the benchmark's tasks.
 deployment:
   api_only: false
   local_inference: true

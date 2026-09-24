@@ -1,117 +1,119 @@
 ---
 id: terminal_bench_v4_0
-name: "Terminal-Bench v4.0"
-aliases: []
+name: Terminal-Bench 4.0
+aliases:
+- Terminal-Bench v4.0
+- terminal-bench@4.0
 page_kind: benchmark
 category: agentic
-subcategory: "Terminal-Bench version label"
-status: unknown
-summary: "The supplied v4.0 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry."
-measures: >
-  The supplied v4.0 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry. The benchmark gives an agent an English task, a terminal environment and a
-  verification procedure; success depends on completing the task and passing its tests.
-task_format: "Agent interacts with a containerized terminal; task-specific tests determine success."
+subcategory: agentic tasks in a terminal
+status: active
+summary: 'The fourth version of Terminal-Bench: agents complete hard tasks in a containerised terminal;
+  the board reports resolution rate with a 95% interval.'
+measures: Terminal-Bench gives an agent an English task, a containerised terminal and a task-specific
+  test; success means completing the task so that its tests pass. Version 4.0 is the current set.
+task_format: Agent interacts with a containerized terminal; task-specific tests determine success.
 metric:
-  name: "not established"
+  name: resolution rate
   direction: higher_is_better
-  unit: "%"
+  unit: '%'
   max_score: 100
-  random_baseline: null
+  random_baseline: 0.0
   human_baseline: null
-  baseline_note: "The opened primary documentation does not publish a random or human baseline."
+  baseline_note: The board reports accuracy over all trials with a 95% confidence interval, plus pass@k.
 dataset:
   size: null
-  size_note: "A stable task count was not established from the opened primary source."
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
-  license: ""
-  languages: [en]
-  modalities: [text]
-  splits: "versioned task collection; no train/test split established"
+  size_note: The 4.0 task count was not established from a source read for this page; the board lists
+    the tasks.
+  url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
+  license: ''
+  languages:
+  - en
+  modalities:
+  - text
+  - code
+  splits: versioned task collection
   public_test_set: true
 publisher:
-  org: "Artificial Analysis lead"
-  authors: ["Artificial Analysis lead"]
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
+  org: Stanford, Harbor and the Laude Institute (Terminal-Bench)
+  authors: []
+  url: https://www.tbench.ai/
 paper:
-  title: "Terminal-Bench"
-  arxiv: ""
-  url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
+  title: ''
+  arxiv: ''
+  url: ''
   year: null
-leaderboard_url: ""
-repo_url: ""
-released: ""
-last_updated: ""
+leaderboard_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
+repo_url: ''
+released: ''
+last_updated: 2026-09
 lineage:
-  family: "terminal_bench"
-  predecessor: ""
+  family: terminal_bench
+  predecessor: terminal_bench_3_0
   successors: []
   variants: []
 saturation:
-  status: unknown
-  top_score: null
-  as_of: ""
-  note: "No current saturation result was established from the opened primary source."
+  status: open
+  top_score: 58.18
+  as_of: 2026-09
+  note: The board's top row read 2026-09-24 is GPT-6 Astra (max, Codex) at 58.18%.
 contamination:
   risk: medium
-  note: "Task instructions and, in several releases, tests or solutions are public or mirrored; no rotating private test policy was established."
+  note: Tasks are public; the board carries a canary GUID and asks that benchmark data never appear in
+    training corpora.
 harness:
-  lm_eval: ""
-  inspect_evals: ""
-  helm: ""
-  opencompass: ""
-  bigbench: ""
-  other: "Harbor/Terminal-Bench execution harness"
-tags: [terminal, agents, tool-use, container]
+  other: The Terminal-Bench harness; each board row names its agent (for example Codex or Claude Code).
+  lm_eval: ''
+  inspect_evals: ''
+  helm: ''
+  opencompass: ''
+  bigbench: ''
+tags:
+- agentic
+- terminal
+- coding
 sources:
-  - url: "https://artificialanalysis.ai/img/logos/tbench_small.svg"
-    title: "Terminal-Bench v4.0 primary dataset or paper source"
-    accessed: "2026-09-09"
+- url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
+  title: Terminal-Bench 4.0 leaderboard (tbench.ai)
+  accessed: '2026-09-24'
+- url: https://www.anthropic.com/claude-opus-5-5-system-card
+  title: Claude Opus 5.5 system card, section 8.5 (Anthropic)
+  accessed: '2026-09-24'
 freshness:
-  researched: "2026-09-09"
-  researched_by: "GPT-5.6 Luna, luna-stream-c-002 (Codex coordinated)"
-  reviewed: ""
-  reviewed_by: ""
+  researched: '2026-09-24'
+  researched_by: Claude Opus 5.5, MODEL-123
+  reviewed: ''
+  reviewed_by: ''
 ---
 
 ## What it measures
 
-The supplied v4.0 lead resolves only to an Artificial Analysis logo asset, not an authoritative benchmark release or task registry. An agent receives an instruction and works inside a terminal environment. The task may involve programming, debugging, system administration, data processing or scientific computation, depending on the release.
-
-Success requires both useful interaction and a completed artifact. The benchmark measures agent planning, tool use, environment handling and end-to-end task completion. It is not a static coding-question exam.
+Each task is a job done in a real shell: building software, fixing a system, processing data. The agent has a containerised terminal and must leave the environment in a state the task's tests accept. Version 4.0 is the set the tbench.ai board ranks today, described there as a benchmark meant to evolve with the frontier of agent work.
 
 ## How it is scored
 
-Terminal-Bench-style releases verify each task with task-specific tests or an oracle solution. A run normally reports the fraction of tasks whose tests pass. The source documentation does not establish a random or human baseline.
-
-Results depend on the agent adapter, model, container image, time limit, concurrency, network and exact dataset version. A score from Harbor on one release should not be compared with another without recording those settings. LILT reports pass rate across multilingual tasks, while versioned Harbor releases use executable task verification.
+Resolution rate: the share of task trials passed, over many trials per model, shown with a 95% confidence interval; the board also reports pass@2 to pass@5, cost and tokens. Each row names the agent harness and reasoning effort. ModelSpec's `terminal_bench_v4_0` key holds a row's resolution rate, taking a model's highest-effort row when there are several.
 
 ## Dataset and licence
 
-The opened lead does not identify a release manifest or task count. Tasks include instructions, environments and tests; some releases also mirror solutions or answer keys. A dataset licence was not established from the opened source. Task-level source licences may still differ.
-
-Version and mirror provenance matter. Hugging Face cards for Terminal-Bench 2.0 and 3.0 identify themselves as mirrors and point readers to source repositories or Harbor Hub.
+The tasks are public on the board. The task count and licence were not established from a source read for this page.
 
 ## Who publishes it
 
-Artificial Analysis lead is the credited publisher or author information in the opened source. The Harbor and Terminal-Bench projects maintain the execution framework and versioned task releases. No universal leaderboard was established for every assigned version.
+The board is hosted by Stanford, Harbor and the Laude Institute at tbench.ai, with per-row run dates. Providers also report their own Terminal-Bench 4.0 runs, which MODEL-123 admits as self-reports; an independent board row beats a self-report for the same model.
 
 ## Lineage
 
-Terminal-Bench is a versioned family of terminal-agent evaluations. Terminal-Bench 2.0, its verified derivative, Terminal-Bench 3.0 and Terminal-Bench-Science are distinct releases or task collections, not interchangeable scores. Terminal-Bench-LILT is a multilingual coding extension with a separate paper and task suite.
-
-The v2.1 and v4.0 leads supplied for this assignment resolve only to an Artificial Analysis logo asset. They do not establish benchmark identities, releases or aliases.
+It succeeds Terminal-Bench 1.0 (`terminal_bench`, superseded), 2.0/2.1 and 3.0 (`terminal_bench_3_0`). Versions have different task sets, so a score from one must never be written under another's key. It replaces 1.0 in the coding, agentic, devops, code_review and cybersecurity profiles (MODEL-123). An earlier version of this page pointed at an image asset; this revision cites the board itself.
 
 ## Saturation and contamination
 
-No current saturation ceiling was established. Public task instructions, tests, mirrors and, for some releases, solutions create contamination risk. A result should state whether answer keys were available to the evaluated agent and whether network access was enabled.
-
-The science mirror states that its preview release is private upstream because tests and solutions are included. That distinction matters when interpreting scores.
+Open: the top resolution rate is below 60%. Tasks are public, so the board asks that its data never appear in training corpora and publishes a canary GUID.
 
 ## How to run it
 
-Use Harbor or the Terminal-Bench CLI with the exact dataset name and version. Terminal-Bench 2.0 uses Harbor dataset terminal-bench@2.0; Terminal-Bench 3.0 documentation identifies version 3.0.0; Terminal-Bench-Science identifies v0.1.0. Run the matching release and record agent, model, container provider, time limit, concurrency and network policy.
+Use the Terminal-Bench harness from tbench.ai. The agent matters as much as the model, so compare rows with the same agent, or read the agent named on each evidence row.
 
 ## Reading the numbers
 
-A high pass rate means the agent completed and passed selected terminal tasks under a particular environment. It does not isolate model reasoning from tools, container images, tests, timeouts or agent scaffolding. Versioned releases can change task difficulty and infrastructure. Compare only runs with the same release and execution protocol.
-
+A higher rate means more real terminal jobs finished. Confidence intervals on the board are several points wide, so treat small gaps as ties.

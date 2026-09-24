@@ -668,7 +668,37 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: arena_text_to_image
+    model_id_as_evaluated: grok-imagine-image
+    score: 1170.6
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_to_image / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_to_image, category overall, leaderboard_publish_date
+      2026-09-22; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1170.60 [1167.87, 1173.33], 244727 votes, rank 23.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_image_edit
+    model_id_as_evaluated: grok-imagine-image
+    score: 1329.24
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: image_edit / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset image_edit, category overall, leaderboard_publish_date
+      2026-09-22; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1329.24 [1326.66, 1331.82], 663764 votes, rank 19.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

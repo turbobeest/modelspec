@@ -701,6 +701,35 @@ benchmarks:
     aider_polyglot: 83.1
     ai2d: 95.8
     ocrbench: 85.2
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: gemini-2.5-pro-preview-06-05
+    score: 84.85
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-06-05'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-06-05T16:07:50.021Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.55 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: hle
+    model_id_as_evaluated: gemini-2.5-pro-preview-06-05
+    score: 21.64
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-06-05'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-06-05T16:27:37.000Z;
+      effort default; ±1.61 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals
   benchmark_as_of: 2026-04
