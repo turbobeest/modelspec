@@ -1,0 +1,1196 @@
+{
+ "flat": [
+  {
+   "frontier_share": 0.00404807626813626,
+   "info_frontier": 1.7278698002960897,
+   "info_median": 426.83726438079276,
+   "item": "math_500",
+   "lambda": 2.697609650215749,
+   "n": 171,
+   "tau_pp": 1.799787221679169,
+   "top": 97.3
+  },
+  {
+   "frontier_share": 0.009541684687150942,
+   "info_frontier": 0.04322803443157938,
+   "info_median": 4.530440467163128,
+   "item": "gsm8k",
+   "lambda": 1.7833278310387097,
+   "n": 84,
+   "tau_pp": 7.767609580778193,
+   "top": 97.3
+  },
+  {
+   "frontier_share": 0.03900049799991277,
+   "info_frontier": 0.3947889669419442,
+   "info_median": 10.122664765532665,
+   "item": "ifeval",
+   "lambda": 1.441711119437469,
+   "n": 167,
+   "tau_pp": 7.2739872411187525,
+   "top": 92.0
+  },
+  {
+   "frontier_share": 0.05452727170966169,
+   "info_frontier": 1.9032777523009268,
+   "info_median": 34.905061130423015,
+   "item": "medqa",
+   "lambda": 1.4286032567765257,
+   "n": 23,
+   "tau_pp": 3.7250365816661786,
+   "top": 96.5
+  },
+  {
+   "frontier_share": 0.06958748464186819,
+   "info_frontier": 1.8622059669996585,
+   "info_median": 26.760644914577625,
+   "item": "mgsm",
+   "lambda": 1.3080726735869177,
+   "n": 22,
+   "tau_pp": 2.9206876210714223,
+   "top": 92.3
+  },
+  {
+   "frontier_share": 0.08517912363709702,
+   "info_frontier": 24.043533851064602,
+   "info_median": 282.27026558175595,
+   "item": "mmlu_pro",
+   "lambda": 1.5181942189035738,
+   "n": 171,
+   "tau_pp": 1.7545725652574544,
+   "top": 87.5
+  },
+  {
+   "frontier_share": 0.08710108929176623,
+   "info_frontier": 1.6947769218236224,
+   "info_median": 19.457585841969852,
+   "item": "humaneval",
+   "lambda": 1.184409346047286,
+   "n": 42,
+   "tau_pp": 2.87095657282853,
+   "top": 93.5
+  },
+  {
+   "frontier_share": 0.09464975378063206,
+   "info_frontier": 0.27219092512608073,
+   "info_median": 2.875770028487686,
+   "item": "mmlu_high_school_government_and_politics",
+   "lambda": 0.9788238306163732,
+   "n": 36,
+   "tau_pp": 2.8930451332481812,
+   "top": 97.9
+  },
+  {
+   "frontier_share": 0.1197873446611318,
+   "info_frontier": 0.8320940852783676,
+   "info_median": 6.946427334475866,
+   "item": "toxigen",
+   "lambda": 0.9304383909880855,
+   "n": 22,
+   "tau_pp": 2.472439896877917,
+   "top": 97.5
+  },
+  {
+   "frontier_share": 0.1387873042979291,
+   "info_frontier": 0.66787694733285,
+   "info_median": 4.8122337321225395,
+   "item": "mmlu_high_school_psychology",
+   "lambda": 0.8477354752549136,
+   "n": 36,
+   "tau_pp": 3.0252238650393037,
+   "top": 92.1
+  },
+  {
+   "frontier_share": 0.1426884445210994,
+   "info_frontier": 0.5261515454431099,
+   "info_median": 3.6874152438132977,
+   "item": "hellaswag",
+   "lambda": 0.8116625478001692,
+   "n": 36,
+   "tau_pp": 3.666551791521559,
+   "top": 87.3
+  },
+  {
+   "frontier_share": 0.14768033752915408,
+   "info_frontier": 0.78300202599901,
+   "info_median": 5.30200593457091,
+   "item": "mmlu_high_school_us_history",
+   "lambda": 0.9066174023460394,
+   "n": 36,
+   "tau_pp": 2.961443382010347,
+   "top": 91.2
+  },
+  {
+   "frontier_share": 0.15948038720236044,
+   "info_frontier": 1.1121340746681692,
+   "info_median": 6.973484916719018,
+   "item": "mmlu_high_school_microeconomics",
+   "lambda": 0.9306855062733832,
+   "n": 36,
+   "tau_pp": 3.5939270287841025,
+   "top": 88.7
+  },
+  {
+   "frontier_share": 0.1612030338250527,
+   "info_frontier": 0.29570058513985276,
+   "info_median": 1.834336352880089,
+   "item": "mmlu_marketing",
+   "lambda": 0.7669569140457834,
+   "n": 36,
+   "tau_pp": 3.1727676985252202,
+   "top": 95.3
+  },
+  {
+   "frontier_share": 0.1612122034900219,
+   "info_frontier": 1.0646180213506902,
+   "info_median": 6.603830220685395,
+   "item": "mmlu_miscellaneous",
+   "lambda": 0.8141013672298891,
+   "n": 36,
+   "tau_pp": 2.8841947640052354,
+   "top": 91.1
+  },
+  {
+   "frontier_share": 0.16159798301524472,
+   "info_frontier": 0.7019961931140178,
+   "info_median": 4.344090068548649,
+   "item": "mmlu_high_school_geography",
+   "lambda": 0.8615491251015869,
+   "n": 36,
+   "tau_pp": 3.15695825976677,
+   "top": 93.4
+  },
+  {
+   "frontier_share": 0.1616684901788603,
+   "info_frontier": 1.1085953272633915,
+   "info_median": 6.857213338461367,
+   "item": "mmlu_high_school_biology",
+   "lambda": 0.8819915766717169,
+   "n": 36,
+   "tau_pp": 3.130458985483562,
+   "top": 89.7
+  },
+  {
+   "frontier_share": 0.16250139120467277,
+   "info_frontier": 0.6163440683069564,
+   "info_median": 3.7928541025883433,
+   "item": "mmlu_high_school_world_history",
+   "lambda": 0.8391589965069591,
+   "n": 36,
+   "tau_pp": 3.6045818931388904,
+   "top": 90.7
+  },
+  {
+   "frontier_share": 0.17176917563148048,
+   "info_frontier": 0.7079104142801067,
+   "info_median": 4.121289001228498,
+   "item": "mmlu_world_religions",
+   "lambda": 0.8577543446304093,
+   "n": 36,
+   "tau_pp": 3.4625810378743007,
+   "top": 90.6
+  },
+  {
+   "frontier_share": 0.17785500316058908,
+   "info_frontier": 1.3129076022649642,
+   "info_median": 7.381898619289961,
+   "item": "helm_safety",
+   "lambda": 0.802859286261353,
+   "n": 22,
+   "tau_pp": 2.472439896877917,
+   "top": 95.2
+  },
+  {
+   "frontier_share": 0.1822402928674483,
+   "info_frontier": 1.345288494321984,
+   "info_median": 7.381948707141696,
+   "item": "mmlu_college_biology",
+   "lambda": 0.9496029784207183,
+   "n": 36,
+   "tau_pp": 2.9653734920082138,
+   "top": 90.3
+  },
+  {
+   "frontier_share": 0.19019210922748722,
+   "info_frontier": 0.6634780006069815,
+   "info_median": 3.4884622884822254,
+   "item": "mmlu_sociology",
+   "lambda": 0.7894321010198274,
+   "n": 36,
+   "tau_pp": 3.316407548095569,
+   "top": 89.1
+  },
+  {
+   "frontier_share": 0.1935410399689049,
+   "info_frontier": 1.2822158320383676,
+   "info_median": 6.625033286192808,
+   "item": "winogrande",
+   "lambda": 0.8570370989750591,
+   "n": 46,
+   "tau_pp": 3.149862545689756,
+   "top": 84.1
+  },
+  {
+   "frontier_share": 0.2052620562648032,
+   "info_frontier": 2.609155803195379,
+   "info_median": 12.711340082403614,
+   "item": "bbq",
+   "lambda": 0.7124877559054587,
+   "n": 17,
+   "tau_pp": 2.666784225421605,
+   "top": 86.5
+  },
+  {
+   "frontier_share": 0.2106567082246233,
+   "info_frontier": 1.1163694119963523,
+   "info_median": 5.299472404201661,
+   "item": "multipl_e_python",
+   "lambda": 0.6902561483115214,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 92.5
+  },
+  {
+   "frontier_share": 0.22758246086543846,
+   "info_frontier": 0.4430846235777548,
+   "info_median": 1.9469190283504985,
+   "item": "mmlu_us_foreign_policy",
+   "lambda": 0.7368506122463949,
+   "n": 36,
+   "tau_pp": 2.9550926911637037,
+   "top": 93.0
+  },
+  {
+   "frontier_share": 0.2289375210086941,
+   "info_frontier": 2.0147306173978303,
+   "info_median": 8.800351329572225,
+   "item": "mmlu_prehistory",
+   "lambda": 0.829086060865387,
+   "n": 36,
+   "tau_pp": 3.162172548560659,
+   "top": 88.9
+  },
+  {
+   "frontier_share": 0.24187380998227964,
+   "info_frontier": 4.003440849382882,
+   "info_median": 16.55177486837531,
+   "item": "arc_challenge",
+   "lambda": 0.8541187623811541,
+   "n": 36,
+   "tau_pp": 3.310943664908514,
+   "top": 71.1
+  },
+  {
+   "frontier_share": 0.24787746218963194,
+   "info_frontier": 0.6983811032078286,
+   "info_median": 2.8174449465419777,
+   "item": "docvqa",
+   "lambda": 0.5806750731441008,
+   "n": 26,
+   "tau_pp": 3.1312051117230566,
+   "top": 96.5
+  },
+  {
+   "frontier_share": 0.24898120847830166,
+   "info_frontier": 3.575723915054425,
+   "info_median": 14.361420835364145,
+   "item": "mmlu_professional_psychology",
+   "lambda": 0.8333570179192178,
+   "n": 36,
+   "tau_pp": 2.9060510549989664,
+   "top": 82.7
+  },
+  {
+   "frontier_share": 0.2545497097781955,
+   "info_frontier": 1.554661788896405,
+   "info_median": 6.107497785996595,
+   "item": "multipl_e_java",
+   "lambda": 0.654610574800093,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 88.5
+  },
+  {
+   "frontier_share": 0.25559546679501766,
+   "info_frontier": 0.6505386423086833,
+   "info_median": 2.545188498317155,
+   "item": "mmlu_management",
+   "lambda": 0.7344890736935722,
+   "n": 36,
+   "tau_pp": 3.4328791328859576,
+   "top": 92.2
+  },
+  {
+   "frontier_share": 0.2567144321656226,
+   "info_frontier": 1.306646216196719,
+   "info_median": 5.0898821900037134,
+   "item": "mmlu_high_school_european_history",
+   "lambda": 0.7722900782843889,
+   "n": 36,
+   "tau_pp": 2.9834317132871315,
+   "top": 88.5
+  },
+  {
+   "frontier_share": 0.25750485657657485,
+   "info_frontier": 1.7980721122208212,
+   "info_median": 6.982672622666144,
+   "item": "multipl_e_javascript",
+   "lambda": 0.6679003466484698,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 88.2
+  },
+  {
+   "frontier_share": 0.2630633560162279,
+   "info_frontier": 1.721943476177413,
+   "info_median": 6.545736746668698,
+   "item": "live_code_bench",
+   "lambda": 1.2695432150364796,
+   "n": 37,
+   "tau_pp": 11.916409790130631,
+   "top": 91.7
+  },
+  {
+   "frontier_share": 0.2669907643581526,
+   "info_frontier": 1.5746322680340756,
+   "info_median": 5.897703135235786,
+   "item": "mmlu_professional_medicine",
+   "lambda": 0.8146363909722528,
+   "n": 36,
+   "tau_pp": 4.575739536597605,
+   "top": 84.9
+  },
+  {
+   "frontier_share": 0.2682235135812821,
+   "info_frontier": 1.4824973617975168,
+   "info_median": 5.527096942409796,
+   "item": "mmlu_logical_fallacies",
+   "lambda": 0.7778297657136373,
+   "n": 36,
+   "tau_pp": 3.0206778836161052,
+   "top": 88.3
+  },
+  {
+   "frontier_share": 0.2711241963437298,
+   "info_frontier": 1.924409002703413,
+   "info_median": 7.097887347035813,
+   "item": "multipl_e_typescript",
+   "lambda": 0.6567443483027354,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 87.1
+  },
+  {
+   "frontier_share": 0.276396098940124,
+   "info_frontier": 1.2850739098362327,
+   "info_median": 4.649392356708405,
+   "item": "mmlu_medical_genetics",
+   "lambda": 0.8135887875721106,
+   "n": 36,
+   "tau_pp": 3.0236618166959532,
+   "top": 88.0
+  },
+  {
+   "frontier_share": 0.28638519804245793,
+   "info_frontier": 1.2669104614429254,
+   "info_median": 4.423798681296022,
+   "item": "mmlu_human_sexuality",
+   "lambda": 0.7553531966305405,
+   "n": 36,
+   "tau_pp": 3.1720380845804494,
+   "top": 89.3
+  },
+  {
+   "frontier_share": 0.28697617814382026,
+   "info_frontier": 3.4965027755332314,
+   "info_median": 12.183947804130742,
+   "item": "mmlu_high_school_macroeconomics",
+   "lambda": 0.8158329918360562,
+   "n": 36,
+   "tau_pp": 2.992206207616879,
+   "top": 83.6
+  },
+  {
+   "frontier_share": 0.2870067489586055,
+   "info_frontier": 2.1919443395944147,
+   "info_median": 7.637257129136553,
+   "item": "multipl_e",
+   "lambda": 0.6522396232672257,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 85.7
+  },
+  {
+   "frontier_share": 0.294783322080049,
+   "info_frontier": 4.767959202261057,
+   "info_median": 16.17445372627393,
+   "item": "multipl_e_csharp",
+   "lambda": 0.7378412836310031,
+   "n": 26,
+   "tau_pp": 2.344252991769082,
+   "top": 87.8
+  },
+  {
+   "frontier_share": 0.29510197116869585,
+   "info_frontier": 2.3019953019130672,
+   "info_median": 7.800677483774329,
+   "item": "multipl_e_cpp",
+   "lambda": 0.6483252447331365,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 85.1
+  },
+  {
+   "frontier_share": 0.29527334750838713,
+   "info_frontier": 0.6006890145435629,
+   "info_median": 2.0343489163934803,
+   "item": "ai2d",
+   "lambda": 0.524604567425511,
+   "n": 21,
+   "tau_pp": 3.80122458707258,
+   "top": 95.2
+  },
+  {
+   "frontier_share": 0.30003433691944337,
+   "info_frontier": 0.8366388868711504,
+   "info_median": 2.788477130521833,
+   "item": "mmlu_international_law",
+   "lambda": 0.6788301914016476,
+   "n": 36,
+   "tau_pp": 3.097719328638318,
+   "top": 91.7
+  },
+  {
+   "frontier_share": 0.30174167438729665,
+   "info_frontier": 1.7655259678463315,
+   "info_median": 5.851117421653243,
+   "item": "mmlu_astronomy",
+   "lambda": 0.8000725755603689,
+   "n": 39,
+   "tau_pp": 3.7490781902005157,
+   "top": 89.5
+  },
+  {
+   "frontier_share": 0.303245989730467,
+   "info_frontier": 3.5212499931332815,
+   "info_median": 11.611860048876691,
+   "item": "mmlu_conceptual_physics",
+   "lambda": 0.8853634404698794,
+   "n": 36,
+   "tau_pp": 3.2922360508284476,
+   "top": 84.7
+  },
+  {
+   "frontier_share": 0.3159833963272374,
+   "info_frontier": 2.2240487165947935,
+   "info_median": 7.038498675707421,
+   "item": "mmlu_nutrition",
+   "lambda": 0.6997648459844126,
+   "n": 36,
+   "tau_pp": 2.8812084304406453,
+   "top": 84.6
+  },
+  {
+   "frontier_share": 0.3188940791754977,
+   "info_frontier": 1.8959005007548202,
+   "info_median": 5.945235815154301,
+   "item": "mmlu_human_aging",
+   "lambda": 0.7429623713692997,
+   "n": 36,
+   "tau_pp": 3.7093780554600926,
+   "top": 82.5
+  },
+  {
+   "frontier_share": 0.34092948770454284,
+   "info_frontier": 2.6412373452942584,
+   "info_median": 7.7471660286047594,
+   "item": "mmlu_moral_disputes",
+   "lambda": 0.6876261081382178,
+   "n": 36,
+   "tau_pp": 2.892040583675714,
+   "top": 83.5
+  },
+  {
+   "frontier_share": 0.3435948219296507,
+   "info_frontier": 2.841110572353938,
+   "info_median": 8.268781690009407,
+   "item": "multipl_e_go",
+   "lambda": 0.6205618541073287,
+   "n": 8,
+   "tau_pp": 3.1740614703445345,
+   "top": 82.1
+  },
+  {
+   "frontier_share": 0.3457510466834387,
+   "info_frontier": 1.8333395374588422,
+   "info_median": 5.302484417747558,
+   "item": "mmlu_security_studies",
+   "lambda": 0.6645541932341389,
+   "n": 36,
+   "tau_pp": 3.159428250318076,
+   "top": 84.1
+  },
+  {
+   "frontier_share": 0.35021840721744935,
+   "info_frontier": 5.482678481403948,
+   "info_median": 15.655026601727911,
+   "item": "multipl_e_php",
+   "lambda": 0.6926781244555634,
+   "n": 26,
+   "tau_pp": 2.344252991769082,
+   "top": 85.1
+  },
+  {
+   "frontier_share": 0.35677121913119225,
+   "info_frontier": 2.5695229983804246,
+   "info_median": 7.2021588642652175,
+   "item": "mmlu_philosophy",
+   "lambda": 0.6766185860871946,
+   "n": 36,
+   "tau_pp": 2.9312768657020354,
+   "top": 82.0
+  },
+  {
+   "frontier_share": 0.36716152549099546,
+   "info_frontier": 2.6726359420723584,
+   "info_median": 7.279183020329574,
+   "item": "mmlu_clinical_knowledge",
+   "lambda": 0.6910663999654139,
+   "n": 39,
+   "tau_pp": 2.9480185211291676,
+   "top": 86.2
+  },
+  {
+   "frontier_share": 0.3697890369016936,
+   "info_frontier": 1.2103211319572562,
+   "info_median": 3.273004365132148,
+   "item": "mmlu_high_school_computer_science",
+   "lambda": 0.6956647070278117,
+   "n": 36,
+   "tau_pp": 3.9372538659222043,
+   "top": 87.0
+  },
+  {
+   "frontier_share": 0.3707137148772239,
+   "info_frontier": 8.464691554862151,
+   "info_median": 22.833499854909764,
+   "item": "multipl_e_kotlin",
+   "lambda": 0.7679480988757662,
+   "n": 26,
+   "tau_pp": 2.344252991769082,
+   "top": 82.1
+  },
+  {
+   "frontier_share": 0.3749232909863768,
+   "info_frontier": 4.405392095327741,
+   "info_median": 11.750115826994103,
+   "item": "multipl_e_rust",
+   "lambda": 0.6701358155204358,
+   "n": 8,
+   "tau_pp": 3.2533454621610143,
+   "top": 76.2
+  },
+  {
+   "frontier_share": 0.3795542428749141,
+   "info_frontier": 12.993260853343916,
+   "info_median": 34.2329485106717,
+   "item": "swe_bench_verified",
+   "lambda": 1.2034239854521116,
+   "n": 28,
+   "tau_pp": 4.489078270280419,
+   "top": 96.0
+  },
+  {
+   "frontier_share": 0.3834995694381587,
+   "info_frontier": 0.9501097857121787,
+   "info_median": 2.4774728876596273,
+   "item": "mmlu_jurisprudence",
+   "lambda": 0.636852133640397,
+   "n": 39,
+   "tau_pp": 4.325171983236464,
+   "top": 89.8
+  },
+  {
+   "frontier_share": 0.40288945678680876,
+   "info_frontier": 9.563459232710926,
+   "info_median": 23.737179197944325,
+   "item": "mmlu_moral_scenarios",
+   "lambda": 1.1795035988831353,
+   "n": 36,
+   "tau_pp": 4.1624419000235955,
+   "top": 71.1
+  },
+  {
+   "frontier_share": 0.4129498347236585,
+   "info_frontier": 2.2449822365198977,
+   "info_median": 5.436452682012127,
+   "item": "mteb_pair_classification",
+   "lambda": 0.6754511764242218,
+   "n": 68,
+   "tau_pp": 1.6331011500376211,
+   "top": 87.0
+  },
+  {
+   "frontier_share": 0.4197145712876306,
+   "info_frontier": 0.9278406125204914,
+   "info_median": 2.210646653686564,
+   "item": "chartqa",
+   "lambda": 0.46821747275970205,
+   "n": 24,
+   "tau_pp": 4.12709453828499,
+   "top": 90.0
+  },
+  {
+   "frontier_share": 0.42600311067834024,
+   "info_frontier": 1.009258255338547,
+   "info_median": 2.369133534568488,
+   "item": "mmlu_computer_security",
+   "lambda": 0.5902694688895239,
+   "n": 36,
+   "tau_pp": 3.4573300646599385,
+   "top": 86.0
+  },
+  {
+   "frontier_share": 0.4450122668955364,
+   "info_frontier": 19.91367150772239,
+   "info_median": 44.748590070657514,
+   "item": "miracl",
+   "lambda": 1.4144941597979626,
+   "n": 68,
+   "tau_pp": 1.6387311260108668,
+   "top": 67.8
+  },
+  {
+   "frontier_share": 0.4470109681353664,
+   "info_frontier": 11.106749998334687,
+   "info_median": 24.846705763540186,
+   "item": "multipl_e_ruby",
+   "lambda": 0.7701666446048239,
+   "n": 24,
+   "tau_pp": 2.405788917096524,
+   "top": 77.5
+  },
+  {
+   "frontier_share": 0.44893738393390087,
+   "info_frontier": 2.6394267724885423,
+   "info_median": 5.879275967975875,
+   "item": "mteb_sts",
+   "lambda": 0.6586202892898997,
+   "n": 68,
+   "tau_pp": 1.6331011500376211,
+   "top": 85.5
+  },
+  {
+   "frontier_share": 0.45813494822929113,
+   "info_frontier": 34.84508687284263,
+   "info_median": 76.05856529286885,
+   "item": "gpqa_diamond",
+   "lambda": 2.022113214621569,
+   "n": 183,
+   "tau_pp": 1.343380611007688,
+   "top": 96.0
+  },
+  {
+   "frontier_share": 0.46726311516741126,
+   "info_frontier": 7.3511881821579745,
+   "info_median": 15.732438413257137,
+   "item": "mmlu_elementary_mathematics",
+   "lambda": 0.9647840696085017,
+   "n": 36,
+   "tau_pp": 3.8204540197940258,
+   "top": 74.3
+  },
+  {
+   "frontier_share": 0.4807851614517254,
+   "info_frontier": 1.7418239371946547,
+   "info_median": 3.622873742474158,
+   "item": "aider_polyglot",
+   "lambda": 1.0139032042190814,
+   "n": 18,
+   "tau_pp": 12.630592103211576,
+   "top": 72.5
+  },
+  {
+   "frontier_share": 0.501163458757312,
+   "info_frontier": 10.514330341629973,
+   "info_median": 20.979842320709835,
+   "item": "multipl_e_swift",
+   "lambda": 0.7030026126327472,
+   "n": 25,
+   "tau_pp": 2.3744231229533264,
+   "top": 75.8
+  },
+  {
+   "frontier_share": 0.5132460144828834,
+   "info_frontier": 3.4319970579266257,
+   "info_median": 6.686845997985011,
+   "item": "mmlu_college_medicine",
+   "lambda": 0.6763495870867058,
+   "n": 36,
+   "tau_pp": 3.0215610149152274,
+   "top": 75.1
+  },
+  {
+   "frontier_share": 0.5297804465352124,
+   "info_frontier": 1.9664421539073462,
+   "info_median": 3.7118058372444005,
+   "item": "mmlu_business_ethics",
+   "lambda": 0.6234687689044749,
+   "n": 39,
+   "tau_pp": 3.144240287770719,
+   "top": 82.0
+  },
+  {
+   "frontier_share": 0.5318370056327588,
+   "info_frontier": 4.847720102839225,
+   "info_median": 9.11504850451615,
+   "item": "mmlu_high_school_statistics",
+   "lambda": 0.7735586369128881,
+   "n": 36,
+   "tau_pp": 3.4894383038813266,
+   "top": 72.7
+  },
+  {
+   "frontier_share": 0.5415974747336412,
+   "info_frontier": 10.633262446352171,
+   "info_median": 19.63314628005168,
+   "item": "mteb_retrieval",
+   "lambda": 0.9358324592122145,
+   "n": 79,
+   "tau_pp": 1.5330395284981055,
+   "top": 67.2
+  },
+  {
+   "frontier_share": 0.5555345545197066,
+   "info_frontier": 8.926745328521148,
+   "info_median": 16.06874902001166,
+   "item": "mmmu",
+   "lambda": 0.5480350481947155,
+   "n": 27,
+   "tau_pp": 3.1283921750333255,
+   "top": 73.4
+  },
+  {
+   "frontier_share": 0.5808710011204625,
+   "info_frontier": 15.873525180180662,
+   "info_median": 27.327109030338338,
+   "item": "mteb_overall",
+   "lambda": 0.7046375819921713,
+   "n": 79,
+   "tau_pp": 1.5330395284981055,
+   "top": 69.5
+  },
+  {
+   "frontier_share": 0.5868012408388763,
+   "info_frontier": 5.0294003646806456,
+   "info_median": 8.570875476491395,
+   "item": "mteb_classification",
+   "lambda": 0.6545313657162259,
+   "n": 79,
+   "tau_pp": 1.5330395284981055,
+   "top": 73.5
+  },
+  {
+   "frontier_share": 0.5869460296195428,
+   "info_frontier": 12.701843450745452,
+   "info_median": 21.640564566010884,
+   "item": "multipl_e_scala",
+   "lambda": 0.6958974833539239,
+   "n": 26,
+   "tau_pp": 2.344252991769082,
+   "top": 71.8
+  },
+  {
+   "frontier_share": 0.5924486684239275,
+   "info_frontier": 2.9152994711220366,
+   "info_median": 4.92076297323364,
+   "item": "mmlu_anatomy",
+   "lambda": 0.6406157347692347,
+   "n": 36,
+   "tau_pp": 3.368663347465264,
+   "top": 75.6
+  },
+  {
+   "frontier_share": 0.5974641693427035,
+   "info_frontier": 2.504230407853292,
+   "info_median": 4.191431949146517,
+   "item": "mmlu_electrical_engineering",
+   "lambda": 0.5818893358513778,
+   "n": 36,
+   "tau_pp": 3.300949150683774,
+   "top": 80.7
+  },
+  {
+   "frontier_share": 0.6078235626583467,
+   "info_frontier": 11.279071839108514,
+   "info_median": 18.55648996195365,
+   "item": "multipl_e_julia",
+   "lambda": 0.6589152141092908,
+   "n": 22,
+   "tau_pp": 2.472439896877917,
+   "top": 69.8
+  },
+  {
+   "frontier_share": 0.6479595252400463,
+   "info_frontier": 13.230544742288258,
+   "info_median": 20.418782696938987,
+   "item": "multipl_e_r",
+   "lambda": 0.6913399348923962,
+   "n": 21,
+   "tau_pp": 2.50791210752277,
+   "top": 67.5
+  },
+  {
+   "frontier_share": 0.6499902571247717,
+   "info_frontier": 1.7061095630142356,
+   "info_median": 2.624823286676945,
+   "item": "mmlu_public_relations",
+   "lambda": 0.4968696562241585,
+   "n": 36,
+   "tau_pp": 3.083429066766846,
+   "top": 76.4
+  },
+  {
+   "frontier_share": 0.6531159596721969,
+   "info_frontier": 7.457824381898556,
+   "info_median": 11.418836535003194,
+   "item": "mmlu_professional_law",
+   "lambda": 0.7814835020894189,
+   "n": 39,
+   "tau_pp": 4.12503789416797,
+   "top": 77.5
+  },
+  {
+   "frontier_share": 0.6678251204009275,
+   "info_frontier": 6.009351186262059,
+   "info_median": 8.99839045086288,
+   "item": "bbh",
+   "lambda": 0.4823677942025448,
+   "n": 139,
+   "tau_pp": 3.844953633369361,
+   "top": 66.3
+  },
+  {
+   "frontier_share": 0.7089540880686714,
+   "info_frontier": 5.7237040356289075,
+   "info_median": 8.073448100456531,
+   "item": "mathvista",
+   "lambda": 0.6302105192607186,
+   "n": 25,
+   "tau_pp": 4.458276787935662,
+   "top": 73.7
+  },
+  {
+   "frontier_share": 0.7269512271955579,
+   "info_frontier": 5.080218986225922,
+   "info_median": 6.988390412138731,
+   "item": "mmlu_high_school_chemistry",
+   "lambda": 0.6488044636066139,
+   "n": 36,
+   "tau_pp": 3.1243340305302785,
+   "top": 70.9
+  },
+  {
+   "frontier_share": 0.738352237796737,
+   "info_frontier": 6.761645471637205,
+   "info_median": 9.157750360199541,
+   "item": "mteb_reranking",
+   "lambda": 0.63981466183477,
+   "n": 68,
+   "tau_pp": 1.6331011500376211,
+   "top": 65.1
+  },
+  {
+   "frontier_share": 0.7472020170139425,
+   "info_frontier": 11.840792730686251,
+   "info_median": 15.84684256876853,
+   "item": "multipl_e_lua",
+   "lambda": 0.5951921223460649,
+   "n": 25,
+   "tau_pp": 2.3744231229533264,
+   "top": 65.2
+  },
+  {
+   "frontier_share": 0.7681412141079362,
+   "info_frontier": 8.159275341252712,
+   "info_median": 10.622103320843559,
+   "item": "mmlu_professional_accounting",
+   "lambda": 0.696370396474036,
+   "n": 39,
+   "tau_pp": 2.76016867705598,
+   "top": 71.8
+  },
+  {
+   "frontier_share": 0.7912054169823726,
+   "info_frontier": 4.8153142082894345,
+   "info_median": 6.086048079214194,
+   "item": "mmlu_econometrics",
+   "lambda": 0.7612509354886736,
+   "n": 36,
+   "tau_pp": 3.4981620095278063,
+   "top": 64.9
+  },
+  {
+   "frontier_share": 0.7940418062931605,
+   "info_frontier": 7.601420934942991,
+   "info_median": 9.573073954920384,
+   "item": "beir",
+   "lambda": 0.6568977856428855,
+   "n": 55,
+   "tau_pp": 1.7811275351979055,
+   "top": 58.5
+  },
+  {
+   "frontier_share": 0.79552189650169,
+   "info_frontier": 5.468439589871192,
+   "info_median": 6.874027746965448,
+   "item": "mmlu_formal_logic",
+   "lambda": 0.7946716599310562,
+   "n": 36,
+   "tau_pp": 3.555777167351104,
+   "top": 67.5
+  },
+  {
+   "frontier_share": 0.8013183114690917,
+   "info_frontier": 15.312089383109187,
+   "info_median": 19.108622833087225,
+   "item": "multipl_e_perl",
+   "lambda": 0.670432840916801,
+   "n": 22,
+   "tau_pp": 2.472439896877917,
+   "top": 62.1
+  },
+  {
+   "frontier_share": 0.8014435953737676,
+   "info_frontier": 3.0166554287136718,
+   "info_median": 3.764027120719332,
+   "item": "mmlu_college_computer_science",
+   "lambda": 0.6203561273223346,
+   "n": 36,
+   "tau_pp": 3.558312826382367,
+   "top": 72.0
+  },
+  {
+   "frontier_share": 0.8024962846117857,
+   "info_frontier": 3.9828433111599035,
+   "info_median": 4.963067602346143,
+   "item": "terminal_bench_2",
+   "lambda": 0.717287702548987,
+   "n": 10,
+   "tau_pp": 6.10533423821621,
+   "top": 82.0
+  },
+  {
+   "frontier_share": 0.8298748219959784,
+   "info_frontier": 1.5740028169270734,
+   "info_median": 1.8966749866459993,
+   "item": "truthfulqa",
+   "lambda": 0.2818276121518252,
+   "n": 36,
+   "tau_pp": 4.700743323585932,
+   "top": 68.3
+  },
+  {
+   "frontier_share": 0.8613503777105483,
+   "info_frontier": 9.619480653517133,
+   "info_median": 11.167906699112985,
+   "item": "mteb_clustering",
+   "lambda": 0.7032676764370612,
+   "n": 79,
+   "tau_pp": 1.5330395284981055,
+   "top": 53.8
+  },
+  {
+   "frontier_share": 0.9886672804952048,
+   "info_frontier": 3.198080899506141,
+   "info_median": 3.234739292580091,
+   "item": "mmlu_machine_learning",
+   "lambda": 0.5667157858802582,
+   "n": 36,
+   "tau_pp": 3.498486678365383,
+   "top": 61.6
+  },
+  {
+   "frontier_share": 1.0221960965783892,
+   "info_frontier": 0.0038643058606265142,
+   "info_median": 0.0037803958296862587,
+   "item": "musr",
+   "lambda": 0.023699114238774473,
+   "n": 139,
+   "tau_pp": 8.426076996718503,
+   "top": 48.3
+  },
+  {
+   "frontier_share": 1.0650969249652997,
+   "info_frontier": 2.7594849912844457,
+   "info_median": 2.590829929749678,
+   "item": "mmlu_virology",
+   "lambda": 0.429078761603728,
+   "n": 36,
+   "tau_pp": 3.0375420319680746,
+   "top": 58.4
+  },
+  {
+   "frontier_share": 1.1534852150114079,
+   "info_frontier": 6.007472969392158,
+   "info_median": 5.208105740074652,
+   "item": "mmlu_college_physics",
+   "lambda": 0.8257230355768985,
+   "n": 36,
+   "tau_pp": 3.7688158568468624,
+   "top": 59.8
+  },
+  {
+   "frontier_share": 1.1776027231882256,
+   "info_frontier": 3.4850575728872584,
+   "info_median": 2.959451013710176,
+   "item": "mmlu_college_chemistry",
+   "lambda": 0.5740002619217932,
+   "n": 36,
+   "tau_pp": 3.1458514540306868,
+   "top": 59.0
+  },
+  {
+   "frontier_share": 1.2136113469000573,
+   "info_frontier": 3.5703167949465646,
+   "info_median": 2.9418947046484605,
+   "item": "mteb_summarization",
+   "lambda": 0.40449217798567205,
+   "n": 68,
+   "tau_pp": 1.6331011500376211,
+   "top": 31.5
+  },
+  {
+   "frontier_share": 1.33518396566228,
+   "info_frontier": 7.684449736073896,
+   "info_median": 5.755349025826747,
+   "item": "mmlu_high_school_physics",
+   "lambda": 0.7244300762981254,
+   "n": 36,
+   "tau_pp": 2.907111060914139,
+   "top": 55.6
+  },
+  {
+   "frontier_share": 1.4800083279308551,
+   "info_frontier": 5.059849636076904,
+   "info_median": 3.418798084164089,
+   "item": "mmlu_global_facts",
+   "lambda": 0.7007603818654587,
+   "n": 36,
+   "tau_pp": 3.329885239000267,
+   "top": 57.0
+  },
+  {
+   "frontier_share": 1.5128499750387112,
+   "info_frontier": 4.824460838982993,
+   "info_median": 3.188988279462108,
+   "item": "mmlu_college_mathematics",
+   "lambda": 0.7140111007315023,
+   "n": 36,
+   "tau_pp": 3.7518789987122583,
+   "top": 59.0
+  },
+  {
+   "frontier_share": 1.6856425645780015,
+   "info_frontier": 6.613984982729295,
+   "info_median": 3.923717353675806,
+   "item": "mmlu_abstract_algebra",
+   "lambda": 0.7884356061270663,
+   "n": 36,
+   "tau_pp": 3.1657084686108354,
+   "top": 56.0
+  },
+  {
+   "frontier_share": 1.699011605376729,
+   "info_frontier": 8.077282294478406,
+   "info_median": 4.754106604638169,
+   "item": "mmlu_high_school_mathematics",
+   "lambda": 0.6812946884298543,
+   "n": 36,
+   "tau_pp": 3.3813377319746167,
+   "top": 51.9
+  },
+  {
+   "frontier_share": 3.3325558043217676,
+   "info_frontier": 31.041061223000995,
+   "info_median": 9.314491053006803,
+   "item": "hle",
+   "lambda": 0.9390944369462177,
+   "n": 8,
+   "tau_pp": 3.988227558652218,
+   "top": 64.4
+  },
+  {
+   "frontier_share": 6.153286374585657,
+   "info_frontier": 0.009889053387406522,
+   "info_median": 0.001607117365486247,
+   "item": "alpaca_eval",
+   "lambda": 0.6689409887470168,
+   "n": 16,
+   "tau_pp": 10.916159735234372,
+   "top": 55.0
+  }
+ ],
+ "sourced": [
+  {
+   "frontier_share": 0.20127460540597797,
+   "info_frontier": 5.618696416408509,
+   "info_median": 27.915575365682127,
+   "item": "mmlu_pro",
+   "lambda": 1.1255878057547646,
+   "n": 13,
+   "tau_pp": 3.9621559228420518,
+   "top": 87.5
+  },
+  {
+   "frontier_share": 0.3015056018127455,
+   "info_frontier": 6.2407151521218465,
+   "info_median": 20.698504819150042,
+   "item": "gpqa_diamond",
+   "lambda": 1.1725675662932193,
+   "n": 15,
+   "tau_pp": 3.0640188346337243,
+   "top": 96.0
+  },
+  {
+   "frontier_share": 0.3154537953982875,
+   "info_frontier": 15.729380308788848,
+   "info_median": 49.86270743368028,
+   "item": "swe_bench_verified",
+   "lambda": 1.2132981199685053,
+   "n": 9,
+   "tau_pp": 3.660513438567656,
+   "top": 96.0
+  },
+  {
+   "frontier_share": 0.3879618178540855,
+   "info_frontier": 4.6329353936681406,
+   "info_median": 11.941730295249343,
+   "item": "bbh",
+   "lambda": 0.6805641155941172,
+   "n": 8,
+   "tau_pp": 3.6816513703259557,
+   "top": 55.28
+  },
+  {
+   "frontier_share": 0.4312910187307092,
+   "info_frontier": 1.2642241992837933,
+   "info_median": 2.931255566147445,
+   "item": "ifeval",
+   "lambda": 0.6940542340034297,
+   "n": 9,
+   "tau_pp": 8.194140454641891,
+   "top": 85.0
+  },
+  {
+   "frontier_share": 0.5372238709656303,
+   "info_frontier": 5.5976022582401015,
+   "info_median": 10.41949652791623,
+   "item": "musr",
+   "lambda": 0.5762358765564792,
+   "n": 8,
+   "tau_pp": 3.6749602354683955,
+   "top": 43.86
+  }
+ ]
+}
