@@ -670,26 +670,9 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 58.5
-    alpaca_eval: 42.8
-    arena_elo_coding: 1350.0
     arena_elo_hard_prompts: 1447.7
-    arena_elo_math: 1330.0
-    arena_elo_overall: 1340.0
     arena_elo_style_control: 1422.8
-    artificial_analysis_quality_index: 80.0
-    artificial_analysis_speed_index: 70.0
-    bbh: 64.1
-    bbq: 73.5
-    gpqa_diamond: 64.5
-    gsm8k: 89.3
-    helm_safety: 78.2
-    humaneval: 88.5
-    ifeval: 87.0
     live_code_bench: 55.4
-    math_500: 92.5
-    mmlu_pro: 78.8
-    mt_bench: 8.8
     multipl_e_csharp: 83.2
     multipl_e_julia: 65.5
     multipl_e_kotlin: 76.5
@@ -700,14 +683,7 @@ benchmarks:
     multipl_e_ruby: 69.5
     multipl_e_scala: 64.5
     multipl_e_swift: 69.8
-    musr: 29.8
-    swe_bench_agent: 35.8
-    swe_bench_verified: 42.5
-    tau_bench: 41.2
     terminal_bench: 37.7
-    terminal_bench_2: 46.4
-    toxigen: 82.5
-    wildbench: 70.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
@@ -766,6 +742,18 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: terminal_bench
+    model_id_as_evaluated: DeepSeek-V3.2-Exp
+    score: 37.7
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-09-29'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: Terminal-bench
+    configuration: DeepSeek-V3.2-Exp model card table, Terminal-bench row, column DeepSeek-V3.2-Exp.
+    limitations: The table does not state the Terminal-Bench version; in September 2025 the public release was 1.0.
 deployment:
   api_only: false
   local_inference: true
@@ -923,7 +911,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

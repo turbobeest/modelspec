@@ -674,54 +674,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 65.8
-    aime_2025: 79.8
-    alpaca_eval: 45.2
-    arena_elo_coding: 1370.0
-    arena_elo_math: 1400.0
-    arena_elo_overall: 1360.0
-    bbh: 68.7
-    gpqa_diamond: 71.5
-    humaneval: 89.2
-    ifeval: 86.5
-    live_code_bench: 52.1
-    math_500: 97.3
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
-    mmlu_pro: 79.8
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
-    mt_bench: 9.0
-    multipl_e: 84.6
-    multipl_e_cpp: 83.5
-    multipl_e_go: 80.5
-    multipl_e_java: 87.2
-    multipl_e_javascript: 86.8
-    multipl_e_python: 92.8
-    multipl_e_rust: 75.1
-    multipl_e_typescript: 86.1
-    musr: 33.5
-    swe_bench_agent: 42.5
-    swe_bench_verified: 49.2
-    tau_bench: 48.8
-    wildbench: 72.5
     gsm8k: 89.3
-    multipl_e_csharp: 80.5
-    multipl_e_php: 77.8
-    multipl_e_ruby: 65.5
-    multipl_e_swift: 65.2
-    multipl_e_r: 58.5
-    multipl_e_julia: 62.1
-    multipl_e_perl: 50.2
-    multipl_e_lua: 55.8
-    multipl_e_scala: 60.2
-    multipl_e_kotlin: 72.5
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2,
     llm-stats
   benchmark_as_of: 2026-04
@@ -883,7 +836,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-reasoner

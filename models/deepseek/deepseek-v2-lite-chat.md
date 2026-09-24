@@ -667,24 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    alpaca_eval: 42.8
-    arena_elo_coding: 1320
-    arena_elo_math: 1300
-    arena_elo_overall: 1310
-    bbh: 64.1
-    bbq: 73.5
-    gpqa_diamond: 59.1
-    helm_safety: 78.2
-    humaneval: 85.8
-    ifeval: 84
-    math_500: 89.2
-    mmlu_pro: 75.5
-    mt_bench: 8.8
-    musr: 29.8
-    swe_bench_verified: 42
-    toxigen: 82.5
-    wildbench: 70.2
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
@@ -845,7 +828,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-v2-lite-chat

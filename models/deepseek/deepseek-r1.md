@@ -676,59 +676,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 65.8
-    aime_2025: 79.8
-    alpaca_eval: 45.2
-    arena_elo_coding: 1370.0
     arena_elo_hard_prompts: 1418.1
-    arena_elo_math: 1400.0
-    arena_elo_overall: 1360.0
     arena_elo_style_control: 1397.5
-    artificial_analysis_quality_index: 84.0
-    artificial_analysis_speed_index: 40.0
-    bbh: 68.7
-    gpqa_diamond: 71.5
-    humaneval: 89.2
-    ifeval: 86.5
-    live_code_bench: 52.1
     math_500: 97.3
-    medqa: 92.1
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
-    mmlu_pro: 79.8
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
-    mt_bench: 9.0
-    multipl_e: 84.6
-    multipl_e_cpp: 83.5
-    multipl_e_csharp: 80.5
-    multipl_e_go: 80.5
-    multipl_e_java: 87.2
-    multipl_e_javascript: 86.8
-    multipl_e_julia: 62.1
-    multipl_e_kotlin: 72.5
-    multipl_e_lua: 55.8
-    multipl_e_perl: 50.2
-    multipl_e_php: 77.8
-    multipl_e_python: 92.8
-    multipl_e_r: 58.5
-    multipl_e_ruby: 65.5
-    multipl_e_rust: 75.1
-    multipl_e_scala: 60.2
-    multipl_e_swift: 65.2
-    multipl_e_typescript: 86.1
-    musr: 33.5
-    swe_bench_agent: 42.5
     swe_bench_verified: 49.2
-    tau_bench: 48.8
-    terminal_bench: 5.7
-    wildbench: 72.5
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2,
     domain-evals
   benchmark_as_of: 2026-04
@@ -812,6 +763,30 @@ benchmarks:
     benchmark_version: SciCode
     configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
       evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: math_500
+    model_id_as_evaluated: DeepSeek R1
+    score: 97.3
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-01-20'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MATH-500 (Pass@1)
+    configuration: DeepSeek-R1 model card evaluation table, MATH-500 (Pass@1), column DeepSeek R1.
+    limitations: ''
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: DeepSeek R1
+    score: 49.2
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-01-20'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE Verified (Resolved)
+    configuration: DeepSeek-R1 model card evaluation table, SWE Verified (Resolved), column DeepSeek R1.
     limitations: ''
 deployment:
   api_only: false
@@ -970,7 +945,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-r1

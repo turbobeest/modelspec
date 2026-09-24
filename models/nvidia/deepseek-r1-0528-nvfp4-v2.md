@@ -675,57 +675,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    aider_polyglot: 65.8
-    aime_2025: 82.5
-    alpaca_eval: 45.2
-    arena_elo_coding: 1380.0
-    arena_elo_math: 1410.0
-    arena_elo_overall: 1370.0
-    artificial_analysis_quality_index: 84.0
-    artificial_analysis_speed_index: 40.0
-    bbh: 68.7
-    gpqa_diamond: 73.2
-    humaneval: 90.5
-    ifeval: 88.0
-    math_500: 97.5
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
-    mmlu_pro: 81.0
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
-    mt_bench: 9.0
-    multipl_e: 84.6
-    multipl_e_cpp: 83.5
-    multipl_e_go: 80.5
-    multipl_e_java: 87.2
-    multipl_e_javascript: 86.8
-    multipl_e_python: 92.8
-    multipl_e_rust: 75.1
-    multipl_e_typescript: 86.1
-    musr: 33.5
-    swe_bench_agent: 42.5
-    swe_bench_verified: 53.8
-    tau_bench: 48.8
-    wildbench: 72.5
-    multipl_e_csharp: 82.1
-    multipl_e_php: 79.5
-    multipl_e_ruby: 67.2
-    multipl_e_swift: 67.5
-    multipl_e_r: 60.2
-    multipl_e_julia: 64.5
-    multipl_e_perl: 52.5
-    multipl_e_lua: 57.8
-    multipl_e_scala: 62.5
-    multipl_e_kotlin: 74.8
-    live_code_bench: 77.0
-    terminal_bench: 5.7
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -886,7 +836,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: nvidia/deepseek-r1-0528-nvfp4-v2
