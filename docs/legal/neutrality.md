@@ -1,8 +1,9 @@
 # The neutrality commitment
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC.
-MODEL-70. The commitment itself is `neutrality-v1`, which is the same string
-the machine-readable copy carries.
+Version `1.1`, effective 2026-09-23. Adopted by Sparks and Sawdust LLC.
+MODEL-70. Version 1.0 was adopted on 2026-09-19; what changed in 1.1 is listed
+under [Changes](#changes). The commitment itself is `neutrality-v1`, which is
+the same string the machine-readable copy carries.
 
 ## The rule
 
@@ -40,6 +41,17 @@ to do, because the first kind can be checked:
   routing advice, and not by any commercial relationship of the operator's.
   Refusing payment from the subjects of a ranking is the easy half. The harder
   half is refusing the version where nobody pays and the advice leans anyway.
+- **When we buy from a vendor we catalogue, we say so.** We may be a paying
+  customer of a vendor whose models we catalogue. When we are, the card
+  says so, and no field on that vendor's card is ever set by that vendor's own
+  model. Today that vendor is TypeSafe: the catalogue pays for Jev, TypeSafe's
+  model, to judge ambiguous creator attributions, and no TypeSafe card is
+  written by a Jev judgment. This is held by code, not by care:
+  `schema/suppliers.py` lists the catalogued vendors we pay; the card page
+  prints the disclosure from that list, so it cannot be left off a card
+  (`pipeline/render.py`); and `scripts/attribution.py` refuses a vendor's model
+  a judgment on that vendor's card before it is asked (`supplier_conflict`) and
+  again before a stored one is applied (`apply_policy`).
 
 "Permanently" is the load-bearing word. A commitment that lasts until the offer
 is good enough is a price, not a commitment.
@@ -72,10 +84,13 @@ sites and the CLI read.
     "accepts_paid_placement": false,
     "accepts_provider_paid_visibility": false,
     "proxies_inference_tokens": false,
-    "stores_customer_prompts": false
+    "stores_customer_prompts": false,
+    "conceals_purchases_from_catalogued_vendors": false,
+    "lets_supplier_models_write_supplier_cards": false
   },
   "source_neutral_at": ["ranking", "tie_breaks", "hosting_suggestions", "route_advice"],
-  "charges": "the consumer of a recommendation, never its subjects"
+  "charges": "the consumer of a recommendation, never its subjects",
+  "vendor_purchases": "We may be a paying customer of a vendor whose models we catalogue. When we are, the card says so, and no field on that vendor's card is ever set by that vendor's own model."
 }
 ```
 
@@ -97,3 +112,17 @@ Three further things are checkable without asking us:
 
 If we ever break this commitment, the JSON breaks first. That is the point of
 putting it there.
+
+## Changes
+
+A change to this commitment gets a new version and date here; the version above
+is the one in force.
+
+- **1.1, 2026-09-23.** Added the commitment on buying from a vendor we
+  catalogue: the card says so, and no field on that vendor's card is set by
+  that vendor's own model (MODEL-101). The published data gained the matching
+  `vendor_purchases` sentence and two assertions,
+  `conceals_purchases_from_catalogued_vendors` and
+  `lets_supplier_models_write_supplier_cards`, both `false`. Nothing was
+  removed or changed, so the identifier stays `neutrality-v1`.
+- **1.0, 2026-09-19.** Adopted.
