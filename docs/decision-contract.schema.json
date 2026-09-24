@@ -160,6 +160,40 @@
       "title": "Budget",
       "type": "object"
     },
+    "CandidateValues": {
+      "additionalProperties": false,
+      "properties": {
+        "contributions": {
+          "items": {
+            "$ref": "#/$defs/Contribution"
+          },
+          "title": "Contributions",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/DomainEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/ShownFact"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        }
+      },
+      "required": [
+        "offering"
+      ],
+      "title": "CandidateValues",
+      "type": "object"
+    },
     "Compare": {
       "additionalProperties": false,
       "description": "``facet op value``; the value may be ``model(<id>)`` for a relative condition.",
@@ -273,6 +307,27 @@
           },
           "title": "Gain",
           "type": "object"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "units": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Units",
+          "type": "object"
         }
       },
       "required": [
@@ -309,6 +364,37 @@
           "default": null,
           "title": "Normalisation"
         },
+        "raw_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Value"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
         "value": {
           "anyOf": [
             {
@@ -344,6 +430,18 @@
       "additionalProperties": false,
       "description": "The engine's answer to one spec against one snapshot.",
       "properties": {
+        "chart": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chart"
+        },
         "constraint_costs": {
           "items": {
             "$ref": "#/$defs/ConstraintCost"
@@ -379,6 +477,20 @@
             "$ref": "#/$defs/MayQualify"
           },
           "title": "May Qualify",
+          "type": "array"
+        },
+        "near_misses": {
+          "items": {
+            "$ref": "#/$defs/NearMiss"
+          },
+          "title": "Near Misses",
+          "type": "array"
+        },
+        "number_origins": {
+          "items": {
+            "$ref": "#/$defs/NumberOrigin"
+          },
+          "title": "Number Origins",
           "type": "array"
         },
         "relax": {
@@ -419,6 +531,13 @@
             "$ref": "#/$defs/TippingPoint"
           },
           "title": "Tipping Points",
+          "type": "array"
+        },
+        "top": {
+          "items": {
+            "$ref": "#/$defs/CandidateValues"
+          },
+          "title": "Top",
           "type": "array"
         },
         "warnings": {
@@ -622,6 +741,31 @@
           ],
           "default": null,
           "title": "N"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        },
+        "requested_domain": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Domain"
         },
         "source": {
           "pattern": "^https?://\\S+$",
@@ -1184,6 +1328,36 @@
           "title": "Model",
           "type": "string"
         },
+        "offering": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OfferingRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
         "value": {
           "anyOf": [
             {
@@ -1208,6 +1382,30 @@
           ],
           "default": null,
           "title": "Value"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Values",
+          "type": "array"
         }
       },
       "required": [
@@ -1231,6 +1429,116 @@
         "model"
       ],
       "title": "ModelRef",
+      "type": "object"
+    },
+    "NearMiss": {
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        },
+        "distance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Distance"
+        },
+        "facet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Facet"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "offering",
+        "condition"
+      ],
+      "title": "NearMiss",
       "type": "object"
     },
     "NotOf": {
@@ -1298,6 +1606,40 @@
         "not"
       ],
       "title": "NotOf",
+      "type": "object"
+    },
+    "NumberOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "pattern": "^https?://\\S+$",
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "basis"
+      ],
+      "title": "NumberOrigin",
       "type": "object"
     },
     "Objective": {
@@ -1591,6 +1933,92 @@
         "offering"
       ],
       "title": "Result",
+      "type": "object"
+    },
+    "ShownFact": {
+      "additionalProperties": false,
+      "properties": {
+        "facet": {
+          "title": "Facet",
+          "type": "string"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "facet"
+      ],
+      "title": "ShownFact",
       "type": "object"
     },
     "Soft": {

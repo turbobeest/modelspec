@@ -109,6 +109,7 @@ class FactValue:
     state: FactState
     value: Any = None
     sources: tuple[str, ...] = ()
+    record_id: str | None = field(default=None, compare=False)
 
 
 UNKNOWN = FactValue("unknown")
@@ -131,6 +132,9 @@ class EvidenceValue:
     #: Set by ``evidence_for_domain`` only: how directly the benchmark measures
     #: the domain asked about. An addition to the agreed field list.
     directness: Directness | None = None
+    record_id: str | None = field(default=None, compare=False)
+    date_type: str | None = None
+    source_snapshot: str | None = None
 
 
 @dataclass(frozen=True)
@@ -163,6 +167,18 @@ class SnapshotIndex(Protocol):
                  after: date | None = None) -> Sequence[EvidenceValue]: ...
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
+
+
+@runtime_checkable
+class ExplanationIndex(SnapshotIndex, Protocol):
+    """Snapshot metadata and retained records needed to transport a decision."""
+
+    def kind(self, cid: str) -> Literal["model", "offering"]: ...
+    def model_of(self, cid: str) -> str: ...
+    def source_url(self, source_id: str) -> str: ...
+    def record(self, record_id: str) -> Mapping[str, Any]: ...
+    def facet_ids(self) -> tuple[str, ...]: ...
+    def domain_ids(self) -> tuple[str, ...]: ...
 
 
 # ── excluded sources ───────────────────────────────────────────────────────
@@ -344,6 +360,8 @@ class _Compiler:
         self.facet_subject: dict[str, str] = {}
         self.evidence: dict[str, list[list[Any]]] = {}
         self.used_sources: set[str] = set()
+        self.records: dict[str, dict[str, Any]] = {}
+        self.fact_records: dict[str, dict[str, str]] = {}
 
     # verification ------------------------------------------------------------
 
@@ -358,13 +376,26 @@ class _Compiler:
                 latest[target] = entry
         return latest
 
-    def _outcome(self, kind: str, rid: Any, inline: Any) -> str:
-        """The latest verification's outcome, or ``unverified``."""
+    def _verification(self, kind: str, rid: Any, inline: Any) -> dict | None:
+        """The winning verification record, or ``None``."""
         best = None if inline is None else (str(_as_dict(inline)["date"]), 0, _as_dict(inline))
         logged = self.log.get((kind, str(rid))) if rid is not None else None
         if logged is not None and (best is None or logged[:2] >= best[:2]):
             best = logged
-        return "unverified" if best is None else str(best[2]["outcome"])
+        return None if best is None else best[2]
+
+    def _outcome(self, kind: str, rid: Any, inline: Any) -> str:
+        record = self._verification(kind, rid, inline)
+        return "unverified" if record is None else str(record["outcome"])
+
+    def _retain(self, kind: str, record: dict) -> str:
+        rid = str(record.get("id") or content_hash(record))
+        retained = {**record, "verification": self._verification(
+            kind, record.get("id"), record.get("verification"))}
+        if rid in self.records and self.records[rid] != retained:
+            raise SnapshotBuildError(f"duplicate record ID {rid}")
+        self.records[rid] = retained
+        return rid
 
     # admission ---------------------------------------------------------------
 
@@ -425,6 +456,7 @@ class _Compiler:
                 self._reject((sid, facet_id), reason, source_ids)
                 continue
             self.used_sources.update(source_ids)
+            self.fact_records.setdefault(sid, {})[facet_id] = self._retain("fact", f)
             row[facet_id] = [state, f.get("value") if state == "known" else None, source_ids]
 
     def add_model(self, raw: Any) -> None:
@@ -476,6 +508,9 @@ class _Compiler:
             str(e["benchmark_id"]), e.get("benchmark_version") or None, e.get("subcategory"),
             float(e["score"]), e.get("unit"), e.get("measured_by"), e.get("effort"),
             e.get("harness"), str(e.get("evidence_date") or "") or None, source_ids,
+            self._retain("evidence", e), e.get("date_type"),
+            next((r.get("snapshot_ref") for r in e.get("sources", [])
+                  if r["source_id"] == source_ids[0]), None),
         ])
 
     # output ------------------------------------------------------------------
@@ -515,6 +550,8 @@ class _Compiler:
             "benchmark_domains": domains,
             "sources": {s: self.sources[s] for s in sorted(self.used_sources)},
             "excluded": dict(sorted(self.excluded.items())),
+            "records": dict(sorted(self.records.items())),
+            "fact_records": self.fact_records,
         }
 
     # the gate ----------------------------------------------------------------
@@ -753,6 +790,7 @@ class LoadedSnapshot:
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         self._sources: dict[str, str] = dict(content["sources"])
+        self._records = content.get("records", {})
         sections = [content["lineup"]] + ([content["archive"]] if include_archive else [])
 
         rows: list[tuple[dict[str, Any], dict[str, Any], int]] = []
@@ -772,7 +810,9 @@ class LoadedSnapshot:
                 target = facts.setdefault(facet_id, {})
                 for r, state, value, srcs in zip(col["row"], col["state"], col["value"],
                                                  col["sources"]):
-                    target[self._row[local[r]]] = FactValue(state, value, tuple(srcs))
+                    target[self._row[local[r]]] = FactValue(
+                        state, value, tuple(srcs),
+                        content.get("fact_records", {}).get(local[r], {}).get(facet_id))
         # An offering is its model as sold: it answers its model's facets.
         subjects = content.get("facet_subjects") or {}
         for facet_id, by_row in facts.items():
@@ -809,7 +849,10 @@ class LoadedSnapshot:
                 evidence[cid] = tuple(
                     EvidenceValue(benchmark_id=r[0], version=r[1], subcategory=r[2], value=r[3],
                                   unit=r[4], measured_by=r[5], effort=r[6], harness=r[7],
-                                  date=_date(r[8]), source_ids=tuple(r[9]))
+                                  date=_date(r[8]), source_ids=tuple(r[9]),
+                                  record_id=r[10] if len(r) > 10 else None,
+                                  date_type=r[11] if len(r) > 11 else None,
+                                  source_snapshot=r[12] if len(r) > 12 else None)
                     for r in ev_rows)
         self._evidence = evidence
         self._domains: dict[str, list[tuple[str, str]]] = {}
@@ -900,6 +943,16 @@ class LoadedSnapshot:
     def model_of(self, cid: str) -> str:
         self._check(cid)
         return self._meta[cid]["model"]
+
+    def record(self, record_id: str) -> Mapping[str, Any]:
+        """The admitted record with its winning verification, retained verbatim."""
+        return self._records[record_id]
+
+    def facet_ids(self) -> tuple[str, ...]:
+        return tuple(sorted(self._facts))
+
+    def domain_ids(self) -> tuple[str, ...]:
+        return tuple(sorted(self._domains))
 
     def source_url(self, source_id: str) -> str:
         return self._sources[source_id]
