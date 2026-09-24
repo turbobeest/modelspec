@@ -14,7 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "chart_check_pr.py"
-WORKFLOW = ROOT / ".github" / "workflows" / "validate-cards.yml"
+WORKFLOW = ROOT / ".github" / "workflows" / "chart-check.yml"
+VALIDATE_WORKFLOW = ROOT / ".github" / "workflows" / "validate-cards.yml"
 
 READ_TWO = (
     '      - reader: one\n'
@@ -459,19 +460,31 @@ def test_removed_row_alone_is_nothing_to_check(tmp_path: Path) -> None:
 
 
 def test_workflow_job_is_wired() -> None:
+    """The chart check is its own workflow so a required check can run on every PR.
+
+    validate-cards.yml filters pull_request by path. A required check with that
+    filter stays pending on a pull request that does not touch those paths.
+    """
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert "    name: Validate changed model cards\n" in text
     assert "    name: Check evidence against release charts\n" in text
-    assert "- 'benchmarks/_charts/**'\n" in text
-    assert "- 'scripts/chart_check.py'\n" in text
-    assert "- 'scripts/chart_check_pr.py'\n" in text
-    chart = text.split("  check-evidence-charts:\n", 1)[1]
-    assert "contents: read" in chart
-    assert "pull-requests:" not in chart
-    assert "fetch-depth: 0" in chart
-    assert "git fetch origin main" in chart
-    assert 'python -m pip install \\\n' in chart
-    assert '"pydantic==2.13.5"' in chart
-    assert "python scripts/chart_check_pr.py --base origin/main" in chart
-    assert "continue-on-error" not in chart
-    assert "|| true" not in chart
+    assert "paths:" not in text
+    assert "contents: read" in text
+    assert "pull-requests:" not in text
+    assert "fetch-depth: 0" in text
+    assert "git fetch origin main" in text
+    assert 'python -m pip install \\\n' in text
+    assert '"pydantic==2.13.5"' in text
+    assert '"PyYAML==6.0.3"' in text
+    assert "FalkorDB" not in text
+    assert "-e \".\"" not in text
+    assert "python scripts/chart_check_pr.py --base origin/main" in text
+    assert "continue-on-error" not in text
+    assert "|| true" not in text
+
+    cards = VALIDATE_WORKFLOW.read_text(encoding="utf-8")
+    assert "    name: Validate changed model cards\n" in cards
+    assert "Check evidence against release charts" not in cards
+    assert "- 'models/**'\n" in cards
+    assert "- 'schema/**'\n" in cards
+    assert "benchmarks/_charts" not in cards
+    assert "chart_check" not in cards

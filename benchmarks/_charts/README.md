@@ -70,10 +70,10 @@ disagreements `disputed`.
 
 ## In CI
 
-`Check evidence against release charts` in `.github/workflows/validate-cards.yml`
-runs on a pull request that changes a model card, a file in this directory, or
-`scripts/chart_check.py` / `scripts/chart_check_pr.py`. The job runs
-`python scripts/chart_check_pr.py --base origin/main`.
+`Check evidence against release charts` in `.github/workflows/chart-check.yml`
+runs on every pull request and is a required check on `main`. A pull request
+that changes no model card and no file in this directory reports "nothing to
+check" and passes. The job runs `python scripts/chart_check_pr.py --base origin/main`.
 
 The job classifies evidence rows the pull request adds or changes.
 
