@@ -10,6 +10,11 @@ configuration of the same model and benchmark is ``other_configuration`` when
 one sibling matches. A different unit is ``unit_differs``. A non-headline
 metric is ``other_metric``. A bar with no catalogue page is
 ``no_benchmark_page``.
+
+``official_reports`` is the publisher quoting a rival's own number. That bar
+is compared only with the rival card's ``provider_self_report`` rows for the
+benchmark. A row from another source is context on a ``not_held`` bar.
+``vendor_run`` stays a gap. ``unstated`` stays unresolved.
 """
 
 from __future__ import annotations
@@ -289,6 +294,12 @@ def _row_brief(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _context_row(row: dict[str, Any]) -> dict[str, Any]:
+    brief = _row_brief(row)
+    brief["source_kind"] = row.get("source_kind") or ""
+    return brief
+
+
 def _hit(bar: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     tolerance = tolerance_for(str(bar.get("score_text") or _infer_score_text(bar["score"])))
     return next((row for row in rows if _within(float(bar["score"]), row["score"], tolerance)), None)
@@ -454,12 +465,20 @@ def _role_path(
         return result
     same_unit = _same_unit(rows, bar.get("unit"))
     if competitor_numbers == "official_reports":
-        if not same_unit:
-            return _finish_unit(result, rows, False)
-        hit = _hit(bar, same_unit)
+        # Another evaluator's number is a different measurement. Only the
+        # rival's own published row can show that this chart misquotes it.
+        self_rows = [row for row in rows if row.get("source_kind") == "provider_self_report"]
+        if not self_rows:
+            result["status"] = "not_held"
+            result["context"] = [_context_row(row) for row in rows]
+            return result
+        self_unit = _same_unit(self_rows, bar.get("unit"))
+        if not self_unit:
+            return _finish_unit(result, self_rows, False)
+        hit = _hit(bar, self_unit)
         if hit is not None:
             return _finish_match(result, hit, "matched", False)
-        return _finish_match(result, _closest(float(bar["score"]), same_unit), "mismatched", False)
+        return _finish_match(result, _closest(float(bar["score"]), self_unit), "mismatched", False)
     if competitor_numbers == "vendor_run":
         if not same_unit:
             return _finish_unit(result, rows, False)

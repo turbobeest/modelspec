@@ -334,9 +334,6 @@ charts:
         printed: true
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
-        known_mismatch:
-          ticket: TBD
-          note: "The system card prints 94.3. The card holds 94.14 from the Artificial Analysis leaderboard."
       - model_as_labelled: "Claude Opus 4.8"
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: screenspot_pro

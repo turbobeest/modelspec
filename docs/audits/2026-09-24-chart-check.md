@@ -232,11 +232,11 @@ The 526 `needs_reading` charts are the Figure and Table captions in the five sys
 | --- | ---: |
 | matched | 27 |
 | other_configuration | 2 |
-| mismatched | 1 |
-| unit_differs | 12 |
+| mismatched | 0 |
+| unit_differs | 0 |
 | other_metric | 2 |
 | no_benchmark_page | 306 |
-| not_held | 394 |
+| not_held | 407 |
 | competitor_unresolved | 2 |
 
 The two `other_configuration` bars are Claude Opus 5.5 on Terminal-Bench 4.0 from the system card. The summary table's 66.4 matches the card. The section also prints 66.36 at xhigh and 64.8 at max.
@@ -265,17 +265,15 @@ Opus 4.8 matches SWE-bench Verified 88.6 and GPQA Diamond 93.6. Opus 5 matches S
 
 ### Mismatched bars
 
-One new bar. Gemini 3.1 Pro on GPQA Diamond, Table 8.1.A of the Claude Opus 4.8 system card. Marked `known_mismatch`, ticket TBD. The card was not edited.
+None.
 
-| Model | Chart | Card | Card source |
-| --- | ---: | ---: | --- |
-| Gemini 3.1 Pro | 94.3 | 94.14 | https://artificialanalysis.ai/leaderboards/models |
-
-The chart page is https://www.anthropic.com/claude-opus-4-8-system-card. Competitor figures on that table are the developers' published numbers, so the bar has to match some row on the Gemini card. 94.3 and 94.14 are outside the printed tenth.
+Gemini 3.1 Pro on GPQA Diamond, Table 8.1.A of the Claude Opus 4.8 system card, prints 94.3. The Gemini card's row for that benchmark is 94.14 from https://artificialanalysis.ai/leaderboards/models, `source_kind: independent_evaluator`. An `official_reports` bar is checked against `provider_self_report` rows only. This card has none for GPQA Diamond, so the bar is `not_held` and that row is context. The `known_mismatch` mark is removed. The card was not edited.
 
 ### Gaps above 2 points
 
-No same-unit competitor gap in this pass is larger than 2 points. There is no `competitor_gap` bar. Twelve bars are `unit_differs`: the page prints GDPval-AA or AA-Briefcase as Elo, and the card holds a percent or a normalised Elo percent from another URL.
+No same-unit competitor gap in this pass is larger than 2 points. There is no `competitor_gap` bar.
+
+Twelve bars print GDPval-AA or AA-Briefcase as Elo. Each rival card holds an `independent_evaluator` percent or normalised Elo percent for that benchmark and no `provider_self_report`, so the bar is `not_held`. The row below is context.
 
 | Model | Chart | Chart unit | Card | Card unit | Card source |
 | --- | ---: | --- | ---: | --- | --- |

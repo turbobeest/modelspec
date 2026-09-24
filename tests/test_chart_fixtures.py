@@ -125,23 +125,123 @@ def test_subject_bar_not_held_names_another_source():
     assert bar["context"]["score"] == 91.0
 
 
-def test_official_competitor_must_match_some_evidence_row():
+def test_official_reports_against_an_independent_row_is_not_held():
     page = _page(
         [
             _bar(
                 role="competitor",
-                model_id="anthropic/claude-opus-5",
-                model_as_labelled="Claude Opus 5",
+                model_id="google/gemini-3-1-pro-preview",
+                model_as_labelled="Gemini 3.1 Pro",
+                score=94.3,
+                score_text="94.3",
             )
         ],
         competitor_numbers="official_reports",
     )
     model = _model(
-        "anthropic/claude-opus-5",
-        [_row(70.0, source="https://example.com/a"), _row(96.0, source="https://example.com/b")],
+        "google/gemini-3-1-pro-preview",
+        [
+            _row(
+                94.14,
+                source="https://artificialanalysis.ai/leaderboards/models",
+                source_kind="independent_evaluator",
+                configuration="Artificial Analysis leaderboard",
+            ),
+            _row(
+                91.0,
+                source="https://example.com/author",
+                source_kind="benchmark_author",
+                configuration="author run",
+            ),
+        ],
     )
-    report = classify_fixtures([page], [model])
-    assert report["charts_detail"][0]["bars"][0]["status"] == "matched"
+    bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
+    assert bar["status"] == "not_held"
+    assert bar["context"] == [
+        {
+            "score": 94.14,
+            "unit": "percent",
+            "source_url": "https://artificialanalysis.ai/leaderboards/models",
+            "configuration": "Artificial Analysis leaderboard",
+            "source_kind": "independent_evaluator",
+        },
+        {
+            "score": 91.0,
+            "unit": "percent",
+            "source_url": "https://example.com/author",
+            "configuration": "author run",
+            "source_kind": "benchmark_author",
+        },
+    ]
+
+
+def test_official_reports_matches_a_provider_self_report():
+    page = _page(
+        [
+            _bar(
+                role="competitor",
+                model_id="openai/gpt-6-astra",
+                model_as_labelled="GPT-6 Astra",
+                score=57.9,
+                score_text="57.9",
+            )
+        ],
+        competitor_numbers="official_reports",
+    )
+    model = _model(
+        "openai/gpt-6-astra",
+        [
+            _row(
+                57.9,
+                source="https://artificialanalysis.ai/leaderboards/models",
+                source_kind="independent_evaluator",
+            ),
+            _row(
+                57.9,
+                source="https://vendor.example/report",
+                source_kind="provider_self_report",
+                configuration="provider table",
+            ),
+        ],
+    )
+    bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
+    assert bar["status"] == "matched"
+    assert bar["same_source"] is False
+    assert bar["held"]["score"] == 57.9
+    assert bar["held"]["source_url"] == "https://vendor.example/report"
+    assert bar["held"]["configuration"] == "provider table"
+
+
+def test_official_reports_mismatches_a_different_self_report():
+    page = _page(
+        [
+            _bar(
+                role="competitor",
+                model_id="openai/gpt-6-astra",
+                model_as_labelled="GPT-6 Astra",
+            )
+        ],
+        competitor_numbers="official_reports",
+    )
+    model = _model(
+        "openai/gpt-6-astra",
+        [
+            _row(
+                96.0,
+                source="https://artificialanalysis.ai/leaderboards/models",
+                source_kind="independent_evaluator",
+            ),
+            _row(
+                90.0,
+                source="https://vendor.example/report",
+                source_kind="provider_self_report",
+            ),
+        ],
+    )
+    bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
+    assert bar["status"] == "mismatched"
+    assert bar["held"]["score"] == 90.0
+    assert bar["held"]["source_url"] == "https://vendor.example/report"
 
 
 def test_vendor_run_is_a_gap_even_when_the_numbers_agree():

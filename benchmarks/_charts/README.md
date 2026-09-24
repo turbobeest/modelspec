@@ -41,9 +41,11 @@ Each bar:
 Every bar is compared with evidence rows of the same benchmark cited from
 this `page_url` first (a trailing slash does not matter). Only a bar with no
 same-source row falls through: a subject bar is `not_held`, and a competitor
-or evaluated bar follows `competitor_numbers`. `official_reports` has to match
-one of the rival card's rows. `vendor_run` is a gap. `unstated` stays
-unresolved.
+or evaluated bar follows `competitor_numbers`. `official_reports` is compared
+with the rival card's `provider_self_report` rows only: a match is `matched`, a
+different self-report is `mismatched`, and no self-report row is `not_held`,
+with the card's other rows shown as context. `vendor_run` is a gap. `unstated`
+stays unresolved.
 
 Two or more bars for the same model, benchmark, and metric are sibling
 configurations. When a same-source row equals one of them, that bar is
