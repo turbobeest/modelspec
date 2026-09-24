@@ -2,24 +2,49 @@
   "candidate_id": "automationbench",
   "canonical_id": "automationbench",
   "domain": "agentic",
-  "researcher": "GPT-5.6 Luna / freshness_pilot",
+  "researcher": "Grok Build 4.7 (grok-4.7-build-fast), MODEL-120",
   "identity": {
     "url": "https://github.com/zapier/AutomationBench",
-    "rationale": "Distinct original benchmark protocol; pilot did not verify its own dated current frontier/open result pair."
+    "rationale": "Zapier's strict all-assertions pass rate on the private split. Distinct from Artificial Analysis's objective-and-guardrail re-score of the same tasks."
   },
-  "task": "",
-  "metric": "",
-  "protocol": "",
+  "task": "Complete cross-app business workflows in a simulated company by discovering and calling REST APIs. Grading reads the final environment state.",
+  "metric": "Mean of task_completed_correctly: 1 only when every assertion passes, else 0, reported as a percent.",
+  "protocol": "Zapier dataset 1.0.6 private split, toolset api, one attempt, 50-step cap, no LLM judge. Effort is the level printed on the row. A fallback label means another model answered some tasks, so that row is not one model alone.",
   "usefulness": {
-    "verdict": "unknown",
-    "rationale": "Not established for current frontier/open comparisons in this pilot.",
-    "source_url": "https://github.com/zapier/AutomationBench"
+    "verdict": "useful",
+    "rationale": "On the 1.0.6 private board read 2026-09-23, strict pass rates still sit far below 100% and separate a current frontier Max row from a current open Max row. GPT 6 Astra (Max) scores 41.4% with no fallback label. DeepSeek V4 Flash (Max) scores 18.11% with no fallback label. GLM-5.3 is not on this board. Kimi K3 scores 22.68% and its weights are published, but that private row prints no effort, so it is not in this pair. The 42.47% leader is a default-fallback run and is not used as the frontier result.",
+    "source_url": "https://zapier.com/benchmarks"
   },
-  "results": [],
+  "results": [
+    {
+      "model_id": "GPT-6 Astra (max)",
+      "benchmark_version": "AutomationBench 1.0.6 / Zapier private split",
+      "configuration": "Zapier private leaderboard, dataset 1.0.6, toolset api, metric task_completed_correctly. Labels on the shared pair: GPT 6 Astra (Max), effort Max, no fallback annotation; DeepSeek V4 Flash (Max), effort Max, no fallback annotation, cost cell marked with the Fireworks cached-rate footnote. Each row uses that model's own Max effort, not matched compute. Fallback contamination: neither row is a fallback run. The 42.47% leader, Claude Opus 5.5 (default fallbacks, Max), is excluded because Zapier says refused tasks were rerun on the provider's fallback model.",
+      "score": 41.4,
+      "unit": "percent",
+      "source_url": "https://zapier.com/benchmarks",
+      "evidence_date": "2026-09-23",
+      "date_type": "evaluated",
+      "verified_at": "2026-09-23",
+      "source_kind": "benchmark_author"
+    },
+    {
+      "model_id": "DeepSeek V4 Flash (Max)",
+      "benchmark_version": "AutomationBench 1.0.6 / Zapier private split",
+      "configuration": "Zapier private leaderboard, dataset 1.0.6, toolset api, metric task_completed_correctly. Labels on the shared pair: GPT 6 Astra (Max), effort Max, no fallback annotation; DeepSeek V4 Flash (Max), effort Max, no fallback annotation, cost cell marked with the Fireworks cached-rate footnote. Each row uses that model's own Max effort, not matched compute. Fallback contamination: neither row is a fallback run. The 42.47% leader, Claude Opus 5.5 (default fallbacks, Max), is excluded because Zapier says refused tasks were rerun on the provider's fallback model.",
+      "score": 18.11,
+      "unit": "percent",
+      "source_url": "https://zapier.com/benchmarks",
+      "evidence_date": "2026-09-23",
+      "date_type": "evaluated",
+      "verified_at": "2026-09-23",
+      "source_kind": "benchmark_author"
+    }
+  ],
   "review": {
-    "reviewer": "Codex coordinator / independent primary-source review",
-    "reviewed_at": "2026-09-08",
-    "verdict": "needs_work",
-    "rationale": "Distinct original benchmark protocol; pilot did not verify its own dated current frontier/open result pair."
+    "reviewer": "GPT-5.6 Luna / independent primary-source review (MODEL-120)",
+    "reviewed_at": "2026-09-23",
+    "verdict": "approved",
+    "rationale": "Primary-source review verified both Zapier rows: GPT-6 Astra (Max) at 41.4% and DeepSeek V4 Flash (Max) at 18.11%, on AutomationBench 1.0.6, API toolset, with no fallback annotation; both are percent strict pass rates and both are dated by observation on 2026-09-23. The rows share benchmark version, configuration and unit, and their model IDs are present in the agentic reference set as a closed frontier model and an open-weight model from different organizations. The page documents the task, metric, protocol and usefulness, and the benchmark is distinct from automationbench_aa because it reports Zapier's strict all-assertions pass rate rather than AA's objective-and-guardrail re-score. The fallback leader and the effortless Kimi row were correctly excluded. The cited primary sources also support that DeepSeek V4 Flash is a current DeepSeek model and open-weight; open-weight is not treated as open-source."
   }
 }
