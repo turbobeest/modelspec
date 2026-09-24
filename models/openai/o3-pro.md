@@ -669,7 +669,6 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 80.5
     aime_2025: 94
     arena_elo_coding: 1420
     arena_elo_math: 1440
@@ -679,10 +678,7 @@ benchmarks:
     ifeval: 92
     math_500: 97.3
     mmlu_pro: 85.5
-    swe_bench_agent: 62.8
     swe_bench_verified: 73.2
-    tau_bench: 65.5
-    terminal_bench: 58.2
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   evidence:
@@ -856,7 +852,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/o3-pro

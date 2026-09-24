@@ -668,29 +668,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    aime_2025: 87.0
-    arena_elo_coding: 1390.0
-    arena_elo_math: 1410.0
-    arena_elo_overall: 1380.0
-    gpqa_diamond: 82.3
-    humaneval: 91.2
-    ifeval: 89.0
-    math_500: 95.8
-    mmlu_pro: 81.0
-    swe_bench_verified: 68.4
-    multipl_e_csharp: 84.5
-    multipl_e_php: 82.1
-    multipl_e_ruby: 71.5
-    multipl_e_swift: 71.5
-    multipl_e_r: 63.8
-    multipl_e_julia: 67.2
-    multipl_e_perl: 57.2
-    multipl_e_lua: 61.5
-    multipl_e_scala: 66.2
-    multipl_e_kotlin: 78.2
-    live_code_bench: 85.9
-    aider_polyglot: 72.0
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -851,7 +829,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/o4-mini-deep-research

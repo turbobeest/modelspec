@@ -669,30 +669,6 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 72.1
-    arena_elo_coding: 1400.0
-    arena_elo_math: 1380.0
-    arena_elo_overall: 1390.0
-    gpqa_diamond: 77.2
-    humaneval: 92.1
-    ifeval: 91.8
-    math_500: 95.5
-    mmlu_pro: 84.8
-    swe_bench_agent: 55.2
-    swe_bench_verified: 69.3
-    tau_bench: 58.5
-    terminal_bench: 48.8
-    multipl_e_csharp: 88.5
-    multipl_e_php: 85.2
-    multipl_e_ruby: 78.2
-    multipl_e_swift: 76.5
-    multipl_e_r: 68.2
-    multipl_e_julia: 70.5
-    multipl_e_perl: 62.8
-    multipl_e_lua: 65.5
-    multipl_e_scala: 72.5
-    multipl_e_kotlin: 82.8
-    live_code_bench: 84.6
     terminal_bench_2: 77.3
   evidence:
   - benchmark_id: metr_time_horizon_50
@@ -719,6 +695,19 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [22.361504, 122.058963] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: terminal_bench_2
+    model_id_as_evaluated: GPT-5.3-Codex
+    score: 77.3
+    unit: percent
+    source_url: https://epoch.ai/data/benchmark_data.zip
+    source_kind: independent_evaluator
+    evidence_date: '2026-02-05'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: Terminal-Bench 2.0
+    configuration: Terminal-Bench 2.0 leaderboard (tbench.ai) row GPT-5.3-Codex with the Droid agent, accuracy 0.7730,
+      as carried in Epoch AI benchmark_data terminalbench_external.csv (id recMJkgMHRSOjLKpR).
+    limitations: Agent harness is Droid (Factory). Other harnesses score the same model 64.7-78.4.
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -879,7 +868,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

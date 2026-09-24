@@ -670,31 +670,10 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 72.0
-    aime_2025: 87.0
-    arena_elo_coding: 1390.0
     arena_elo_hard_prompts: 1405.2
-    arena_elo_math: 1410.0
-    arena_elo_overall: 1380.0
     arena_elo_style_control: 1389.7
     arena_elo_vision: 1201.8
-    gpqa_diamond: 82.3
-    humaneval: 91.2
-    ifeval: 89.0
-    live_code_bench: 85.9
-    math_500: 95.8
     medqa: 95.2
-    mmlu_pro: 81.0
-    multipl_e_csharp: 84.5
-    multipl_e_julia: 67.2
-    multipl_e_kotlin: 78.2
-    multipl_e_lua: 61.5
-    multipl_e_perl: 57.2
-    multipl_e_php: 82.1
-    multipl_e_r: 63.8
-    multipl_e_ruby: 71.5
-    multipl_e_scala: 66.2
-    multipl_e_swift: 71.5
-    swe_bench_verified: 68.4
   benchmark_source: lmarena.ai, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -712,6 +691,18 @@ benchmarks:
     configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: aider_polyglot
+    model_id_as_evaluated: o4-mini (high)
+    score: 72.0
+    unit: percent
+    source_url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+    source_kind: benchmark_author
+    evidence_date: '2025-04-16'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Aider polyglot (225 exercises)
+    configuration: Aider polyglot leaderboard YAML row model "o4-mini (high)", edit_format diff, pass_rate_2.
     limitations: ''
 deployment:
   api_only: false
@@ -870,7 +861,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/o4-mini

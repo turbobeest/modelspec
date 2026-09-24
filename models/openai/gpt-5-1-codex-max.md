@@ -667,34 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    aider_polyglot: 72.1
-    arena_elo_coding: 1410.0
-    arena_elo_math: 1390.0
-    arena_elo_overall: 1400.0
-    artificial_analysis_quality_index: 88.0
-    artificial_analysis_speed_index: 70.0
-    gpqa_diamond: 79.1
-    humaneval: 93.8
-    ifeval: 92.5
-    math_500: 96.8
-    mmlu_pro: 86.0
-    swe_bench_agent: 55.2
-    swe_bench_verified: 71.5
-    tau_bench: 58.5
-    terminal_bench: 48.8
-    multipl_e_csharp: 89.2
-    multipl_e_php: 86.5
-    multipl_e_ruby: 79.8
-    multipl_e_swift: 77.8
-    multipl_e_r: 69.5
-    multipl_e_julia: 71.8
-    multipl_e_perl: 63.5
-    multipl_e_lua: 66.8
-    multipl_e_scala: 73.8
-    multipl_e_kotlin: 83.5
-    live_code_bench: 84.9
-    terminal_bench_2: 52.8
+  scores: {}
   evidence:
   - benchmark_id: metr_time_horizon_50
     model_id_as_evaluated: gpt_5_1_codex_max_inspect
@@ -880,7 +853,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-5-1-codex-max
