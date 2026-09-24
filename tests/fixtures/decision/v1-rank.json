@@ -1,0 +1,391 @@
+{
+  "answer": {
+    "applied": {
+      "cost_weight": null,
+      "hardware_id": null,
+      "include_rehosts": false,
+      "max_cost_per_million_input_tokens": null,
+      "open_weights_only": false,
+      "open_weights_required_by": null,
+      "unbound": []
+    },
+    "authoring_guide": {
+      "guide": null,
+      "model_id": "fake-lab/legacy",
+      "state": "absent",
+      "why": "no_guide"
+    },
+    "build": {
+      "built_at": "2026-09-24T00:00:00Z",
+      "commit": "76eabc11",
+      "eligibility_as_of": null,
+      "export_schema_version": "3.0"
+    },
+    "candidates_considered": 3,
+    "endpoint": "rank",
+    "export_origin": "https://example.invalid",
+    "policy": {
+      "cli_min_benchmark_coverage": 0.5,
+      "limit_applies_to": "ranked_only",
+      "min_benchmark_count": 2,
+      "min_benchmark_coverage": 0.5,
+      "neutrality": {
+        "assertions": {
+          "accepts_paid_placement": false,
+          "accepts_provider_paid_visibility": false,
+          "accepts_referral_fees": false,
+          "conceals_purchases_from_catalogued_vendors": false,
+          "lets_supplier_models_write_supplier_cards": false,
+          "proxies_inference_tokens": false,
+          "stores_customer_prompts": false
+        },
+        "charges": "the consumer of a recommendation, never its subjects",
+        "method_source": "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py",
+        "neutrality_url": "https://modelspec.dev/legal/neutrality/",
+        "operator": "Sparks and Sawdust LLC",
+        "permanent": true,
+        "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
+        "privacy_url": "https://modelspec.dev/legal/privacy/",
+        "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
+        "source_neutral_at": [
+          "ranking",
+          "tie_breaks",
+          "hosting_suggestions",
+          "route_advice"
+        ],
+        "terms_url": "https://modelspec.dev/legal/terms/",
+        "vendor_purchases": "We may be a paying customer of a vendor whose models we catalogue. When we are, the card says so, and no field on that vendor's card is ever set by that vendor's own model.",
+        "version": "neutrality-v1"
+      },
+      "ordering": "conservative_lower_bound",
+      "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+      "version": "incomplete-evidence-v1",
+      "wizard_min_benchmark_coverage": 0.25
+    },
+    "profile": "coding",
+    "ranked_count": 2,
+    "ranking_status": "partial",
+    "request": {
+      "constraints": {
+        "include_rehosts": false,
+        "max_cost_per_million_input_tokens": null,
+        "open_weights": false,
+        "price_sensitivity": 0.0
+      },
+      "environment": {
+        "hardware": null,
+        "hosting": null,
+        "runtime": null
+      },
+      "limit": 10,
+      "use_case": "coding"
+    },
+    "result": [
+      {
+        "benchmark_contributions": {
+          "humaneval": 12.44,
+          "live_code_bench": 10.0,
+          "scicode": 9.0,
+          "swe_bench_verified": 9.14
+        },
+        "benchmark_count": 4,
+        "benchmark_coverage": 0.64,
+        "benchmark_estimate": 63.41765873015874,
+        "benchmark_lower_bound": 16.234920634920638,
+        "benchmark_score": 16.23,
+        "benchmark_upper_bound": 30.634920634920636,
+        "capability_score": 0.0,
+        "context_score": 0.0,
+        "context_window": null,
+        "cost_input": null,
+        "cost_score": 0.0,
+        "display_name": "legacy",
+        "evidence_basis": "unverified-legacy",
+        "missing_benchmarks": [
+          "aider_polyglot",
+          "arena_elo_coding",
+          "arena_elo_overall",
+          "terminal_bench"
+        ],
+        "model_id": "fake-lab/legacy",
+        "open_weights": false,
+        "provider": "fake-lab",
+        "rank": 1,
+        "rank_status": "ranked",
+        "required_benchmark_count": 2,
+        "score": 28.23,
+        "score_kind": "conservative_lower_bound",
+        "score_lower_bound": 28.23,
+        "score_upper_bound": 42.63,
+        "scores_as_of": null,
+        "type_bonus": 12.0,
+        "unranked_reason": null,
+        "verified_benchmark_coverage": 0.0,
+        "verified_contributions": 0
+      },
+      {
+        "benchmark_contributions": {
+          "humaneval": 14.22,
+          "live_code_bench": 8.0,
+          "scicode": 7.0,
+          "swe_bench_verified": 6.86
+        },
+        "benchmark_count": 4,
+        "benchmark_coverage": 0.64,
+        "benchmark_estimate": 56.37400793650793,
+        "benchmark_lower_bound": 14.43174603174603,
+        "benchmark_score": 14.43,
+        "benchmark_upper_bound": 28.83174603174603,
+        "capability_score": 0.0,
+        "context_score": 0.0,
+        "context_window": null,
+        "cost_input": null,
+        "cost_score": 0.0,
+        "display_name": "reviewed",
+        "evidence_basis": "mixed",
+        "missing_benchmarks": [
+          "aider_polyglot",
+          "arena_elo_coding",
+          "arena_elo_overall",
+          "terminal_bench"
+        ],
+        "model_id": "fake-lab/reviewed",
+        "open_weights": false,
+        "provider": "fake-lab",
+        "rank": 2,
+        "rank_status": "ranked",
+        "required_benchmark_count": 2,
+        "score": 26.43,
+        "score_kind": "conservative_lower_bound",
+        "score_lower_bound": 26.43,
+        "score_upper_bound": 40.83,
+        "scores_as_of": null,
+        "type_bonus": 12.0,
+        "unranked_reason": null,
+        "verified_benchmark_coverage": 0.16,
+        "verified_contributions": 1
+      }
+    ],
+    "schema_version": "1.0",
+    "service_commit": "76eabc11",
+    "unranked_candidates": {
+      "cap": 10,
+      "count": 1,
+      "models": [
+        {
+          "display_name": "unknown",
+          "missing_benchmarks": [
+            "aider_polyglot",
+            "arena_elo_coding",
+            "arena_elo_overall",
+            "humaneval",
+            "live_code_bench",
+            "scicode",
+            "swe_bench_verified",
+            "terminal_bench"
+          ],
+          "model_id": "fake-lab/unknown",
+          "reason": "no_scores",
+          "release_date": null
+        }
+      ]
+    },
+    "unranked_count": 1
+  },
+  "pipeline": {
+    "policy": {
+      "cli_min_benchmark_coverage": 0.5,
+      "limit_applies_to": "ranked_only",
+      "min_benchmark_count": 2,
+      "min_benchmark_coverage": 0.5,
+      "neutrality": {
+        "assertions": {
+          "accepts_paid_placement": false,
+          "accepts_provider_paid_visibility": false,
+          "accepts_referral_fees": false,
+          "conceals_purchases_from_catalogued_vendors": false,
+          "lets_supplier_models_write_supplier_cards": false,
+          "proxies_inference_tokens": false,
+          "stores_customer_prompts": false
+        },
+        "charges": "the consumer of a recommendation, never its subjects",
+        "method_source": "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py",
+        "neutrality_url": "https://modelspec.dev/legal/neutrality/",
+        "operator": "Sparks and Sawdust LLC",
+        "permanent": true,
+        "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
+        "privacy_url": "https://modelspec.dev/legal/privacy/",
+        "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
+        "source_neutral_at": [
+          "ranking",
+          "tie_breaks",
+          "hosting_suggestions",
+          "route_advice"
+        ],
+        "terms_url": "https://modelspec.dev/legal/terms/",
+        "vendor_purchases": "We may be a paying customer of a vendor whose models we catalogue. When we are, the card says so, and no field on that vendor's card is ever set by that vendor's own model.",
+        "version": "neutrality-v1"
+      },
+      "ordering": "conservative_lower_bound",
+      "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
+      "version": "incomplete-evidence-v1",
+      "wizard_min_benchmark_coverage": 0.25
+    },
+    "profile": "coding",
+    "ranked": [
+      {
+        "benchmark_contributions": {
+          "humaneval": 12.44,
+          "live_code_bench": 10.0,
+          "scicode": 9.0,
+          "swe_bench_verified": 9.14
+        },
+        "benchmark_count": 4,
+        "benchmark_coverage": 0.64,
+        "benchmark_estimate": 63.41765873015874,
+        "benchmark_lower_bound": 16.234920634920638,
+        "benchmark_score": 16.23,
+        "benchmark_upper_bound": 30.634920634920636,
+        "capability_score": 0.0,
+        "context_score": 0.0,
+        "context_window": null,
+        "cost_input": null,
+        "cost_score": 0.0,
+        "display_name": "legacy",
+        "evidence_basis": "unverified-legacy",
+        "missing_benchmarks": [
+          "aider_polyglot",
+          "arena_elo_coding",
+          "arena_elo_overall",
+          "terminal_bench"
+        ],
+        "model_id": "fake-lab/legacy",
+        "open_weights": false,
+        "provider": "fake-lab",
+        "rank": 1,
+        "rank_status": "ranked",
+        "required_benchmark_count": 2,
+        "score": 28.23,
+        "score_kind": "conservative_lower_bound",
+        "score_lower_bound": 28.23,
+        "score_upper_bound": 42.63,
+        "scores_as_of": null,
+        "type_bonus": 12.0,
+        "unranked_reason": null,
+        "verified_benchmark_coverage": 0.0,
+        "verified_contributions": 0
+      },
+      {
+        "benchmark_contributions": {
+          "humaneval": 14.22,
+          "live_code_bench": 8.0,
+          "scicode": 7.0,
+          "swe_bench_verified": 6.86
+        },
+        "benchmark_count": 4,
+        "benchmark_coverage": 0.64,
+        "benchmark_estimate": 56.37400793650793,
+        "benchmark_lower_bound": 14.43174603174603,
+        "benchmark_score": 14.43,
+        "benchmark_upper_bound": 28.83174603174603,
+        "capability_score": 0.0,
+        "context_score": 0.0,
+        "context_window": null,
+        "cost_input": null,
+        "cost_score": 0.0,
+        "display_name": "reviewed",
+        "evidence_basis": "mixed",
+        "missing_benchmarks": [
+          "aider_polyglot",
+          "arena_elo_coding",
+          "arena_elo_overall",
+          "terminal_bench"
+        ],
+        "model_id": "fake-lab/reviewed",
+        "open_weights": false,
+        "provider": "fake-lab",
+        "rank": 2,
+        "rank_status": "ranked",
+        "required_benchmark_count": 2,
+        "score": 26.43,
+        "score_kind": "conservative_lower_bound",
+        "score_lower_bound": 26.43,
+        "score_upper_bound": 40.83,
+        "scores_as_of": null,
+        "type_bonus": 12.0,
+        "unranked_reason": null,
+        "verified_benchmark_coverage": 0.16,
+        "verified_contributions": 1
+      }
+    ],
+    "ranked_count": 2,
+    "ranking_status": "partial",
+    "unranked": [
+      {
+        "benchmark_contributions": {},
+        "benchmark_count": 0,
+        "benchmark_coverage": 0.0,
+        "benchmark_estimate": null,
+        "benchmark_lower_bound": 0.0,
+        "benchmark_score": 0.0,
+        "benchmark_upper_bound": 40.0,
+        "capability_score": 0.0,
+        "context_score": 0.0,
+        "context_window": null,
+        "cost_input": null,
+        "cost_score": 0.0,
+        "display_name": "unknown",
+        "evidence_basis": "none",
+        "missing_benchmarks": [
+          "aider_polyglot",
+          "arena_elo_coding",
+          "arena_elo_overall",
+          "humaneval",
+          "live_code_bench",
+          "scicode",
+          "swe_bench_verified",
+          "terminal_bench"
+        ],
+        "model_id": "fake-lab/unknown",
+        "open_weights": false,
+        "provider": "fake-lab",
+        "rank": null,
+        "rank_status": "unranked",
+        "required_benchmark_count": 2,
+        "score": null,
+        "score_kind": "conservative_lower_bound",
+        "score_lower_bound": 12.0,
+        "score_upper_bound": 52.0,
+        "scores_as_of": null,
+        "type_bonus": 12.0,
+        "unranked_reason": "insufficient_benchmark_evidence",
+        "verified_benchmark_coverage": 0.0,
+        "verified_contributions": 0
+      }
+    ],
+    "unranked_candidates": {
+      "cap": 10,
+      "count": 1,
+      "models": [
+        {
+          "display_name": "unknown",
+          "missing_benchmarks": [
+            "aider_polyglot",
+            "arena_elo_coding",
+            "arena_elo_overall",
+            "humaneval",
+            "live_code_bench",
+            "scicode",
+            "swe_bench_verified",
+            "terminal_bench"
+          ],
+          "model_id": "fake-lab/unknown",
+          "reason": "no_scores",
+          "release_date": null
+        }
+      ]
+    },
+    "unranked_count": 1
+  },
+  "status": 200
+}

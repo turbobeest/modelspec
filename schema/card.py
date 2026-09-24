@@ -797,6 +797,8 @@ class Benchmarks(BaseModel):
     # Keys are benchmark identifiers (e.g. "humaneval", "mmlu_pro",
     # "multipl_e_rust", "mmlu_chemistry", "pubmedqa", "flores_en_zh").
     # No fixed schema — any benchmark can be added without code changes.
+    #: V2 quarantine: the decision engine never reads benchmarks.scores.
+    #: MODEL-118 re-sources these values; v1 retains its existing behavior.
     scores: dict[str, float] = {}
 
     #: Verified, per-score evidence. Everything in `scores` above that has no
