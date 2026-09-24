@@ -669,34 +669,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arena_elo_coding: 1290.0
-    arena_elo_math: 1270.0
-    arena_elo_overall: 1280.0
-    gpqa_diamond: 55.8
-    humaneval: 80.2
-    ifeval: 79.0
-    math_500: 76.5
-    mmlu_pro: 68.2
-    mgsm: 90.6
-    multipl_e_csharp: 72.8
-    multipl_e_php: 70.5
-    multipl_e_ruby: 56.5
-    multipl_e_swift: 56.2
-    multipl_e_r: 48.8
-    multipl_e_julia: 52.5
-    multipl_e_perl: 41.2
-    multipl_e_lua: 46.5
-    multipl_e_scala: 50.8
-    multipl_e_kotlin: 63.2
-    live_code_bench: 29.9
-    mmmu: 69.4
-    mathvista: 70.7
-    docvqa: 94.4
-    chartqa: 88.8
-    helm_safety: 85.2
-    bbq: 80.5
-    toxigen: 88.5
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -857,7 +830,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Llama 4 Scout 17B 16E
