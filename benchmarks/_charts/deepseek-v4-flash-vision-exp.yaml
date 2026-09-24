@@ -170,30 +170,6 @@ charts:
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
-        benchmark_id: automationbench
-        score: 25.7
-        unit: "percent"
-        printed: true
-        configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. AutomationBench (Public)"
-        role: subject
-      - model_as_labelled: "DeepSeek-V4-Flash-0731"
-        model_id: "qwen/deepseek-v4-flash-0731"
-        benchmark_id: automationbench
-        score: 25.1
-        unit: "percent"
-        printed: true
-        configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. AutomationBench (Public)"
-        role: subject
-      - model_as_labelled: "Opus-4.8"
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: automationbench
-        score: 27.2
-        unit: "percent"
-        printed: true
-        configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. AutomationBench (Public)"
-        role: competitor
-      - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
-        model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: null
         benchmark_as_labelled: "ApexBench (Pass@1)"
         score: 36.5

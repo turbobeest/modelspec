@@ -14,58 +14,6 @@ charts:
     bars:
       - model_as_labelled: "LFM2-8B-A1B"
         model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -78.42
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -24.70
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 7.33
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 8.67
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 7.46
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 63.47
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: ifeval
         score: 79.44
         unit: "percent"

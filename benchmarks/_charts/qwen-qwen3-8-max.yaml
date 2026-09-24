@@ -763,46 +763,6 @@ charts:
         role: subject
       - model_as_labelled: "Opus4.8"
         model_id: anthropic/claude-opus-4-8
-        benchmark_id: automationbench
-        score: 27.2
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Fable5"
-        model_id: anthropic/claude-fable-5
-        benchmark_id: automationbench
-        score: 29.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT5.6 Sol (max)"
-        model_id: openai/gpt-5-6-sol
-        benchmark_id: automationbench
-        score: 29.7
-        unit: "percent"
-        printed: true
-        configuration: "Max."
-        role: competitor
-      - model_as_labelled: "Qwen3.7-Max"
-        model_id: qwen/qwen3-7-max
-        benchmark_id: automationbench
-        score: 14.2
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Qwen3.8-Max"
-        model_id: qwen/qwen3-8-max
-        benchmark_id: automationbench
-        score: 27.3
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Opus4.8"
-        model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
         score: 76.2

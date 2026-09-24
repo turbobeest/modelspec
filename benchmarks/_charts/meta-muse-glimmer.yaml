@@ -4,7 +4,7 @@ read_on: "2026-09-24"
 charts:
   - title: "Benchmarks"
     kind: html_table
-    footnotes: "Muse Glimmer is the high-reasoning column. Gemma 4 31B and Qwen3.6 27B are in thinking mode. Sampling on the card is temperature 1.0, top_p 0.95, top_k 64. The linked methodology says rival scores are the better of a self-report and an internal rerun, and that Artificial Analysis numbers are used when that source covers every model. CI Memories and Siren AgentDojo print two measures in one cell."
+    footnotes: "Muse Glimmer is the high-reasoning column. Gemma 4 31B and Qwen3.6 27B are in thinking mode. Sampling on the card is temperature 1.0, top_p 0.95, top_k 64. The linked methodology says rival scores are the better of a self-report and an internal rerun. CI Memories and Siren AgentDojo print two measures in one cell."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -116,30 +116,6 @@ charts:
         unit: "score"
         printed: true
         configuration: ""
-        role: competitor
-      - model_as_labelled: "Muse Glimmer-30B"
-        model_id: "meta/muse-glimmer-30b"
-        benchmark_id: gdpval_aa
-        score: 953
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: subject
-      - model_as_labelled: "Gemma4-31B"
-        model_id: "google/gemma-4-31b-it"
-        benchmark_id: gdpval_aa
-        score: 811
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: competitor
-      - model_as_labelled: "Qwen3.6-27B"
-        model_id: "qwen/qwen3-6-27b"
-        benchmark_id: gdpval_aa
-        score: 1141
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
         model_id: "meta/muse-glimmer-30b"
@@ -563,78 +539,6 @@ charts:
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: aime_2026
         score: 94.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Muse Glimmer-30B"
-        model_id: "meta/muse-glimmer-30b"
-        benchmark_id: gpqa_diamond
-        score: 83.5
-        unit: "percent"
-        printed: true
-        configuration: "Artificial Analysis."
-        role: subject
-      - model_as_labelled: "Gemma4-31B"
-        model_id: "google/gemma-4-31b-it"
-        benchmark_id: gpqa_diamond
-        score: 85.7
-        unit: "percent"
-        printed: true
-        configuration: "Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.6-27B"
-        model_id: "qwen/qwen3-6-27b"
-        benchmark_id: gpqa_diamond
-        score: 84.2
-        unit: "percent"
-        printed: true
-        configuration: "Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Muse Glimmer-30B"
-        model_id: "meta/muse-glimmer-30b"
-        benchmark_id: hle
-        score: 22.0
-        unit: "percent"
-        printed: true
-        configuration: "Text subset, Artificial Analysis."
-        role: subject
-      - model_as_labelled: "Gemma4-31B"
-        model_id: "google/gemma-4-31b-it"
-        benchmark_id: hle
-        score: 23.6
-        unit: "percent"
-        printed: true
-        configuration: "Text subset, Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.6-27B"
-        model_id: "qwen/qwen3-6-27b"
-        benchmark_id: hle
-        score: 23.1
-        unit: "percent"
-        printed: true
-        configuration: "Text subset, Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Muse Glimmer-30B"
-        model_id: "meta/muse-glimmer-30b"
-        benchmark_id: aa_lcr
-        score: 80.0
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemma4-31B"
-        model_id: "google/gemma-4-31b-it"
-        benchmark_id: aa_lcr
-        score: 68.3
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.6-27B"
-        model_id: "qwen/qwen3-6-27b"
-        benchmark_id: aa_lcr
-        score: 73.3
         unit: "percent"
         printed: true
         configuration: ""

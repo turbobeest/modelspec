@@ -6,7 +6,7 @@ charts:
     kind: image
     image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-6-flash__evals__figure-.width-2000.format-webp.webp"
     image_sha256: "eed20d4f60c90b41ada0198786fb5693f177d4e4671f048019ac2e43df5ca69c"
-    footnotes: "Printed bar labels for DeepSWE v1.1, MLE-Bench, GDPval-AA v2 and OSWorld-Verified. The output-token chart beside it is token use, not a score, and is not transcribed."
+    footnotes: "Printed bar labels for DeepSWE v1.1, MLE-Bench, and OSWorld-Verified. The output-token chart beside it is token use, not a score, and is not transcribed."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -67,30 +67,6 @@ charts:
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
         model_id: google/gemini-3-1-pro-preview
-        benchmark_id: gdpval_aa
-        score: 965
-        unit: "elo"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemini 3.5 Flash"
-        model_id: google/gemini-3-5-flash
-        benchmark_id: gdpval_aa
-        score: 1349
-        unit: "elo"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemini 3.6 Flash"
-        model_id: google/gemini-3-6-flash
-        benchmark_id: gdpval_aa
-        score: 1421
-        unit: "elo"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Pro"
-        model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
         score: 76.2
@@ -120,7 +96,7 @@ charts:
     kind: image
     image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-5-flash-lite__evals__co.width-2000.format-webp.webp"
     image_sha256: "99697cd9e80604eb57b225b1e93a71caa32b2d3027bda89fe540b7300ac3a271"
-    footnotes: "Printed labels. Terminal-bench 2.1 is a percent. GDPval-AA v2 is Elo."
+    footnotes: "Printed labels. Terminal-bench 2.1 is a percent."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -141,22 +117,6 @@ charts:
         benchmark_id: terminal_bench_v2_1
         score: 54.0
         unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Flash-Lite"
-        model_id: google/gemini-3-1-flash-lite
-        benchmark_id: gdpval_aa
-        score: 642
-        unit: "elo"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Gemini 3.5 Flash-Lite"
-        model_id: google/gemini-3-5-flash-lite
-        benchmark_id: gdpval_aa
-        score: 1140
-        unit: "elo"
         printed: true
         configuration: ""
         role: subject

@@ -1478,12 +1478,12 @@ def test_printed_benchmark_names_pair_with_the_catalogue_id():
         _one_reading("Kimi K3", "CharXiv (RQ)", metric_or_setting="without tools"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("Kimi K3", "gdpval_aa", configuration="GDPval-AA v2 (Elo)"),
-        _one_reading("Kimi K3", "GDPval-AA v2 (Elo)"),
+        _one_bar_fixture("Kimi K3", "demo_bench", configuration="Demo Bench v2 (Elo)"),
+        _one_reading("Kimi K3", "Demo Bench v2 (Elo)"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("Kimi K3", "aa_briefcase", configuration="AA-Briefcase (Elo)"),
-        _one_reading("Kimi K3", "AA-Briefcase (Elo)"),
+        _one_bar_fixture("Kimi K3", "demo_bench", configuration="Demo Bench (Elo)"),
+        _one_reading("Kimi K3", "Demo Bench (Elo)"),
     ) == ["agree"]
     assert _classes(
         _one_bar_fixture("Kimi K3", "deepsearchqa", configuration="DeepSearchQA (F1)"),
@@ -1544,16 +1544,16 @@ def test_tau3_banking_spellings_pair_and_plain_banking_stays_apart():
 def test_three_part_version_stays_intact_and_pairs_from_the_caption():
     fixture = _one_bar_fixture(
         "GLM-5.3 Flash",
-        "AutomationBench",
-        configuration="Card chart. AutomationBench (v1.0.6)",
+        "demo_bench",
+        configuration="Card chart. Demo Bench (v1.0.6)",
     )
-    reading = _one_reading("GLM-5.3-Flash", "AutomationBench")
-    reading["charts"][0]["footnotes"] = "Subtitle: AutomationBench v1.0.6"
+    reading = _one_reading("GLM-5.3-Flash", "Demo Bench")
+    reading["charts"][0]["footnotes"] = "Subtitle: Demo Bench v1.0.6"
     assert _classes(fixture, reading) == ["agree"]
     assert sorted(
         _classes(
             fixture,
-            _one_reading("GLM-5.3-Flash", "AutomationBench v1.6"),
+            _one_reading("GLM-5.3-Flash", "Demo Bench v1.6"),
         )
     ) == ["only_a", "only_b"]
     assert _classes(
@@ -1685,13 +1685,13 @@ def test_slice_and_version_wording_stays_on_the_benchmark():
 
 def test_dotted_version_does_not_absorb_a_parameter_count():
     assert _classes(
-        _one_bar_fixture("Qwen3.5-9B", "AA-LCR", score=61.7, score_text="61.7"),
-        _one_reading("Qwen 3.5 9B", "AA-LCR", score=61.7),
+        _one_bar_fixture("Qwen3.5-9B", "demo_bench", score=61.7, score_text="61.7"),
+        _one_reading("Qwen 3.5 9B", "Demo Bench", score=61.7),
     ) == ["agree"]
     assert sorted(
         _classes(
-            _one_bar_fixture("Qwen3.5-9B", "AA-LCR"),
-            _one_reading("Qwen3.5-4B", "AA-LCR"),
+            _one_bar_fixture("Qwen3.5-9B", "demo_bench"),
+            _one_reading("Qwen3.5-4B", "Demo Bench"),
         )
     ) == ["only_a", "only_b"]
     assert _classes(
@@ -1853,37 +1853,37 @@ def test_niah_cells_pair_on_depth_and_the_quant_stays_out_of_the_model():
 
 def test_index_version_is_not_the_component_list_and_claude_order_pairs():
     metric = (
-        "Intelligence Index v4.1.1 (9 evaluations: GDPval-AA v2, Terminal-Bench v2.1, "
+        "Demo Index v4.1.1 (9 evaluations: Demo Bench v2, Terminal-Bench v2.1, "
         "Humanity's Last Exam); effort/setting in label: max with fallback"
     )
     assert _classes(
         _one_bar_fixture(
             "Claude Fable 5.1",
-            "Artificial Analysis Intelligence Index v4.1.1",
+            "Demo Index v4.1.1",
             score=66,
             score_text="66",
             configuration="max with fallback",
         ),
         _one_reading(
             "Claude Fable 5.1 (max with fallback)",
-            "Artificial Analysis Intelligence Index",
+            "Demo Index",
             score=66,
             metric_or_setting=metric,
         ),
     ) == ["agree"]
     assert sorted(
         _classes(
-            _one_bar_fixture("Claude Haiku 4.5", "Artificial Analysis Intelligence Index v4.1.1"),
-            _one_reading("Claude 4.6 Haiku", "Artificial Analysis Intelligence Index v4.1.1"),
+            _one_bar_fixture("Claude Haiku 4.5", "Demo Index v4.1.1"),
+            _one_reading("Claude 4.6 Haiku", "Demo Index v4.1.1"),
         )
     ) == ["only_a", "only_b"]
     assert _classes(
-        _one_bar_fixture("Claude Haiku 4.5", "Artificial Analysis Intelligence Index v4.1.1", score=30, score_text="30"),
-        _one_reading("Claude 4.5 Haiku", "Artificial Analysis Intelligence Index v4.1.1", score=30),
+        _one_bar_fixture("Claude Haiku 4.5", "Demo Index v4.1.1", score=30, score_text="30"),
+        _one_reading("Claude 4.5 Haiku", "Demo Index v4.1.1", score=30),
     ) == ["agree"]
     assert sorted(
         _classes(
-            _one_bar_fixture("Command A+", "Artificial Analysis Intelligence Index v4.1.1"),
-            _one_reading("Command A+", "Artificial Analysis Intelligence Index v4.1"),
+            _one_bar_fixture("Command A+", "Demo Index v4.1.1"),
+            _one_reading("Command A+", "Demo Index v4.1"),
         )
     ) == ["only_a", "only_b"]

@@ -6,7 +6,7 @@ charts:
     kind: image
     image_url: "https://cdn-uploads.huggingface.co/production/uploads/62668f725fb8d521d94d8451/xR7kZ3X9RKEZrbgD6hpG1.png"
     image_sha256: "1156382fea3c798097c6cf4a82fe12473da572fc136114aacae54ffbc033a35e"
-    footnotes: "Average of three seeds at temperature 1.0 and top_p 0.95. SWE-bench uses SWE-agent 1.1.0. Terminal-Bench v2 uses a one-tool ReAct harness on Harbor's tmux session. Terminal-Bench Hard uses Terminus-2. SciCode and LiveCodeBench v6 are not tool-use runs. Unstarred rival scores are taken from public reports or the Artificial Analysis Intelligence Index. Gemma's agentic-coding scores are cited from the Qwen team rather than from Gemma's own report. A star marks a run Cohere did because no public number was available."
+    footnotes: "Average of three seeds at temperature 1.0 and top_p 0.95. SWE-bench uses SWE-agent 1.1.0. Terminal-Bench v2 uses a one-tool ReAct harness on Harbor's tmux session. Terminal-Bench Hard uses Terminus-2. SciCode and LiveCodeBench v6 are not tool-use runs. Unstarred rival scores are taken from public reports. Gemma's agentic-coding scores are cited from the Qwen team rather than from Gemma's own report. A star marks a run Cohere did because no public number was available."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

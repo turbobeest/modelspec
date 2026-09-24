@@ -4,7 +4,7 @@ read_on: "2026-09-24"
 charts:
   - title: "Benchmarks"
     kind: html_table
-    footnotes: "Launch post. AA-Omniscience-Public is one index column, not the accuracy split printed on the model card."
+    footnotes: "Launch post."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -12,51 +12,6 @@ charts:
       - reader: claude-opus
         date: "2026-09-24"
     bars:
-      - model_as_labelled: "LFM2.5-2.6B (2.6B)"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omniscience-Public"
-        score: -29.50
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "gemma-4-E2B-it (5.1B)"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omniscience-Public"
-        score: -74.47
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gemma-4-E4B-it (8B)"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omniscience-Public"
-        score: -49.03
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B (4.7B)"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omniscience-Public"
-        score: -54.30
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-9B (9.7B)"
-        model_id: "qwen/qwen3-5-9b"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omniscience-Public"
-        score: -50.43
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: aime_2025

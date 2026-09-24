@@ -1164,7 +1164,6 @@ _BENCH_ALIASES = (
     ("crux o", "cruxeval"),
     ("tau 3 bench avg", "tau 3 bench"),
     ("needle in a haystack", "niah"),
-    ("aa lcr long ctx", "aa lcr"),
     ("ifbench inst follow", "ifbench"),
     ("aider polyglot", "aider"),
     ("deep swe", "deepswe"),
@@ -1558,7 +1557,7 @@ def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
         bench = f"{stem} {version}"
         metric = padded.replace(f" {stem} {version} ", f" {stem} ", 1)
         return bench, re.sub(r"\s+", " ", metric).strip()
-    # AutomationBench v1.0.6 written beside the name, in the setting or the subtitle.
+    # A dotted version written beside an unversioned name, in the setting or the subtitle.
     versions = set(re.findall(rf" {re.escape(bench)} (\d+(?:\.\d+)+) ", padded))
     if len(versions) == 1:
         version = versions.pop()
@@ -1573,7 +1572,7 @@ def canon_benchmark(value: Any) -> str:
     text = re.sub(r"\baug\b", "august", text)
     text = _apply_aliases(text, _BENCH_ALIASES)
     parts = text.split()
-    # ``(Elo)`` is the unit of GDPval-AA and AA-Briefcase, already stored on the bar.
+    # A trailing ``(Elo)`` is the unit, already stored on the bar.
     if len(parts) > 1 and parts[-1] == "elo":
         text = " ".join(parts[:-1])
     return text

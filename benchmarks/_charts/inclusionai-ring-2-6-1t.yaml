@@ -6,7 +6,7 @@ charts:
     kind: image
     image_url: "https://mdn.alipayobjects.com/huamei_d2byvp/afts/img/SSFgSJxTFPgAAAAAgDAAAAgADod9AQFr/original"
     image_sha256: "88116baf7e601f691fe1abdbe13dfc1cceb41c5a8f00846f421484218ba5a979"
-    footnotes: "Ring's own bar is xhigh on AIME, GPQA, and ARC-AGI-2, and high on the other panels. Kimi-K2.6 is Thinking, DeepSeek-V4-Pro is Max, GPT-5.4 is xHigh, Gemini-3.1-Pro is high, and Claude Opus 4.7 is xhigh. PinchBench is an average of 3 from the official benchmark, collected 24 April 2026. Tau2 Telecom for Ring high and Claude xhigh was run internally with the Artificial Analysis method. ARC-AGI-2 for Ring, Kimi, and DeepSeek is an internal run on the public set; GPT, Gemini, and Claude on that panel are taken from the official leaderboard. A star sits on Claude's Tau2 number."
+    footnotes: "Ring's own bar is xhigh on AIME, GPQA, and ARC-AGI-2, and high on the other panels. Kimi-K2.6 is Thinking, DeepSeek-V4-Pro is Max, GPT-5.4 is xHigh, Gemini-3.1-Pro is high, and Claude Opus 4.7 is xhigh. PinchBench is an average of 3 from the official benchmark, collected 24 April 2026. Tau2 Telecom for Ring high and Claude xhigh was run internally. ARC-AGI-2 for Ring, Kimi, and DeepSeek is an internal run on the public set; GPT, Gemini, and Claude on that panel are taken from the official leaderboard. A star sits on Claude's Tau2 number."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7

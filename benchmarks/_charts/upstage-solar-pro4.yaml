@@ -4,7 +4,7 @@ read_on: "2026-09-24"
 charts:
   - title: "Solar Open 2 and Solar Pro 4"
     kind: html_table
-    footnotes: "Asterisk rows were run in house in one shared harness. The post attributes the Terminal-Bench v2.1, τ³-Banking, and AA-LCR callouts to Artificial Analysis as of August 2026, and does not say that for the other unstarred rows. GDPval-AA v2 is printed on the same scale as the percentage rows, not as an Elo. The gap column is the difference and is not a score."
+    footnotes: "Asterisk rows were run in house in one shared harness. The gap column is the difference and is not a score."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -12,38 +12,6 @@ charts:
       - reader: claude-opus
         date: "2026-09-24"
     bars:
-      - model_as_labelled: "Solar Open 2"
-        model_id: "upstage/solar-open2-250b"
-        benchmark_id: terminal_bench_v2_1
-        score: 43.2
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
-        role: subject
-      - model_as_labelled: "Solar Pro 4"
-        model_id: "upstage/solar-pro4"
-        benchmark_id: terminal_bench_v2_1
-        score: 57.0
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
-        role: subject
-      - model_as_labelled: "Solar Open 2"
-        model_id: "upstage/solar-open2-250b"
-        benchmark_id: gdpval_aa
-        score: 31.4
-        unit: "index"
-        printed: true
-        configuration: "v2. Printed on the percentage scale of this table, not as Elo."
-        role: subject
-      - model_as_labelled: "Solar Pro 4"
-        model_id: "upstage/solar-pro4"
-        benchmark_id: gdpval_aa
-        score: 38.8
-        unit: "index"
-        printed: true
-        configuration: "v2. Printed on the percentage scale of this table, not as Elo."
-        role: subject
       - model_as_labelled: "Solar Open 2"
         model_id: "upstage/solar-open2-250b"
         benchmark_id: browsecomp
@@ -111,40 +79,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "In-house evaluation."
-        role: subject
-      - model_as_labelled: "Solar Open 2"
-        model_id: "upstage/solar-open2-250b"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Banking"
-        score: 18.1
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
-        role: subject
-      - model_as_labelled: "Solar Pro 4"
-        model_id: "upstage/solar-pro4"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Banking"
-        score: 23.0
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
-        role: subject
-      - model_as_labelled: "Solar Open 2"
-        model_id: "upstage/solar-open2-250b"
-        benchmark_id: aa_lcr
-        score: 62.7
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
-        role: subject
-      - model_as_labelled: "Solar Pro 4"
-        model_id: "upstage/solar-pro4"
-        benchmark_id: aa_lcr
-        score: 71.0
-        unit: "percent"
-        printed: true
-        configuration: "Called out as an Artificial Analysis figure."
         role: subject
       - model_as_labelled: "Solar Open 2"
         model_id: "upstage/solar-open2-250b"

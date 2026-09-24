@@ -648,7 +648,7 @@ charts:
         score: 79.53
         unit: "percent"
         printed: true
-        configuration: "Thinking. Telecom. Artificial Analysis protocol."
+        configuration: "Thinking. Telecom."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
         model_id: "qwen/qwen3-0-6b"
@@ -656,7 +656,7 @@ charts:
         score: 21.10
         unit: "percent"
         printed: true
-        configuration: "Thinking. Telecom. Artificial Analysis protocol."
+        configuration: "Thinking. Telecom."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
         model_id: "qwen/qwen3-5-0-8b"
@@ -664,7 +664,7 @@ charts:
         score: 47.70
         unit: "percent"
         printed: true
-        configuration: "Thinking. Telecom. Artificial Analysis protocol."
+        configuration: "Thinking. Telecom."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
         model_id: null
@@ -672,7 +672,7 @@ charts:
         score: 19.60
         unit: "percent"
         printed: true
-        configuration: "Thinking. Telecom. Artificial Analysis protocol."
+        configuration: "Thinking. Telecom."
         role: competitor
   - title: "Score gains from RL and on-policy distillation"
     kind: image

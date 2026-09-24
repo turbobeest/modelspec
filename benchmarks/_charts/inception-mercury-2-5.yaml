@@ -66,22 +66,6 @@ charts:
         role: subject
       - model_as_labelled: "Mercury 2.5"
         model_id: "inception/mercury-2-5"
-        benchmark_id: aa_lcr
-        score: 68
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2"
-        model_id: "inception/mercury-2"
-        benchmark_id: aa_lcr
-        score: 41
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2.5"
-        model_id: "inception/mercury-2-5"
         benchmark_id: scicode
         score: 38
         unit: "percent"
@@ -130,42 +114,6 @@ charts:
         score: 15
         unit: "percent"
         printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2.5"
-        model_id: "inception/mercury-2-5"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 33
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2"
-        model_id: "inception/mercury-2"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 18
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2.5"
-        model_id: "inception/mercury-2-5"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 22
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Mercury 2"
-        model_id: "inception/mercury-2"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 24
-        unit: "percent"
-        printed: true
-        metric: accuracy
         configuration: ""
         role: subject
       - model_as_labelled: "Mercury 2.5"

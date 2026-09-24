@@ -117,31 +117,3 @@ charts:
         printed: true
         configuration: "Non-streaming. FLEURS top locales. Lower is better."
         role: competitor
-  - title: "Artificial Analysis word error rate"
-    kind: text
-    footnotes: "Prose on the methodology page. Average word error rate measured by Artificial Analysis. No per-locale table is printed."
-    competitor_numbers: unstated
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-      - reader: claude-opus
-        date: "2026-09-24"
-    bars:
-      - model_as_labelled: "Gemini 3.5 Transcribe Live"
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "AA-WER"
-        score: 4.0
-        unit: "percent"
-        printed: true
-        configuration: "Streaming. Average WER."
-        role: subject
-      - model_as_labelled: "Gemini 3.5 Transcribe"
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "AA-WER"
-        score: 2.6
-        unit: "percent"
-        printed: true
-        configuration: "Non-streaming. Average WER."
-        role: subject

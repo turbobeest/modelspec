@@ -4,7 +4,7 @@ read_on: "2026-09-24"
 charts:
   - title: "MiniCPM5-2B and baselines"
     kind: html_table
-    footnotes: "A dagger marks a figure taken from Artificial Analysis. Every other cell was reproduced by OpenBMB. Blue or black bold on the page marks a row winner and is not a second score."
+    footnotes: "Every cell was reproduced by OpenBMB. Blue or black bold on the page marks a row winner and is not a second score."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
@@ -398,78 +398,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: scicode
-        score: 26.3
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: scicode
-        score: 14.2
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: scicode
-        score: 2.8
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: scicode
-        score: 20.9
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: scicode
-        score: 16.1
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: scicode
-        score: 24.9
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: scicode
-        score: 16.4
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: scicode
-        score: 24.4
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: scicode
-        score: 7.8
-        unit: "percent"
-        printed: true
-        configuration: "wbg. Published by Artificial Analysis."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
         model_id: "openbmb/minicpm5-2b"
@@ -1130,150 +1058,6 @@ charts:
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
         model_id: "openbmb/minicpm5-2b"
-        benchmark_id: hle
-        score: 8.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: hle
-        score: 6.2
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: hle
-        score: 2.6
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: hle
-        score: 4.8
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: hle
-        score: 9.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: hle
-        score: 6.6
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: hle
-        score: 4.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: hle
-        score: 3.8
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: hle
-        score: 6.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: gpqa_diamond
-        score: 70.2
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: gpqa_diamond
-        score: 55.8
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: gpqa_diamond
-        score: 45.6
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: gpqa_diamond
-        score: 43.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: gpqa_diamond
-        score: 77.1
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: gpqa_diamond
-        score: 55.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: gpqa_diamond
-        score: 51.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: gpqa_diamond
-        score: 57.6
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: gpqa_diamond
-        score: 51.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
         benchmark_id: supergpqa
         score: 40.8
         unit: "percent"
@@ -1343,78 +1127,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: aa_lcr
-        score: 59.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: aa_lcr
-        score: 5.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: aa_lcr
-        score: 28.7
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: aa_lcr
-        score: 17.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: aa_lcr
-        score: 61.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: aa_lcr
-        score: 24.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: aa_lcr
-        score: 17.3
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: aa_lcr
-        score: 33.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: aa_lcr
-        score: 0.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
         model_id: "openbmb/minicpm5-2b"
@@ -1650,24 +1362,6 @@ charts:
         printed: true
         configuration: "Reproduced by OpenBMB."
         role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Bench Banking"
-        score: 20.8
-        unit: "percent"
-        printed: true
-        configuration: "Banking. Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Bench Banking"
-        score: 7.2
-        unit: "percent"
-        printed: true
-        configuration: "Banking. Published by Artificial Analysis."
-        role: competitor
       - model_as_labelled: "Qwen3.5-2B"
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: null
@@ -1685,24 +1379,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Banking. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Bench Banking"
-        score: 6.8
-        unit: "percent"
-        printed: true
-        configuration: "Banking. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: null
-        benchmark_as_labelled: "τ³-Bench Banking"
-        score: 5.6
-        unit: "percent"
-        printed: true
-        configuration: "Banking. Published by Artificial Analysis."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
@@ -1747,30 +1423,6 @@ charts:
         printed: true
         configuration: "Telecom. Reproduced by OpenBMB."
         role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: tau2
-        score: 69.0
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: tau2
-        score: 20.8
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: tau2
-        score: 92.1
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
-        role: competitor
       - model_as_labelled: "granite-4.2-3B"
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: tau2
@@ -1778,30 +1430,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Telecom. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: tau2
-        score: 28.1
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: tau2
-        score: 20.8
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: tau2
-        score: 16.1
-        unit: "percent"
-        printed: true
-        configuration: "Telecom. Published by Artificial Analysis."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
         model_id: "openbmb/minicpm5-2b"
@@ -2018,70 +1646,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: terminal_bench_v2_1
-        score: 8.6
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: terminal_bench_v2_1
-        score: 4.5
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: terminal_bench_v2_1
-        score: 3.0
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: terminal_bench_v2_1
-        score: 0.4
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: terminal_bench_v2_1
-        score: 25.8
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: terminal_bench_v2_1
-        score: 13.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: terminal_bench_v2_1
-        score: 3.8
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: terminal_bench_v2_1
-        score: 1.9
-        unit: "percent"
-        printed: true
-        configuration: "Published by Artificial Analysis."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
         model_id: "liquid/lfm2-5-8b-a1b"
@@ -2324,78 +1888,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Text-103. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "MiniCPM5-2B"
-        model_id: "openbmb/minicpm5-2b"
-        benchmark_id: gdpval_aa
-        score: 19.6
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Published by Artificial Analysis."
-        role: subject
-      - model_as_labelled: "LFM2.5-2.6B"
-        model_id: "liquid/lfm2-5-2-6b"
-        benchmark_id: gdpval_aa
-        score: 4.5
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-2B"
-        model_id: "qwen/qwen3-5-2b"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-it"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: gdpval_aa
-        score: 11.7
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "granite-4.2-3B"
-        model_id: "ibm/granite-4-2-3b"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Published by Artificial Analysis."
-        role: competitor
-      - model_as_labelled: "Nemotron-3-Nano-4B"
-        model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-it"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
-        role: competitor
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: gdpval_aa
-        score: 0.0
-        unit: "index"
-        printed: true
-        configuration: "v2. Not labelled as Elo on this page. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
         model_id: "openbmb/minicpm5-2b"

@@ -6,7 +6,7 @@ charts:
     kind: image
     image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/06e7b98d2b53bf7ca8b7dfa53d758991a031c2e5-3140x2400.png"
     image_sha256: "675fdd2bc0d83a4d0458c122c53f878ffcfb69a3d7e26d52ff65be4635f0872e"
-    footnotes: "Average of three seeds at temperature 1.0 and top_p 0.95. SWE-bench uses SWE-agent 1.1.0. Terminal-Bench v2 uses a one-tool ReAct harness on Harbor's tmux session. Terminal-Bench Hard uses Terminus-2. SciCode and LiveCodeBench v6 are not tool-use runs. Unstarred rival scores are taken from public reports or the Artificial Analysis Intelligence Index. Gemma's agentic-coding scores are cited from the Qwen team rather than from Gemma's own report. A star marks a run Cohere did because no public number was available. On this figure Devstral's SWE-bench Pro bar is starred."
+    footnotes: "Average of three seeds at temperature 1.0 and top_p 0.95. SWE-bench uses SWE-agent 1.1.0. Terminal-Bench v2 uses a one-tool ReAct harness on Harbor's tmux session. Terminal-Bench Hard uses Terminus-2. SciCode and LiveCodeBench v6 are not tool-use runs. Unstarred rival scores are taken from public reports. Gemma's agentic-coding scores are cited from the Qwen team rather than from Gemma's own report. A star marks a run Cohere did because no public number was available. On this figure Devstral's SWE-bench Pro bar is starred."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

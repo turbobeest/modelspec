@@ -62,54 +62,6 @@ charts:
         role: competitor
       - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 17.50
-        unit: "index"
-        printed: true
-        configuration: "BF16"
-        role: subject
-      - model_as_labelled: "Qwen 3.6 35B A3B"
-        model_id: "qwen/qwen3-6-35b-a3b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 19.47
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma 4 26B A4B"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 22.17
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Nemotron 3 Nano"
-        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 20.15
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Nemotron 3 Super"
-        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 26.68
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-OSS 20B"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 16.62
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
-        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: gpqa_diamond
         score: 75.44
         unit: "percent"
@@ -537,46 +489,6 @@ charts:
         role: subject
       - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-        benchmark_id: gdpval_aa
-        score: 832
-        unit: "elo"
-        printed: true
-        configuration: "AA v2. BF16"
-        role: subject
-      - model_as_labelled: "Qwen 3.6 35B A3B"
-        model_id: "qwen/qwen3-6-35b-a3b"
-        benchmark_id: gdpval_aa
-        score: 1015
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: competitor
-      - model_as_labelled: "Gemma 4 26B A4B"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: gdpval_aa
-        score: 807
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: competitor
-      - model_as_labelled: "Nemotron 3 Nano"
-        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
-        benchmark_id: gdpval_aa
-        score: 473
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: subject
-      - model_as_labelled: "Nemotron 3 Super"
-        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
-        benchmark_id: gdpval_aa
-        score: 746
-        unit: "elo"
-        printed: true
-        configuration: "AA v2"
-        role: subject
-      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
-        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: ifbench
         score: 71.88
         unit: "percent"
@@ -622,54 +534,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Loose."
-        role: competitor
-      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
-        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-        benchmark_id: aa_lcr
-        score: 52.00
-        unit: "percent"
-        printed: true
-        configuration: "BF16"
-        role: subject
-      - model_as_labelled: "Qwen 3.6 35B A3B"
-        model_id: "qwen/qwen3-6-35b-a3b"
-        benchmark_id: aa_lcr
-        score: 61.06
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma 4 26B A4B"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: aa_lcr
-        score: 57.56
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Nemotron 3 Nano"
-        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
-        benchmark_id: aa_lcr
-        score: 32.75
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Nemotron 3 Super"
-        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
-        benchmark_id: aa_lcr
-        score: 58.44
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-OSS 20B"
-        model_id: null
-        benchmark_id: aa_lcr
-        score: 32.88
-        unit: "percent"
-        printed: true
-        configuration: ""
         role: competitor
   - title: "Accuracy"
     kind: image
@@ -843,38 +707,6 @@ charts:
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench"
         score: 14.0
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
-        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-        benchmark_id: aa_lcr
-        score: 52.0
-        unit: "percent"
-        printed: true
-        configuration: "BF16. One decimal as printed."
-        role: subject
-      - model_as_labelled: "Nemotron-3-Nano NVFP4"
-        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
-        benchmark_id: aa_lcr
-        score: 32.8
-        unit: "percent"
-        printed: true
-        configuration: "NVFP4."
-        role: subject
-      - model_as_labelled: "Qwen 3.6 35B A3B"
-        model_id: "qwen/qwen3-6-35b-a3b"
-        benchmark_id: aa_lcr
-        score: 61.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma 4 26B A4B"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: aa_lcr
-        score: 57.6
         unit: "percent"
         printed: true
         configuration: ""

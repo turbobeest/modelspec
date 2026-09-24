@@ -12,58 +12,6 @@ charts:
     bars:
       - model_as_labelled: "LFM2-8B-A1B"
         model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -78.42
-        unit: "index"
-        printed: true
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -24.70
-        unit: "index"
-        printed: true
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 7.33
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 8.67
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 7.46
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 63.47
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: "Comparison with LFM2-8B-A1B. "
-        role: subject
-      - model_as_labelled: "LFM2-8B-A1B"
-        model_id: "liquid/lfm2-8b-a1b"
         benchmark_id: ifeval
         score: 79.44
         unit: "percent"
@@ -208,39 +156,12 @@ charts:
         role: subject
   - title: "Knowledge and instruction following"
     kind: html_table
-    footnotes: "The card does not say whether the other models were rerun or quoted. AA-Omniscience index, accuracy, and non-hallucination are separate columns."
+    footnotes: "The card does not say whether the other models were rerun or quoted."
     competitor_numbers: unstated
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
     bars:
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -24.70
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 8.67
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 63.47
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: subject
       - model_as_labelled: "LFM2.5-8B-A1B"
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifeval
@@ -267,33 +188,6 @@ charts:
         role: subject
       - model_as_labelled: "Granite-4.0-H-Tiny"
         model_id: "ibm/granite-4-0-h-tiny"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -75.50
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Granite-4.0-H-Tiny"
-        model_id: "ibm/granite-4-0-h-tiny"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 9.37
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Granite-4.0-H-Tiny"
-        model_id: "ibm/granite-4-0-h-tiny"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 6.38
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Granite-4.0-H-Tiny"
-        model_id: "ibm/granite-4-0-h-tiny"
         benchmark_id: ifeval
         score: 82.23
         unit: "percent"
@@ -314,33 +208,6 @@ charts:
         score: 59.00
         unit: "percent"
         printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -51.53
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 17.20
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 16.99
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
@@ -369,33 +236,6 @@ charts:
         role: competitor
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
         model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -51.31
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 18.80
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 13.87
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
-        model_id: null
         benchmark_id: ifeval
         score: 90.82
         unit: "percent"
@@ -416,33 +256,6 @@ charts:
         score: 79.04
         unit: "percent"
         printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-IT"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -72
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-IT"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 7.00
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-IT"
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 15.05
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-IT"
@@ -471,33 +284,6 @@ charts:
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-IT"
         model_id: "google/gemma-4-e4b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -50.67
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-IT"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 8.10
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-IT"
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 36.06
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-IT"
-        model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifeval
         score: 87.74
         unit: "percent"
@@ -522,33 +308,6 @@ charts:
         role: competitor
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
         model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -62.07
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-26B-A4B-IT"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 14.37
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-26B-A4B-IT"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 10.75
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-26B-A4B-IT"
-        model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifeval
         score: 91.40
         unit: "percent"
@@ -569,33 +328,6 @@ charts:
         score: 82.06
         unit: "percent"
         printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gpt-oss-20b"
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "AA-Omni. Index"
-        score: -49.17
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gpt-oss-20b"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 14.57
-        unit: "percent"
-        printed: true
-        metric: accuracy
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gpt-oss-20b"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: 24.50
-        unit: "percent"
-        printed: true
-        metric: non_hallucination
         configuration: ""
         role: competitor
       - model_as_labelled: "gpt-oss-20b"
@@ -978,46 +710,6 @@ charts:
       - reader: claude-opus
         date: "2026-09-24"
     bars:
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -24.70
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Granite-4.0-H-Tiny"
-        model_id: "ibm/granite-4-0-h-tiny"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -75.50
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gpt-oss-20b"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -49.17
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-26B-A4B-IT"
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -62.07
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
-        model_id: null
-        benchmark_id: artificialanalysis_aa_omniscience_public
-        score: -51.31
-        unit: "index"
-        printed: true
-        configuration: ""
-        role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifbench

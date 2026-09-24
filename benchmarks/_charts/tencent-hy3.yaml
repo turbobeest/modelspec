@@ -1428,22 +1428,6 @@ charts:
         printed: true
         configuration: "Unstarred. Cited from elsewhere. CL-bench life"
         role: subject
-      - model_as_labelled: "Hy3 preview"
-        model_id: null
-        benchmark_id: aa_lcr
-        score: 66.3
-        unit: "percent"
-        printed: true
-        configuration: "Unstarred. Cited from elsewhere. AA-LCR"
-        role: subject
-      - model_as_labelled: "Hy3"
-        model_id: "tencent/hy3"
-        benchmark_id: aa_lcr
-        score: 73.4
-        unit: "percent"
-        printed: true
-        configuration: "Unstarred. Cited from elsewhere. AA-LCR"
-        role: subject
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: null
@@ -3991,78 +3975,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "Starred. Tencent's own testing of that model. CL-bench life"
-        role: competitor
-      - model_as_labelled: "GLM-5.1"
-        model_id: "zhipu/glm-5-1"
-        benchmark_id: aa_lcr
-        score: 71.0
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "GLM-5.2"
-        model_id: "zhipu/glm-5-2"
-        benchmark_id: aa_lcr
-        score: 73.4
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "DeepSeek-V4 flash"
-        model_id: "deepseek/deepseek-v4-flash"
-        benchmark_id: aa_lcr
-        score: 64.8
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "DeepSeek-V4 pro"
-        model_id: "deepseek/deepseek-v4-pro"
-        benchmark_id: aa_lcr
-        score: 71.3
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "Seed-2.1 pro"
-        model_id: null
-        benchmark_id: aa_lcr
-        score: 70.0
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "Qwen-3.7 Max"
-        model_id: null
-        benchmark_id: aa_lcr
-        score: 70.2
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "Gemini-3.1-pro-preview"
-        model_id: null
-        benchmark_id: aa_lcr
-        score: 74.6
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "Claude-opus-4-8"
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: aa_lcr
-        score: 72.2
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
-        role: competitor
-      - model_as_labelled: "GPT-5.5"
-        model_id: "openai/gpt-5-5"
-        benchmark_id: aa_lcr
-        score: 76.4
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
   - title: "Benchmark overview"
     kind: image
