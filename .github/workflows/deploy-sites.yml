@@ -72,19 +72,32 @@ jobs:
           set -e
           test -s dist/modelspec/index.html
           test -s dist/modelspec/models/index.html
+          test -s dist/modelspec/benchmarks/index.html
           test -s dist/modelspec/sitemap.xml
           test -s dist/modelspec/404.html
-          test -s dist/benchgraph/index.html
-          test -s dist/benchgraph/benchmarks/index.html
-          test -s dist/benchgraph/sitemap.xml
-          test -s dist/benchgraph/404.html
-          test -s dist/benchgraph/api/catalogue.json
           test -s dist/modelspec/api/index.json
           test -s dist/modelspec/api/build.json
+          test -s dist/modelspec/api/catalogue.json
           test -s dist/modelspec/api/rank/candidates.json
           test -s dist/modelspec/api/rank/profiles.json
           test -s dist/modelspec/api/policy/catalogue.json
           test -s dist/modelspec/api/graph/views/hardware.json
+          test -n "$(find dist/modelspec/b -name index.html -print -quit)"
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("dist/benchgraph")
+          files = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
+          if files != ["_redirects"]:
+              raise SystemExit(f"dist/benchgraph should be only _redirects, found {files}")
+          expected = (
+              "/   https://modelspec.dev/benchmarks/  301\n"
+              "/*  https://modelspec.dev/:splat       301\n"
+          )
+          got = (root / "_redirects").read_text(encoding="utf-8")
+          if got != expected:
+              raise SystemExit(f"_redirects content: {got!r}")
+          print("benchgraph.dev redirect tree ok")
+          PY
 
       - name: Check the export carries a pin-able schema version
         run: |

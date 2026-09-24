@@ -215,9 +215,8 @@ def test_benchgraph_headline_counts_pages_apart_from_scored_keys() -> None:
     assert stats["scored_models"] == sum(1 for m in _models() if m.scores)
     assert stats["scores"] == sum(len(rows) for rows in _coverage().values())
     assert stats["pages"] > stats["scored_benchmarks"]
-    source = (REPO_ROOT / "site/benchgraph/index.html").read_text(encoding="utf-8")
-    html = builder.wire_benchgraph_landing(source, stats)
-    today = re.search(r'<p class="today">.*?</p>', html).group(0)
+    from pipeline.render import catalogue_headline
+    today = catalogue_headline(stats)
     assert "benchmarks with reported scores" in today
     assert "benchmark pages" in today
     assert f'<b>{stats["pages"]:,}</b>' in today

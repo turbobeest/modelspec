@@ -27,7 +27,7 @@ def test_body_markdown_renders_escaped() -> None:
         "- one\n- two [site](https://x.example/a?b=1&c=2)\n\n1. first\n2. second\n\n"
         "```\n<tag> & code\n```\n"
     )
-    assert '<a href="https://benchgraph.dev/b/swe_bench/" rel="nofollow noopener">SWE-bench</a>' in out
+    assert '<a href="/b/swe_bench/">SWE-bench</a>' in out
     assert "<h2>What it <em>measures</em></h2>" in out
     assert "<strong>bold</strong> &amp; <code>a&lt;b&gt;</code>" in out
     assert "snake_case_name" in out and "<em>case</em>" not in out

@@ -1,9 +1,0 @@
-# Content-Signal syntax: https://contentsignals.org/
-# (Cloudflare's implementation of publisher AI-use preferences;
-#  also https://blog.cloudflare.com/content-signals-policy/).
-# The published file is written by pipeline/agent_ready.py at build.
-User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
-Allow: /
-
-Sitemap: https://benchgraph.dev/sitemap.xml
