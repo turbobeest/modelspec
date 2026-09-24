@@ -6,7 +6,7 @@ charts:
     kind: image
     image_url: "https://www-cdn.anthropic.com/images/4zrzovbb/website/9941d610909f28a504e16dd5af823df172ec6035-2600x1234.png"
     image_sha256: "849d6a908f0d46ac9afe7c5589da3e49242c41ebd44112e4ba70cdbdf7899b4d"
-    footnotes: "Printed table. Opus 4.8 is marked for reference. GDPval-AA v2 has no percent sign."
+    footnotes: "Printed table. Opus 4.8 is marked for reference."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -133,30 +133,6 @@ charts:
         unit: "percent"
         printed: true
         configuration: "OSWorld-Verified."
-        role: subject
-      - model_as_labelled: "Sonnet 5"
-        model_id: "anthropic/claude-sonnet-5"
-        benchmark_id: gdpval_aa
-        score: 1618
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo."
-        role: subject
-      - model_as_labelled: "Sonnet 4.6"
-        model_id: "anthropic/claude-sonnet-4-6"
-        benchmark_id: gdpval_aa
-        score: 1395
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo."
-        role: subject
-      - model_as_labelled: "Opus 4.8"
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: gdpval_aa
-        score: 1615
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo."
         role: subject
   - title: "Firefox 147 exploit development"
     kind: image

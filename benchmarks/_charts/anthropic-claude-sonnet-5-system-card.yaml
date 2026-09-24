@@ -5,7 +5,7 @@ document_sha256: "33573adb9f1871b903f79b77d7755a44cc20bb913ef48ac9000ddb090e41f7
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
-    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. BrowseComp for Sonnet 5 is printed twice, single-agent and multi-agent. GPT-5.5 on Terminal-Bench 2.1 is the Codex CLI harness. GDPval-AA v2 is Elo as of 17 June 2026. OSWorld-Verified reflects a zoom-tool fix and a higher per-turn token cap."
+    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. BrowseComp for Sonnet 5 is printed twice, single-agent and multi-agent. GPT-5.5 on Terminal-Bench 2.1 is the Codex CLI harness. OSWorld-Verified reflects a zoom-tool fix and a higher per-turn token cap."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -220,70 +220,6 @@ charts:
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1"
         score: 25.5
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: competitor
-      - model_as_labelled: "Claude Sonnet 5"
-        model_id: "anthropic/claude-sonnet-5"
-        benchmark_id: gdpval_aa
-        score: 1618
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo as of 17 June 2026."
-        role: subject
-      - model_as_labelled: "Claude Sonnet 4.6"
-        model_id: "anthropic/claude-sonnet-4-6"
-        benchmark_id: gdpval_aa
-        score: 1395
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo as of 17 June 2026."
-        role: subject
-      - model_as_labelled: "GPT-5.5"
-        model_id: "openai/gpt-5-5"
-        benchmark_id: gdpval_aa
-        score: 1509
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo as of 17 June 2026."
-        role: competitor
-      - model_as_labelled: "Gemini 3.5 Flash"
-        model_id: "google/gemini-3-5-flash"
-        benchmark_id: gdpval_aa
-        score: 1357
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2 Elo as of 17 June 2026."
-        role: competitor
-      - model_as_labelled: "Claude Sonnet 5"
-        model_id: "anthropic/claude-sonnet-5"
-        benchmark_id: automationbench
-        score: 13.5
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: subject
-      - model_as_labelled: "Claude Sonnet 4.6"
-        model_id: "anthropic/claude-sonnet-4-6"
-        benchmark_id: automationbench
-        score: 5.3
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: subject
-      - model_as_labelled: "GPT-5.5"
-        model_id: "openai/gpt-5-5"
-        benchmark_id: automationbench
-        score: 12.9
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: competitor
-      - model_as_labelled: "Gemini 3.5 Flash"
-        model_id: "google/gemini-3-5-flash"
-        benchmark_id: automationbench
-        score: 14.5
         unit: "percent"
         printed: true
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
@@ -1093,24 +1029,6 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
     bars: []
-  - title: "Figure 6.5.1.A: Factuality net scores.​​Number of correct minus incorrect responses on AA-Omniscience.​ ​Abstentions receive a score of zero.​ ​[Figure 6.5."
-    kind: image
-    needs_reading: true
-    footnotes: "Factuality net scores.​​Number of correct minus incorrect responses on AA-Omniscience.​ ​Abstentions receive a score of zero.​ ​[Figure 6.5.1.B] Factuality breakdown.​​Grade breakdown​​on the AA-Omniscience closed-book factuality​ ​benchmark. Each response was graded as correct,"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
-  - title: "Figure 6.5.1.B: Factuality breakdown.​​Grade breakdown​​on the AA-Omniscience closed-book factuality​ ​benchmark. Each response was graded as correct, uncer"
-    kind: image
-    needs_reading: true
-    footnotes: "Factuality breakdown.​​Grade breakdown​​on the AA-Omniscience closed-book factuality​ ​benchmark. Each response was graded as correct, uncertain, or incorrect.​ ​Claude Sonnet 5’s net score on AA-Omniscience is 0.20, comparable to Claude Opus 4.6​ ​(0.21) and above Claude Sonnet"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
   - title: "Figure 6.5.2.A: Honesty under pressure.​​Honesty rate​​on the public MASK split: the fraction of prompts where​ ​the model did not contradict its own elicit"
     kind: image
     needs_reading: true
@@ -1327,15 +1245,6 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
     bars: []
-  - title: "Figure 8.10.1.A: GDP.pdf scores.​​Models are evaluated​​with adaptive thinking and max effort, with and without​ ​Python tools. Mean criteria pass rate score"
-    kind: image
-    needs_reading: true
-    footnotes: "GDP.pdf scores.​​Models are evaluated​​with adaptive thinking and max effort, with and without​ ​Python tools. Mean criteria pass rate scores are averaged over five runs. Shown with 95% CI.​ ​125​"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
   - title: "Figure 8.10.2.A: External OSWorld-Verified scores on max effort across models.​​Claude models evaluated​​on​ ​OSWorld-Verified (361 tasks, 100 steps) with ad"
     kind: image
     needs_reading: true
@@ -1385,15 +1294,6 @@ charts:
     kind: image
     needs_reading: true
     footnotes: "Real-World Finance v2 ELO.​​Each​​model attempts 294 quantitative-finance tasks; a Claude​ ​Opus 4.8 grader compares deliverables pairwise, and ratings are fit via Bradley-Terry with Sonnet 4.6, Opus 4.8,​ ​Mythos, and Fable 5 anchored to their previously published values. Error"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
-  - title: "Figure 8.11.6.A: AutomationBench scores​​on​​Zapier​​leaderboard​​private held-out tasks.​ ​31​​Shepard, D., & Salimans, R. (2026). AutomationBench. arXiv:26"
-    kind: image
-    needs_reading: true
-    footnotes: "AutomationBench scores​​on​​Zapier​​leaderboard​​private held-out tasks.​ ​31​​Shepard, D., & Salimans, R. (2026). AutomationBench. arXiv:2604.18934.​ ​https://arxiv.org/abs/2604.18934​ ​136​"
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
