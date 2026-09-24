@@ -7,6 +7,7 @@ MODEL-138 had not merged ``decision/snapshot.py`` when these tests were written.
 from __future__ import annotations
 
 import random
+import gc
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -801,9 +802,15 @@ def test_filtering_a_30_candidate_index_is_sub_millisecond() -> None:
     assert_partition(result, tuple(rows))
     for _ in range(5):
         filter_apply(resolved, index)
+    # Best of many, with GC paused: a shared CI runner under xdist adds noise
+    # that says nothing about the filter. The bound itself stays at 1 ms.
     samples = []
-    for _ in range(20):
-        start = time.perf_counter()
-        filter_apply(resolved, index)
-        samples.append(time.perf_counter() - start)
+    gc.disable()
+    try:
+        for _ in range(200):
+            start = time.perf_counter()
+            filter_apply(resolved, index)
+            samples.append(time.perf_counter() - start)
+    finally:
+        gc.enable()
     assert min(samples) < 0.001
