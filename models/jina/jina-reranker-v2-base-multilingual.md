@@ -666,9 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    mteb_overall: 68.5
-    mteb_retrieval: 66.2
+  scores: {}
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
 deployment:
@@ -828,7 +826,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # jina reranker v2 base multilingual
