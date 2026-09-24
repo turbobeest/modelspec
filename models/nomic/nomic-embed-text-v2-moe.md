@@ -668,16 +668,20 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    beir: 55.0
-    mteb_classification: 70.5
-    mteb_clustering: 49.5
-    mteb_overall: 65.5
-    mteb_retrieval: 62.2
-    mteb_reranking: 56.5
-    mteb_sts: 82.5
-    mteb_pair_classification: 84.0
-    mteb_summarization: 29.5
     miracl: 65.8
+  evidence:
+  - benchmark_id: miracl
+    model_id_as_evaluated: Nomic Embed v2
+    score: 65.8
+    unit: percent
+    source_url: https://huggingface.co/nomic-ai/nomic-embed-text-v2-moe/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-02-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MIRACL
+    configuration: 'nomic-embed-text-v2-moe model card comparison table, row Nomic Embed v2: MIRACL 65.80.'
+    limitations: ''
   benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -838,7 +842,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: nomic/nomic-embed-text-v2-moe
