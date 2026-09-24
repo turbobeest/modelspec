@@ -7,6 +7,7 @@ onto zhipu/glm-5-2. Identity is an explicit registry, never a display-name match
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+from scripts import seed_models_dev as seeder  # noqa: E402
 from scripts.seed_models_dev import (  # noqa: E402
     KNOWN_IDENTITIES_PATH,
     already_held,
@@ -163,3 +165,115 @@ def test_models_dev_and_seeder_ids_are_explicit() -> None:
 def test_registry_file_is_next_to_the_seeder() -> None:
     assert KNOWN_IDENTITIES_PATH == REPO_ROOT / "scripts" / "models_dev_known_identities.yaml"
     assert KNOWN_IDENTITIES_PATH.is_file()
+
+
+def _rehost_card(models_dir: Path) -> None:
+    path = models_dir / "zhipu" / "glm-5-3.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "---\n"
+        "model_id: zhipu/glm-5-3\n"
+        "display_name: GLM-5.3\n"
+        "provider: zhipu\n"
+        "provider_display: Z.ai\n"
+        "release_date: '2026-08-14'\n"
+        "sources:\n"
+        "  huggingface_url: https://huggingface.co/zai-org/GLM-5.3\n"
+        "---\n",
+        encoding="utf-8",
+    )
+
+
+ZHIPU_GLM_53 = "zhipu/glm-5-3"
+MISTRAL_GLM_53 = "mistral/zai-glm-5-3"
+_DUPLICATE_53 = (
+    "POSSIBLE DUPLICATE of zhipu/glm-5-3: "
+    "same normalized display name and release date"
+)
+
+
+def test_glm_5_3_shaped_rehost_is_proposed_and_flagged(tmp_path, monkeypatch, capsys) -> None:
+    """Same display name and release date, different provider and slug, not in the registry."""
+    _rehost_card(tmp_path / "models")
+    raw = {
+        "id": "zai-org/glm-5-3-rehost",
+        "name": "GLM-5.3",
+        "family": "glm",
+        "release_date": "2026-08-14",
+        "modalities": {"input": ["text"], "output": ["text"]},
+        "reasoning": True,
+        "open_weights": True,
+    }
+    api = {"upstage": {"name": "Upstage", "models": {"zai-org/glm-5-3-rehost": raw}}}
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only", "--dry-run"])
+    seeder.main()
+    new_lines = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("    NEW")]
+    assert new_lines == [f"    NEW zhipu/zai-org-glm-5-3-rehost  {_DUPLICATE_53}"]
+
+    # The write step pastes --attribution-report into the pull request body.
+    report = tmp_path / "attribution.md"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["seed_models_dev.py", "--new-only", "--attribution-report", str(report)],
+    )
+    seeder.main()
+    assert (tmp_path / "models" / "zhipu" / "zai-org-glm-5-3-rehost.md").is_file()
+    assert _DUPLICATE_53 in report.read_text(encoding="utf-8")
+
+
+def test_glm_5_3_mistral_listing_is_already_held(tmp_path: Path) -> None:
+    known = load_known_identities()
+    assert known[MISTRAL_GLM_53] == ZHIPU_GLM_53
+    _write_card(tmp_path, ZHIPU_GLM_53)
+    assert (
+        _held(
+            tmp_path,
+            models_dev_id=MISTRAL_GLM_53,
+            seeder_id=MISTRAL_GLM_53,
+            known=known,
+        )
+        == f"known:{ZHIPU_GLM_53}"
+    )
+
+
+def test_genuinely_new_model_is_proposed_without_a_duplicate_flag(
+    tmp_path, monkeypatch, capsys
+) -> None:
+    _rehost_card(tmp_path / "models")
+    raw = {
+        "id": "brand-new-9b",
+        "name": "Brand New 9B",
+        "release_date": "2026-01-01",
+        "modalities": {"input": ["text"], "output": ["text"]},
+    }
+    api = {"openai": {"name": "OpenAI", "models": {"brand-new-9b": raw}}}
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only", "--dry-run"])
+    seeder.main()
+    new_lines = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("    NEW")]
+    assert new_lines == ["    NEW ? openai/brand-new-9b (creator to be judged: openai)"]
+    assert all("POSSIBLE DUPLICATE" not in line for line in new_lines)
+
+
+def test_same_huggingface_repo_is_proposed_and_flagged(tmp_path, monkeypatch, capsys) -> None:
+    _rehost_card(tmp_path / "models")
+    raw = {
+        "id": "zai-org/GLM-5.3",
+        "name": "Totally Different",
+        "release_date": "2026-09-01",
+        "modalities": {"input": ["text"], "output": ["text"]},
+    }
+    api = {"upstage": {"name": "Upstage", "models": {"zai-org/GLM-5.3": raw}}}
+    monkeypatch.setattr(seeder, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(seeder, "fetch_models_dev", lambda: api)
+    monkeypatch.setattr(sys, "argv", ["seed_models_dev.py", "--new-only", "--dry-run"])
+    seeder.main()
+    new_lines = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("    NEW")]
+    assert new_lines == [
+        "    NEW zhipu/zai-org-glm-5-3  "
+        "POSSIBLE DUPLICATE of zhipu/glm-5-3: same Hugging Face repo zai-org/glm-5.3"
+    ]
