@@ -730,20 +730,55 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [23.957027, 108.679232] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gpt-5.4
+    score: 1452.64
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1452.64 (95% CI 1448.87-1456.41), 63526 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gpt-5.4
+    score: 1480.04
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1480.04 (95% CI 1474.16-1485.91), 17669 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-5.4
-    score: 1465.61
+    score: 1465.66
     unit: elo
-    source_url: https://lmarena.ai/leaderboard
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1465.66 (95% CI 1461.85-1469.46), 63526 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
 deployment:
   api_only: false
   local_inference: false

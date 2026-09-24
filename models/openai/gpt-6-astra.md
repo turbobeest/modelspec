@@ -861,6 +861,55 @@ benchmarks:
     configuration: Launch-page Professional table, Astra column only. Distinct from
       automationbench_aa (AA held-out split, 68.5). Competitor columns were not taken.
     limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1443.72
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1443.72 (95% CI 1432.08-1455.37), 2693 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1488.58
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1488.58 (95% CI 1464.98-1512.19), 645 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1479.77
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1479.77 (95% CI 1468.12-1491.42), 2693 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
