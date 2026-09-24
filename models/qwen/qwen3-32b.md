@@ -669,34 +669,8 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 40.0
-    alpaca_eval: 38.2
-    arena_elo_coding: 1320.0
     arena_elo_hard_prompts: 1367.6
-    arena_elo_math: 1330.0
-    arena_elo_overall: 1310.0
     arena_elo_style_control: 1347.0
-    artificial_analysis_quality_index: 76.0
-    artificial_analysis_speed_index: 70.0
-    bbh: 62.8
-    gpqa_diamond: 62.5
-    humaneval: 85.2
-    ifeval: 84.0
-    live_code_bench: 54.6
-    math_500: 88.5
-    mmlu_pro: 74.8
-    mt_bench: 8.5
-    multipl_e_csharp: 78.2
-    multipl_e_julia: 59.2
-    multipl_e_kotlin: 70.5
-    multipl_e_lua: 53.5
-    multipl_e_perl: 48.5
-    multipl_e_php: 75.8
-    multipl_e_r: 55.5
-    multipl_e_ruby: 63.5
-    multipl_e_scala: 58.2
-    multipl_e_swift: 63.8
-    musr: 30.1
-    wildbench: 65.5
   benchmark_source: lmarena.ai, provider-reports, preference-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -825,6 +799,18 @@ benchmarks:
     benchmark_version: SciCode
     configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
       evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: aider_polyglot
+    model_id_as_evaluated: Qwen3 32B
+    score: 40.0
+    unit: percent
+    source_url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+    source_kind: benchmark_author
+    evidence_date: '2025-05-08'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Aider polyglot (225 exercises)
+    configuration: Aider polyglot leaderboard YAML row model "Qwen3 32B", edit_format diff, pass_rate_2.
     limitations: ''
 deployment:
   api_only: false
@@ -983,7 +969,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: qwen/qwen3-32b

@@ -669,19 +669,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arena_elo_coding: 1250
-    arena_elo_math: 1260
-    arena_elo_overall: 1240
-    artificial_analysis_quality_index: 66
-    artificial_analysis_speed_index: 88
-    bbh: 48.3
-    gpqa_diamond: 42.5
-    humaneval: 70.2
-    ifeval: 73
-    math_500: 74.8
-    mmlu_pro: 57.8
-    musr: 19.4
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:
@@ -841,7 +829,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

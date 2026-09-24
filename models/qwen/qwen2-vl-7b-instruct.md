@@ -678,10 +678,113 @@ benchmarks:
     mathvista: 58.2
     docvqa: 94.5
     chartqa: 83.0
-    ai2d: 83.0
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 54.65
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 BBH
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "BBH Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: chartqa
+    model_id_as_evaluated: Qwen2-VL-7B
+    score: 83.0
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2024-08-28'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: ChartQA test
+    configuration: Qwen2-VL-7B-Instruct model card, Image Benchmarks table, ChartQA test column Qwen2-VL-7B.
+    limitations: ''
+  - benchmark_id: docvqa
+    model_id_as_evaluated: Qwen2-VL-7B
+    score: 94.5
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2024-08-28'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: DocVQA test
+    configuration: Qwen2-VL-7B-Instruct model card, Image Benchmarks table, DocVQA test column Qwen2-VL-7B.
+    limitations: ''
+  - benchmark_id: ifeval
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 45.99
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 IFEval
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "IFEval Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mathvista
+    model_id_as_evaluated: Qwen2-VL-7B
+    score: 58.2
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2024-08-28'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MathVista testmini
+    configuration: Qwen2-VL-7B-Instruct model card, Image Benchmarks table, MathVista testmini column Qwen2-VL-7B.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 40.95
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MMLU-Pro
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "MMLU-PRO Raw" x100 (raw
+      accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mmmu
+    model_id_as_evaluated: Qwen2-VL-7B
+    score: 54.1
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2024-08-28'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MMMU val
+    configuration: Qwen2-VL-7B-Instruct model card, Image Benchmarks table, MMMU val column Qwen2-VL-7B.
+    limitations: ''
+  - benchmark_id: musr
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 43.75
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MuSR
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "MUSR Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2, multimodal-evals
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
+    LLM Leaderboard v2 "GPQA Raw" value for Qwen/Qwen2-VL-7B-Instruct; math_500 holds the Open LLM Leaderboard v2
+    "MATH Lvl 5 Raw" value for Qwen/Qwen2-VL-7B-Instruct. Each value is confirmed for this exact model but is not
+    the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -839,7 +942,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Qwen2 VL 7B Instruct

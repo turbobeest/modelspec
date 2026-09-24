@@ -665,14 +665,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    bbh: 43.8
-    gpqa_diamond: 35.2
-    humaneval: 65
-    ifeval: 68
-    math_500: 58.5
-    mmlu_pro: 50.1
-    musr: 14.2
+  scores: {}
   benchmark_source: provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:
@@ -832,7 +825,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

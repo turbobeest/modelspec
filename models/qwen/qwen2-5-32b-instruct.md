@@ -667,17 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arena_elo_coding: 1260
-    arena_elo_math: 1240
-    arena_elo_overall: 1250
-    bbh: 58.4
-    gpqa_diamond: 48.5
-    humaneval: 78.2
-    ifeval: 78
-    math_500: 76.8
-    mmlu_pro: 65.2
-    musr: 22.1
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   evidence:
@@ -851,7 +841,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
