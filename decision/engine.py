@@ -1,4 +1,9 @@
-"""Runs a spec against a snapshot. The stages land in MODEL-141, MODEL-142 and MODEL-145."""
+"""Runs a spec against a snapshot.
+
+``decision.resolve`` and ``decision.filter`` are the first two stages
+(MODEL-141). Optimise and explain land in MODEL-142 and MODEL-145, so
+``decide`` stays unimplemented until those stages exist.
+"""
 
 from __future__ import annotations
 

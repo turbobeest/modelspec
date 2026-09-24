@@ -1,0 +1,355 @@
+# The provider registry (MODEL-133; design §4.1).
+#
+# A provider is an organisation that serves models for use through an API or a
+# cloud. It replaces the fixed platform fields on `Availability` in
+# `schema/card.py`; `v1_availability_field` names the field each entry takes
+# over, so the offerings migration (MODEL-134) can be checked, not guessed.
+# App-only platforms (consumer chat apps, IDEs, aggregating chat apps) are not
+# providers of offerings and are kept out (design §4.1, "Consumer chat apps are
+# out of scope for now").
+#
+# Adding a provider is an entry here. Loader: decision/registry.py.
+#
+# Entry fields
+#   id                     kebab-case, unique; used in offering paths
+#                          (offerings/<provider>/<lab>/<model>.yaml)
+#   name, url              as the provider names itself; its home page
+#   kind                   lab_api | cloud | inference | aggregator
+#   v1_availability_field  optional: the `Availability` field this replaces
+#   jurisdiction           `unknown`, or a sourced fact:
+#       value      ISO 3166-1 alpha-2 country of the legal entity that contracts
+#                  with a customer in the United States under the provider's
+#                  standard terms (terms that name regional entities are read
+#                  for a United States customer)
+#       entity     that entity, as the terms name it
+#       shown_by   address | incorporation | governing_law: what in the terms
+#                  establishes the country
+#       basis      service_terms | website_terms: website terms govern the site,
+#                  not necessarily the paid service, and are marked as such
+#       source     the URL read;  read  the date it was read (YYYY-MM-DD)
+#       note       optional
+#   attestations           provider-level attestations, each `unknown` or
+#                          {value, source, read}. Provider-level only: whether an
+#                          attestation covers an offering is the offering's
+#                          `offering.attestation.*` fact. Documented, never
+#                          certified.
+#
+# Every attestation is `unknown` at seeding. The trust pages that list them
+# need a rendered browser, and a null beats a guess; they are collected and
+# verified by the two-key process, not by this seed.
+
+schema_version: 1
+
+providers:
+  # ── Labs' own APIs ────────────────────────────────────────────────────────
+  - id: openai
+    name: OpenAI API
+    url: https://platform.openai.com/
+    kind: lab_api
+    jurisdiction:
+      value: US
+      entity: OpenAI OpCo, LLC
+      shown_by: address
+      basis: service_terms
+      source: https://openai.com/policies/services-agreement/
+      read: "2026-09-24"
+      note: The agreement also names OpenAI Ireland Ltd as a contracting entity.
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: anthropic
+    name: Anthropic API
+    url: https://www.anthropic.com/api
+    kind: lab_api
+    jurisdiction:
+      value: US
+      entity: Anthropic, PBC
+      shown_by: governing_law
+      basis: service_terms
+      source: https://www.anthropic.com/legal/commercial-terms
+      read: "2026-09-24"
+      note: Anthropic Ireland, Limited contracts with customers in the EEA, Switzerland or UK.
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: google-gemini-api
+    name: Gemini API (Google AI Studio)
+    url: https://ai.google.dev/
+    kind: lab_api
+    jurisdiction:
+      value: US
+      entity: Google LLC
+      shown_by: address
+      basis: service_terms
+      source: https://developers.google.com/terms
+      read: "2026-09-24"
+      note: >-
+        The Gemini API Additional Terms (https://ai.google.dev/gemini-api/terms)
+        incorporate the Google APIs Terms of Service, which name Google LLC.
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: xai
+    name: xAI API
+    url: https://x.ai/api
+    kind: lab_api
+    v1_availability_field: grok_xai
+    jurisdiction: unknown
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: mistral
+    name: Mistral AI La Plateforme
+    url: https://console.mistral.ai/
+    kind: lab_api
+    v1_availability_field: mistral_plateforme
+    jurisdiction:
+      value: FR
+      entity: Mistral AI
+      shown_by: incorporation
+      basis: service_terms
+      source: https://legal.mistral.ai/terms/commercial-terms-of-service
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: cohere
+    name: Cohere API
+    url: https://cohere.com/
+    kind: lab_api
+    v1_availability_field: cohere
+    jurisdiction:
+      value: CA
+      entity: Cohere Inc.
+      shown_by: governing_law
+      basis: website_terms
+      source: https://cohere.com/terms-of-use
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: deepseek
+    name: DeepSeek Open Platform
+    url: https://platform.deepseek.com/
+    kind: lab_api
+    v1_availability_field: deepseek
+    jurisdiction:
+      value: CN
+      entity: Hangzhou DeepSeek Artificial Intelligence Co., Ltd.
+      shown_by: address
+      basis: service_terms
+      source: https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: alibaba-model-studio
+    name: Alibaba Cloud Model Studio
+    url: https://www.alibabacloud.com/en/product/modelstudio
+    kind: lab_api
+    v1_availability_field: qwen_alibaba
+    jurisdiction: unknown
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: moonshot
+    name: Kimi Open Platform (Moonshot AI)
+    url: https://platform.moonshot.ai/
+    kind: lab_api
+    v1_availability_field: moonshot_kimi
+    jurisdiction:
+      value: SG
+      entity: Moonshot AI PTE. LTD.
+      shown_by: governing_law
+      basis: service_terms
+      source: https://platform.moonshot.ai/docs/agreement/modeluse
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: zai
+    name: Z.ai API
+    url: https://z.ai/
+    kind: lab_api
+    v1_availability_field: zhipu_glm
+    jurisdiction:
+      value: SG
+      entity: JINGSHENG HENGXING TECHNOLOGY PTE.LTD
+      shown_by: governing_law
+      basis: service_terms
+      source: https://docs.z.ai/legal-agreement/terms-of-use
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: minimax
+    name: MiniMax API Platform
+    url: https://www.minimax.io/platform
+    kind: lab_api
+    v1_availability_field: minimax
+    jurisdiction: unknown
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: ai21
+    name: AI21 Studio
+    url: https://www.ai21.com/
+    kind: lab_api
+    v1_availability_field: ai21_labs
+    jurisdiction:
+      value: IL
+      entity: AI21 Labs Ltd.
+      shown_by: governing_law
+      basis: website_terms
+      source: https://www.ai21.com/terms-of-use/
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: meta-llama-api
+    name: Llama API (Meta)
+    url: https://llama.developer.meta.com/
+    kind: lab_api
+    jurisdiction:
+      value: US
+      entity: Meta Platforms, Inc.
+      shown_by: address
+      basis: service_terms
+      source: https://llama.developer.meta.com/legal/terms-of-service
+      read: "2026-09-24"
+      note: Meta Platforms Ireland Limited contracts with customers in the European Region.
+    attestations: {soc2: unknown, iso_27001: unknown}
+
+  # ── Clouds ────────────────────────────────────────────────────────────────
+  - id: aws-bedrock
+    name: Amazon Bedrock
+    url: https://aws.amazon.com/bedrock/
+    kind: cloud
+    v1_availability_field: aws_bedrock
+    jurisdiction:
+      value: US
+      entity: Amazon Web Services, Inc.
+      shown_by: address
+      basis: service_terms
+      source: https://aws.amazon.com/agreement/
+      read: "2026-09-24"
+      note: The AWS Contracting Party varies by account country; Amazon Web Services, Inc. covers any country not listed, including the United States.
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: google-vertex-ai
+    name: Vertex AI (Google Cloud)
+    url: https://cloud.google.com/vertex-ai
+    kind: cloud
+    v1_availability_field: google_vertex_ai
+    jurisdiction:
+      value: US
+      entity: Google LLC
+      shown_by: address
+      basis: service_terms
+      source: https://cloud.google.com/terms/google-entity
+      read: "2026-09-24"
+      note: The Google Cloud contracting entity varies by billing address; Google LLC for the United States.
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: azure-ai-foundry
+    name: Azure AI Foundry
+    url: https://ai.azure.com/
+    kind: cloud
+    v1_availability_field: azure_ai_foundry
+    jurisdiction: unknown
+    attestations: {soc2: unknown, iso_27001: unknown}
+
+  # ── Inference providers ───────────────────────────────────────────────────
+  - id: groq
+    name: GroqCloud
+    url: https://groq.com/
+    kind: inference
+    v1_availability_field: groq
+    jurisdiction:
+      value: US
+      entity: Groq LLC
+      shown_by: address
+      basis: website_terms
+      source: https://groq.com/terms-of-use
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: together-ai
+    name: Together AI
+    url: https://www.together.ai/
+    kind: inference
+    v1_availability_field: together_ai
+    jurisdiction:
+      value: US
+      entity: Together Computer, Inc.
+      shown_by: incorporation
+      basis: website_terms
+      source: https://www.together.ai/terms-of-service
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: fireworks-ai
+    name: Fireworks AI
+    url: https://fireworks.ai/
+    kind: inference
+    v1_availability_field: fireworks_ai
+    jurisdiction:
+      value: US
+      entity: Fireworks.ai, Inc.
+      shown_by: address
+      basis: service_terms
+      source: https://fireworks.ai/terms-of-service
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: deepinfra
+    name: DeepInfra
+    url: https://deepinfra.com/
+    kind: inference
+    v1_availability_field: deepinfra
+    jurisdiction:
+      value: US
+      entity: Deep Infra Inc.
+      shown_by: incorporation
+      basis: service_terms
+      source: https://deepinfra.com/terms
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: cerebras
+    name: Cerebras Inference
+    url: https://www.cerebras.ai/
+    kind: inference
+    v1_availability_field: cerebras
+    jurisdiction:
+      value: US
+      entity: Cerebras Systems Inc.
+      shown_by: address
+      basis: website_terms
+      source: https://www.cerebras.ai/terms-of-service
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: sambanova
+    name: SambaNova Cloud
+    url: https://sambanova.ai/
+    kind: inference
+    v1_availability_field: sambanova
+    jurisdiction:
+      value: US
+      entity: SambaNova Systems, Inc.
+      shown_by: address
+      basis: website_terms
+      source: https://sambanova.ai/terms-and-conditions
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: nvidia-nim
+    name: NVIDIA NIM (build.nvidia.com)
+    url: https://build.nvidia.com/
+    kind: inference
+    v1_availability_field: nvidia_nim
+    jurisdiction:
+      value: US
+      entity: NVIDIA Corporation
+      shown_by: address
+      basis: website_terms
+      source: https://www.nvidia.com/en-us/about-nvidia/terms-of-service/
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: replicate
+    name: Replicate
+    url: https://replicate.com/
+    kind: inference
+    v1_availability_field: replicate
+    jurisdiction:
+      value: US
+      entity: Replicate, LLC
+      shown_by: address
+      basis: service_terms
+      source: https://replicate.com/terms
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}
+
+  # ── Aggregators ───────────────────────────────────────────────────────────
+  - id: openrouter
+    name: OpenRouter
+    url: https://openrouter.ai/
+    kind: aggregator
+    v1_availability_field: openrouter
+    jurisdiction:
+      value: US
+      entity: OpenRouter, Inc.
+      shown_by: address
+      basis: service_terms
+      source: https://openrouter.ai/terms
+      read: "2026-09-24"
+    attestations: {soc2: unknown, iso_27001: unknown}

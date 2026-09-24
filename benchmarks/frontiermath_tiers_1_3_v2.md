@@ -83,6 +83,8 @@ freshness:
   researched_by: Claude Opus 5.5, MODEL-123
   reviewed: ''
   reviewed_by: ''
+domains:
+  - {id: maths, directness: direct}
 ---
 
 ## What it measures

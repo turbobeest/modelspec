@@ -1,0 +1,207 @@
+# FAKE TEST DATA ONLY. No real provider, model, price, source, or measurement.
+# Prices are USD per 1M tokens. All hashes below are synthetic.
+- model: fake-lab/fake-model
+  provider: fake-provider
+  region: test-region
+  tier: standard
+  facts:
+  - id: fake-input-price
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: price.input
+    state: known
+    value: 1.25
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-price-output
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: price.output
+    state: known
+    value: 5.0
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-price-cached
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: price.cached
+    state: known
+    value: 0.25
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-price-batch
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: price.batch
+    state: known
+    value: 0.625
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-speed-ttft_ms
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: speed.ttft_ms
+    state: known
+    value: 200.0
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-speed-tokens_per_second
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: speed.tokens_per_second
+    state: known
+    value: 50.0
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-speed-method
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: speed.method
+    state: known
+    value: FAKE fixed 100-token prompt, 100-token output, one request
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-limits-requests_per_minute
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: limits.requests_per_minute
+    state: known
+    value: 60
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-limits-sla
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: limits.sla
+    state: known
+    value: FAKE test SLA
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-data-retention_days
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: data.retention_days
+    state: known
+    value: 0
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-training
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: training
+    state: known
+    value: false
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-attestations
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: attestations
+    state: known
+    value:
+    - FAKE test attestation
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-fine_tuning
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: fine_tuning
+    state: known
+    value: false
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-private_deployment
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: private_deployment
+    state: known
+    value:
+    - FAKE private option
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+  - id: fake-harness_compatibility
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/standard
+    facet: harness_compatibility
+    state: known
+    value:
+    - fake-harness@1.0
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs
+- model: fake-lab/fake-model
+  provider: fake-provider
+  region: test-region
+  tier: enterprise
+  facts:
+  - id: fake-enterprise-input-price
+    subject:
+      kind: offering
+      id: fake-provider/fake-lab/fake-model/test-region/enterprise
+    facet: price.input
+    state: requires_contract
+    value: null
+    sources:
+    - source_id: fake-doc
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions:
+      - specs

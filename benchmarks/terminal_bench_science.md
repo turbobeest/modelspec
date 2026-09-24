@@ -74,6 +74,9 @@ freshness:
   researched_by: "GPT-5.6 Luna, luna-stream-c-002 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: agentic_tool_use, directness: direct}
+  - {id: engineering_stem, directness: proxy}
 ---
 
 ## What it measures

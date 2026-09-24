@@ -98,6 +98,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice L"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: vision_documents, directness: direct}
+  - {id: engineering_stem, directness: proxy}
 ---
 
 Part of the [LAB-Bench: FigQA](lab_bench_figqa.md) family.

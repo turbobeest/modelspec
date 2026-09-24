@@ -1,0 +1,955 @@
+"""The snapshot: verified facts and evidence, compiled, hashed and signed (MODEL-138).
+
+A decision reads one snapshot and nothing else (design §4.2, §6). This module
+builds it, gates it and loads it:
+
+* ``build_snapshot`` compiles models, offerings and evidence into a columnar
+  snapshot. Only values whose latest verification is ``verified`` enter, and
+  only when every source they name resolves to a registered URL that is not an
+  excluded source. Retired models and their offerings go to a separate
+  ``archive`` section. The legacy flat ``benchmarks.scores`` block is never read.
+* The **completeness gate** fails the build when a guaranteed facet is unknown
+  or unverified for a premier model or one of its offerings, naming the
+  subject, the facet and the source. Computed facets (``computed_by`` in the
+  registry, such as ``estimate.capability``) are skipped: slice 1 does not
+  compute them.
+* ``Snapshot.write`` serialises canonical JSON, gzips it with a fixed header,
+  and signs the content hash with HMAC-SHA256 when ``MODELSPEC_SNAPSHOT_KEY`` is
+  set. The same inputs give the same bytes.
+* ``load_snapshot`` checks the hash and, when a key is available, the
+  signature, then builds the in-memory index: three-valued bitsets over the
+  candidates, per facet value.
+
+Inputs are MODEL-134's records (``decision.model``) or their serialised dicts;
+the builder reads them by field name, so either works.
+"""
+
+from __future__ import annotations
+
+import ast
+import gzip
+import hashlib
+import hmac
+import io
+import json
+import math
+import os
+import re
+from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+from typing import Any, Literal, Protocol, runtime_checkable
+from urllib.parse import urlsplit
+
+import yaml
+
+FORMAT = "modelspec.decision-snapshot"
+FORMAT_VERSION = 1
+KEY_ENV = "MODELSPEC_SNAPSHOT_KEY"
+SIGNATURE_ALG = "hmac-sha256"
+
+FactState = Literal["known", "unknown", "not_disclosed", "requires_contract"]
+Lifecycle = Literal["active", "deprecated", "retired"]
+Directness = Literal["direct", "proxy"]
+FACT_STATES = ("known", "unknown", "not_disclosed", "requires_contract")
+LIFECYCLES = ("active", "deprecated", "retired")
+
+#: A number facet may hold these literals instead of a number (MODEL-133).
+UNBOUNDED = "unbounded"
+NOT_OFFERED = "not_offered"
+
+
+# ── errors ─────────────────────────────────────────────────────────────────
+
+
+class SnapshotError(ValueError):
+    """A snapshot could not be built or read."""
+
+
+class SnapshotBuildError(SnapshotError):
+    """The inputs cannot make a snapshot."""
+
+
+class SnapshotIntegrityError(SnapshotError):
+    """A snapshot file failed its format, hash or signature check."""
+
+
+@dataclass(frozen=True)
+class Gap:
+    """One guaranteed facet a premier subject lacks."""
+
+    model: str
+    subject: str
+    facet: str
+    reason: str
+    sources: tuple[str, ...] = ()
+
+    def __str__(self) -> str:
+        where = ", ".join(self.sources) if self.sources else "no source recorded"
+        return f"{self.subject}: {self.facet} is {self.reason}; source: {where}"
+
+
+class CompletenessError(SnapshotBuildError):
+    """The premier-set completeness gate failed (design §5)."""
+
+    def __init__(self, gaps: Sequence[Gap]):
+        self.gaps = tuple(gaps)
+        lines = "\n  ".join(str(g) for g in self.gaps)
+        super().__init__(f"completeness gate: {len(self.gaps)} guaranteed fact(s) missing "
+                         f"for the premier set:\n  {lines}")
+
+
+# ── the values an index returns ────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class FactValue:
+    state: FactState
+    value: Any = None
+    sources: tuple[str, ...] = ()
+
+
+UNKNOWN = FactValue("unknown")
+
+
+@dataclass(frozen=True)
+class EvidenceValue:
+    benchmark_id: str
+    version: str | None
+    subcategory: str | None
+    value: float
+    unit: str | None
+    measured_by: str | None
+    effort: str | None
+    harness: str | None
+    #: The evidence date; ``None`` when the source gave less than a full date.
+    date: date | None
+    source_ids: tuple[str, ...]
+    verified: bool = True
+    #: Set by ``evidence_for_domain`` only: how directly the benchmark measures
+    #: the domain asked about. An addition to the agreed field list.
+    directness: Directness | None = None
+
+
+@dataclass(frozen=True)
+class Bitset3:
+    """Three disjoint bitsets over ``candidates()``: bit ``i`` is candidate ``i``."""
+
+    passing: int
+    failing: int
+    unknown: int
+
+    def __post_init__(self) -> None:
+        if self.passing & self.failing or self.passing & self.unknown or self.failing & self.unknown:
+            raise ValueError("a Bitset3's three sets must be disjoint")
+
+
+@runtime_checkable
+class SnapshotIndex(Protocol):
+    snapshot_id: str
+
+    def candidates(self) -> Sequence[str]: ...
+
+    def lifecycle(self, cid: str) -> Lifecycle: ...
+
+    def fact(self, cid: str, facet_id: str) -> FactValue: ...
+
+    def ids_where(self, facet_id: str, op: str, arg: Any) -> Bitset3: ...
+
+    def evidence(self, cid: str, benchmark_id: str, *, measured_by: set[str] | None = None,
+                 effort: str | None = None, harness: str | None = None,
+                 after: date | None = None) -> Sequence[EvidenceValue]: ...
+
+    def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
+
+
+# ── excluded sources ───────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class ExcludedSources:
+    """The excluded-source rules, read from ``tests/test_removed_sources.py``.
+
+    That file is the one place allowed to name the excluded publishers
+    (MODEL-117), so the rules are parsed out of it rather than copied here.
+    """
+
+    hosts: tuple[str, ...]
+    text: re.Pattern[str]
+    ids: re.Pattern[str]
+
+    def url(self, url: Any) -> bool:
+        host = (urlsplit(str(url or "").strip()).hostname or "").lower().rstrip(".")
+        return any(host == h or host.endswith("." + h) for h in self.hosts)
+
+    def benchmark(self, benchmark_id: Any) -> bool:
+        return bool(self.ids.search(str(benchmark_id)))
+
+
+def excluded_sources(repo_root: Path) -> ExcludedSources:
+    path = Path(repo_root) / "tests" / "test_removed_sources.py"
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError) as exc:
+        raise SnapshotBuildError(f"cannot read the excluded-source guard {path}: {exc}") from exc
+    found: dict[str, Any] = {}
+    for node in tree.body:
+        target = (node.target if isinstance(node, ast.AnnAssign)
+                  else node.targets[0] if isinstance(node, ast.Assign) else None)
+        if isinstance(target, ast.Name) and target.id in ("REMOVED_HOSTS", "REMOVED_TEXT",
+                                                          "REMOVED_ID"):
+            found[target.id] = node.value
+    try:
+        hosts = tuple(ast.literal_eval(found["REMOVED_HOSTS"]))
+        text, ids = (_compiled(found[name]) for name in ("REMOVED_TEXT", "REMOVED_ID"))
+    except (KeyError, ValueError) as exc:
+        raise SnapshotBuildError(f"{path}: cannot read the excluded-source rules ({exc})") from exc
+    return ExcludedSources(hosts=hosts, text=text, ids=ids)
+
+
+def _compiled(node: ast.AST) -> re.Pattern[str]:
+    """``re.compile("…", re.FLAG | …)`` as a pattern, without executing the file."""
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "compile"):
+        raise ValueError("expected re.compile(...)")
+    pattern = ast.literal_eval(node.args[0])
+    flags = 0
+    stack = list(node.args[1:])
+    while stack:
+        part = stack.pop()
+        if isinstance(part, ast.BinOp) and isinstance(part.op, ast.BitOr):
+            stack += [part.left, part.right]
+        elif isinstance(part, ast.Attribute):
+            flags |= getattr(re, part.attr)
+        else:
+            raise ValueError("unsupported regex flag expression")
+    return re.compile(pattern, flags)
+
+
+# ── inputs ─────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class SnapshotInputs:
+    """What a snapshot is compiled from. Records may be MODEL-134 objects or dicts."""
+
+    models: Sequence[Any] = ()
+    offerings: Sequence[Any] = ()
+    evidence: Sequence[Any] = ()
+    #: Registered source ID -> URL.
+    sources: Mapping[str, str] = field(default_factory=dict)
+    #: Benchmark ID -> ((domain ID, directness), ...), from the benchmark pages.
+    benchmark_domains: Mapping[str, Sequence[Sequence[str]]] = field(default_factory=dict)
+    #: The verification log. The latest verification of a target wins, over an
+    #: inline one too.
+    verifications: Sequence[Any] = ()
+
+
+def _as_dict(record: Any) -> dict[str, Any]:
+    if isinstance(record, Mapping):
+        return dict(record)
+    if hasattr(record, "model_dump"):
+        return record.model_dump(mode="json", by_alias=True)
+    raise SnapshotBuildError(f"not a record: {record!r}")
+
+
+def _offering_id(o: Mapping[str, Any]) -> str:
+    return f"{o['provider']}/{o['model']}/{o['region']}/{o['tier']}"
+
+
+# ── canonical form, hash and signature ─────────────────────────────────────
+
+
+def canonical_json(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                      allow_nan=False).encode("utf-8")
+
+
+def content_hash(content: Mapping[str, Any]) -> str:
+    return "sha256:" + hashlib.sha256(canonical_json(content)).hexdigest()
+
+
+def snapshot_id_for(digest: str) -> str:
+    return "snap_" + digest.removeprefix("sha256:")[:16]
+
+
+def _key_bytes(key: bytes | str | None) -> bytes | None:
+    if key is None or key == "" or key == b"":
+        return None
+    return key.encode("utf-8") if isinstance(key, str) else key
+
+
+def _sign(digest: str, key: bytes) -> str:
+    return hmac.new(key, digest.encode("ascii"), hashlib.sha256).hexdigest()
+
+
+_FROM_ENV: Any = object()
+
+
+def env_key() -> bytes | None:
+    """The signing key from ``MODELSPEC_SNAPSHOT_KEY``, or ``None``."""
+    return _key_bytes(os.environ.get(KEY_ENV))
+
+
+# ── the built snapshot ─────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    content: Mapping[str, Any]
+    content_hash: str
+    snapshot_id: str
+
+    def envelope(self, key: bytes | str | None = _FROM_ENV) -> dict[str, Any]:
+        key = env_key() if key is _FROM_ENV else _key_bytes(key)
+        signature = None if key is None else {"alg": SIGNATURE_ALG,
+                                              "value": _sign(self.content_hash, key)}
+        return {"format": FORMAT, "format_version": FORMAT_VERSION,
+                "snapshot_id": self.snapshot_id, "content_hash": self.content_hash,
+                "signature": signature, "content": self.content}
+
+    def to_bytes(self, key: bytes | str | None = _FROM_ENV) -> bytes:
+        buf = io.BytesIO()
+        # A fixed mtime and no file name keep the gzip header deterministic.
+        with gzip.GzipFile(filename="", mode="wb", fileobj=buf, compresslevel=9, mtime=0) as gz:
+            gz.write(canonical_json(self.envelope(key)))
+        return buf.getvalue()
+
+    def write(self, path: str | Path, *, key: bytes | str | None = _FROM_ENV) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(self.to_bytes(key))
+        return path
+
+
+# ── building ───────────────────────────────────────────────────────────────
+
+
+class _Compiler:
+    def __init__(self, inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None):
+        self.inputs = inputs
+        self.registry = registry
+        self.guard = guard
+        self.sources = {str(k): str(v) for k, v in inputs.sources.items()}
+        self.excluded: Counter[str] = Counter()
+        #: (subject, facet) -> (reason, source URLs), for the gate's messages.
+        self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
+        self.log = self._verification_log(inputs.verifications)
+        #: subject id -> {"kind", "model", "lifecycle"}
+        self.subjects: dict[str, dict[str, Any]] = {}
+        #: subject id -> facet -> [state, value, source ids]
+        self.facts: dict[str, dict[str, list[Any]]] = {}
+        self.facet_subject: dict[str, str] = {}
+        self.evidence: dict[str, list[list[Any]]] = {}
+        self.used_sources: set[str] = set()
+
+    # verification ------------------------------------------------------------
+
+    @staticmethod
+    def _verification_log(rows: Iterable[Any]) -> dict[tuple[str, str], tuple[str, int, dict]]:
+        latest: dict[tuple[str, str], tuple[str, int, dict]] = {}
+        for i, raw in enumerate(rows):
+            v = _as_dict(raw)
+            target = (v["target"]["kind"], v["target"]["id"])
+            entry = (str(v["date"]), 1, v)
+            if target not in latest or entry[:2] >= latest[target][:2]:
+                latest[target] = entry
+        return latest
+
+    def _outcome(self, kind: str, rid: Any, inline: Any) -> str:
+        """The latest verification's outcome, or ``unverified``."""
+        best = None if inline is None else (str(_as_dict(inline)["date"]), 0, _as_dict(inline))
+        logged = self.log.get((kind, str(rid))) if rid is not None else None
+        if logged is not None and (best is None or logged[:2] >= best[:2]):
+            best = logged
+        return "unverified" if best is None else str(best[2]["outcome"])
+
+    # admission ---------------------------------------------------------------
+
+    def _source_ids(self, refs: Iterable[Any]) -> list[str]:
+        return sorted({str(_as_dict(r)["source_id"]) for r in refs or ()})
+
+    def _admit(self, kind: str, rid: Any, inline: Any, source_ids: list[str],
+               extra_urls: Iterable[Any] = (), benchmark: Any = None) -> str | None:
+        """Why a record stays out, or ``None`` when it enters."""
+        urls = [self.sources[s] for s in source_ids if s in self.sources]
+        if self.guard is not None and (any(self.guard.url(u) for u in [*urls, *extra_urls])
+                                       or (benchmark is not None
+                                           and self.guard.benchmark(benchmark))):
+            return "excluded_source"
+        outcome = self._outcome(kind, rid, inline)
+        if outcome != "verified":
+            return f"quarantined ({outcome})"
+        if not source_ids:
+            return "unsourced"
+        if len(urls) != len(source_ids):
+            return "unresolved_source"
+        return None
+
+    def _reject(self, key: tuple[str, str], reason: str, source_ids: list[str]) -> None:
+        self.excluded["quarantined" if reason.startswith("quarantined") else reason] += 1
+        urls = tuple(self.sources.get(s, s) for s in source_ids)
+        self.rejected[key] = (reason, urls)
+
+    # subjects ----------------------------------------------------------------
+
+    def _check_facet(self, facet_id: str, kind: str) -> None:
+        if self.registry is not None:
+            try:
+                self.registry.facet(facet_id)
+            except KeyError as exc:
+                raise SnapshotBuildError(f"facet {facet_id!r} is not registered") from exc
+        seen = self.facet_subject.setdefault(facet_id, kind)
+        if seen != kind:
+            raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
+
+    def _add_facts(self, sid: str, kind: str, facts: Iterable[Any]) -> None:
+        row = self.facts.setdefault(sid, {})
+        for raw in facts or ():
+            f = _as_dict(raw)
+            facet_id, state = str(f["facet"]), str(f["state"])
+            self._check_facet(facet_id, kind)
+            if state not in FACT_STATES:
+                raise SnapshotBuildError(f"{sid}: {facet_id} has an unknown state {state!r}")
+            if facet_id in row or (sid, facet_id) in self.rejected:
+                raise SnapshotBuildError(f"{sid}: {facet_id} is stated twice")
+            source_ids = self._source_ids(f.get("sources"))
+            if state == "unknown":
+                self.rejected[(sid, facet_id)] = ("unknown", tuple(
+                    self.sources.get(s, s) for s in source_ids))
+                continue
+            reason = self._admit("fact", f.get("id"), f.get("verification"), source_ids)
+            if reason is not None:
+                self._reject((sid, facet_id), reason, source_ids)
+                continue
+            self.used_sources.update(source_ids)
+            row[facet_id] = [state, f.get("value") if state == "known" else None, source_ids]
+
+    def add_model(self, raw: Any) -> None:
+        m = _as_dict(raw)
+        mid, lifecycle = str(m["id"]), str(m.get("lifecycle"))
+        if lifecycle not in LIFECYCLES:
+            raise SnapshotBuildError(f"{mid}: lifecycle {lifecycle!r} is not one of {LIFECYCLES}")
+        if mid in self.subjects:
+            raise SnapshotBuildError(f"model {mid} appears twice")
+        self.subjects[mid] = {"kind": "model", "model": mid, "lifecycle": lifecycle}
+        self._add_facts(mid, "model", m.get("facts"))
+
+    def add_offering(self, raw: Any) -> None:
+        o = _as_dict(raw)
+        oid, mid = _offering_id(o), str(o["model"])
+        if mid not in self.subjects:
+            raise SnapshotBuildError(f"offering {oid} names model {mid}, which is not in the catalogue")
+        if oid in self.subjects:
+            raise SnapshotBuildError(f"offering {oid} appears twice")
+        self.subjects[oid] = {"kind": "offering", "model": mid,
+                              "lifecycle": self.subjects[mid]["lifecycle"]}
+        self._add_facts(oid, "offering", o.get("facts"))
+        # An offering's identity is its provider, region and tier: structural,
+        # not a sourced claim, so they carry no source.
+        row = self.facts[oid]
+        for part in ("provider", "region", "tier"):
+            facet_id = f"offering.{part}"
+            if facet_id not in row:
+                self._check_facet(facet_id, "offering")
+                row[facet_id] = ["known", str(o[part]), []]
+
+    def add_evidence(self, raw: Any) -> None:
+        e = _as_dict(raw)
+        subject = e.get("subject") or {}
+        sid = subject.get("id")
+        if sid is None:
+            self.excluded["quarantined"] += 1  # no subject: cannot be v2-verified
+            return
+        if sid not in self.subjects:
+            raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
+        source_ids = self._source_ids(e.get("sources"))
+        reason = self._admit("evidence", e.get("id"), e.get("verification"), source_ids,
+                             extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+        if reason is not None:
+            self.excluded["quarantined" if reason.startswith("quarantined") else reason] += 1
+            return
+        self.used_sources.update(source_ids)
+        self.evidence.setdefault(sid, []).append([
+            str(e["benchmark_id"]), e.get("benchmark_version") or None, e.get("subcategory"),
+            float(e["score"]), e.get("unit"), e.get("measured_by"), e.get("effort"),
+            e.get("harness"), str(e.get("evidence_date") or "") or None, source_ids,
+        ])
+
+    # output ------------------------------------------------------------------
+
+    def _section(self, ids: list[str]) -> dict[str, Any]:
+        index = {sid: i for i, sid in enumerate(ids)}
+        columns: dict[str, dict[str, list[Any]]] = {}
+        for sid in ids:
+            for facet_id, (state, value, sources) in self.facts.get(sid, {}).items():
+                col = columns.setdefault(facet_id, {"row": [], "state": [], "value": [],
+                                                    "sources": []})
+                col["row"].append(index[sid])
+                col["state"].append(state)
+                col["value"].append(value)
+                col["sources"].append(sources)
+        return {
+            "candidates": [{"id": sid, **self.subjects[sid]} for sid in ids],
+            "facets": columns,
+            "evidence": {sid: sorted(self.evidence[sid], key=lambda r: (
+                r[0], r[8] or "", r[3], canonical_json(r))) for sid in ids if sid in self.evidence},
+        }
+
+    def content(self, as_of: date | None) -> dict[str, Any]:
+        lineup = sorted(s for s, v in self.subjects.items() if v["lifecycle"] != "retired")
+        archive = sorted(s for s, v in self.subjects.items() if v["lifecycle"] == "retired")
+        domains = {}
+        for bench, tags in sorted(self.inputs.benchmark_domains.items()):
+            if self.guard is not None and self.guard.benchmark(bench):
+                continue
+            domains[str(bench)] = sorted([str(d), str(k)] for d, k in tags)
+        return {
+            "format_version": FORMAT_VERSION,
+            "as_of": as_of.isoformat() if as_of else None,
+            "facet_subjects": dict(sorted(self.facet_subject.items())),
+            "lineup": self._section(lineup),
+            "archive": self._section(archive),
+            "benchmark_domains": domains,
+            "sources": {s: self.sources[s] for s in sorted(self.used_sources)},
+            "excluded": dict(sorted(self.excluded.items())),
+        }
+
+    # the gate ----------------------------------------------------------------
+
+    def gaps(self, premier: Iterable[str]) -> list[Gap]:
+        if self.registry is None:
+            raise SnapshotBuildError("the completeness gate needs the facet registry")
+        guaranteed = [f for f in self.registry.facets()
+                      if f.tier == "guaranteed" and not getattr(f, "computed_by", None)
+                      and f.subject in ("model", "offering")]
+        out: list[Gap] = []
+        for mid in sorted(set(premier)):
+            subject = self.subjects.get(mid)
+            if subject is None:
+                out.append(Gap(mid, mid, "(model)", "not in the catalogue"))
+                continue
+            if subject["lifecycle"] == "retired":
+                continue  # retired models leave the premier set (design §5)
+            offerings = sorted(s for s, v in self.subjects.items()
+                               if v["kind"] == "offering" and v["model"] == mid)
+            for f in sorted(guaranteed, key=lambda f: f.id):
+                for sid in ([mid] if f.subject == "model" else offerings):
+                    if f.id in self.facts.get(sid, {}):
+                        continue
+                    reason, urls = self.rejected.get((sid, f.id), ("unknown (no fact)", ()))
+                    if reason == "unknown":
+                        reason = "unknown (stated as unknown)"
+                    out.append(Gap(mid, sid, f.id, reason, urls))
+        return out
+
+
+def default_registry() -> Any:
+    try:
+        from decision import registry
+    except ImportError as exc:  # MODEL-133 not present
+        raise SnapshotBuildError(f"the facet registry is not available: {exc}") from exc
+    return registry.default()
+
+
+def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
+                   premier: Iterable[str] | None = None, as_of: date | None = None,
+                   guard: ExcludedSources | None = None) -> Snapshot:
+    """Compile ``inputs``. With ``premier``, run the completeness gate first.
+
+    ``registry`` validates facet IDs and names the guaranteed facets; it is
+    required when ``premier`` is given. ``guard`` drops excluded sources and
+    scans the output; ``build_from_repo`` always passes it.
+    """
+    c = _Compiler(inputs, registry, guard)
+    for m in inputs.models:
+        c.add_model(m)
+    for o in inputs.offerings:
+        c.add_offering(o)
+    for e in inputs.evidence:
+        c.add_evidence(e)
+    if premier is not None:
+        gaps = c.gaps(premier)
+        if gaps:
+            raise CompletenessError(gaps)
+    content = c.content(as_of)
+    if guard is not None:
+        text = canonical_json(content).decode("utf-8")
+        hit = guard.text.search(text)
+        bad = [u for u in content["sources"].values() if guard.url(u)]
+        if hit or bad:
+            raise SnapshotBuildError(
+                f"excluded source in the snapshot output: {hit.group(0) if hit else bad[0]!r}")
+    digest = content_hash(content)
+    return Snapshot(content=content, content_hash=digest, snapshot_id=snapshot_id_for(digest))
+
+
+# ── reading the repository ─────────────────────────────────────────────────
+
+
+_LIFECYCLE_FROM_STATUS = {"deprecated": "deprecated", "sunset": "deprecated"}
+
+
+def collect_repo(root: Path) -> SnapshotInputs:
+    """Read the snapshot's inputs from a repository checkout.
+
+    * Cards (``models/``): ``lifecycle`` (else the v1 ``status``: deprecated and
+      sunset map to ``deprecated``, everything else to ``active``), v2 ``facts``,
+      and ``benchmarks.evidence`` rows. ``benchmarks.scores`` is never read.
+    * Offerings: ``offerings/<provider>/<lab>/<model>.yaml``, each a list.
+    * Sources: ``registry/sources.yaml`` (``sources: [{id, url}]``).
+    * Domains: each benchmark page's ``domains`` tags.
+    * The verification log: ``verification/*.jsonl``.
+    """
+    from pipeline.load import load_benchmarks, load_models
+
+    root = Path(root)
+    models, evidence = [], []
+    for card in load_models(root):
+        mid = card.model_id
+        front = card.front
+        lifecycle = front.get("lifecycle") or _LIFECYCLE_FROM_STATUS.get(
+            str(front.get("status") or ""), "active")
+        facts = []
+        for f in front.get("facts") or []:
+            facts.append({"subject": {"kind": "model", "id": mid},
+                          "id": f"{mid}#{f.get('facet')}", **f})
+        models.append({"id": mid, "lifecycle": lifecycle, "facts": facts})
+        for row in card.evidence:
+            evidence.append({"subject": {"kind": "model", "id": mid}, **row})
+    offerings = []
+    for path in sorted((root / "offerings").glob("*/*/*.yaml")):
+        rows = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+        if not isinstance(rows, list):
+            raise SnapshotBuildError(f"{path}: an offering file is a list")
+        for o in rows:
+            oid = _offering_id(o)
+            o = dict(o)
+            o["facts"] = [{"subject": {"kind": "offering", "id": oid},
+                           "id": f"{oid}#{f.get('facet')}", **f} for f in o.get("facts") or []]
+            offerings.append(o)
+    sources: dict[str, str] = {}
+    sources_file = root / "registry" / "sources.yaml"
+    if sources_file.is_file():
+        data = yaml.safe_load(sources_file.read_text(encoding="utf-8")) or {}
+        for s in data.get("sources") or []:
+            sources[str(s["id"])] = str(s["url"])
+    domains = {}
+    for b in load_benchmarks(root):
+        tags = b.front.get("domains") or []
+        if tags:
+            domains[b.benchmark_id] = tuple((str(t["id"]), str(t["directness"])) for t in tags)
+    verifications = []
+    for path in sorted((root / "verification").glob("*.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                verifications.append(json.loads(line))
+    return SnapshotInputs(models=models, offerings=offerings, evidence=evidence, sources=sources,
+                          benchmark_domains=domains, verifications=verifications)
+
+
+def load_premier(path: str | Path) -> tuple[str, ...]:
+    """The premier model IDs from a YAML file: a list, or ``models:`` a list.
+
+    Each item is an ID or a mapping with ``id`` or ``model_id``.
+    """
+    path = Path(path)
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise SnapshotBuildError(f"cannot read the premier list {path}: {exc}") from exc
+    items = data.get("models") if isinstance(data, Mapping) else data
+    ids = set()
+    for item in items or []:
+        mid = item.get("id") or item.get("model_id") if isinstance(item, Mapping) else item
+        if not isinstance(mid, str) or not mid:
+            raise SnapshotBuildError(f"{path}: premier entry {item!r} has no model id")
+        ids.add(mid)
+    if not ids:
+        raise SnapshotBuildError(f"{path}: no premier models listed")
+    return tuple(sorted(ids))
+
+
+def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | None,
+                    registry: Any = None) -> Snapshot:
+    """The production build: collect, guard, gate and compile."""
+    root = Path(root)
+    return build_snapshot(
+        collect_repo(root),
+        registry=registry if registry is not None else default_registry(),
+        premier=load_premier(premier) if premier is not None else None,
+        as_of=as_of,
+        guard=excluded_sources(root),
+    )
+
+
+# ── loading ────────────────────────────────────────────────────────────────
+
+
+def _date(value: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _key(value: Any) -> str:
+    return json.dumps(value, sort_keys=True)
+
+
+def _ordered(value: Any) -> Any:
+    if value == UNBOUNDED:
+        return math.inf
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
+
+
+def _holds(value: Any, op: str, arg: Any) -> bool:
+    """Whether a known value satisfies ``op arg``."""
+    if op in ("=", "=="):
+        if isinstance(value, list):
+            return isinstance(arg, (list, tuple, set, frozenset)) and sorted(value) == sorted(arg)
+        return _ordered(value) == _ordered(arg)
+    if op == "!=":
+        return not _holds(value, "=", arg)
+    if op in ("in", "not_in"):
+        members = {_key(_ordered(a)) for a in arg}
+        found = (any(_key(v) in members for v in value) if isinstance(value, list)
+                 else _key(_ordered(value)) in members)
+        return found if op == "in" else not found
+    if op == "contains":
+        return isinstance(value, list) and arg in value
+    if op == "contains_all":
+        return isinstance(value, list) and set(arg) <= set(value)
+    if op == "contains_any":
+        return isinstance(value, list) and bool(set(arg) & set(value))
+    if op in ("<", "<=", ">", ">=", "between"):
+        if value == NOT_OFFERED or isinstance(value, (list, bool)):
+            return False
+        v = _ordered(value)
+        try:
+            if op == "between":
+                low, high = arg
+                return _ordered(low) <= v <= _ordered(high)
+            a = _ordered(arg)
+            return {"<": v < a, "<=": v <= a, ">": v > a, ">=": v >= a}[op]
+        except TypeError as exc:
+            raise SnapshotError(f"cannot compare {value!r} {op} {arg!r}") from exc
+    raise SnapshotError(f"unknown operator {op!r}")
+
+
+class LoadedSnapshot:
+    """The in-memory index over one snapshot. Implements ``SnapshotIndex``."""
+
+    def __init__(self, envelope: Mapping[str, Any], *, include_archive: bool,
+                 signature_verified: bool):
+        content = envelope["content"]
+        self.snapshot_id: str = envelope["snapshot_id"]
+        self.content_hash: str = envelope["content_hash"]
+        self.signature_verified = signature_verified
+        self.as_of = _date(content.get("as_of"))
+        self.excluded: dict[str, int] = dict(content.get("excluded") or {})
+        self._sources: dict[str, str] = dict(content["sources"])
+        sections = [content["lineup"]] + ([content["archive"]] if include_archive else [])
+
+        rows: list[tuple[dict[str, Any], dict[str, Any], int]] = []
+        for section in sections:
+            for i, cand in enumerate(section["candidates"]):
+                rows.append((cand, section, i))
+        rows.sort(key=lambda r: r[0]["id"])
+        self._ids: tuple[str, ...] = tuple(r[0]["id"] for r in rows)
+        self._row = {cid: i for i, cid in enumerate(self._ids)}
+        self._meta = {r[0]["id"]: r[0] for r in rows}
+        self._all = (1 << len(self._ids)) - 1
+
+        facts: dict[str, dict[int, FactValue]] = {}
+        for section in sections:
+            local = [c["id"] for c in section["candidates"]]
+            for facet_id, col in section["facets"].items():
+                target = facts.setdefault(facet_id, {})
+                for r, state, value, srcs in zip(col["row"], col["state"], col["value"],
+                                                 col["sources"]):
+                    target[self._row[local[r]]] = FactValue(state, value, tuple(srcs))
+        # An offering is its model as sold: it answers its model's facets.
+        subjects = content.get("facet_subjects") or {}
+        for facet_id, by_row in facts.items():
+            if subjects.get(facet_id) != "model":
+                continue
+            for cid, meta in self._meta.items():
+                if meta["kind"] == "offering":
+                    row, model_row = self._row[cid], self._row.get(meta["model"])
+                    if row not in by_row and model_row in by_row:
+                        by_row[row] = by_row[model_row]
+        self._facts = facts
+
+        # Three-valued bitsets per facet value: `known` per facet, and for each
+        # string or boolean value (or set member) the candidates holding it.
+        self._known: dict[str, int] = {}
+        self._value_bits: dict[str, dict[str, int]] = {}
+        for facet_id, by_row in facts.items():
+            known = 0
+            values: dict[str, int] = {}
+            for row, fv in by_row.items():
+                if fv.state != "known":
+                    continue
+                known |= 1 << row
+                for member in (fv.value if isinstance(fv.value, list) else [fv.value]):
+                    if isinstance(member, (str, bool)):
+                        k = _key(member)
+                        values[k] = values.get(k, 0) | 1 << row
+            self._known[facet_id] = known
+            self._value_bits[facet_id] = values
+
+        evidence: dict[str, tuple[EvidenceValue, ...]] = {}
+        for section in sections:
+            for cid, ev_rows in section["evidence"].items():
+                evidence[cid] = tuple(
+                    EvidenceValue(benchmark_id=r[0], version=r[1], subcategory=r[2], value=r[3],
+                                  unit=r[4], measured_by=r[5], effort=r[6], harness=r[7],
+                                  date=_date(r[8]), source_ids=tuple(r[9]))
+                    for r in ev_rows)
+        self._evidence = evidence
+        self._domains: dict[str, list[tuple[str, str]]] = {}
+        for bench, tags in content["benchmark_domains"].items():
+            for domain_id, directness in tags:
+                self._domains.setdefault(domain_id, []).append((bench, directness))
+
+    # SnapshotIndex -----------------------------------------------------------
+
+    def candidates(self) -> Sequence[str]:
+        return self._ids
+
+    def _check(self, cid: str) -> int:
+        try:
+            return self._row[cid]
+        except KeyError:
+            raise KeyError(f"{cid!r} is not a candidate in snapshot {self.snapshot_id}") from None
+
+    def lifecycle(self, cid: str) -> Lifecycle:
+        self._check(cid)
+        return self._meta[cid]["lifecycle"]
+
+    def fact(self, cid: str, facet_id: str) -> FactValue:
+        return self._facts.get(facet_id, {}).get(self._check(cid), UNKNOWN)
+
+    def ids_where(self, facet_id: str, op: str, arg: Any) -> Bitset3:
+        """Candidates passing, failing, or unknown on ``facet op arg``.
+
+        Operators: ``=`` (or ``==``), ``!=``, ``<``, ``<=``, ``>``, ``>=``,
+        ``between`` (a (low, high) pair, inclusive), ``in``, ``not_in``,
+        ``contains``, ``contains_all``, ``contains_any`` (on set facets) and
+        ``known``. Any state but ``known`` is unknown; ``known`` itself is
+        never unknown. ``unbounded`` exceeds every number; ``not_offered``
+        fails every ordered comparison.
+        """
+        known = self._known.get(facet_id, 0)
+        if op == "known":
+            return Bitset3(known, self._all & ~known, 0)
+        values = self._value_bits.get(facet_id, {})
+        passing: int | None = None
+        if op in ("=", "==", "!=") and isinstance(arg, (str, bool)):
+            passing = values.get(_key(arg), 0) & known
+            if any(isinstance(self._facts[facet_id][r].value, list) for r in self._rows(known)):
+                passing = None  # set equality is not membership
+            elif op == "!=":
+                passing = known & ~passing
+        elif op in ("in", "not_in") and all(isinstance(a, (str, bool)) for a in arg):
+            hit = 0
+            for a in arg:
+                hit |= values.get(_key(a), 0)
+            passing = known & (hit if op == "in" else ~hit)
+        elif op == "contains" and isinstance(arg, (str, bool)):
+            passing = values.get(_key(arg), 0) & known
+        if passing is None:
+            passing = 0
+            by_row = self._facts.get(facet_id, {})
+            for row in self._rows(known):
+                if _holds(by_row[row].value, op, arg):
+                    passing |= 1 << row
+        return Bitset3(passing, known & ~passing, self._all & ~known)
+
+    def evidence(self, cid: str, benchmark_id: str, *, measured_by: set[str] | None = None,
+                 effort: str | None = None, harness: str | None = None,
+                 after: date | None = None) -> Sequence[EvidenceValue]:
+        """Evidence for one benchmark; ``after`` is exclusive. Unknown dates never pass it."""
+        self._check(cid)
+        return tuple(
+            e for e in self._evidence.get(cid, ())
+            if e.benchmark_id == benchmark_id
+            and (measured_by is None or e.measured_by in measured_by)
+            and (effort is None or e.effort == effort)
+            and (harness is None or e.harness == harness)
+            and (after is None or (e.date is not None and e.date > after)))
+
+    def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]:
+        self._check(cid)
+        directness = dict(self._domains.get(domain_id, ()))
+        return tuple(
+            EvidenceValue(**{**e.__dict__, "directness": directness[e.benchmark_id]})
+            for e in self._evidence.get(cid, ()) if e.benchmark_id in directness)
+
+    # beyond the protocol -----------------------------------------------------
+
+    def kind(self, cid: str) -> Literal["model", "offering"]:
+        self._check(cid)
+        return self._meta[cid]["kind"]
+
+    def model_of(self, cid: str) -> str:
+        self._check(cid)
+        return self._meta[cid]["model"]
+
+    def source_url(self, source_id: str) -> str:
+        return self._sources[source_id]
+
+    def ids(self, bits: int) -> tuple[str, ...]:
+        """The candidate IDs a bitset names."""
+        return tuple(self._ids[r] for r in self._rows(bits))
+
+    @staticmethod
+    def _rows(bits: int) -> Iterable[int]:
+        row = 0
+        while bits:
+            if bits & 1:
+                yield row
+            bits >>= 1
+            row += 1
+
+
+def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
+                  include_archive: bool = False) -> LoadedSnapshot:
+    """Read, check and index a snapshot.
+
+    The content hash is always checked. The key defaults to
+    ``MODELSPEC_SNAPSHOT_KEY``; with a key, the snapshot must be signed with it.
+    Without one, the signature cannot be checked and ``signature_verified`` is
+    false. Retired models are left out unless ``include_archive``.
+    """
+    path = Path(path)
+    try:
+        envelope = json.loads(gzip.decompress(path.read_bytes()))
+    except (OSError, EOFError, ValueError) as exc:
+        raise SnapshotIntegrityError(f"{path}: not a gzipped JSON snapshot: {exc}") from exc
+    if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:
+        raise SnapshotIntegrityError(f"{path}: not a {FORMAT} file")
+    if envelope.get("format_version") != FORMAT_VERSION:
+        raise SnapshotIntegrityError(
+            f"{path}: format version {envelope.get('format_version')!r}, expected {FORMAT_VERSION}")
+    digest = content_hash(envelope["content"])
+    if digest != envelope.get("content_hash"):
+        raise SnapshotIntegrityError(f"{path}: content hash mismatch: the snapshot was altered")
+    if envelope.get("snapshot_id") != snapshot_id_for(digest):
+        raise SnapshotIntegrityError(f"{path}: snapshot ID does not match its content hash")
+    key = env_key() if key is _FROM_ENV else _key_bytes(key)
+    verified = False
+    if key is not None:
+        signature = envelope.get("signature")
+        if not signature:
+            raise SnapshotIntegrityError(f"{path}: unsigned snapshot, but a key was given")
+        if (signature.get("alg") != SIGNATURE_ALG
+                or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
+            raise SnapshotIntegrityError(f"{path}: signature does not verify with this key")
+        verified = True
+    return LoadedSnapshot(envelope, include_archive=include_archive, signature_verified=verified)

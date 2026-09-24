@@ -1,0 +1,283 @@
+{
+  "source_url": "https://www.tbench.ai/",
+  "api": "https://ofhuhcpkvzjlejydnvyd.supabase.co/functions/v1/leaderboard-read",
+  "request": {
+    "package": "terminal-bench/terminal-bench",
+    "name": "4-0-0"
+  },
+  "read_date": "2026-09-24",
+  "title": "Terminal-Bench 4.0",
+  "licence": "Official Terminal-Bench 4.0 leaderboard published at tbench.ai. Read via the same JSON endpoint the page calls.",
+  "rows": [
+    {
+      "rank": 1,
+      "model": "GPT-6 Astra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-09-03",
+      "reasoning_effort": "max",
+      "accuracy": 58.18
+    },
+    {
+      "rank": 2,
+      "model": "Fable 5.1",
+      "model_url": "https://docs.anthropic.com/en/docs/about-claude/models/all-models",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-09-01",
+      "reasoning_effort": "max",
+      "accuracy": 57.88
+    },
+    {
+      "rank": 2,
+      "model": "GPT-6 Astra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-09-03",
+      "reasoning_effort": "xhigh",
+      "accuracy": 57.88
+    },
+    {
+      "rank": 2,
+      "model": "GPT-6 Astra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-09-03",
+      "reasoning_effort": "high",
+      "accuracy": 57.88
+    },
+    {
+      "rank": 2,
+      "model": "Fable 5.1",
+      "model_url": "https://docs.anthropic.com/en/docs/about-claude/models/all-models",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-09-01",
+      "reasoning_effort": "xhigh",
+      "accuracy": 57.88
+    },
+    {
+      "rank": 6,
+      "model": "Fable 5.1",
+      "model_url": "https://docs.anthropic.com/en/docs/about-claude/models/all-models",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-09-01",
+      "reasoning_effort": "high",
+      "accuracy": 54.55
+    },
+    {
+      "rank": 7,
+      "model": "GPT-6 Astra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-09-03",
+      "reasoning_effort": "medium",
+      "accuracy": 54.24
+    },
+    {
+      "rank": 8,
+      "model": "Fable 5.1",
+      "model_url": "https://docs.anthropic.com/en/docs/about-claude/models/all-models",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-09-01",
+      "reasoning_effort": "medium",
+      "accuracy": 53.94
+    },
+    {
+      "rank": 8,
+      "model": "Opus 5",
+      "model_url": "https://www.anthropic.com/news/claude-opus-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-07-24",
+      "reasoning_effort": "xhigh",
+      "accuracy": 53.94
+    },
+    {
+      "rank": 10,
+      "model": "Opus 5",
+      "model_url": "https://www.anthropic.com/news/claude-opus-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-07-24",
+      "reasoning_effort": "max",
+      "accuracy": 51.82
+    },
+    {
+      "rank": 11,
+      "model": "GPT-6 Astra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-09-03",
+      "reasoning_effort": "low",
+      "accuracy": 50.61
+    },
+    {
+      "rank": 12,
+      "model": "Opus 5",
+      "model_url": "https://www.anthropic.com/news/claude-opus-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-07-24",
+      "reasoning_effort": "high",
+      "accuracy": 50.3
+    },
+    {
+      "rank": 13,
+      "model": "Opus 5",
+      "model_url": "https://www.anthropic.com/news/claude-opus-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-07-24",
+      "reasoning_effort": "medium",
+      "accuracy": 44.85
+    },
+    {
+      "rank": 14,
+      "model": "Fable 5",
+      "model_url": "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-06-09",
+      "reasoning_effort": "max",
+      "accuracy": 44.55
+    },
+    {
+      "rank": 15,
+      "model": "Fable 5.1",
+      "model_url": "https://docs.anthropic.com/en/docs/about-claude/models/all-models",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-09-01",
+      "reasoning_effort": "low",
+      "accuracy": 43.33
+    },
+    {
+      "rank": 16,
+      "model": "GLM-5.3",
+      "model_url": "https://docs.z.ai/guides/llm/glm-5.3",
+      "model_org": "Z.ai",
+      "agent": "Claude Code",
+      "date": "2026-08-14",
+      "reasoning_effort": "max",
+      "accuracy": 41.82
+    },
+    {
+      "rank": 17,
+      "model": "Grok 4.7",
+      "model_url": "https://docs.x.ai/developers/models/grok-4.7",
+      "model_org": "xAI",
+      "agent": "Grok Build",
+      "date": "2026-09-21",
+      "reasoning_effort": "xhigh",
+      "accuracy": 37.58
+    },
+    {
+      "rank": 18,
+      "model": "GPT-5.6 Sol",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-06-26",
+      "reasoning_effort": "max",
+      "accuracy": 37.27
+    },
+    {
+      "rank": 19,
+      "model": "Opus 5",
+      "model_url": "https://www.anthropic.com/news/claude-opus-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-07-24",
+      "reasoning_effort": "low",
+      "accuracy": 34.85
+    },
+    {
+      "rank": 20,
+      "model": "Opus 4.8",
+      "model_url": "https://www.anthropic.com/news/claude-opus-4-8",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-05-28",
+      "reasoning_effort": "max",
+      "accuracy": 23.64
+    },
+    {
+      "rank": 21,
+      "model": "GPT-5.6 Terra",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-06-26",
+      "reasoning_effort": "max",
+      "accuracy": 21.52
+    },
+    {
+      "rank": 22,
+      "model": "Grok 4.6",
+      "model_url": "https://docs.x.ai/developers/models/grok-4.6",
+      "model_org": "xAI",
+      "agent": "Grok Build",
+      "date": "2026-08-12",
+      "reasoning_effort": "high",
+      "accuracy": 20.3
+    },
+    {
+      "rank": 23,
+      "model": "Gemini 3.8 Flash",
+      "model_url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
+      "model_org": "Google",
+      "agent": "mini-SWE-agent",
+      "date": "2026-09-02",
+      "reasoning_effort": "high",
+      "accuracy": 19.09
+    },
+    {
+      "rank": 24,
+      "model": "GPT-5.6 Luna",
+      "model_url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "model_org": "OpenAI",
+      "agent": "Codex",
+      "date": "2026-06-26",
+      "reasoning_effort": "max",
+      "accuracy": 17.27
+    },
+    {
+      "rank": 25,
+      "model": "Grok 4.5",
+      "model_url": "https://docs.x.ai/developers/models/grok-4.5",
+      "model_org": "xAI",
+      "agent": "Grok Build",
+      "date": "2026-07-16",
+      "reasoning_effort": "high",
+      "accuracy": 12.42
+    },
+    {
+      "rank": 25,
+      "model": "Sonnet 5",
+      "model_url": "https://www.anthropic.com/news/claude-sonnet-5",
+      "model_org": "Anthropic",
+      "agent": "Claude Code",
+      "date": "2026-06-30",
+      "reasoning_effort": "max",
+      "accuracy": 12.42
+    },
+    {
+      "rank": 27,
+      "model": "Gemini 3.7 Flash",
+      "model_url": "https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash",
+      "model_org": "Google",
+      "agent": "mini-SWE-agent",
+      "date": "2026-08-13",
+      "reasoning_effort": "high",
+      "accuracy": 11.21
+    }
+  ]
+}
