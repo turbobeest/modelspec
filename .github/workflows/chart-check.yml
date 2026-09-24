@@ -1,0 +1,40 @@
+name: Check evidence against release charts
+
+# A required check has to run on every pull request. A path filter would
+# skip a pull request that leaves cards and charts alone, and GitHub would
+# leave the check pending.
+
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check-evidence-charts:
+    name: Check evidence against release charts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch origin/main
+        run: git fetch origin main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install \
+            "pydantic==2.13.5" \
+            "PyYAML==6.0.3"
+
+      - name: Check evidence against release charts
+        run: python scripts/chart_check_pr.py --base origin/main
