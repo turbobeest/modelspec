@@ -1,0 +1,487 @@
+page_url: "https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf"
+publisher: "PrismML"
+read_on: "2026-09-24"
+charts:
+  - title: "Thinking-mode average"
+    kind: html_table
+    footnotes: "EvalScope and vLLM on an H100, thinking mode, same decoding for every row. The average is fifteen benchmarks. Bits per weight, footprint, and the percent of FP16 are not benchmark scores."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 85.07
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B Q4_K_XL (\"4-bit\")"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 84.99
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B IQ2_XXS (\"2-bit\")"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 72.73
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Gemma-4-31B FP16"
+        model_id: "google/gemma-4-31b"
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 84.58
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Gemma-4-31B QAT (\"4-bit\")"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 83.41
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Gemma-4-31B Q2_K_XL (\"2-bit\")"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 73.31
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 80.49
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "1-bit Bonsai 27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "15-benchmark thinking average"
+        score: 76.11
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+  - title: "Per-benchmark thinking results"
+    kind: html_table
+    footnotes: "Same H100 thinking-mode run. FP16 is Qwen3.6-27B. IFBench is the prompt-loose cut."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: mmlu_redux
+        score: 93.42
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: mmlu_redux
+        score: 88.05
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: musr
+        score: 72.88
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: musr
+        score: 65.87
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: gsm8k
+        score: 95.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: gsm8k
+        score: 96.06
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: math_500
+        score: 99.40
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: math_500
+        score: 99.20
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: aime_2025
+        score: 93.29
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: aime_2025
+        score: 90.84
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: aime_2026
+        score: 93.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: aime_2026
+        score: 87.50
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: humaneval_plus
+        score: 95.12
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: humaneval_plus
+        score: 93.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: mbpp_plus
+        score: 83.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: mbpp_plus
+        score: 81.22
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench"
+        score: 87.77
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench"
+        score: 82.75
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: ifeval
+        score: 88.91
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: ifeval
+        score: 85.03
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: ifbench
+        score: 68.03
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+        metric: prompt_loose
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: ifbench
+        score: 58.50
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+        metric: prompt_loose
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: bfcl
+        score: 77.10
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode. v3."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: bfcl
+        score: 74.41
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode. v3."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: tau2
+        score: 82.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: tau2
+        score: 73.61
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: mmmu_pro
+        score: 79.94
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: mmmu_pro
+        score: 68.96
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "OCR Bench v2"
+        score: 65.28
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "OCR Bench v2"
+        score: 61.42
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+  - title: "Scores by skill category"
+    kind: html_table
+    footnotes: "Each cell is the average of the benchmarks named in that row, from the same thinking-mode run."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Knowledge & reasoning average"
+        score: 83.15
+        unit: "percent"
+        printed: true
+        configuration: "Average of MMLU-Redux, MuSR. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Knowledge & reasoning average"
+        score: 76.96
+        unit: "percent"
+        printed: true
+        configuration: "Average of MMLU-Redux, MuSR. Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Math average"
+        score: 95.33
+        unit: "percent"
+        printed: true
+        configuration: "Average of GSM8K, MATH-500, AIME25, AIME26. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Math average"
+        score: 93.40
+        unit: "percent"
+        printed: true
+        configuration: "Average of GSM8K, MATH-500, AIME25, AIME26. Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding average"
+        score: 88.74
+        unit: "percent"
+        printed: true
+        configuration: "Average of HumanEval+, MBPP+, LiveCodeBench. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding average"
+        score: 85.96
+        unit: "percent"
+        printed: true
+        configuration: "Average of HumanEval+, MBPP+, LiveCodeBench. Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Instruction following average"
+        score: 78.47
+        unit: "percent"
+        printed: true
+        configuration: "Average of IFEval, IFBench. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Instruction following average"
+        score: 71.77
+        unit: "percent"
+        printed: true
+        configuration: "Average of IFEval, IFBench. Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic / tool calling average"
+        score: 80.00
+        unit: "percent"
+        printed: true
+        configuration: "Average of BFCL v3, τ²-Bench. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic / tool calling average"
+        score: 74.01
+        unit: "percent"
+        printed: true
+        configuration: "Average of BFCL v3, τ²-Bench. Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B FP16"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision average"
+        score: 72.61
+        unit: "percent"
+        printed: true
+        configuration: "Average of MMMU-Pro, OCR Bench v2. Thinking mode."
+        role: competitor
+      - model_as_labelled: "Ternary Bonsai 27B"
+        model_id: "prism-ml/ternary-bonsai-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision average"
+        score: 65.19
+        unit: "percent"
+        printed: true
+        configuration: "Average of MMMU-Pro, OCR Bench v2. Thinking mode."
+        role: subject
+  - title: "IQ2_XXS collapse, stated in prose"
+    kind: text
+    footnotes: "The card gives three IQ2_XXS scores in prose that are not in the per-benchmark table. Ternary's AIME and LiveCodeBench figures in that sentence are the table's AIME 2026 and LiveCodeBench."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        model_id: null
+        benchmark_id: aime_2026
+        score: 57.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode. IQ2_XXS."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench"
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode. IQ2_XXS."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B IQ2_XXS"
+        model_id: null
+        benchmark_id: mmlu_redux
+        score: 88.93
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode. IQ2_XXS."
+        role: competitor

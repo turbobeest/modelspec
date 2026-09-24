@@ -1,0 +1,24 @@
+page_url: "https://huggingface.co/inclusionAI/Ling-3.0-flash"
+publisher: "inclusionAI"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmark comparison"
+    kind: image
+    image_url: "https://intranetproxy.alipay.com/skylark/lark/0/2026/png/23157180/1785831264180-d6ca4404-acef-4424-84db-fbc5a4c6db5f.png"
+    needs_reading: true
+    footnotes: "The README's first score image is hosted on an internal Alipay proxy. The fetch did not connect, so the bars were not read."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Evaluation results"
+    kind: image
+    image_url: "https://intranetproxy.alipay.com/skylark/lark/0/2026/png/23157180/1785843565924-387dbbd7-90f8-4241-a58d-664cc5e6b486.png"
+    needs_reading: true
+    footnotes: "The evaluation chart uses the same internal host and was not fetched. The README still states the harness: thinking by default at temperature 0.6, top_p 0.95, top_k 20. SWE-Bench uses OpenHands. Terminal-Bench 2.1 follows the Artificial Analysis Terminus-2 protocol, three runs, mean. Tau3-banking uses GPT-5.4-mini as user and judge. MCP-Atlas uses the official v1 harness and Gemini-2.5-Pro as judge. SkillsBench is three runs of kilo-code on 87 tasks. GDPval uses Stirrup, 250 turns, five-hour timeout."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []

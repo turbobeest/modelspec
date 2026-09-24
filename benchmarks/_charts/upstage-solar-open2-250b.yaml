@@ -1,0 +1,1826 @@
+page_url: "https://huggingface.co/upstage/Solar-Open2-250B"
+publisher: "Upstage"
+read_on: "2026-09-24"
+charts:
+  - title: "English benchmarks"
+    kind: html_table
+    footnotes: "Recommended sampling on the card is reasoning effort high, temperature 1.0, and top_p 1.0. The card does not say who measured the other columns. A dagger on a Korean benchmark means Upstage built that set in house."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: mmlu_pro
+        score: 86.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: mmlu_pro
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: mmlu_pro
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: mmlu_pro
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: mmlu_pro
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: gpqa_diamond
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: gpqa_diamond
+        score: 66.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: gpqa_diamond
+        score: 75.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 77.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: gpqa_diamond
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: gpqa_diamond
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: hle
+        score: 28.8
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: hle
+        score: 11.5
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: hle
+        score: 11.4
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: hle
+        score: 12.8
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: hle
+        score: 24.3
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: hle
+        score: 32.3
+        unit: "percent"
+        printed: true
+        configuration: "Without tools."
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 92.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 56.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 89.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 92.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 49.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 61.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: hmmt2026
+        score: 93.9
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: hmmt2026
+        score: 68.9
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: hmmt2026
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: hmmt2026
+        score: 62.9
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: hmmt2026
+        score: 61.4
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: hmmt2026
+        score: 94.7
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: aime_2026
+        score: 95.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: aime_2026
+        score: 87.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: aime_2026
+        score: 96.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: aime_2026
+        score: 89.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: aime_2026
+        score: 92.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: aime_2026
+        score: 97.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 61.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 40.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 45.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 49.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 39.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 62.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: ifbench
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: ifbench
+        score: 57.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: ifbench
+        score: 73.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: ifbench
+        score: 69.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: ifbench
+        score: 67.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: ifbench
+        score: 80.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: aa_lcr
+        score: 62.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: aa_lcr
+        score: 36.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: aa_lcr
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: aa_lcr
+        score: 61.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: aa_lcr
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: aa_lcr
+        score: 63.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: swe_bench_verified
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: swe_bench_verified
+        score: 15.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: swe_bench_verified
+        score: 14.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: swe_bench_verified
+        score: 69.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: swe_bench_verified
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: swe_bench_verified
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 28.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 2.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 25.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 33.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 41.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal Bench Hard"
+        score: 34.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 16.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 2.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 1.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 6.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 13.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 13.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 34.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 27.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 30.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 19.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 7.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 5.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 5.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 8.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³ (banking)"
+        score: 22.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: gdpval_aa
+        score: 1128
+        unit: "elo"
+        printed: true
+        configuration: "v2."
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: gdpval_aa
+        score: 712
+        unit: "elo"
+        printed: true
+        configuration: "v2."
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: gdpval_aa
+        score: 929
+        unit: "elo"
+        printed: true
+        configuration: "v2."
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: gdpval_aa
+        score: 1145
+        unit: "elo"
+        printed: true
+        configuration: "v2."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: gdpval_aa
+        score: 1187
+        unit: "elo"
+        printed: true
+        configuration: "v2."
+        role: competitor
+  - title: "Korean benchmarks"
+    kind: html_table
+    footnotes: "Recommended sampling on the card is reasoning effort high, temperature 1.0, and top_p 1.0. The card does not say who measured the other columns. A dagger on a Korean benchmark means Upstage built that set in house."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 67.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: click
+        score: 90.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: click
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: click
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: click
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: click
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: click
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: haerae
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: haerae
+        score: 73.3
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: haerae
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: haerae
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: haerae
+        score: 38.5
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: haerae
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: "v1.1."
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 97.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 98.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 81.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-AIME’25"
+        score: 90.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: hrm8k
+        score: 92.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: hrm8k
+        score: 87.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: hrm8k
+        score: 90.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: hrm8k
+        score: 93.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: hrm8k
+        score: 90.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: hrm8k
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 80.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 71.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 68.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "KBank-MMLU"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: kbl
+        score: 75.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: kbl
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: kbl
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: kbl
+        score: 72.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: kbl
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: kbl
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: kormedmcqa
+        score: 93.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: kormedmcqa
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: kormedmcqa
+        score: 87.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: kormedmcqa
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: kormedmcqa
+        score: 87.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: kormedmcqa
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 3.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 81.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "English highlight bars"
+    kind: image
+    image_url: "https://huggingface.co/upstage/Solar-Open2-250B/resolve/main/assets/Highlights_en.png"
+    image_sha256: "f947154a92141950eb62761265c0cdcef706c2b33636e98a35a958fa48313749"
+    footnotes: "Six printed bar groups. MATH is the average of HMMT 2026 and AIME 2026, not either exam alone. The card does not say who measured the other models."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: mmlu_pro
+        score: 86.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: mmlu_pro
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: mmlu_pro
+        score: 79
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: mmlu_pro
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: mmlu_pro
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 94.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 78.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 75.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
+        score: 95.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 92.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 56.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 89.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench (v6)"
+        score: 92.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 16.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 2.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 1.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 6.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 13.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 13.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: swe_bench_verified
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: swe_bench_verified
+        score: 15.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: swe_bench_verified
+        score: 14.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: swe_bench_verified
+        score: 69.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: swe_bench_verified
+        score: 73
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: swe_bench_verified
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 34.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Command A+"
+        model_id: "cohere/command-a-plus-05-2026"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 27.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Mistral Medium 3.5"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 30.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Korean highlight bars"
+    kind: image
+    image_url: "https://huggingface.co/upstage/Solar-Open2-250B/resolve/main/assets/Highlights_kr.png"
+    image_sha256: "9155a4506511e5bd53311fc22d6fb1c0ff727c704f770c1af8ebf5285de5002e"
+    footnotes: "KMMLU-Pro and Ko-GDPval are single benchmarks. K-Knowledge averages CLIcK and HAE-RAE. K-Domain averages KBank-MMLU, KBL, and KorMedMCQA. Ko-GDPval's model order on the image differs from the other three panels."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 64
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 67.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 82.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 46
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 70.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 83.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 82.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
+        score: 82.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Solar Open 2"
+        model_id: "upstage/solar-open2-250b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Solar Open 100B"
+        model_id: "upstage/solar-open-100b"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 3.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 mini"
+        model_id: "openai/gpt-5-4-mini"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Haiku 4.5"
+        model_id: "anthropic/claude-haiku-4-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "MiMo-V2.5"
+        model_id: "xiaomi/mimo-v2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 81
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Ko-GDPval"
+        score: 85
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
