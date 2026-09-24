@@ -670,48 +670,18 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 51.6
-    arena_elo_coding: 1310.0
     arena_elo_hard_prompts: 1396.7
-    arena_elo_math: 1290.0
-    arena_elo_overall: 1300.0
     arena_elo_style_control: 1371.4
     arena_elo_vision: 1160.4
-    flores_en_de: 66.9
-    flores_en_es: 70.8
-    flores_en_ja: 60.8
-    flores_en_zh: 59.2
-    gpqa_diamond: 65.0
-    gsm8k: 96.4
-    humaneval: 86.8
-    ifeval: 85.4
-    live_code_bench: 38.1
     math_500: 78.3
-    mgsm: 91.6
-    mmlu_pro: 76.2
-    multipl_e_csharp: 80.2
-    multipl_e_julia: 61.5
-    multipl_e_kotlin: 72.8
-    multipl_e_lua: 55.8
-    multipl_e_perl: 52.2
-    multipl_e_php: 77.5
-    multipl_e_r: 58.2
-    multipl_e_ruby: 68.5
-    multipl_e_scala: 62.5
-    multipl_e_swift: 66.5
     swe_bench_verified: 49.0
-    mmmu: 65.9
-    mathvista: 67.7
-    docvqa: 95.2
-    chartqa: 90.8
-    ai2d: 80.2
-    ocrbench: 78.8
-    helm_safety: 91.5
-    bbq: 87.2
-    toxigen: 94.5
   benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals,
     safety-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds Anthropic''s
+    MATH (0-shot CoT) 78.3% for Claude 3.5 Sonnet (new), from anthropic.com/news/3-5-models-and-computer-use. Each
+    value is confirmed for this exact model but is not the benchmark its key names, so it stays in the flat block
+    and is not promoted to evidence.'
   evidence:
   - benchmark_id: metr_time_horizon_50
     model_id_as_evaluated: claude_3_5_sonnet_20241022_inspect
@@ -763,6 +733,30 @@ benchmarks:
     benchmark_version: GPQA Diamond
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: aider_polyglot
+    model_id_as_evaluated: claude-3-5-sonnet-20241022
+    score: 51.6
+    unit: percent
+    source_url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+    source_kind: benchmark_author
+    evidence_date: '2025-01-17'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Aider polyglot (225 exercises)
+    configuration: Aider polyglot leaderboard YAML row model "claude-3-5-sonnet-20241022", edit_format diff, pass_rate_2.
+    limitations: ''
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: Claude 3.5 Sonnet (new)
+    score: 49.0
+    unit: percent
+    source_url: https://www.anthropic.com/news/3-5-models-and-computer-use
+    source_kind: provider_self_report
+    evidence_date: '2024-10-22'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE-bench Verified
+    configuration: 'Anthropic announcement text and table: SWE-bench Verified improves from 33.4% to 49.0%.'
     limitations: ''
 deployment:
   api_only: false
@@ -921,7 +915,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Claude Sonnet 3.5 v2
