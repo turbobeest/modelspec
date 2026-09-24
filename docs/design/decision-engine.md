@@ -1,6 +1,6 @@
 # The decision engine: ModelSpec's next architecture
 
-*Design, written before the code. Discovery session with Jamie, 2026-09-24. Status: proposed.*
+*Design, written before the code. Discovery session with Jamie, 2026-09-24; §12 questions decided the same day. Status: proposed.*
 *Vocabulary: [`CONTEXT.md`](../../CONTEXT.md). Decisions: [`docs/adr/`](../adr/).*
 
 ModelSpec is off the market (the public domains serve a holding page, and billing is off) until this design is built, tested and proven. This document says what we are building, why, and in what order. It replaces the v1 ranking design for everything except the parts listed in §10 as reused.
@@ -85,11 +85,15 @@ It returns decisions. It does not proxy model traffic ([ADR 0001](../adr/0001-de
 
 **Model.** Identity (`lab/model-id`), lab, class and model type, modalities, context and maximum output, open or closed weights, parameters (total and active; "not disclosed" is a state), architecture, licence rights, origin (lab jurisdiction, base-model lineage, weights hosting), lifecycle (release, knowledge cutoff, deprecation), features (tool calling, structured output, effort controls, batch, streaming), languages. Model-level values are **facts**.
 
+*Lifecycle and the live archive:* a model is `active`, `deprecated` (its lab has announced retirement) or `retired`. Retired models stay in a **live archive**, fully sourced and browsable for reference, but out of the lineup: decisions exclude them unless a spec asks for them explicitly (`lifecycle in {retired}`). Deprecated models stay in decisions, with a warning and the retirement date.
+
 **Provider.** Identity, jurisdiction, provider-level attestations (SOC 2 …), a registry entry. Replaces the fixed platform fields in `Availability`.
 
 **Offering.** `(model, provider, region, tier)`. Price (input, output, cached, batch), speed (time to first token, throughput, always with method and source), rate limits and SLA, data handling (retention, training on customer data, zero retention), offering-level attestations (BAA …), fine-tuning, private deployment options, harness compatibility. **Speed belongs here**, not to the model. Self-hosted speed is a labelled estimate only.
 
-**Harness.** A registered scaffold with a version. Evidence and outcomes are recorded per harness, because the same model performs differently inside different harnesses.
+*Which tiers are separate offerings:* a tier is its own offering **only when a guaranteed fact differs** (price, data handling or an attestation). In practice: standard API, enterprise or zero-retention API, and government cloud. Consumer chat apps are out of scope for now.
+
+**Harness.** A registered scaffold with a version. Evidence and outcomes are recorded per harness, because the same model performs differently inside different harnesses. IDs are canonical `name@major.minor` (for example `claude-code@2.1`, `codex-cli@1.4`, `aider@0.9`, `openhands@1.2`, `dpf-native@1.0`). New harnesses are added by a registry PR. An outcome record from an unregistered harness is reported as `unregistered`, never as free text.
 
 **Benchmark.** ID, versions, sub-categories, metric, unit and direction, the **domains it measures and its directness for each**, saturation status (computed from the spread of frontier evidence), who publishes results and under what terms, and whether it is live (dated by observation) or static (dated by publication).
 
@@ -97,7 +101,9 @@ It returns decisions. It does not proxy model traffic ([ADR 0001](../adr/0001-de
 
 **Fact.** `(subject, facet, value, state)`, where state is one of `known`, `unknown`, `not_disclosed` or `requires_contract`, plus source snapshot and verification status.
 
-**Source snapshot.** URL, retrieval time, content hash and the retained copy. Governance facts diff their snapshots over time; a change raises an alert.
+**Source.** A registered URL that one or more facts or pieces of evidence were read from, with how to fetch it (plain HTTP, conditional request, or rendered), how to normalise it, and which **cited regions** of it the facts depend on. Many facts share one source, so one fetch re-checks all of them.
+
+**Source snapshot.** A dated retrieval of a source: the normalised content, a **fingerprint** of the whole page and of each cited region, and the retained copy. Governance facts diff their snapshots over time, and a change raises an alert.
 
 **Verification.** `(target, verifier, method, outcome, date)`. The verifier must differ from the collector in agent and method. The outcome is `verified`, `mismatch` (re-crawl) or `unreachable` (re-crawl). Anything else is **quarantined** and excluded from snapshots.
 
@@ -128,7 +134,30 @@ collect ──▶ source snapshot ──▶ verify (different agent + method) �
 ```
 
 - **Two keys.** The agent that collects a value never verifies it. A model checking its own work shares its blind spots; that is how copied scores passed before.
-- **New values are verified before first use.** Existing values are re-verified on a schedule; live-leaderboard values are re-read on one observation date per board.
+- **New values are verified before first use.**
+- **Every fact and piece of evidence names its sources.** Cards and offerings reference the registered source URLs each value came from, so re-checking never needs a search.
+- **Change detection is deterministic and cheap; agents run only on change.** On each re-check, a plain fetcher retrieves each registered source, using conditional requests (`ETag`, `Last-Modified`) where the server supports them. It normalises the content, stripping navigation, timestamps and other volatile boilerplate, and compares fingerprints of the **cited regions**.
+  - *Unchanged:* every fact citing that region is re-confirmed at no agent cost.
+  - *Changed:* only the facts citing the changed region are re-extracted and re-verified by agents (two keys), and governance changes raise an alert.
+  - *Unreachable:* the facts are quarantined after a grace period.
+
+  Pages that need a rendered browser to show their content are marked as such, and cost more to check.
+- **Re-check intervals match how often each kind of fact changes:**
+
+  | Kind | Interval |
+  |---|---|
+  | Price, rate limits | weekly |
+  | Governance facts (licence, data handling, attestations) | weekly fingerprint check; full re-verification and an alert on change |
+  | Live leaderboard evidence | weekly, all entries on one board re-read on one date |
+  | Static evidence (papers, system cards, launch posts) | verified once; fingerprint check quarterly for changes and dead links |
+  | Model specifications (context, modalities, features) | at release, then monthly |
+- **The premier set is computed, not hand-listed**, and recomputed weekly (expected size 100–200). A model is in it if any of these holds:
+  1. it is in the top 10 of its class in any domain by current verified evidence (before the capability model exists: by rank on independent leaderboards under licences we may use);
+  2. it was released in the last 90 days by a lab that had a model in (1) during the past year;
+  3. at least three major providers offer it;
+  4. a reviewer added it.
+
+  Retired models leave the premier set.
 - **Premier-set completeness gate.** Every guaranteed facet on every premier model is known, sourced and verified, or the build fails.
 - **Recall tests.** A standing set of specs with independently established correct answers (starting with the independent audit's 20 questions). A change that drops a correct premier answer fails the build.
 - **Freshness gates** (MODEL-111): the build fails if a premier model released more than 7 days ago has no verified evidence in its domains, or if a guaranteed fact's source snapshot is older than its re-check interval.
@@ -222,7 +251,7 @@ G = guaranteed for the premier set. B = best effort. Governance facets default t
 
 ## 9. Our own measurements and the outcome protocol
 
-ModelSpec will produce first-party evidence, starting narrow, with the method always published:
+ModelSpec produces first-party evidence ([ADR 0004](../adr/0004-first-party-measurement.md)). It starts narrow, publishes the method every time, and needs Jamie's approval before each step that spends money:
 1. **Passive:** outcome records from agents acting on decisions, starting with DPF. Each record carries the task's description (never its content), the decision ID, the offering, harness and effort used, objective results, a verifier rubric, the human verdict with fixed reason codes, failure modes, and speed (time to first token, throughput). Privacy rules: closed vocabularies only, no client identifiers, a local inspectable log, opt in per project, minimum counts before publishing. Consented exploration removes selection bias.
 2. **Active speed probes** on premier offerings.
 3. **Runs of open benchmarks** to close gaps labs leave.
@@ -250,7 +279,7 @@ Outcome records feed the capability model as a labelled first-party source, dete
 - The fixed platform fields in `Availability`.
 - The `evidence_basis` label, replaced by per-evidence verification status and directness.
 
-**Contract:** the decision contract is a new major version alongside `/v1/rank`, which is retired after the cutover.
+**Contract:** the decision contract is a new major version alongside `/v1/rank`, which is retired after the cutover. Legacy card fields left empty by the source exclusions (`artificial_analysis_url`) are removed in the same major version, so they cost no separate bump.
 
 ---
 
@@ -278,11 +307,15 @@ Acceptance: every recall test passes, no guaranteed facet is unknown, and each o
 
 ---
 
-## 12. Open questions
+## 12. Decisions taken (2026-09-24)
 
-1. **Premier-set rule:** "frontier of every class plus 90 days of major-lab releases". Who counts as a major lab, and how is the frontier of a class determined before the capability model exists?
-2. **Offering granularity:** which account tiers are distinct offerings (free, API, enterprise, government)?
-3. **Re-check intervals** per facet and per source type.
-4. **Harness registry:** the canonical IDs and how versions are handled.
-5. **The `artificial_analysis_url` card field** from the old schema: removing it is a major contract bump. Remove it at the decision-contract cutover?
-6. **Our own measurements:** confirm the direction (passive via DPF first, then speed probes, then open-benchmark runs) as a decision.
+1. **The premier set** is computed by rule, recomputed weekly (§5). Retired models move to the live archive, out of the lineup (§4.1).
+2. **Offerings by tier:** a tier is a separate offering only when a guaranteed fact differs (§4.1).
+3. **Re-checks:** intervals by kind of fact. Every value names its registered sources, and deterministic fingerprint checks mean agents run only when a cited region changes (§5).
+4. **Harness IDs:** `name@major.minor`, a registry, and `unregistered` for unknown harnesses (§4.1).
+5. **The legacy `artificial_analysis_url` field** is removed at the decision-contract cutover (§10).
+6. **First-party measurement** is a decision: passive (DPF) first, then speed probes, then open-benchmark runs, each approved before any spend (§9, ADR 0004).
+
+## 13. Open questions
+
+None blocking slice 1. Questions will be added here as the build raises them.

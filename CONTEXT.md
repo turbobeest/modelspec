@@ -30,6 +30,14 @@ _Avoid_: endpoint, deployment, listing, SKU
 The agent scaffold a model runs inside (for example a coding agent), which changes how well the model performs a task.
 _Avoid_: agent (when meaning the scaffold), wrapper, tool
 
+**Retired model**:
+A model its lab has withdrawn. It stays in the live archive and is excluded from decisions unless a spec asks for it.
+_Avoid_: deleted model, dead model
+
+**Live archive**:
+The retired models, kept fully sourced and browsable for reference but out of the lineup.
+_Avoid_: graveyard, history, legacy models
+
 **Premier set**:
 The models whose guaranteed facets must be complete and verified: the frontier of every class, plus anything a major lab released in the last 90 days.
 _Avoid_: top models, featured models
@@ -60,8 +68,16 @@ _Avoid_: relevance, confidence
 The engine's estimate of a model's capability in a domain, with an interval, computed from all verified evidence.
 _Avoid_: rank score, rating, composite score
 
+**Source**:
+A registered URL that facts or evidence were read from, with how to fetch and normalise it and which cited regions the facts depend on. One source can back many facts.
+_Avoid_: link, reference (as a noun for the URL)
+
+**Cited region**:
+The part of a source that a fact actually depends on, such as one table or section. Its fingerprint is what change detection compares.
+_Avoid_: excerpt, snippet
+
 **Source snapshot**:
-A dated, content-hashed copy of the document a fact or piece of evidence was read from.
+A dated retrieval of a source: its normalised content, a fingerprint of the page and of each cited region, and the retained copy.
 _Avoid_: citation (a citation is a link; a snapshot is the retained copy)
 
 **Verification**:
