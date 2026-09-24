@@ -1,0 +1,656 @@
+page_url: "https://deepmind.google/models/model-cards/gemini-3-5-flash/"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+charts:
+  - title: "Capability results"
+    kind: html_table
+    footnotes: "Results as of May 2026. The card points at the Gemini 3.5 Flash evals methodology page and does not say whether rival numbers are Google's runs. Price rows are omitted. A dash is an unpublished cell."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: terminal_bench_v2_1
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Agentic terminal coding"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: terminal_bench_v2_1
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Agentic terminal coding"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: terminal_bench_v2_1
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Agentic terminal coding"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: terminal_bench_v2_1
+        score: 66.1
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Agentic terminal coding"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: terminal_bench_v2_1
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Agentic terminal coding"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: swe_bench_pro
+        score: 55.1
+        unit: "percent"
+        printed: true
+        configuration: "Single attempt. Diverse agentic coding tasks"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: swe_bench_pro
+        score: 49.6
+        unit: "percent"
+        printed: true
+        configuration: "Single attempt. Diverse agentic coding tasks"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "Single attempt. Diverse agentic coding tasks"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: swe_bench_pro
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "Single attempt. Diverse agentic coding tasks"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Single attempt. Diverse agentic coding tasks"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 62.0
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 69.5
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 79.1
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "Multi-step workflows using MCP"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 56.5
+        unit: "percent"
+        printed: true
+        configuration: "Real-world general tool use"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 49.4
+        unit: "percent"
+        printed: true
+        configuration: "Real-world general tool use"
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 55.6
+        unit: "percent"
+        printed: true
+        configuration: "Real-world general tool use"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 78.0
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 78.7
+        unit: "percent"
+        printed: true
+        configuration: "Agentic computer use"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 42.6
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 43.0
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 51.0
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 51.5
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 51.8
+        unit: "percent"
+        printed: true
+        configuration: "Financial analysis and decision-making"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: charxiv_reasoning
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: charxiv_reasoning
+        score: 80.3
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: charxiv_reasoning
+        score: 83.3
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: charxiv_reasoning
+        score: 72.4
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: charxiv_reasoning
+        score: 82.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: charxiv_reasoning
+        score: 84.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Information synthesis from complex charts"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: mmmu_pro
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: mmmu_pro
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: mmmu_pro
+        score: 74.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: mmmu_pro
+        score: 75.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools. Multimodal understanding and reasoning"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 33.6
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 0.0
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 26.5
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 6.7
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 24.5
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Blueprint-Bench 2"
+        score: 36.2
+        unit: "percent"
+        printed: true
+        configuration: "Normalized score. Agentic spatial reasoning"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: deepmind_mrcr_v2
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: deepmind_mrcr_v2
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: deepmind_mrcr_v2
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: deepmind_mrcr_v2
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: deepmind_mrcr_v2
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: deepmind_mrcr_v2
+        score: 94.8
+        unit: "percent"
+        printed: true
+        configuration: "128k (average). Long context performance"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: deepmind_mrcr_v2
+        score: 26.6
+        unit: "percent"
+        printed: true
+        configuration: "1M (pointwise)"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: deepmind_mrcr_v2
+        score: 22.1
+        unit: "percent"
+        printed: true
+        configuration: "1M (pointwise)"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: deepmind_mrcr_v2
+        score: 26.3
+        unit: "percent"
+        printed: true
+        configuration: "1M (pointwise)"
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: hle
+        score: 40.2
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: hle
+        score: 33.7
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: hle
+        score: 44.4
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: hle
+        score: 33.2
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: hle
+        score: 46.9
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: hle
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: "Academic reasoning (full set, text + MM)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: arc_agi_2
+        score: 72.1
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: arc_agi_2
+        score: 33.6
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: arc_agi_2
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: subject
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: anthropic/claude-sonnet-4-6
+        benchmark_id: arc_agi_2
+        score: 58.3
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: anthropic/claude-opus-4-7
+        benchmark_id: arc_agi_2
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: competitor
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: arc_agi_2
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Abstract reasoning puzzles"
+        role: competitor
+  - title: "Safety deltas versus Gemini 3 Flash"
+    kind: html_table
+    footnotes: "Percentage-point deltas versus Gemini 3 Flash. Lower is better except tone. These evals have no catalogue page."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Text to Text Safety"
+        score: -3.9
+        unit: "percentage points"
+        printed: true
+        configuration: "Delta versus Gemini 3 Flash. Automated content safety evaluation measuring safety policies"
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Multilingual Safety"
+        score: -2.6
+        unit: "percentage points"
+        printed: true
+        configuration: "Delta versus Gemini 3 Flash. Automated safety policy evaluation across multiple languages"
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Image to Text Safety"
+        score: 0
+        unit: "percentage points"
+        printed: true
+        configuration: "Delta versus Gemini 3 Flash. Automated content safety evaluation measuring safety policies"
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Tone 1"
+        score: +8.9
+        unit: "percentage points"
+        printed: true
+        configuration: "Delta versus Gemini 3 Flash. Automated evaluation measuring objective tone of model refusal"
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "Unjustified-refusals"
+        score: +0.8
+        unit: "percentage points"
+        printed: true
+        configuration: "Delta versus Gemini 3 Flash. Automated evaluation measuring model’s ability to respond to borderline prompts while remaining safe (non-egregious)."
+        role: subject

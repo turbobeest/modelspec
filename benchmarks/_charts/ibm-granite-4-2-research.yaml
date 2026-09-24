@@ -1,0 +1,179 @@
+page_url: "https://research.ibm.com/blog/introducing-granite-4-2"
+publisher: "IBM"
+read_on: "2026-09-24"
+charts:
+  - title: "Granite 4.2 30B against Nemotron 3 Super and Gemma 4 31B"
+    kind: image
+    image_url: "https://research-website-prod-cms-uploads.s3.us.cloud-object-storage.appdomain.cloud/blog_Art_competitor_Charts_granite4_2_30b_1_b808f60cde.png"
+    image_sha256: "567abc49da4f089807f38837240485cd6f9fc581aee1f63a7389b12446038a0b"
+    footnotes: "Bar labels are printed. SWE-bench Pro has no Nemotron bar. The post does not say whether the other labs' numbers are their own reports or an IBM rerun."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: aime_2025
+        score: 89.17
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: aime_2025
+        score: 88.33
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: aime_2025
+        score: 85.83
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: live_code_bench
+        score: 75.77
+        unit: "percent"
+        printed: true
+        configuration: "v6. Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: live_code_bench
+        score: 73.68
+        unit: "percent"
+        printed: true
+        configuration: "v6. Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: live_code_bench
+        score: 83.04
+        unit: "percent"
+        printed: true
+        configuration: "v6. Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau3 Bench"
+        score: 62.00
+        unit: "score"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau3 Bench"
+        score: 61.86
+        unit: "score"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau3 Bench"
+        score: 69.96
+        unit: "score"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: ifbench
+        score: 75.33
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: ifbench
+        score: 72.33
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: ifbench
+        score: 78.50
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: bfcl
+        score: 61.76
+        unit: "percent"
+        printed: true
+        configuration: "v4. Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: bfcl
+        score: 59.60
+        unit: "percent"
+        printed: true
+        configuration: "v4. Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: bfcl
+        score: 69.69
+        unit: "percent"
+        printed: true
+        configuration: "v4. Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: swe_bench_pro
+        score: 33.28
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: swe_bench_pro
+        score: 29.73
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Granite 4.2 30b"
+        model_id: "ibm/granite-4-2-30b"
+        benchmark_id: terminal_bench_v2_1
+        score: 29.24
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: terminal_bench_v2_1
+        score: 38.43
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor
+      - model_as_labelled: "Gemma 4 31B it"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 44.86
+        unit: "percent"
+        printed: true
+        configuration: "Printed on the competitor chart."
+        role: competitor

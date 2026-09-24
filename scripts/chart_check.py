@@ -15,6 +15,10 @@ metric is ``other_metric``. A bar with no catalogue page is
 is compared only with the rival card's ``provider_self_report`` rows for the
 benchmark. A row from another source is context on a ``not_held`` bar.
 ``vendor_run`` stays a gap. ``unstated`` stays unresolved.
+
+A third reading settles a bar when two readers agree within the printed
+precision. The score is that value. A third reading that agrees with neither
+leaves the bar disputed.
 """
 
 from __future__ import annotations
@@ -197,6 +201,13 @@ def parse_score(score: Any) -> ParsedScore:
         return ParsedScore("blank", None, text, None)
     match = _SCORE_VALUE.match(text)
     if match is None:
+        # ``1415.8 (ii 45.8%)`` prints the Elo and the index in one cell.
+        lead = re.match(
+            r"^\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*\(",
+            text,
+        )
+        if lead:
+            return parse_score(lead.group(1))
         return ParsedScore("unparsed", None, text, None)
     number = match.group("number").replace(",", "")
     frac = match.group("frac") or ""
@@ -342,6 +353,126 @@ def _explicit_dispute(bar: dict[str, Any]) -> bool:
         if parsed.kind == "number" and parsed.value is not None:
             values.append(parsed.value)
     return len(values) >= 2 and max(values) - min(values) > 1e-9
+
+
+def _resolution_block(bar: dict[str, Any]) -> dict[str, Any] | None:
+    block = bar.get("resolution")
+    if isinstance(block, dict):
+        return block
+    return None
+
+
+def _point_tolerance(parsed: ParsedScore) -> float:
+    if parsed.tolerance is not None:
+        return parsed.tolerance
+    return 0.5
+
+
+def _scale_of(parsed: ParsedScore) -> float:
+    match = _SCORE_VALUE.match(parsed.text)
+    if match is None:
+        return 1.0
+    return _SUFFIX_SCALE.get((match.group("suf") or "").casefold(), 1.0)
+
+
+def _resolution_points(block: dict[str, Any]) -> list[ParsedScore] | None:
+    """Parsed readings. ``None`` when a reading has no reader name."""
+    found: list[ParsedScore] = []
+    for item in block.get("readings") or []:
+        if not isinstance(item, dict) or not str(item.get("reader") or "").strip():
+            return None
+        parsed = parse_score(item.get("value"))
+        if parsed.kind != "number" or parsed.value is None:
+            return None
+        found.append(parsed)
+    return found
+
+
+def _close_points(left: ParsedScore, right: ParsedScore) -> bool:
+    limit = max(_point_tolerance(left), _point_tolerance(right))
+    return abs(float(left.value) - float(right.value)) <= limit + 1e-9
+
+
+def _agreement(points: list[ParsedScore]) -> list[ParsedScore] | None:
+    """The readings that agree, when at least two do and only one cluster does."""
+    groups: list[list[ParsedScore]] = []
+    count = len(points)
+    for mask in range(1, 1 << count):
+        chosen = [points[index] for index in range(count) if mask & (1 << index)]
+        if len(chosen) < 2:
+            continue
+        if all(
+            _close_points(chosen[i], chosen[j])
+            for i in range(len(chosen))
+            for j in range(i + 1, len(chosen))
+        ):
+            groups.append(chosen)
+    if not groups:
+        return None
+    size = max(len(group) for group in groups)
+    winners = [group for group in groups if len(group) == size]
+    anchor = winners[0][0]
+    if any(not _close_points(anchor, point) for group in winners for point in group):
+        return None
+    return winners[0]
+
+
+def _score_is_agreed(bar: dict[str, Any], cluster: list[ParsedScore]) -> bool:
+    """The score is the agreed value.
+
+    A reading of ``2.1M`` is 2.1 when the bar's unit already says millions.
+    """
+    score_text = str(bar.get("score_text") or _infer_score_text(bar.get("score")))
+    try:
+        score = float(bar["score"])
+    except (TypeError, ValueError):
+        return False
+    score_tol = tolerance_for(score_text)
+    scales = [_scale_of(point) for point in cluster]
+    scale = scales[0]
+    unit = norm_unit(bar.get("unit"))
+    named = scale != 1.0 and len(set(scales)) == 1 and (
+        (scale == 1_000_000.0 and "million" in unit) or (scale == 1_000.0 and "thousand" in unit)
+    )
+    for point in cluster:
+        if named:
+            target = float(point.value) / scale
+            limit = max(score_tol, _point_tolerance(point) / scale)
+        else:
+            target = float(point.value)
+            limit = max(score_tol, _point_tolerance(point))
+        if abs(score - target) > limit + 1e-9:
+            return False
+    return True
+
+
+def _resolution_problems(bar: dict[str, Any]) -> list[str]:
+    block = _resolution_block(bar)
+    if block is None:
+        return []
+    if block.get("rule") != "two_of_three":
+        return ["resolution needs two readings that agree"]
+    points = _resolution_points(block)
+    if points is None:
+        return ["resolution needs two readings that agree"]
+    cluster = _agreement(points)
+    if cluster is None:
+        return ["resolution needs two readings that agree"]
+    if not _score_is_agreed(bar, cluster):
+        return ["score is not the agreed value"]
+    return []
+
+
+def _unresolved_bar(bar: dict[str, Any]) -> bool:
+    block = _resolution_block(bar)
+    if block is not None:
+        if block.get("rule") != "two_of_three":
+            return True
+        points = _resolution_points(block)
+        if points is None:
+            return True
+        return _agreement(points) is None
+    return _explicit_dispute(bar)
 
 
 def _base_result(bar: dict[str, Any]) -> dict[str, Any]:
@@ -506,7 +637,8 @@ def _classify_chart(
     for index, bar in enumerate(bars):
         result = _base_result(bar)
         label_key = (str(bar.get("model_as_labelled") or ""), str(bar.get("benchmark_id") or ""))
-        if _explicit_dispute(bar) or label_key in disputed_keys:
+        settled = _resolution_block(bar) is not None and not _unresolved_bar(bar)
+        if _unresolved_bar(bar) or (not settled and label_key in disputed_keys):
             result["status"] = "disputed"
             results[index] = result
             continue
@@ -887,6 +1019,11 @@ def fixture_errors(fixtures: list[dict[str, Any]], models: list[Model]) -> list[
             digest = chart.get("image_sha256")
             if digest and not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
                 errors.append(f"{where}: image_sha256 is not 64 hex digits")
+            for bar in chart.get("bars") or []:
+                label = bar.get("model_as_labelled") or "?"
+                bench = bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?"
+                for problem in _resolution_problems(bar):
+                    errors.append(f"{where}: {label} {bench} {problem}")
         document = fixture.get("document_sha256")
         if document and not re.fullmatch(r"[0-9a-f]{64}", str(document)):
             errors.append(f"{name}: document_sha256 is not 64 hex digits")
@@ -948,6 +1085,27 @@ def load_manifest(path: Path) -> dict[str, str]:
     return found
 
 
+def _manifest_digest(manifest: dict[str, str], source: str) -> str:
+    """A cache stem and the same name with an extension are one file.
+
+    Two manifest rows that share a stem and carry different digests do not pair.
+    """
+    if source in manifest:
+        return manifest[source].lower()
+    name = source.rsplit("/", 1)[-1]
+    stem = name.rsplit(".", 1)[0] if "." in name else name
+    hits: list[str] = []
+    for key, digest in manifest.items():
+        key_name = key.rsplit("/", 1)[-1]
+        key_stem = key_name.rsplit(".", 1)[0] if "." in key_name else key_name
+        if key_name == name or key_stem == stem:
+            hits.append(digest.lower())
+    unique = list(dict.fromkeys(hits))
+    if len(unique) == 1:
+        return unique[0]
+    return ""
+
+
 def _metric_setting(bar: dict[str, Any]) -> str:
     metric = str(bar.get("metric") or "").strip()
     if metric:
@@ -991,12 +1149,22 @@ _BENCH_ALIASES = (
     ("code forces", "codeforces"),
     ("arena hard", "arenahard"),
     ("simple qa", "simpleqa"),
+    ("big bench extra hard", "bbeh"),
+    ("deepmind mrcr", "mrcr"),
+    ("hle with search", "hle tools"),
+    ("arena text", "arena"),
+    ("deepsearchqa f 1", "deepsearchqa"),
+    ("charxiv reasoning", "charxiv rq"),
+    ("hle full", "hle"),
     ("hle w tools", "hle tools"),
     ("hle with tools", "hle tools"),
     ("osworld 2", "osworld"),
     ("aime 24", "aime 2024"),
     ("aime 25", "aime 2025"),
     ("crux o", "cruxeval"),
+    ("tau 3 bench avg", "tau 3 bench"),
+    ("needle in a haystack", "niah"),
+    ("ifbench inst follow", "ifbench"),
     ("aider polyglot", "aider"),
     ("deep swe", "deepswe"),
     ("c eval", "ceval"),
@@ -1008,6 +1176,8 @@ _BENCH_ALIASES = (
 # A version written beside the benchmark id, not in the benchmark name.
 _VERSION_STEMS = ("demo bench",)
 _QUALIFIERS = (
+    ("with fallback", "fallback"),
+    ("fallback", "fallback"),
     ("text only", "textonly"),
     ("with tools", "tools"),
     ("w tools", "tools"),
@@ -1035,9 +1205,10 @@ _QUALIFIERS = (
     ("passall", "passall"),
     ("pass1", "pass1"),
     ("pass3", "pass3"),
+    ("pass5", "pass5"),
     ("turns", "turns"),
 )
-_PASS_QUALIFIERS = {"pass1", "pass3", "passall"}
+_PASS_QUALIFIERS = {"pass1", "pass3", "pass5", "passall"}
 _EFFORT_PHRASES = (
     ("maximum effort", "max"),
     ("max effort", "max"),
@@ -1086,6 +1257,7 @@ _GLOSS = {
     "prose", "open", "cost", "objectives", "completed", "objective", "met",
     "guardrail", "violation", "zeroes", "held", "out", "set", "share",
     "every", "no", "benchmark",
+    "checkpoint", "quantised", "quantized", "needle", "length",
 }
 _SCAFFOLDS = {
     "claudecode", "codex", "dshminimal", "dshstandard", "dshptc", "miniswe", "opencode", "pi",
@@ -1112,6 +1284,10 @@ def _present(value: Any) -> str:
     text = str(value or "")
     text = text.replace("**", " ").replace("__", " ").replace("~~", " ").replace("*", " ")
     text = text.replace("\u0332", "")
+    # τ³ and the doubled TeX form τ3\tau^{3} are one benchmark name. A trailing ¹ is a footnote.
+    text = re.sub(r"τ\s*3\s*\\tau\s*\^\s*\{?\s*3\s*\}?", " tau3 ", text, flags=re.I)
+    text = re.sub(r"\\tau\s*\^\s*\{?\s*3\s*\}?", " tau3 ", text, flags=re.I)
+    text = text.replace("τ³", " tau3 ").replace("τ3", " tau3 ").replace("τ", " tau ")
     text = re.sub(r"(?i)pass\s*[\^³]\s*3", " passall ", text)
     text = re.sub(r"\[\d+\]", " ", text)
     text = text.translate({ord(ch): None for ch in "⁰¹²³⁴⁵⁶⁷⁸⁹"})
@@ -1128,7 +1304,8 @@ def _basic_label(value: Any) -> str:
     text = re.sub(r"([a-z])(\d)", r"\1 \2", text)
     text = re.sub(r"(\d)([a-z])", r"\1 \2", text)
     text = re.sub(r"(\d{4})\.(\d{2})", r"\1 \2", text)
-    text = re.sub(r"\b(\d+)\.0+\b", r"\1", text)
+    # ``2.0`` is ``2``. ``1.0.6`` keeps the middle zero; the dot after it is another component.
+    text = re.sub(r"\b(\d+)\.0+(?!\.\d)\b", r"\1", text)
     text = text.replace("w o ", "without ")
     return re.sub(r"\s+", " ", text).strip()
 
@@ -1149,11 +1326,24 @@ def _split_outside_parens(text: str) -> tuple[str, str]:
     return text[:found].strip(), text[found + 3 :].strip()
 
 
+def _section_split(text: str) -> str:
+    """A slash outside parentheses is a section header. ``Score / 600`` is a scale."""
+    depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0 and text.startswith(" / ", index):
+            return text[index + 3 :].strip()
+    return text
+
+
 def _benchmark_parts(value: Any) -> tuple[str, str]:
     """Drop a section header. A row setting after ' - ' belongs with the metric."""
     text = _present(value)
-    if " / " in text:
-        text = text.split(" / ", 1)[1].strip()
+    text = re.sub(r"\(\s*score\s*/\s*\d+\s*\)", " ", text, flags=re.I)
+    text = _section_split(text)
     text, extra = _split_outside_parens(text)
     text = re.sub(r"\blower is better\b", " ", text, flags=re.I)
     text = re.sub(r"\(\s*score\s*\)", " ", text, flags=re.I)
@@ -1162,8 +1352,9 @@ def _benchmark_parts(value: Any) -> tuple[str, str]:
 
 
 def _join_version(text: str) -> str:
-    text = re.sub(r"\b(\d{1,2}) (\d)\b", r"\1.\2", text)
-    return re.sub(r"\b(\d+)\.0+\b", r"\1", text)
+    # ``4 8`` is 4.8. ``4.2 8`` is version 4.2 beside a size, not version 4.2.8.
+    text = re.sub(r"(?<!\d\.)\b(\d{1,2}) (\d)\b", r"\1.\2", text)
+    return re.sub(r"\b(\d+)\.0+(?!\.\d)\b", r"\1", text)
 
 
 def _apply_aliases(text: str, aliases: tuple[tuple[str, str], ...]) -> str:
@@ -1175,6 +1366,10 @@ def _apply_aliases(text: str, aliases: tuple[tuple[str, str], ...]) -> str:
 
 def _mark_settings(text: str) -> str:
     """One token for a setting, so 'no tools' and 'w/o tool use' compare equal."""
+    text = text.replace("multimodal", "mm")
+    text = text.replace("with python tools", "tools")
+    text = text.replace("python tools", "tools")
+    text = text.replace("tool augmentation", "tools")
     text = text.replace("without tool use", "notools")
     text = text.replace("no tool use", "notools")
     text = text.replace("without tools", "notools")
@@ -1186,8 +1381,10 @@ def _mark_settings(text: str) -> str:
     text = text.replace("all trials correct", "passall")
     text = text.replace("average turns", "turns")
     text = text.replace("avg turns", "turns")
+    text = text.replace("pass at 5", "pass5")
     text = text.replace("pass at 3", "pass3")
     text = text.replace("pass at 1", "pass1")
+    text = re.sub(r"\bpass 5\b", "pass5", text)
     text = re.sub(r"\bpass 3\b", "pass3", text)
     text = re.sub(r"\bpass 1\b", "pass1", text)
     return re.sub(r"\s+", " ", text).strip()
@@ -1241,7 +1438,17 @@ def _peel_model(text: str) -> tuple[str, list[str], list[str]]:
     return text, efforts, quals
 
 
+def _order_claude(text: str) -> str:
+    """``Claude 4.5 Haiku`` and ``Claude Haiku 4.5`` are one product."""
+    parts = text.split()
+    if len(parts) >= 3 and parts[0] == "claude" and parts[1][:1].isdigit() and parts[2] in _CLAUDE_FAMILY:
+        return " ".join(["claude", parts[2], parts[1], *parts[3:]])
+    return text
+
+
 def _finish_model(text: str) -> str:
+    # ``Claude-opus-4-8`` and ``Claude Opus 4.8`` are one product.
+    text = _order_claude(_join_version(text))
     if text.startswith("ds "):
         text = "deepseek " + text[3:]
     parts = text.split()
@@ -1289,10 +1496,50 @@ def _with_caption_version(benchmark: str, notes: str) -> str:
     label = _basic_label(text)
     if not label or re.search(r"\d", label):
         return text
-    found = set(re.findall(rf"\b{re.escape(label)}\s+(\d+\.\d+)\b", _basic_label(notes)))
+    found = set(re.findall(rf"\b{re.escape(label)}\s+(\d+(?:\.\d+)+)\b", _basic_label(notes)))
     if len(found) != 1:
         return text
     return f"{text} {found.pop()}"
+
+
+def _marked_version(benchmark: Any, metric: Any) -> str:
+    """A lowercase ``v6`` on the benchmark, or in a short setting. ``V4`` is a model."""
+    in_name = set(re.findall(r"(?<![A-Za-z])v(\d+(?:\.\d+)*)\b", str(benchmark or "")))
+    setting = str(metric or "").strip()
+    in_setting: set[str] = set()
+    if len(setting) <= 80:
+        in_setting = set(re.findall(r"(?<![A-Za-z])v(\d+(?:\.\d+)*)\b", setting))
+    found = in_name | in_setting
+    if len(found) != 1:
+        return ""
+    version = found.pop()
+    return re.sub(r"(\d+)\.0+(?!\.\d)$", r"\1", version)
+
+
+def _slice_tokens_for(bench_tokens: list[str]) -> frozenset[str]:
+    """Language codes only on the benchmarks that print them. ``it`` is also an English word."""
+    stem = set(bench_tokens)
+    allowed: set[str] = set()
+    if stem & {"covost", "fleurs", "mtob"}:
+        allowed |= {"en", "de", "fr", "es", "it", "ja", "ru", "zh", "ko", "hi", "ar", "pt", "br", "eng", "kgv", "asr", "avg"}
+    if "tau" in stem:
+        allowed |= {"airline", "retail", "telecom"}
+    if "medxpertqa" in stem:
+        allowed.add("mm")
+    return frozenset(allowed)
+
+
+def _fold_slices(bench: str, metric_key: str) -> tuple[str, str]:
+    """Language and domain tokens are part of the benchmark, wherever they were written."""
+    bench_tokens = bench.split()
+    allowed = _slice_tokens_for(bench_tokens)
+    if not allowed:
+        return bench, metric_key
+    moved = [tok for tok in metric_key.split() if tok in allowed]
+    kept = [tok for tok in metric_key.split() if tok not in allowed]
+    head = [tok for tok in bench_tokens if tok not in allowed]
+    slices = sorted({tok for tok in bench_tokens if tok in allowed} | set(moved))
+    return " ".join([*head, *slices]), " ".join(kept)
 
 
 def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
@@ -1310,13 +1557,25 @@ def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
         bench = f"{stem} {version}"
         metric = padded.replace(f" {stem} {version} ", f" {stem} ", 1)
         return bench, re.sub(r"\s+", " ", metric).strip()
+    # A dotted version written beside an unversioned name, in the setting or the subtitle.
+    versions = set(re.findall(rf" {re.escape(bench)} (\d+(?:\.\d+)+) ", padded))
+    if len(versions) == 1:
+        version = versions.pop()
+        metric = padded.replace(f" {bench} {version} ", f" {bench} ", 1)
+        metric = re.sub(r"\s+", " ", metric).strip()
+        bench = f"{bench} {version}"
     return bench, metric
 
 
 def canon_benchmark(value: Any) -> str:
     text = _join_version(_basic_label(value))
     text = re.sub(r"\baug\b", "august", text)
-    return _apply_aliases(text, _BENCH_ALIASES)
+    text = _apply_aliases(text, _BENCH_ALIASES)
+    parts = text.split()
+    # A trailing ``(Elo)`` is the unit, already stored on the bar.
+    if len(parts) > 1 and parts[-1] == "elo":
+        text = " ".join(parts[:-1])
+    return text
 
 
 def _prepare_setting(value: Any) -> str:
@@ -1332,6 +1591,9 @@ def _prepare_setting(value: Any) -> str:
     raw = re.sub(r"table value\s*=", " ", raw, flags=re.I)
     raw = re.sub(r"\(in row label\)", " ", raw, flags=re.I)
     raw = re.sub(r"\bbar label\b", " ", raw, flags=re.I)
+    raw = re.sub(r"effort\s*/\s*setting in label\s*:?", " ", raw, flags=re.I)
+    raw = re.sub(r"thinking mode not stated", " ", raw, flags=re.I)
+    raw = re.sub(r"\bnot stated\b", " ", raw, flags=re.I)
     raw = re.sub(r"cost per task\s*:.*", " ", raw, flags=re.I | re.S)
     raw = re.sub(r"\bmaximum at any effort\b", " ", raw, flags=re.I)
     raw = re.sub(r"\bmaximum\b", "max", raw, flags=re.I)
@@ -1387,11 +1649,17 @@ def canon_metric(value: Any, model: Any = "") -> str:
     return " ".join(sorted(set(kept)))
 
 
+def _drop_component_list(text: str) -> str:
+    """An index names its own version. The parenthetical list of components does not."""
+    return re.sub(r"\(\s*\d+\s+evaluations?:.*?\)", " ", text, flags=re.I | re.S)
+
+
 def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     model_body, model_efforts, model_quals = _peel_model(_basic_label(model))
     model_key = _finish_model(model_body)
     bench_body, row_extra = _benchmark_parts(benchmark)
-    metric_bits = " ".join(bit for bit in (str(metric or ""), row_extra) if str(bit).strip())
+    raw_metric = _drop_component_list(str(metric or ""))
+    metric_bits = " ".join(bit for bit in (raw_metric, row_extra) if str(bit).strip())
     metric_bits = _prepare_setting(metric_bits)
     bench = _mark_settings(canon_benchmark(bench_body))
     metric_text = _mark_settings(_basic_label(metric_bits))
@@ -1406,18 +1674,51 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     bench, bench_quals = _pull_qualifiers(bench)
     metric_text, metric_quals = _pull_qualifiers(metric_text)
     quals = " ".join(sorted(set(_merge_quals(bench_quals, metric_quals + model_quals))))
+    bench, metric_text = _attach_named_version(bench, metric_text)
+    if not re.search(r"\d", bench):
+        version = _marked_version(benchmark, raw_metric)
+        if version:
+            bench = f"{bench} {version}"
+            metric_text = re.sub(rf"\b{re.escape(version)}\b", " ", metric_text)
+            metric_text = re.sub(r"\s+", " ", metric_text).strip()
     if quals:
         bench = f"{bench} {quals}".strip()
-    bench, metric_text = _attach_named_version(bench, metric_text)
+    # IFBench (prompt) is that variant. RULER 128K is that context, and 128 is not prose.
+    if bench == "ifbench" and "prompt" in metric_text.split():
+        bench = "ifbench prompt"
+        metric_text = " ".join(token for token in metric_text.split() if token != "prompt")
+    if bench == "ruler" or bench.startswith("ruler "):
+        lengths = set(re.findall(r"\b(\d+) k\b", metric_text))
+        if len(lengths) == 1 and not re.search(r"\d", bench):
+            length = lengths.pop()
+            bench = f"{bench} {length} k"
+            metric_text = re.sub(rf"\b{length} k\b", " ", metric_text)
+            metric_text = re.sub(r"\s+", " ", metric_text).strip()
     effort = _one_effort(model_efforts, metric_efforts)
     metric_key = canon_metric(metric_text, model_key)
     if effort:
         metric_key = " ".join(sorted({*metric_key.split(), effort}))
+    bench, metric_key = _fold_slices(bench, metric_key)
     return (model_key, bench, metric_key)
 
 
 def _pair_key(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     return _identity(model, benchmark, metric)
+
+
+def _numeric_uncertainty(value: Any) -> float | None:
+    """A ± bound is a tolerance. A note that says none is not one."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text or text.casefold().startswith("none"):
+        return None
+    match = re.search(r"(\d+(?:\.\d+)?)", text.replace("±", " "))
+    if match is None:
+        return None
+    return float(match.group(1))
 
 
 def _scores_agree(
@@ -1440,6 +1741,18 @@ def _scores_agree(
     return abs(float(a_score) - float(b_score)) <= tolerance + 1e-9
 
 
+def _labelled_model(model: Any, metric: Any) -> str:
+    """A logo with no printed name still records the name in ``names it '...'``."""
+    text = str(model or "")
+    folded = text.casefold()
+    if "unlabelled" not in folded and "unlabeled" not in folded:
+        return text
+    match = re.search(r"names it ['\"]([^'\"]+)['\"]", str(metric or ""), flags=re.I)
+    if match is None:
+        return text
+    return match.group(1).strip()
+
+
 def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
     if side == "a":
         benchmark = item.get("benchmark_as_labelled") or item.get("benchmark_id") or ""
@@ -1449,6 +1762,7 @@ def _reading_row(item: dict[str, Any], *, side: str) -> dict[str, Any]:
         benchmark = item.get("benchmark_as_labelled") or item.get("benchmark_id") or ""
         metric = item.get("metric_or_setting") if "metric_or_setting" in item else _metric_setting(item)
         model = item.get("model_as_labelled") or ""
+    model = _labelled_model(model, metric)
     benchmark = _with_caption_version(benchmark, item.get("chart_notes") or "")
     parsed = parse_score(item.get("score"))
     text = item.get("score_text")
@@ -1483,7 +1797,6 @@ def _judge_pair(a_item: dict[str, Any], b_item: dict[str, Any]) -> str:
         return "agree"
     if a_item["score_kind"] != "number" or b_item["score_kind"] != "number":
         return "disagree"
-    uncertainty = b_item.get("uncertainty")
     agree = _scores_agree(
         float(a_item["score_value"]),
         str(a_item["score_text"]),
@@ -1491,7 +1804,7 @@ def _judge_pair(a_item: dict[str, Any], b_item: dict[str, Any]) -> str:
         float(b_item["score_value"]),
         str(b_item["score_text"]),
         bool(b_item["printed"]),
-        None if uncertainty is None else float(uncertainty),
+        _numeric_uncertainty(b_item.get("uncertainty")),
     )
     return "agree" if agree else "disagree"
 
@@ -1558,6 +1871,118 @@ def _effort_conflict(a_item: dict[str, Any], b_item: dict[str, Any]) -> bool:
     return ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks)
 
 
+def _annotation_span(tokens: list[str], start: int) -> int:
+    """Parameter count, quant, or a closed/instruct mark. Not the product name."""
+    if start >= len(tokens):
+        return 0
+    token = tokens[start]
+    if token in {"dense", "closed", "it", "instruct", "thinking", "experts", "only"}:
+        return 1
+    if re.fullmatch(r"0\d{3}", token):
+        return 1
+    if token == "a" and start + 2 < len(tokens) and tokens[start + 1].isdigit() and tokens[start + 2] in {"b", "t"}:
+        return 3
+    if token.isdigit() and start + 1 < len(tokens) and tokens[start + 1] in {"b", "t"}:
+        return 2
+    if token in {"nvfp", "bf", "fp", "mxfp"} and start + 1 < len(tokens) and tokens[start + 1].isdigit():
+        return 2
+    if (
+        token == "w"
+        and start + 3 < len(tokens)
+        and tokens[start + 1].isdigit()
+        and tokens[start + 2] == "a"
+        and tokens[start + 3].isdigit()
+    ):
+        return 4
+    return 0
+
+
+def _only_annotations(tokens: list[str]) -> bool:
+    index = 0
+    if not tokens:
+        return False
+    while index < len(tokens):
+        span = _annotation_span(tokens, index)
+        if span == 0:
+            return False
+        index += span
+    return True
+
+
+def _is_annotated_expansion(short: str, long: str) -> bool:
+    """True when one spelling adds a size, a quant, or a closed/instruct mark."""
+    short_tokens = short.split()
+    long_tokens = long.split()
+    if not short_tokens or len(long_tokens) <= len(short_tokens):
+        return False
+    bare = [token for token in short_tokens if token != "dense"]
+    fuller = [token for token in long_tokens if token != "dense"]
+    if (
+        bare
+        and _only_annotations(bare)
+        and any(token in {"b", "t"} for token in bare)
+        and len(fuller) > len(bare)
+        and fuller[-len(bare) :] == bare
+        and not _only_annotations(fuller)
+    ):
+        return True
+    index = 0
+    extras: list[str] = []
+    for token in long_tokens:
+        if index < len(short_tokens) and token == short_tokens[index]:
+            index += 1
+        else:
+            extras.append(token)
+    return index == len(short_tokens) and _only_annotations(extras)
+
+
+def _soft_mark(short: str, long: str) -> bool:
+    """``Dense`` or ``closed`` does not make a second model."""
+    short_tokens = short.split()
+    long_tokens = long.split()
+    index = 0
+    extras: list[str] = []
+    for token in long_tokens:
+        if index < len(short_tokens) and token == short_tokens[index]:
+            index += 1
+        else:
+            extras.append(token)
+    return index == len(short_tokens) and bool(extras) and set(extras) <= {"dense", "closed"}
+
+
+def _fold_soft_marks(rows: list[dict[str, Any]]) -> None:
+    keys = {row["model_key"] for row in rows}
+    rewrite: dict[str, str] = {}
+    for short in keys:
+        longs = [long for long in keys if long != short and _soft_mark(short, long)]
+        if longs:
+            rewrite[short] = max(longs, key=lambda text: len(text.split()))
+    for row in rows:
+        row["model_key"] = rewrite.get(row["model_key"], row["model_key"])
+
+
+def _align_model_keys(a_rows: list[dict[str, Any]], b_rows: list[dict[str, Any]]) -> None:
+    """Pair spellings of one model. Two sizes on the same side stay apart."""
+    _fold_soft_marks(a_rows)
+    _fold_soft_marks(b_rows)
+    a_keys = {row["model_key"] for row in a_rows}
+    b_keys = {row["model_key"] for row in b_rows}
+    proposals: dict[str, set[str]] = defaultdict(set)
+    for a_key in a_keys:
+        for b_key in b_keys:
+            if not a_key or not b_key or a_key == b_key:
+                continue
+            short, long = (a_key, b_key) if len(a_key.split()) <= len(b_key.split()) else (b_key, a_key)
+            if short == long or not _is_annotated_expansion(short, long):
+                continue
+            if (short in a_keys and long in a_keys) or (short in b_keys and long in b_keys):
+                continue
+            proposals[short].add(long)
+    rewrite = {short: next(iter(longs)) for short, longs in proposals.items() if len(longs) == 1}
+    for row in a_rows + b_rows:
+        row["model_key"] = rewrite.get(row["model_key"], row["model_key"])
+
+
 def _pair_rows(
     a_rows: list[dict[str, Any]],
     b_rows: list[dict[str, Any]],
@@ -1567,6 +1992,7 @@ def _pair_rows(
     read_on: str,
 ) -> list[dict[str, Any]]:
     """Pair on model and benchmark. A repeated setting also has to match the metric."""
+    _align_model_keys(a_rows, b_rows)
     a_by2: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     b_by2: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in a_rows:
@@ -1656,6 +2082,8 @@ def _b_rows(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _is_stub(reading: dict[str, Any]) -> bool:
+    if str(reading.get("status") or "") == "not_fetched":
+        return True
     charts = [chart for chart in reading.get("charts") or [] if isinstance(chart, dict)]
     if not charts:
         return False
@@ -1747,7 +2175,7 @@ def reconcile_readings(
             ]
             scope.append((fixture, charts))
         else:
-            digest = (manifest.get(source) or "").lower()
+            digest = _manifest_digest(manifest, source)
             documents = by_document.get(digest) or []
             located = by_hash.get(digest) or []
             if documents:

@@ -1,0 +1,853 @@
+page_url: "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+publisher: "NVIDIA"
+read_on: "2026-09-24"
+charts:
+  - title: "Reasoning benchmark evaluations"
+    kind: html_table
+    footnotes: "NVIDIA measured every column with one harness, NeMo Gym and Nemo Evaluator. The card says these can differ from vendors' own reports. A dash means the cell was not printed."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: mmlu_pro
+        score: 81.94
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: mmlu_pro
+        score: 85.63
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: mmlu_pro
+        score: 85.20
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: mmlu_pro
+        score: 78.46
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: mmlu_pro
+        score: 83.89
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 76.40
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: gpqa_diamond
+        score: 75.44
+        unit: "percent"
+        printed: true
+        configuration: "No tools.. BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: gpqa_diamond
+        score: 83.40
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: gpqa_diamond
+        score: 79.61
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: gpqa_diamond
+        score: 74.05
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: gpqa_diamond
+        score: 78.60
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 71.46
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: hle
+        score: 11.72
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools.. BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: hle
+        score: 19.56
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools."
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: hle
+        score: 17.42
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: hle
+        score: 10.89
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: hle
+        score: 20.30
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools."
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: hle
+        score: 13.76
+        unit: "percent"
+        printed: true
+        configuration: "Text only, no tools."
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: scicode
+        score: 32.60
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: scicode
+        score: 35.33
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: scicode
+        score: 40.28
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: scicode
+        score: 30.08
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: scicode
+        score: 35.11
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: scicode
+        score: 38.63
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 51.56
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 70.12
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: swe_bench_verified
+        score: 57.40
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: swe_bench_verified
+        score: 34.08
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: swe_bench_verified
+        score: 63.08
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: swe_bench_verified
+        score: 52.44
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_multilingual
+        score: 39.33
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: swe_bench_multilingual
+        score: 63.40
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: swe_bench_multilingual
+        score: 43.40
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: swe_bench_multilingual
+        score: 14.07
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: swe_bench_multilingual
+        score: 49.80
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: swe_bench_multilingual
+        score: 41.93
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 24.58
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 44.38
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 37.22
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: terminal_bench_v2_1
+        score: 8.29
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: terminal_bench_v2_1
+        score: 39.61
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: terminal_bench_v2_1
+        score: 15.17
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 85.37
+        unit: "score"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 88.07
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 74.70
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 66.11
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 80.36
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 57.20
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: browsecomp
+        score: 36.97
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: browsecomp
+        score: 48.74
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: browsecomp
+        score: 26.30
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: browsecomp
+        score: 13.74
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: browsecomp
+        score: 22.77
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench (Banking)"
+        score: 9.28
+        unit: "score"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench (Banking)"
+        score: 10.52
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench (Banking)"
+        score: 14.02
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench (Banking)"
+        score: 7.01
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench (Banking)"
+        score: 12.37
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: ifbench
+        score: 71.88
+        unit: "percent"
+        printed: true
+        configuration: "Loose.. BF16"
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: ifbench
+        score: 63.71
+        unit: "percent"
+        printed: true
+        configuration: "Loose."
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: ifbench
+        score: 77.25
+        unit: "percent"
+        printed: true
+        configuration: "Loose."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Nano"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+        benchmark_id: ifbench
+        score: 72.17
+        unit: "percent"
+        printed: true
+        configuration: "Loose."
+        role: subject
+      - model_as_labelled: "Nemotron 3 Super"
+        model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
+        benchmark_id: ifbench
+        score: 71.92
+        unit: "percent"
+        printed: true
+        configuration: "Loose."
+        role: subject
+      - model_as_labelled: "GPT-OSS 20B"
+        model_id: null
+        benchmark_id: ifbench
+        score: 68.50
+        unit: "percent"
+        printed: true
+        configuration: "Loose."
+        role: competitor
+  - title: "Accuracy"
+    kind: image
+    image_url: "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16/resolve/main/accuracy_plot.png"
+    image_sha256: "feecce07c67ac1ba7bf57f9d3b31bb819211b8da60f547287bdfce4376091ec4"
+    footnotes: "Printed labels, rounded to one decimal. Lightning is the BF16 checkpoint. Nano is named NVFP4 on the legend. The caption says competitors were measured by NVIDIA on one harness."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: ifbench
+        score: 71.9
+        unit: "percent"
+        printed: true
+        configuration: "BF16. One decimal as printed."
+        role: subject
+      - model_as_labelled: "Nemotron-3-Nano NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+        benchmark_id: ifbench
+        score: 72.2
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4."
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: ifbench
+        score: 63.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: ifbench
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 51.6
+        unit: "percent"
+        printed: true
+        configuration: "BF16. One decimal as printed."
+        role: subject
+      - model_as_labelled: "Nemotron-3-Nano NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+        benchmark_id: swe_bench_verified
+        score: 34.1
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4."
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 70.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: swe_bench_verified
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: hle
+        score: 11.7
+        unit: "percent"
+        printed: true
+        configuration: "BF16. One decimal as printed."
+        role: subject
+      - model_as_labelled: "Nemotron-3-Nano NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+        benchmark_id: hle
+        score: 10.9
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4."
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: hle
+        score: 19.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: hle
+        score: 17.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 24.6
+        unit: "percent"
+        printed: true
+        configuration: "BF16. One decimal as printed."
+        role: subject
+      - model_as_labelled: "Nemotron-3-Nano NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+        benchmark_id: terminal_bench_v2_1
+        score: 8.3
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4."
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 44.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 37.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3.5-Lightning BF16"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench"
+        score: 9.3
+        unit: "percent"
+        printed: true
+        configuration: "BF16. One decimal as printed."
+        role: subject
+      - model_as_labelled: "Nemotron-3-Nano NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench"
+        score: 7.0
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4."
+        role: subject
+      - model_as_labelled: "Qwen 3.6 35B A3B"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench"
+        score: 10.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "τ³-bench"
+        score: 14.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Agentic coding benchmarks"
+    kind: image
+    image_url: "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16/resolve/main/agentic_coding_benchmarks.png"
+    image_sha256: "06cf5486ae94ecd7cc6f91ae3b4bae21c7435253a294cb89f54f7ec42eda8847"
+    footnotes: "Same Lightning model under unmodified harness prompts. SWE-bench Verified is 500 tasks. Terminal-Bench 2.1 is 89 tasks. The axis labels are harnesses, not other models."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 60.0
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode v1.17.8. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: "Copilot v1.0.71. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: "Claude v2.1.126. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 54.5
+        unit: "percent"
+        printed: true
+        configuration: "Pi v0.80.10. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 50.7
+        unit: "percent"
+        printed: true
+        configuration: "Mini-SWE agent v2.4.5. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 48.7
+        unit: "percent"
+        printed: true
+        configuration: "OpenHands v1.36.1. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 45.7
+        unit: "percent"
+        printed: true
+        configuration: "Hermes v0.18.2. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 11.0
+        unit: "percent"
+        printed: true
+        configuration: "Codex v0.144.6. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 29.7
+        unit: "percent"
+        printed: true
+        configuration: "Mini-SWE agent v2.4.5. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 29.1
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode v1.17.8. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 29.0
+        unit: "percent"
+        printed: true
+        configuration: "Claude v2.1.126. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 27.0
+        unit: "percent"
+        printed: true
+        configuration: "Copilot v1.0.71. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 26.1
+        unit: "percent"
+        printed: true
+        configuration: "OpenHands v1.36.1. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 25.8
+        unit: "percent"
+        printed: true
+        configuration: "Hermes v0.18.2. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 24.5
+        unit: "percent"
+        printed: true
+        configuration: "Pi v0.80.10. Unmodified harness prompt."
+        role: subject
+      - model_as_labelled: "Nemotron 3.5 Lightning"
+        model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
+        benchmark_id: terminal_bench_v2_1
+        score: 2.9
+        unit: "percent"
+        printed: true
+        configuration: "Codex v0.144.6. Unmodified harness prompt."
+        role: subject

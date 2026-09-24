@@ -1,0 +1,119 @@
+page_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcribe"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+document_sha256: "95b074664b450121d597f2cd3d0d72da9676af717fec8cfe55f1a965c464fe82"
+charts:
+  - title: "FLEURS streaming"
+    kind: image
+    image_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcribe"
+    image_sha256: "82c4a3f03c7926e204bf4e8ea783665c08ae3defb8459674559157842922ef4a"
+    footnotes: "Word error rate on FLEURS top locales, streaming. Top locales: ar-EG, bn-IN, cmn-Hans-CN, de-DE, en-US, es-ES, es-US, fr-FR, hi-IN, id-ID, it-IT, ja-JP, ko-KR, mr-IN, nl-NL, pl-PL, pt-BR, ro-RO, ru-RU, ta-IN, te-IN, th-TH, tr-TR, uk-UA, vi-VN. Lower is better. The chart is embedded in the methodology PDF. Google says these are its runs of competitors' default APIs."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.5 Transcribe Live"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 5.50
+        unit: "percent"
+        printed: true
+        configuration: "Streaming. FLEURS top locales. Lower is better."
+        role: subject
+      - model_as_labelled: "Google Cloud Chirp 3"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 7.32
+        unit: "percent"
+        printed: true
+        configuration: "Streaming. FLEURS top locales. Lower is better."
+        role: subject
+      - model_as_labelled: "ElevenLabs Scribe v2 Realtime"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 9.70
+        unit: "percent"
+        printed: true
+        configuration: "Streaming. FLEURS top locales. Lower is better."
+        role: competitor
+      - model_as_labelled: "OpenAI GPT Live Transcribe"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 8.97
+        unit: "percent"
+        printed: true
+        configuration: "Streaming. FLEURS top locales. Lower is better."
+        role: competitor
+      - model_as_labelled: "Deepgram Nova-3"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 15.77
+        unit: "percent"
+        printed: true
+        configuration: "Streaming. FLEURS top locales. Lower is better."
+        role: competitor
+  - title: "FLEURS non-streaming"
+    kind: image
+    image_url: "https://deepmind.google/models/evals-methodology/gemini-3-5-transcribe"
+    image_sha256: "a06f9bc9995cebad0337d589804e7a58bf3757cf93cc25ab1a5fe536c52db3e0"
+    footnotes: "Word error rate on FLEURS top locales, non-streaming. Top locales: ar-EG, bn-IN, cmn-Hans-CN, de-DE, en-US, es-ES, es-US, fr-FR, hi-IN, id-ID, it-IT, ja-JP, ko-KR, mr-IN, nl-NL, pl-PL, pt-BR, ro-RO, ru-RU, ta-IN, te-IN, th-TH, tr-TR, uk-UA, vi-VN. Lower is better. ElevenLabs Scribe v2 is printed 7.12%."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.5 Transcribe"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 5.04
+        unit: "percent"
+        printed: true
+        configuration: "Non-streaming. FLEURS top locales. Lower is better."
+        role: subject
+      - model_as_labelled: "Google Cloud Chirp 3"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 5.66
+        unit: "percent"
+        printed: true
+        configuration: "Non-streaming. FLEURS top locales. Lower is better."
+        role: subject
+      - model_as_labelled: "ElevenLabs Scribe v2"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 7.12
+        unit: "percent"
+        printed: true
+        configuration: "Non-streaming. FLEURS top locales. Lower is better."
+        role: competitor
+      - model_as_labelled: "OpenAI GPT Live Transcribe"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 7.47
+        unit: "percent"
+        printed: true
+        configuration: "Non-streaming. FLEURS top locales. Lower is better."
+        role: competitor
+      - model_as_labelled: "Deepgram Nova-3"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 11.35
+        unit: "percent"
+        printed: true
+        configuration: "Non-streaming. FLEURS top locales. Lower is better."
+        role: competitor

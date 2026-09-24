@@ -1,0 +1,81 @@
+page_url: "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12b/"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+charts:
+  - title: "Gemma 4 12B benchmarks"
+    kind: image
+    image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/1920x1080_xMVEyWv.width-2000.format-webp.webp"
+    image_sha256: "33f5035af0d82de2796cc78274dc4c37f9ee4674e7302a81448eec700e387b37"
+    footnotes: "Only the Gemma 4 12B series has printed values. Gemma 4 26B and Gemma 3 27B are drawn without numbers. The architecture diagram on the post is not a score chart."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: gpqa_diamond
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: bbeh
+        score: 53
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: mmlu_pro
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: live_code_bench
+        score: 72
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: docvqa
+        score: 94.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "InfoVQA"
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: mmmu_pro
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject

@@ -1,0 +1,356 @@
+page_url: "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
+publisher: "DeepSeek"
+read_on: "2026-09-24"
+charts:
+  - title: "Agent benchmarks"
+    kind: html_table
+    footnotes: "Text-agent rows use DeepSeek Harness minimal mode, max reasoning effort, temperature 1.0, top_p 0.95. A dagger means DeepSeek-V4-Flash-0731 ignores multimodal elements. DSBench-FullStack and DSBench-Hard are internal sets. Code-agent public tasks use DeepSeek Harness minimal mode."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: terminal_bench_v2_1
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: terminal_bench_v2_1
+        score: 61.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: terminal_bench_v2_1
+        score: 72.1
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: terminal_bench_v2_1
+        score: 81.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 39.4
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 38.5
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 48.9
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 69.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: cybergym
+        score: 76.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: cybergym
+        score: 38.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: cybergym
+        score: 52.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
+        role: subject
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: cybergym
+        score: 83.1
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 54.4
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 7.3
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 12.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 46.2
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 25.2
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 15.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 16.5
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 23.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 25.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-FullStack †"
+        score: 68.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-FullStack †"
+        score: 37.0
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-FullStack †"
+        score: 41.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-FullStack †"
+        score: 61.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-FullStack †"
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        model_id: "qwen/deepseek-v4-flash-0731"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-Hard †"
+        score: 59.6
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-Hard †"
+        score: 25.8
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
+        role: subject
+      - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-Hard †"
+        score: 31.1
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
+        role: subject
+      - model_as_labelled: "GLM-5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-Hard †"
+        score: 54.5
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
+        role: competitor
+      - model_as_labelled: "Opus-4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DSBench-Hard †"
+        score: 71.7
+        unit: "percent"
+        printed: true
+        configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
+        role: competitor

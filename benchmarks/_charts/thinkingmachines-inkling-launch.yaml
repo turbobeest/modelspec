@@ -1,0 +1,1986 @@
+page_url: "https://thinkingmachines.ai/news/introducing-inkling/"
+publisher: "Thinking Machines"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmark comparison"
+    kind: html_table
+    footnotes: "Launch-post table. Inkling is at effort 0.99. The GPT 5.6 Sol header says max/xhigh. AIME 2026 for Claude Fable 5 is printed here and left blank on the model card."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: hle
+        score: 29.7
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: hle
+        score: 26.6
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: hle
+        score: 29.4
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: hle
+        score: 35.9
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: hle
+        score: 40.1
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: hle
+        score: 35.9
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: hle
+        score: 44.7
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle
+        score: 53.3
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: hle
+        score: 47.2
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: hle_tools
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: hle_tools
+        score: 37.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: hle_tools
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: hle_tools
+        score: 54.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: hle_tools
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: hle_tools
+        score: 48.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: hle_tools
+        score: 51.4
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle_tools
+        score: 64.5
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: hle_tools
+        score: 55.0
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: aime_2026
+        score: 97.1
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: aime_2026
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: aime_2026
+        score: 95.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: aime_2026
+        score: 96.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: aime_2026
+        score: 99.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: aime_2026
+        score: 96.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: aime_2026
+        score: 98.3
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: aime_2026
+        score: 99.9
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: aime_2026
+        score: 99.9
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: gpqa_diamond
+        score: 87.2
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gpqa_diamond
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: gpqa_diamond
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: gpqa_diamond
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: gpqa_diamond
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: gpqa_diamond
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: gpqa_diamond
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: gpqa_diamond
+        score: 92.6
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: gpqa_diamond
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: swe_bench_verified
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_verified
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: swe_bench_verified
+        score: 76.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_verified
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: swe_bench_verified
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_verified
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_verified
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: swe_bench_verified
+        score: 95.0
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: swe_bench_verified
+        score: 82.2
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: swe_bench_pro
+        score: 54.3
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_pro
+        score: 46.4
+        unit: "percent"
+        printed: true
+        configuration: "Public set."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: swe_bench_pro
+        score: 50.7
+        unit: "percent"
+        printed: true
+        configuration: "Public set."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Public set."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: swe_bench_pro
+        score: 62.1
+        unit: "percent"
+        printed: true
+        configuration: "Public set."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_pro
+        score: 55.4
+        unit: "percent"
+        printed: true
+        configuration: "Public set."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: swe_bench_pro
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: swe_bench_pro
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: terminal_bench_v2_1
+        score: 63.8
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: terminal_bench_v2_1
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: "Best harness."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 51.3
+        unit: "percent"
+        printed: true
+        configuration: "Best harness."
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 51.3
+            - reader: claude-opus
+              value: 49.5
+            - reader: claude-sonnet
+              value: "51.3%"
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: terminal_bench_v2_1
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: "Best harness."
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 71.3
+            - reader: claude-opus
+              value: 70.2
+            - reader: claude-sonnet
+              value: "71.3%"
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: terminal_bench_v2_1
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: "Best harness."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: terminal_bench_v2_1
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: "Best harness."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: terminal_bench_v2_1
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: terminal_bench_v2_1
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 44.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 68.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 83.3
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 23.7
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 13.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 14.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 20.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 26.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 25.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 16.5
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 26.8
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 33.0
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 45.5
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 34.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 33.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 61.1
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 76.4
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: browsecomp
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "With context management.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: browsecomp
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "With context management."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: browsecomp
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "With context management."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: browsecomp
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "With context management."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: browsecomp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "With context management.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: browsecomp
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "With context management.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: browsecomp
+        score: 90.8
+        unit: "percent"
+        printed: true
+        configuration: "With context management.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: simpleqa
+        score: 43.9
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: simpleqa
+        score: 32.4
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: simpleqa
+        score: 36.9
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: simpleqa
+        score: 38.7
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: simpleqa
+        score: 38.1
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: simpleqa
+        score: 57.0
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: simpleqa
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: simpleqa
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: simpleqa
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: ifbench
+        score: 79.8
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ifbench
+        score: 81.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: ifbench
+        score: 70.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: ifbench
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: ifbench
+        score: 73.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: ifbench
+        score: 76.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: ifbench
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: ifbench
+        score: 63.5
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: ifbench
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: global_mmlu
+        score: 88.7
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: global_mmlu
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: "Lite."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: global_mmlu
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: "Lite."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: global_mmlu
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: "Lite."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: global_mmlu
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: "Lite."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: global_mmlu
+        score: 89.3
+        unit: "percent"
+        printed: true
+        configuration: "Lite."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: global_mmlu
+        score: 92.7
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: global_mmlu
+        score: 93.3
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: global_mmlu
+        score: 91.8
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: mmmu_pro
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: mmmu_pro
+        score: 75.0
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: mmmu_pro
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: mmmu_pro
+        score: 82.0
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: mmmu_pro
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: mmmu_pro
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: charxiv_reasoning
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: charxiv_reasoning
+        score: 77.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: charxiv_reasoning
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: charxiv_reasoning
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: charxiv_reasoning
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: charxiv_reasoning
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: charxiv_reasoning_tools
+        score: 82.0
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: charxiv_reasoning_tools
+        score: 78.7
+        unit: "percent"
+        printed: true
+        configuration: "With Python."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: charxiv_reasoning_tools
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: "With Python."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.9
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: charxiv_reasoning_tools
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Audio MC"
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Audio MC"
+        score: 66.8
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "MMAU"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "MMAU"
+        score: 82.5
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "VoiceBench"
+        score: 91.4
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "VoiceBench"
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: fortress
+        score: 78.0
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: fortress
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: fortress
+        score: 54.1
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: fortress
+        score: 65.6
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: fortress
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: fortress
+        score: 36.0
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: fortress
+        score: 65.2
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: fortress
+        score: 96.0
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: fortress
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: fortress
+        score: 95.9
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: fortress
+        score: 90.5
+        unit: "percent"
+        printed: true
+        configuration: "Benign."
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: fortress
+        score: 98.3
+        unit: "percent"
+        printed: true
+        configuration: "Benign."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: fortress
+        score: 97.2
+        unit: "percent"
+        printed: true
+        configuration: "Benign."
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: fortress
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "Benign."
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: fortress
+        score: 98.5
+        unit: "percent"
+        printed: true
+        configuration: "Benign."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: fortress
+        score: 98.0
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: fortress
+        score: 55.1
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: fortress
+        score: 98.1
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. max/xhigh"
+        role: competitor
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: strong_reject
+        score: 98.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Nemotron 3Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: strong_reject
+        score: 98.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.5"
+        model_id: "moonshot/kimi-k2-5"
+        benchmark_id: strong_reject
+        score: 99.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: strong_reject
+        score: 99.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM 5.2"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: strong_reject
+        score: 98.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek V4Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: strong_reject
+        score: 98.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro(high)"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: strong_reject
+        score: 98.0
+        unit: "percent"
+        printed: true
+        configuration: "high"
+        role: competitor
+      - model_as_labelled: "Claude Fable 5(max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: strong_reject
+        score: 98.7
+        unit: "percent"
+        printed: true
+        configuration: "max"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: strong_reject
+        score: 98.5
+        unit: "percent"
+        printed: true
+        configuration: "max/xhigh"
+        role: competitor
+  - title: "Forecasting"
+    kind: html_table
+    footnotes: "ForecastBench is a Brier index, higher better, with and without search. Prophet Arena is a Brier score, lower better. Printed uncertainty is the ± term."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Inkling"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 61.1
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.79"
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 59.1
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.41"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 54.6
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.99"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 61.1
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.56"
+        role: competitor
+      - model_as_labelled: "Grok 4.3"
+        model_id: "xai/grok-4-3"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 61.7
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.54"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · no search"
+        score: 58.1
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.54"
+        role: competitor
+      - model_as_labelled: "Inkling"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · with search"
+        score: 63.7
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.82"
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · with search"
+        score: 64.7
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±1.28"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · with search"
+        score: 58.6
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.66"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · with search"
+        score: 64.3
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±1.05"
+        role: competitor
+      - model_as_labelled: "Grok 4.3"
+        model_id: "xai/grok-4-3"
+        benchmark_id: null
+        benchmark_as_labelled: "ForecastBenchBrier Index ↑ · with search"
+        score: 63.2
+        unit: "index"
+        printed: true
+        configuration: "Uncertainty ±0.82"
+        role: competitor
+      - model_as_labelled: "Inkling"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1617
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1598
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1605
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1594
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Grok 4.3"
+        model_id: "xai/grok-4-3"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1715
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
+        score: 0.1675
+        unit: "brier"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Inkling and the Inkling-Small preview"
+    kind: html_table
+    footnotes: "Both columns are effort 0.99. Inkling-Small is marked as a preview. Terminal-Bench 2.1 for Inkling is starred on this table."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: hle
+        score: 29.7
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: hle
+        score: 29.6
+        unit: "percent"
+        printed: true
+        configuration: "Text-only subset.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: hle_tools
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: hle_tools
+        score: 46.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: aime_2026
+        score: 97.1
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: aime_2026
+        score: 95.1
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: gpqa_diamond
+        score: 87.2
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: gpqa_diamond
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: swe_bench_verified
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: swe_bench_verified
+        score: 77.4
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: swe_bench_pro
+        score: 54.3
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: swe_bench_pro
+        score: 53.2
+        unit: "percent"
+        printed: true
+        configuration: "Public set.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: terminal_bench_v2_1
+        score: 63.8
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: terminal_bench_v2_1
+        score: 52.7
+        unit: "percent"
+        printed: true
+        configuration: "Best harness.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 23.7
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau 3 Banking"
+        score: 13.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: simpleqa
+        score: 43.9
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: simpleqa
+        score: 20.9
+        unit: "percent"
+        printed: true
+        configuration: "Verified.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: ifbench
+        score: 79.8
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: ifbench
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: global_mmlu
+        score: 88.7
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: global_mmlu
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: "Lite.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: mmmu_pro
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: mmmu_pro
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "Standard, 10 options.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: charxiv_reasoning
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: charxiv_reasoning
+        score: 76.7
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: charxiv_reasoning_tools
+        score: 82.0
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: charxiv_reasoning_tools
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "With Python.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "Audio MC"
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: null
+        benchmark_as_labelled: "Audio MC"
+        score: 49.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "MMAU"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: null
+        benchmark_as_labelled: "MMAU"
+        score: 77.5
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: null
+        benchmark_as_labelled: "VoiceBench"
+        score: 91.4
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: null
+        benchmark_as_labelled: "VoiceBench"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: fortress
+        score: 78.0
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: fortress
+        score: 75.6
+        unit: "percent"
+        printed: true
+        configuration: "Adversarial.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: fortress
+        score: 95.9
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: fortress
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: "Benign.. effort=0.99. Preview"
+        role: subject
+      - model_as_labelled: "Inkling effort=0.99"
+        model_id: "thinkingmachines/inkling"
+        benchmark_id: strong_reject
+        score: 98.6
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99"
+        role: subject
+      - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
+        model_id: "thinkingmachines/inkling-small"
+        benchmark_id: strong_reject
+        score: 98.8
+        unit: "percent"
+        printed: true
+        configuration: "effort=0.99. Preview"
+        role: subject

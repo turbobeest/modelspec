@@ -1,0 +1,833 @@
+page_url: "https://huggingface.co/openbmb/MiniCPM5-1B"
+publisher: "OpenBMB"
+read_on: "2026-09-24"
+charts:
+  - title: "Public leaderboard"
+    kind: image
+    image_url: "https://raw.githubusercontent.com/OpenBMB/MiniCPM/main/assets/minicpm5/public_leaderboard_en.png"
+    image_sha256: "219655439ff5a75429bdc0c9500eea44cce3d8403cf45fb287a74a1a052a746f"
+    footnotes: "Thinking mode for every column. IFEval and Multi-IF for MiniCPM5-1B are underlined; the image does not say what the underline means. LCB v6 is an average of 3. AIME and HMMT are averages of 16."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "Average of the comparison suite"
+        score: 42.57
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: null
+        benchmark_as_labelled: "Average of the comparison suite"
+        score: 26.77
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: null
+        benchmark_as_labelled: "Average of the comparison suite"
+        score: 25.14
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Average of the comparison suite"
+        score: 35.61
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: mmlu_pro
+        score: 48.85
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: mmlu_pro
+        score: 35.63
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: mmlu_pro
+        score: 42.74
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: mmlu_pro
+        score: 47.98
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: mmlu_redux
+        score: 70.06
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: mmlu_redux
+        score: 55.47
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: mmlu_redux
+        score: 61.50
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: mmlu_redux
+        score: 66.08
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: gpqa_diamond
+        score: 26.26
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: gpqa_diamond
+        score: 25.42
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: gpqa_diamond
+        score: 30.98
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 34.85
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: supergpqa
+        score: 23.14
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: supergpqa
+        score: 20.79
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: supergpqa
+        score: 22.92
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: supergpqa
+        score: 22.83
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: livecodebench_pro
+        score: 22.68
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. 2025 Q2, Easy."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: livecodebench_pro
+        score: 4.12
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. 2025 Q2, Easy."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: livecodebench_pro
+        score: 0.00
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. 2025 Q2, Easy."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: livecodebench_pro
+        score: 6.19
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. 2025 Q2, Easy."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "OJBench"
+        score: 7.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: null
+        benchmark_as_labelled: "OJBench"
+        score: 0.86
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: null
+        benchmark_as_labelled: "OJBench"
+        score: 0.43
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "OJBench"
+        score: 1.94
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6(@Avg3)"
+        score: 33.52
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6(@Avg3)"
+        score: 16.00
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6(@Avg3)"
+        score: 5.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6(@Avg3)"
+        score: 21.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifbench
+        score: 46.67
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: ifbench
+        score: 25.67
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: ifbench
+        score: 29.33
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: ifbench
+        score: 41.67
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifeval
+        score: 80.41
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: ifeval
+        score: 59.89
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: ifeval
+        score: 59.89
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: ifeval
+        score: 84.84
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 43.54
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 36.56
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 32.31
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 55.61
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "MultiChallenge"
+        score: 19.48
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: null
+        benchmark_as_labelled: "MultiChallenge"
+        score: 18.97
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: null
+        benchmark_as_labelled: "MultiChallenge"
+        score: 23.97
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MultiChallenge"
+        score: 23.28
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2025
+        score: 40.42
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: aime_2025
+        score: 16.25
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: aime_2025
+        score: 1.04
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 31.88
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2026
+        score: 40.42
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: aime_2026
+        score: 12.29
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: aime_2026
+        score: 0.21
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: aime_2026
+        score: 31.67
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Average of 16."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: hmmt2026
+        score: 25.76
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026, average of 16."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: hmmt2026
+        score: 9.85
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026, average of 16."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: hmmt2026
+        score: 0.57
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026, average of 16."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: hmmt2026
+        score: 21.21
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026, average of 16."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: math_500
+        score: 91.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: math_500
+        score: 72.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: math_500
+        score: 30.40
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: math_500
+        score: 89.00
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: bbh
+        score: 71.89
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: bbh
+        score: 47.86
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: bbh
+        score: 54.58
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: bbh
+        score: 57.32
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: bbeh
+        score: 12.14
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: bbeh
+        score: 3.78
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: bbeh
+        score: 8.53
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: bbeh
+        score: 8.64
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: bfcl
+        score: 25.15
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: bfcl
+        score: 25.43
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: bfcl
+        score: 25.53
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: bfcl
+        score: 10.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4."
+        role: competitor
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: tau2
+        score: 79.53
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Telecom."
+        role: subject
+      - model_as_labelled: "Qwen3-0.6B"
+        model_id: "qwen/qwen3-0-6b"
+        benchmark_id: tau2
+        score: 21.10
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Telecom."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-0.8B"
+        model_id: "qwen/qwen3-5-0-8b"
+        benchmark_id: tau2
+        score: 47.70
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Telecom."
+        role: competitor
+      - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        model_id: null
+        benchmark_id: tau2
+        score: 19.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. Telecom."
+        role: competitor
+  - title: "Score gains from RL and on-policy distillation"
+    kind: image
+    image_url: "https://raw.githubusercontent.com/OpenBMB/MiniCPM/main/assets/minicpm5/rl_gains.png"
+    image_sha256: "c0b37325bb9984b66db85864c1410e1f3e20529493edbeb444218761979b9933"
+    footnotes: "Blue is the supervised-fine-tune score. Orange is the score after RL and on-policy distillation. The purple band is the gain and is not a separate benchmark score. A few orange totals differ from the printed blue-plus-purple sum by 0.1."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2025
+        score: 17.3
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2025
+        score: 40.4
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2026
+        score: 15.6
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: aime_2026
+        score: 40.4
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: hmmt2026
+        score: 11.9
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning. February 2026."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: hmmt2026
+        score: 25.8
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation. February 2026."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6"
+        score: 20.6
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "LCB-v6"
+        score: 33.5
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: livecodebench_pro
+        score: 10.3
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning. Easy."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: livecodebench_pro
+        score: 22.7
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation. Easy."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifeval
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifeval
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifbench
+        score: 33.7
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: ifbench
+        score: 46.7
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 28.5
+        unit: "percent"
+        printed: true
+        configuration: "After supervised fine-tuning."
+        role: subject
+      - model_as_labelled: "MiniCPM5-1B"
+        model_id: "openbmb/minicpm5-1b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 43.5
+        unit: "percent"
+        printed: true
+        configuration: "After RL and on-policy distillation."
+        role: subject
+  - title: "Capability comparison by domain"
+    kind: image
+    image_url: "https://raw.githubusercontent.com/OpenBMB/MiniCPM/main/assets/minicpm5/public_leaderboard_radar_en.png"
+    image_sha256: "f3e334608ee1cf89e8fd037b4d6e4fc47093ee28837e0646f190482948f48814"
+    needs_reading: true
+    footnotes: "Radar of seven domains. Axis ticks are not numeric and the vertices are not labelled with values."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars: []

@@ -1,0 +1,476 @@
+page_url: "https://huggingface.co/inclusionAI/Ling-3.0-tiny"
+publisher: "inclusionAI"
+read_on: "2026-09-24"
+charts:
+  - title: "Representative benchmarks"
+    kind: image
+    image_url: "https://cdn-uploads.huggingface.co/production/uploads/6502cf8fbdaeae26417cd3c9/g9Thw4ohjkDGYw0Cq7mKi.png"
+    image_sha256: "04fb65c6056312cb18ed2e906fa3fdfaa8f52e05e8d8a6811b6949037aee3392"
+    footnotes: "Thinking is on. Terminal-Bench 2.1 uses the Terminus-2 protocol, three-run mean, temperature 1.0, 32K new tokens, 256K context."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: bfcl
+        score: 62.72
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20. v4, function calling."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: bfcl
+        score: 62.47
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4, function calling."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: bfcl
+        score: 65.83
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4, function calling."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: bfcl
+        score: 41.64
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4, function calling."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: bfcl
+        score: 59.68
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. v4, function calling."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: terminal_bench_v2_1
+        score: 27.70
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: terminal_bench_v2_1
+        score: 25.80
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: terminal_bench_v2_1
+        score: 29.20
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 1.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 27.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 47.93
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 30.61
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 38.80
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 45.14
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "ArtifactsBench"
+        score: 48.08
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: scicode
+        score: 24.20
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: scicode
+        score: 16.10
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: scicode
+        score: 27.50
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: scicode
+        score: 24.40
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: scicode
+        score: 38.20
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: gpqa_diamond
+        score: 73.40
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: gpqa_diamond
+        score: 77.10
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 80.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: gpqa_diamond
+        score: 57.60
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: gpqa_diamond
+        score: 75.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: hle
+        score: 9.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: hle
+        score: 9.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: hle
+        score: 14.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: hle
+        score: 3.80
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: hle
+        score: 15.70
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: hmmt2026
+        score: 70.31
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20. February 2026."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: hmmt2026
+        score: 72.87
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: hmmt2026
+        score: 71.21
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: hmmt2026
+        score: 33.85
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: hmmt2026
+        score: 67.95
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. February 2026."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 71.03
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 63.69
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 70.00
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 31.75
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "IMO-AnswerBench"
+        score: 64.09
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: ifbench
+        score: 63.61
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: ifbench
+        score: 52.00
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: ifbench
+        score: 66.70
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: ifbench
+        score: 44.20
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: ifbench
+        score: 73.50
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: null
+        benchmark_as_labelled: "LIFEBench"
+        score: 62.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: null
+        benchmark_as_labelled: "LIFEBench"
+        score: 63.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LIFEBench"
+        score: 63.90
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "LIFEBench"
+        score: 52.80
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "LIFEBench"
+        score: 65.30
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-tiny"
+        model_id: "inclusionai/ling-3-0-tiny"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 83.15
+        unit: "percent"
+        printed: true
+        configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 79.84
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-9B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 83.03
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-it"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 80.92
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor
+      - model_as_labelled: "Gemma-4-12B-it"
+        model_id: "google/gemma-4-12b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-IF"
+        score: 88.44
+        unit: "percent"
+        printed: true
+        configuration: "Thinking."
+        role: competitor

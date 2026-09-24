@@ -1,0 +1,285 @@
+page_url: "https://cohere.com/blog/north-mini-code"
+publisher: "Cohere"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmarks"
+    kind: image
+    image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/06e7b98d2b53bf7ca8b7dfa53d758991a031c2e5-3140x2400.png"
+    image_sha256: "675fdd2bc0d83a4d0458c122c53f878ffcfb69a3d7e26d52ff65be4635f0872e"
+    footnotes: "Average of three seeds at temperature 1.0 and top_p 0.95. SWE-bench uses SWE-agent 1.1.0. Terminal-Bench v2 uses a one-tool ReAct harness on Harbor's tmux session. Terminal-Bench Hard uses Terminus-2. SciCode and LiveCodeBench v6 are not tool-use runs. Unstarred rival scores are taken from public reports. Gemma's agentic-coding scores are cited from the Qwen team rather than from Gemma's own report. A star marks a run Cohere did because no public number was available. On this figure Devstral's SWE-bench Pro bar is starred."
+    competitor_numbers: official_reports
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: terminal_bench_2_0
+        score: 36.0
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: terminal_bench_2_0
+        score: 51.5
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: terminal_bench_2_0
+        score: 35.7
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: terminal_bench_2_0
+        score: 22.5
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal-Bench Hard"
+        score: 31.1
+        unit: "score"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal-Bench Hard"
+        score: 35.0
+        unit: "score"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal-Bench Hard"
+        score: 17.0
+        unit: "score"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: swe_bench_verified
+        score: 67.6
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: swe_bench_verified
+        score: 73.4
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: swe_bench_verified
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: swe_bench_verified
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: swe_bench_pro
+        score: 40.2
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: swe_bench_pro
+        score: 49.5
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: swe_bench_pro
+        score: 46.3
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: scicode
+        score: 38.2
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: scicode
+        score: 35.8
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: scicode
+        score: 40.0
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: scicode
+        score: 28.8
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "North-Mini-Code"
+        model_id: "cohere/north-mini-code-1-0"
+        benchmark_id: live_code_bench
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "v6. Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: subject
+      - model_as_labelled: "Qwen3.6"
+        model_id: "qwen/qwen3-6-35b-a3b"
+        benchmark_id: live_code_bench
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: "v6. Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: live_code_bench
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "v6. Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+  - title: "Internally measured cells"
+    kind: image
+    image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/06e7b98d2b53bf7ca8b7dfa53d758991a031c2e5-3140x2400.png"
+    image_sha256: "675fdd2bc0d83a4d0458c122c53f878ffcfb69a3d7e26d52ff65be4635f0872e"
+    footnotes: "Starred bars, including Devstral SWE-bench Pro."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal-Bench Hard"
+        score: 25.0
+        unit: "score"
+        printed: true
+        configuration: "Internally measured."
+        role: competitor
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: scicode
+        score: 31.9
+        unit: "percent"
+        printed: true
+        configuration: "Internally measured."
+        role: competitor
+      - model_as_labelled: "Poolside XS.2"
+        model_id: null
+        benchmark_id: live_code_bench
+        score: 55.2
+        unit: "percent"
+        printed: true
+        configuration: "v6. Internally measured."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: live_code_bench
+        score: 40.3
+        unit: "percent"
+        printed: true
+        configuration: "v6. Internally measured."
+        role: competitor
+      - model_as_labelled: "Devstral Small 2"
+        model_id: "mistral/devstral-small-2-24b-instruct-2512"
+        benchmark_id: swe_bench_pro
+        score: 35.7
+        unit: "percent"
+        printed: true
+        configuration: "Internally measured."
+        role: competitor
+  - title: "Gemma agentic scores cited from Qwen"
+    kind: image
+    image_url: "https://cdn.sanity.io/images/rjtqmwfu/web3-prod/06e7b98d2b53bf7ca8b7dfa53d758991a031c2e5-3140x2400.png"
+    image_sha256: "675fdd2bc0d83a4d0458c122c53f878ffcfb69a3d7e26d52ff65be4635f0872e"
+    footnotes: "Same attribution as the model card."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: terminal_bench_2_0
+        score: 34.2
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Terminal-Bench Hard"
+        score: 25.0
+        unit: "score"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: swe_bench_verified
+        score: 17.4
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor
+      - model_as_labelled: "Gemma4"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: swe_bench_pro
+        score: 13.0
+        unit: "percent"
+        printed: true
+        configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
+        role: competitor

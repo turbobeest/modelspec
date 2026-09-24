@@ -1,0 +1,717 @@
+page_url: "https://deepmind.google/models/model-cards/gemini-3-pro-image/"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+document_sha256: "41109d8b6467be8aeb42df84132894a321d64145a4152ac2153211e2d018dea1"
+charts:
+  - title: "Existing and new capability Elo"
+    kind: html_table
+    footnotes: "The model-card URL serves a seven-page PDF dated November 2025. Human side-by-side Elo. A dash for Flux on multi-character editing and multi-input is omitted. The bar is the point estimate."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Rendering"
+        score: 1198
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±18."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Rendering"
+        score: 997
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text Rendering"
+        score: 1150
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±14."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text Rendering"
+        score: 1019
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text Rendering"
+        score: 854
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Stylization"
+        score: 1098
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±11."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Stylization"
+        score: 933
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±7."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Stylization"
+        score: 1069
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Stylization"
+        score: 991
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Stylization"
+        score: 908
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Turn"
+        score: 1186
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±19."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Turn"
+        score: 1045
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±24."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Turn"
+        score: 1079
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±32."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Turn"
+        score: 990
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±32."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Turn"
+        score: 889
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±37."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "General Image Editing"
+        score: 1127
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±13."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "General Image Editing"
+        score: 996
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±8."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Image Editing"
+        score: 1011
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Image Editing"
+        score: 965
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Image Editing"
+        score: 902
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Character Editing"
+        score: 1176
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±16."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Character Editing"
+        score: 1075
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±8."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Character Editing"
+        score: 1016
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Character Editing"
+        score: 889
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Character Editing"
+        score: 843
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Object/Env. Editing"
+        score: 1102
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±19."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Object/Env. Editing"
+        score: 1025
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Object/Env. Editing"
+        score: 930
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Object/Env. Editing"
+        score: 983
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Object/Env. Editing"
+        score: 961
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "General Text-to-Image"
+        score: 1094
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±16."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "General Text-to-Image"
+        score: 1037
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±8."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Text-to-Image"
+        score: 1025
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Text-to-Image"
+        score: 1011
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "General Text-to-Image"
+        score: 907
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Regression sets / popular use cases"
+        score: 1128
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±19."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Regression sets / popular use cases"
+        score: 1086
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Regression sets / popular use cases"
+        score: 1039
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Regression sets / popular use cases"
+        score: 900
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Regression sets / popular use cases"
+        score: 847
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±14."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi character editing"
+        score: 1213
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±16."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi character editing"
+        score: 950
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi character editing"
+        score: 997
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±13."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi character editing"
+        score: 840
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±19."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Chart editing"
+        score: 1209
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±18."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Chart editing"
+        score: 971
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Chart editing"
+        score: 994
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±16."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Chart editing"
+        score: 934
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±16."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Chart editing"
+        score: 893
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±15."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Text editing"
+        score: 1202
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±23."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Text editing"
+        score: 1001
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±10."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text editing"
+        score: 996
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±14."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text editing"
+        score: 860
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±15."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Text editing"
+        score: 943
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Factuality - Edu"
+        score: 1169
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±25."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Factuality - Edu"
+        score: 1050
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Factuality - Edu"
+        score: 1084
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±25."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Factuality - Edu"
+        score: 969
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±22."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Factuality - Edu"
+        score: 884
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±26."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-input 1-3"
+        score: 1109
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±16."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-input 1-3"
+        score: 993
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±8."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-input 1-3"
+        score: 970
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-input 1-3"
+        score: 928
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Infographics"
+        score: 1268
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±17."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Infographics"
+        score: 1162
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Infographics"
+        score: 1087
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Infographics"
+        score: 1049
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Infographics"
+        score: 824
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±15."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Doodle editing"
+        score: 1106
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±14."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Doodle editing"
+        score: 1038
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±7."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Doodle editing"
+        score: 955
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Doodle editing"
+        score: 1017
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Doodle editing"
+        score: 884
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±9."
+        role: competitor
+      - model_as_labelled: "Gemini 3 Pro Image"
+        model_id: "google/gemini-3-pro-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Visual design"
+        score: 1104
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Search on. Table also prints ±16."
+        role: subject
+      - model_as_labelled: "Gemini 2.5 Flash Image"
+        model_id: "google/gemini-2-5-flash-image"
+        benchmark_id: null
+        benchmark_as_labelled: "Visual design"
+        score: 1083
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±7."
+        role: subject
+      - model_as_labelled: "GPT-Image 1"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Visual design"
+        score: 1028
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: competitor
+      - model_as_labelled: "Seedream v4 4k"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Visual design"
+        score: 1038
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±12."
+        role: competitor
+      - model_as_labelled: "Flux Pro Kontext Max"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Visual design"
+        score: 907
+        unit: "elo"
+        printed: true
+        configuration: "Side-by-side human Elo. Table also prints ±11."
+        role: competitor

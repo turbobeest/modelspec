@@ -1,0 +1,2979 @@
+page_url: "https://arxiv.org/abs/2607.24653"
+publisher: "Moonshot AI"
+read_on: "2026-09-24"
+charts:
+  - title: "Table 2. Performance comparison"
+    kind: html_table
+    footnotes: "Table 2 is the main comparison. Kimi K3 uses max effort. A slash is without tools, then with tools. Table 3 splits the same benchmarks by harness. A trailing letter on a score is a table footnote. Table 5 cites Vals AI and Arena rankings as of 2026-07-23. WebDev and Text Arena are Elo."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: gpqa_diamond
+        score: 93.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: gpqa_diamond
+        score: 92.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: gpqa_diamond
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: gpqa_diamond
+        score: 91.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: gpqa_diamond
+        score: 93.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: gpqa_diamond
+        score: 91.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. GPQA Diamond"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: critpt
+        score: 23.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: critpt
+        score: 28.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: critpt
+        score: 32.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: critpt
+        score: 20.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: critpt
+        score: 27.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: critpt
+        score: 20.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CritPt"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: hle
+        score: 43.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
+        role: subject
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: hle_tools
+        score: 56.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle
+        score: 53.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: hle_tools
+        score: 63.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: hle
+        score: 44.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: hle_tools
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle
+        score: 49.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: hle_tools
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: hle
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: hle_tools
+        score: 52.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. HLE-Full Full set, with tools."
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 67.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 59.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 67.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE"
+        score: 46.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSWE"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 76.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 71.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 70.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "ProgramBench"
+        score: 63.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ProgramBench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: terminal_bench_v2_1
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: terminal_bench_v2_1
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: terminal_bench_v2_1
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: terminal_bench_v2_1
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 66.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 64.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 67.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. FrontierSWE"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 42.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 35.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 39.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 40.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 14.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-Marathon"
+        score: 13.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SWE-Marathon"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 36.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 34.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 34.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 28.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 34.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 48.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 49.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 46.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 40.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MLS-Bench-Lite"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: scicode
+        score: 58.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: scicode
+        score: 60.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: scicode
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: scicode
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: scicode
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: scicode
+        score: 50.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SciCode"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: browsecomp
+        score: 91.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BrowseComp"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: browsecomp
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BrowseComp"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: browsecomp
+        score: 90.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: browsecomp
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BrowseComp"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: browsecomp
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: deepsearchqa
+        score: 95.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: deepsearchqa
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: deepsearchqa
+        score: 93.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. DeepSearchQA (F1)"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "ResearchRubrics"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ResearchRubrics"
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ResearchRubrics"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ResearchRubrics"
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "ResearchRubrics"
+        score: 71.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ResearchRubrics"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 76.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 77.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon-Verified"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Toolathlon-Verified"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "MCPMark-Verified"
+        score: 94.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCPMark-Verified"
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "MCPMark-Verified"
+        score: 92.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MCPMark-Verified"
+        score: 76.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCPMark-Verified"
+        score: 92.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCPMark-Verified"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 82.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 82.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MCP-Atlas"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 54.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 45.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 48.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 38.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. JobBench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 28.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 25.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam Dagger: multimodal parts of the input were ignored."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 29.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 27.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 26.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Agents’ Last Exam"
+        score: 20.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Agents’ Last Exam"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 43.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 39.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 39.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 38.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "APEX-Agents"
+        score: 35.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. APEX-Agents"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 63.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 63.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 60.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 34.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 34.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 32.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 31.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 29.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadsheetBench 2"
+        score: 28.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SpreadsheetBench 2"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 58.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 66.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 62.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 55.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 49.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OSWorld 2.0"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "SaaS-Bench"
+        score: 60.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "SaaS-Bench"
+        score: 61.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "SaaS-Bench"
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SaaS-Bench"
+        score: 43.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. SaaS-Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 33.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 26.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 33.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 27.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 31.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "τ3\\tau^{3}-Banking"
+        score: 26.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. τ3\\tau^{3}-Banking"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 64.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 66.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 68.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "CorpFin v2"
+        score: 66.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CorpFin v2"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 54.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 56.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 53.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 53.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 51.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Agent v2"
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Finance Agent v2"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 44.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 49.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 48.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 43.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 40.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Legal Research Bench"
+        score: 31.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Legal Research Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA ForceAnswer"
+        score: 51.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA ForceAnswer"
+        score: 56.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA ForceAnswer"
+        score: 41.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA ForceAnswer"
+        score: 39.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA ForceAnswer"
+        score: 38.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. WorldVQA ForceAnswer"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 89.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 85.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "PerceptionBench"
+        score: 58.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "PerceptionBench"
+        score: 57.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "PerceptionBench"
+        score: 59.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "PerceptionBench"
+        score: 47.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "PerceptionBench"
+        score: 55.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. PerceptionBench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MME (w/ sub)"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MME (w/ sub)"
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MME (w/ sub)"
+        score: 86.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MME (w/ sub)"
+        score: 89.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Video-MME (w/ sub)"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 82.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMVU"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMVU"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 79.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMVU"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MMVU"
+        score: 81.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMVU"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision w/ Python"
+        score: 85.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision w/ Python"
+        score: 90.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision w/ Python"
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision w/ Python"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision w/ Python"
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. BabyVision w/ Python"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: mmmu_pro
+        score: 81.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
+        role: subject
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: mmmu_pro
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: mmmu_pro
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: mmmu_pro
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: mmmu_pro
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: mmmu_pro
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: mmmu_pro
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: mmmu_pro
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. MMMU-Pro With Python tools."
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: charxiv_reasoning
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
+        role: subject
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: charxiv_reasoning_tools
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: charxiv_reasoning
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: charxiv_reasoning_tools
+        score: 93.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: charxiv_reasoning
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: charxiv_reasoning
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: charxiv_reasoning
+        score: 84.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) Without tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: charxiv_reasoning_tools
+        score: 89.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
+        role: subject
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 97.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 94.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 98.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 95.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 97.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 97.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 92.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Math-Vision"
+        score: 96.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 23.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
+        role: subject
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 23.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 17.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 35.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 17.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 34.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 22.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "ZeroBench-main (pass@5)"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
+        role: competitor
+  - title: "Table 3. In-house benchmarks by harness"
+    kind: html_table
+    footnotes: "Table 2 is the main comparison. Kimi K3 uses max effort. A slash is without tools, then with tools. Table 3 splits the same benchmarks by harness. A trailing letter on a score is a table footnote. Table 5 cites Vals AI and Arena rankings as of 2026-07-23. WebDev and Text Arena are Elo."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 73.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 71.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 64.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
+        role: subject
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 64.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Code Bench 2.0"
+        score: 69.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Coding Experience"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 59.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Coding Experience"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Coding Experience"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 53.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Claude Code. Coding Experience"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Coding Experience"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Codex. Coding Experience"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Coding Experience"
+        score: 56.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Codex. Coding Experience"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "KAET"
+        score: 83.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. KAET"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "KAET"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. KAET"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "KAET"
+        score: 78.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. KAET"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KAET"
+        score: 79.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. KAET"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "KAET"
+        score: 74.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. KAET"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "CLIF Bench"
+        score: 52.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "CLIF Bench"
+        score: 50.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "CLIF Bench"
+        score: 48.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CLIF Bench"
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "CLIF Bench"
+        score: 39.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic Vision Bench"
+        score: 78.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic Vision Bench"
+        score: 81.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic Vision Bench"
+        score: 82.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic Vision Bench"
+        score: 82.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agentic Vision Bench"
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Bench"
+        score: 62.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Finance Bench"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Bench"
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Finance Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Bench"
+        score: 60.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Finance Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Bench"
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Finance Bench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Finance Bench"
+        score: 55.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Finance Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "KWV Bench"
+        score: 64.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. KWV Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KWV Bench"
+        score: 63.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. KWV Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "KWV Bench"
+        score: 66.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. KWV Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "KWV Bench"
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. KWV Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KWV Bench"
+        score: 65.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. KWV Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 74.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 66.9
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DECK Bench"
+        score: 68.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. DECK Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Behavior Bench"
+        score: 65.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Behavior Bench"
+        score: 75.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Behavior Bench"
+        score: 76.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Behavior Bench"
+        score: 65.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Behavior Bench"
+        score: 70.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Faithfulness g"
+        score: 85.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Faithfulness g"
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Faithfulness g"
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Faithfulness g"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Faithfulness g"
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Faithfulness g"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Faithfulness g"
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Faithfulness g"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Faithfulness g"
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: N/A. Faithfulness g"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Chat All-in-One Bench"
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Chat All-in-One Bench"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Chat All-in-One Bench"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Chat All-in-One Bench"
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Chat All-in-One Bench"
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
+        role: competitor
+  - title: "Table 4. Kimi Webdev Bench"
+    kind: html_table
+    footnotes: "Win, tie, and lose shares for Kimi K3 (max) against Claude Opus 4.8 (max)."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench win"
+        score: 55.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench tie"
+        score: 3.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench lose"
+        score: 40.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench win"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench tie"
+        score: 13.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench lose"
+        score: 13.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench win"
+        score: 52.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench tie"
+        score: 21.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench lose"
+        score: 26.3
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench win"
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench tie"
+        score: 13.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
+        role: subject
+      - model_as_labelled: "Kimi K3"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Kimi Webdev Bench lose"
+        score: 27.6
+        unit: "percent"
+        printed: true
+        configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
+        role: subject
+  - title: "Table 5. Third-party evaluations"
+    kind: html_table
+    footnotes: "Table 2 is the main comparison. Kimi K3 uses max effort. A slash is without tools, then with tools. Table 3 splits the same benchmarks by harness. A trailing letter on a score is a table footnote. Table 5 cites Vals AI and Arena rankings as of 2026-07-23. WebDev and Text Arena are Elo."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 74.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 75.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 68.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals Index (#2/39)"
+        score: 65.0
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1678
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1634
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1630
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1565
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1507
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
+        score: 1592
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1486
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1507
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1485
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1484
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1482
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Text Arena (Elo, #8/200)"
+        score: 1469
+        unit: "elo"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
+        role: competitor
+      - model_as_labelled: "Kimi K3 (max)"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 9.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: subject
+      - model_as_labelled: "Claude Fable 5 (max)"
+        model_id: "anthropic/claude-fable-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 12.7
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol (max)"
+        model_id: "openai/gpt-5-6-sol"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 10.1
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8 (max)"
+        model_id: "anthropic/claude-opus-4-8"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 9.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: competitor
+      - model_as_labelled: "GPT-5.5 (xhigh)"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 8.8
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: competitor
+      - model_as_labelled: "GLM-5.2 (max)"
+        model_id: "zhipu/glm-5-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Agent Arena (#4/37)"
+        score: 6.5
+        unit: "percent"
+        printed: true
+        configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
+        role: competitor

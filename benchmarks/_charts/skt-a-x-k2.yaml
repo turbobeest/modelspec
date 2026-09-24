@@ -1,0 +1,2407 @@
+page_url: "https://huggingface.co/skt/A.X-K2"
+publisher: "SK Telecom"
+read_on: "2026-09-24"
+charts:
+  - title: "Thinking-mode benchmark table"
+    kind: html_table
+    footnotes: "Every model is in thinking mode. Other rows are percentages. The card does not say where the unstarred rival numbers come from."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: aime_2026
+        score: 97.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: aime_2026
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: aime_2026
+        score: 92.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: aime_2026
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: aime_2026
+        score: 96.7
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: aime_2026
+        score: 95.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: aime_2026
+        score: 95.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: aime_2026
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 45.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 1.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 13.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 3.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 28.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 10.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 20.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 1.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 88.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 50.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 61.2
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 45.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 72.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 72.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-shortlist"
+        score: 30.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 92.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 94.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "KMO26 (1st round)"
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 68.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 76.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 73.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "KMMLU-Pro"
+        score: 66.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 51.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 72.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "KoBALT"
+        score: 51.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: click
+        score: 91.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: click
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: click
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: click
+        score: 84.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: click
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: click
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: click
+        score: 80.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: click
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 82.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 76.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 86.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6 (Feb–May)"
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: scicode
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: scicode
+        score: 24.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: scicode
+        score: 42.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: scicode
+        score: 39.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: scicode
+        score: 44.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: scicode
+        score: 43.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: scicode
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: scicode
+        score: 47.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 27.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 8.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 27.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 26.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 32.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 28.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 35.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Humanity’s Last Exam"
+        score: 28.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: gpqa_diamond
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 76.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: gpqa_diamond
+        score: 89.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gpqa_diamond
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: gpqa_diamond
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: gpqa_diamond
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: gpqa_diamond
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: gpqa_diamond
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ifbench
+        score: 75.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "A.X K1 (519B-A33B)"
+        model_id: null
+        benchmark_id: ifbench
+        score: 63.2
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: ifbench
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ifbench
+        score: 81.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: ifbench
+        score: 79.2
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: ifbench
+        score: 76.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: ifbench
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: ifbench
+        score: 75.7
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "A.X K2 (688B-A33B)"
+        model_id: "skt/a-x-k2"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 9.3
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: subject
+      - model_as_labelled: "Qwen3.5 (397B-A17B)"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 26.9
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Nemotron 3 Ultra"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 13.4
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4 Flash"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 16.8
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 29.1
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 21.5
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "BrowseComp (≤10 searches)"
+        score: 14.2
+        unit: "percent"
+        printed: true
+        configuration: "Thinking mode."
+        role: competitor
+  - title: "RULER by context length"
+    kind: html_table
+    footnotes: "One model, A.X K2. Each context length is its own setting. The card says this is zero-shot YaRN past the native 128K."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 97.5
+        unit: "percent"
+        printed: true
+        configuration: "Context 4K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 97.2
+        unit: "percent"
+        printed: true
+        configuration: "Context 8K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 97.5
+        unit: "percent"
+        printed: true
+        configuration: "Context 16K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 96.5
+        unit: "percent"
+        printed: true
+        configuration: "Context 32K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: "Context 64K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 92.7
+        unit: "percent"
+        printed: true
+        configuration: "Context 128K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: "Context 256K."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: ruler
+        score: 94.6
+        unit: "percent"
+        printed: true
+        configuration: "Context Overall."
+        role: subject
+  - title: "NIAH 256K, NVFP4"
+    kind: image
+    image_url: "https://huggingface.co/skt/A.X-K2/resolve/main/assets/axk2_niah_256k_nvfp4.png"
+    image_sha256: "83bebbe1aec4af522500270593a13f19246fa9a6e1e121b8cc286f22b26292f7"
+    footnotes: "NVFP4, experts-only W4A4. Every printed cell is 100. Depth runs from 0% to 100% in steps of 10. Context lengths are the printed axis ticks. YaRN factor 2."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 20%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 30%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 40%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 50%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 60%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 70%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 80%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 90%. Context 254000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 37143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 73286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 109429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 145571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 181714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 217857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 2. Depth 100%. Context 254000 tokens."
+        role: subject
+  - title: "NIAH 512K, NVFP4"
+    kind: image
+    image_url: "https://huggingface.co/skt/A.X-K2/resolve/main/assets/axk2_niah_512k_nvfp4.png"
+    image_sha256: "cadb64ee1ba581d93973e65e675136be4f19182ec41daafe9de110cd6aec8082"
+    footnotes: "NVFP4, experts-only W4A4. Every printed cell is 100. Depth runs from 0% to 100% in steps of 10. Context lengths are the printed axis ticks. YaRN factor 4."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 0%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 10%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 20%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 30%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 40%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 50%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 60%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 70%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 80%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 90%. Context 510000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 1000 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 73714 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 146429 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 219143 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 291857 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 364571 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 437286 tokens."
+        role: subject
+      - model_as_labelled: "A.X K2"
+        model_id: "skt/a-x-k2"
+        benchmark_id: niah
+        score: 100
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4 experts-only W4A4. YaRN factor 4. Depth 100%. Context 510000 tokens."
+        role: subject

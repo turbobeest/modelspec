@@ -1,0 +1,912 @@
+page_url: "https://huggingface.co/LiquidAI/LFM2.5-8B-A1B"
+publisher: "Liquid AI"
+read_on: "2026-09-24"
+charts:
+  - title: "Improvements over LFM2-8B-A1B"
+    kind: html_table
+    footnotes: "Both columns are Liquid models. The delta column is the difference, not another score."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: ifeval
+        score: 79.44
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: ifeval
+        score: 91.84
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: ifbench
+        score: 26.00
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: ifbench
+        score: 56.47
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: multiif
+        score: 58.54
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: multiif
+        score: 79.93
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: math_500
+        score: 74.80
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: math_500
+        score: 88.76
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: aime_2025
+        score: 20.00
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: aime_2025
+        score: 42.53
+        unit: "percent"
+        printed: true
+        configuration: "Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: bfcl
+        score: 45.07
+        unit: "percent"
+        printed: true
+        configuration: "v3. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 64.36
+        unit: "percent"
+        printed: true
+        configuration: "v3. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: bfcl
+        score: 25.52
+        unit: "percent"
+        printed: true
+        configuration: "v4. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 48.50
+        unit: "percent"
+        printed: true
+        configuration: "v4. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: tau2
+        score: 13.60
+        unit: "percent"
+        printed: true
+        configuration: "Telecom.. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: tau2
+        score: 88.07
+        unit: "percent"
+        printed: true
+        configuration: "Telecom.. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2-8B-A1B"
+        model_id: "liquid/lfm2-8b-a1b"
+        benchmark_id: tau2
+        score: 7.02
+        unit: "percent"
+        printed: true
+        configuration: "Retail.. Comparison with LFM2-8B-A1B. "
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: tau2
+        score: 39.82
+        unit: "percent"
+        printed: true
+        configuration: "Retail.. Comparison with LFM2-8B-A1B. "
+        role: subject
+  - title: "Knowledge and instruction following"
+    kind: html_table
+    footnotes: "The card does not say whether the other models were rerun or quoted."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: ifeval
+        score: 91.84
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: ifbench
+        score: 56.47
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: multiif
+        score: 79.93
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: ifeval
+        score: 82.23
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: ifbench
+        score: 21.28
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: multiif
+        score: 59.00
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: ifeval
+        score: 87.80
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: ifbench
+        score: 50.38
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: multiif
+        score: 67.43
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: ifeval
+        score: 90.82
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: ifbench
+        score: 51.11
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: multiif
+        score: 79.04
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: ifeval
+        score: 82.93
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: ifbench
+        score: 33.53
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: multiif
+        score: 69.70
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: ifeval
+        score: 87.74
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: ifbench
+        score: 39.48
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: multiif
+        score: 77.58
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: ifeval
+        score: 91.40
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: ifbench
+        score: 47.25
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: multiif
+        score: 82.06
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: ifeval
+        score: 86.73
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: ifbench
+        score: 58.65
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: multiif
+        score: 76.64
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Math and agentic workflows"
+    kind: html_table
+    footnotes: "BFCLv3 and BFCLv4 on this table do not match the improvement table for LFM2.5-8B-A1B. Gemma AIME25 and AIME26 for the E2B row are printed as integers."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: math_500
+        score: 88.76
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: aime_2025
+        score: 42.53
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: aime_2026
+        score: 50.00
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 64.79
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 49.73
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: tau2
+        score: 88.07
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: subject
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: tau2
+        score: 39.82
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: math_500
+        score: 59.20
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: aime_2025
+        score: 4.93
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: aime_2026
+        score: 3.33
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: bfcl
+        score: 56.89
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: bfcl
+        score: 28.52
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: tau2
+        score: 16.67
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: tau2
+        score: 18.42
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: math_500
+        score: 80.76
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: aime_2025
+        score: 54.28
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: aime_2026
+        score: 58.33
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: bfcl
+        score: 71.06
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: bfcl
+        score: 54.01
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: tau2
+        score: 87.72
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Qwen3.5-4B"
+        model_id: "qwen/qwen3-5-4b"
+        benchmark_id: tau2
+        score: 71.93
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: math_500
+        score: 86.48
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: aime_2025
+        score: 71.67
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: aime_2026
+        score: 66.67
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: bfcl
+        score: 73.39
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: bfcl
+        score: 50.53
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: tau2
+        score: 21.93
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: tau2
+        score: 56.14
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: math_500
+        score: 64.00
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: aime_2025
+        score: 26
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: aime_2026
+        score: 30
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: bfcl
+        score: 56.44
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: bfcl
+        score: 31.91
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: tau2
+        score: 22.37
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E2B-IT"
+        model_id: "google/gemma-4-e2b-it"
+        benchmark_id: tau2
+        score: 18.95
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: math_500
+        score: 65.00
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: aime_2025
+        score: 34.33
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: aime_2026
+        score: 40.67
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: bfcl
+        score: 57.31
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: bfcl
+        score: 33.92
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: tau2
+        score: 26.75
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Gemma-4-E4B-IT"
+        model_id: "google/gemma-4-e4b-it"
+        benchmark_id: tau2
+        score: 42.11
+        unit: "percent"
+        printed: true
+        configuration: "Retail."
+        role: competitor
+  - title: "LFM2.5-8B-A1B benchmarks"
+    kind: image
+    image_url: "https://cdn-uploads.huggingface.co/production/uploads/61b8e2ba285851687028d395/qUZVGkns1bg3sZUShBbhv.png"
+    image_sha256: "aa5ec505ef83146334e5da4b00e7c4a5a2931166e022b822c9f22a7341e864f4"
+    footnotes: "Printed labels. The figure adds gpt-oss-20b and Gemma 4 26B A4B on BFCL and tau-bench, which the markdown math table does not include. Throughput plots elsewhere on the card are not scores."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: ifbench
+        score: 56.47
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: ifbench
+        score: 21.28
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: ifbench
+        score: 58.65
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: ifbench
+        score: 47.25
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: ifbench
+        score: 51.11
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: multiif
+        score: 79.93
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: multiif
+        score: 59.00
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: multiif
+        score: 76.64
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: multiif
+        score: 82.06
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: multiif
+        score: 79.04
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 64.79
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: bfcl
+        score: 56.89
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: bfcl
+        score: 62.52
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: bfcl
+        score: 68.87
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: bfcl
+        score: 73.39
+        unit: "percent"
+        printed: true
+        configuration: "v3"
+        role: competitor
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: bfcl
+        score: 49.73
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: bfcl
+        score: 28.52
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: bfcl
+        score: 49.88
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: bfcl
+        score: 55.87
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: bfcl
+        score: 50.53
+        unit: "percent"
+        printed: true
+        configuration: "v4"
+        role: competitor
+      - model_as_labelled: "LFM2.5-8B-A1B"
+        model_id: "liquid/lfm2-5-8b-a1b"
+        benchmark_id: tau2
+        score: 88.07
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: subject
+      - model_as_labelled: "Granite-4.0-H-Tiny"
+        model_id: "ibm/granite-4-0-h-tiny"
+        benchmark_id: tau2
+        score: 16.67
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "gpt-oss-20b"
+        model_id: null
+        benchmark_id: tau2
+        score: 57.24
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Gemma-4-26B-A4B-IT"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: tau2
+        score: 42.11
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor
+      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
+        model_id: null
+        benchmark_id: tau2
+        score: 21.93
+        unit: "percent"
+        printed: true
+        configuration: "Telecom."
+        role: competitor

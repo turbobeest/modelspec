@@ -1,0 +1,136 @@
+page_url: "https://www.inceptionlabs.ai/blog/introducing-mercury-2-5"
+publisher: "Inception"
+read_on: "2026-09-24"
+charts:
+  - title: "Mercury 2.5 against Mercury 2"
+    kind: image
+    image_url: "https://framerusercontent.com/images/8lKo8OLi6Dq34kb2khNk8MwLo.png"
+    image_sha256: "9e3a795aaf61908a831aabfda9b8a985af180d8bb3a01da90dde30afb982184a"
+    footnotes: "Percents are printed on a 0 to 100 axis. The GDPval row is labelled Elo and still printed as a percent. The speed figure on the same post is latency, not a benchmark score."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau3Bench Telecom"
+        score: 96
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: null
+        benchmark_as_labelled: "Tau3Bench Telecom"
+        score: 65
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: gpqa_diamond
+        score: 79
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: gpqa_diamond
+        score: 74
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: ifbench
+        score: 77
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: ifbench
+        score: 69
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: scicode
+        score: 38
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: scicode
+        score: 37
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "TerminalBench"
+        score: 37
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: null
+        benchmark_as_labelled: "TerminalBench"
+        score: 25
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "DSQA (@10 tool calls)"
+        score: 34
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: null
+        benchmark_as_labelled: "DSQA (@10 tool calls)"
+        score: 15
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2.5"
+        model_id: "inception/mercury-2-5"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval (Elo)"
+        score: 21
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Mercury 2"
+        model_id: "inception/mercury-2"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval (Elo)"
+        score: 13
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject

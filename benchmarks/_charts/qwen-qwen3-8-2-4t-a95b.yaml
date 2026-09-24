@@ -1,0 +1,1264 @@
+page_url: "https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B"
+publisher: "Qwen"
+read_on: "2026-09-24"
+charts:
+  - title: "Qwen3.8-Max comparison"
+    kind: html_table
+    footnotes: "The column is Qwen3.8-Max. The README says that API model is the hosted version of these weights plus vision, a default 1M context and built-in tools. Fable 5 may involve fallbacks. Terminal-Bench 2.1 for Qwen is Claude Code, average of 10, 5-hour timeout, max tokens 131072; GPT-5.6 Sol is the published Codex score. SWE-bench Pro and DeepSWE 1.1 use Claude Code and mini-SWE-agent at temperature 1.0, top_p 0.95 and 256K, reporting the higher harness for DeepSWE. FrontierSWE other models are official MEAN@5 as of 3 August 2026. PaperBench is BasicAgent, Code-Dev, judged by Claude Opus 4.6, mean of 3. SkillsBench v1.1 uses Claude Code for Opus and Fable, Codex for GPT-5.6 Sol, and OpenCode for Qwen. QwenReactBench and QwenSVGBench are Elo. Blanks are unpublished. Rival columns mix published scores and Qwen's own runs."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: terminal_bench_v2_1
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: terminal_bench_v2_1
+        score: 74.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: terminal_bench_v2_1
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: swe_bench_pro
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: swe_bench_pro
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: swe_bench_pro
+        score: 60.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: swe_bench_pro
+        score: 67.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 59.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 21.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 47.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 40.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierSWE"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 49.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 46.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 31.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "MLS-Bench-Lite"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: paperbench
+        score: 80.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: paperbench
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: paperbench
+        score: 90.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: paperbench
+        score: 64.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: paperbench
+        score: 93.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidBench"
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidBench"
+        score: 84.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidBench"
+        score: 74.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidBench"
+        score: 56.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidBench"
+        score: 75.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 63.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 80.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "QwenQoderBench"
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "QwenQoderBench"
+        score: 63.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "QwenQoderBench"
+        score: 53.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenQoderBench"
+        score: 36.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenQoderBench"
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "QwenReactBench"
+        score: 1694
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "QwenReactBench"
+        score: 1770
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "QwenReactBench"
+        score: 1564
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenReactBench"
+        score: 1538
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenReactBench"
+        score: 1724
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVGBench"
+        score: 1648
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVGBench"
+        score: 1690
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVGBench"
+        score: 1758
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVGBench"
+        score: 1499
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVGBench"
+        score: 1713
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 72.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 75.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 71.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "WorkSpaceBench"
+        score: 66.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "WorkSpaceBench"
+        score: 68.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "WorkSpaceBench"
+        score: 65.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "WorkSpaceBench"
+        score: 61.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "WorkSpaceBench"
+        score: 67.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 48.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 45.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 31.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 53.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: skillsbench
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: skillsbench
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: skillsbench
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: skillsbench
+        score: 61.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: skillsbench
+        score: 70.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 27.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: competitor
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 45.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 30.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 53.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 11.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: subject
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 31.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 27.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
+        score: 52.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
+        score: 77.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "WideSearch"
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "WideSearch"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "WideSearch"
+        score: 75.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "WideSearch"
+        score: 81.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: hle_tools
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: hle_tools
+        score: 64.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: hle_tools
+        score: 58.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: hle_tools
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: hle_tools
+        score: 56.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: gpqa_diamond
+        score: 92.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: gpqa_diamond
+        score: 92.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: gpqa_diamond
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: gpqa_diamond
+        score: 92.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: gpqa_diamond
+        score: 92.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: hle
+        score: 45.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: hle
+        score: 53.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: hle
+        score: 47.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: hle
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: hle
+        score: 43.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: ifbench
+        score: 62.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: ifbench
+        score: 63.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: ifbench
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: ifbench
+        score: 79.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: ifbench
+        score: 82.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "$OneMillion-Bench"
+        score: 41.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "$OneMillion-Bench"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "$OneMillion-Bench"
+        score: 53.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "$OneMillion-Bench"
+        score: 44.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "$OneMillion-Bench"
+        score: 52.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: healthbench
+        score: 52.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: healthbench
+        score: 55.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: healthbench
+        score: 54.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: healthbench
+        score: 60.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "PLawBench"
+        score: 69.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "PLawBench"
+        score: 70.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "PLawBench"
+        score: 72.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "PLawBench"
+        score: 58.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "PLawBench"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Legal"
+        score: 52.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Legal"
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Legal"
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Legal"
+        score: 48.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Legal"
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Finance"
+        score: 51.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Finance"
+        score: 55.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Finance"
+        score: 55.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Finance"
+        score: 46.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: null
+        benchmark_as_labelled: "PRBench-Finance"
+        score: 58.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: deepmind_mrcr_v2
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "256K, 8-needle"
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: deepmind_mrcr_v2
+        score: 93.8
+        unit: "percent"
+        printed: true
+        configuration: "256K, 8-needle"
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: deepmind_mrcr_v2
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: "256K, 8-needle"
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: deepmind_mrcr_v2
+        score: 92.9
+        unit: "percent"
+        printed: true
+        configuration: "256K, 8-needle"
+        role: subject
+      - model_as_labelled: "Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: longbenchv2
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT 5.6 Sol (max)"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: longbenchv2
+        score: 67.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.7-Max"
+        model_id: qwen/qwen3-7-max
+        benchmark_id: longbenchv2
+        score: 65.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-Max"
+        model_id: qwen/qwen3-8-max
+        benchmark_id: longbenchv2
+        score: 66.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject

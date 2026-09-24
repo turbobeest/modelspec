@@ -1,0 +1,262 @@
+page_url: "https://huggingface.co/google/diffusiongemma-26B-A4B-it"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmark results"
+    kind: html_table
+    footnotes: "Instruction-tuned models, scored with the recommended entropy-bound sampler. OmniDocBench is an edit distance, lower better. Codeforces is an Elo. The other rows print a percent sign."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: mmlu_pro
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: mmlu_pro
+        score: 82.6
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: aime_2026
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: aime_2026
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. No tools."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6"
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveCodeBench v6"
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 1429
+        unit: "elo"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 1718
+        unit: "elo"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: gpqa_diamond
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: gpqa_diamond
+        score: 82.3
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: tau2
+        score: 56.2
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. Average over 3 domains."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: tau2
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. Average over 3 domains."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: hle
+        score: 11.0
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: hle
+        score: 8.7
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. No tools."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: hle_tools
+        score: 11.9
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. With search."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: hle_tools
+        score: 17.2
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. With search."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: bbeh
+        score: 47.6
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: bbeh
+        score: 64.8
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: mmmlu
+        score: 81.5
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: mmmlu
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: mmmu_pro
+        score: 54.3
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: mmmu_pro
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5 (average edit distance, lower is better)"
+        score: 0.319
+        unit: "edit_distance"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5 (average edit distance, lower is better)"
+        score: 0.149
+        unit: "edit_distance"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 70.5
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: medxpertqa_multimodal
+        score: 49.0
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: medxpertqa_multimodal
+        score: 58.1
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler."
+        role: subject
+      - model_as_labelled: "DiffusionGemma 26B A4B"
+        model_id: "google/diffusiongemma-26b-a4b-it"
+        benchmark_id: deepmind_mrcr_v2
+        score: 32.0
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. 8-needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: "google/gemma-4-26b-a4b-it"
+        benchmark_id: deepmind_mrcr_v2
+        score: 44.1
+        unit: "percent"
+        printed: true
+        configuration: "Entropy-bound sampler. 8-needle, 128k, average."
+        role: subject

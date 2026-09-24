@@ -1,0 +1,742 @@
+page_url: "https://ai.google.dev/gemma/docs/core/model_card_4"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+charts:
+  - title: "Instruction-tuned benchmark results"
+    kind: html_table
+    footnotes: "The page says the table is instruction-tuned models. Gemma 3 27B is marked no think. A star on CoVoST and FLEURS excludes Chinese. The page does not name the CoVoST or FLEURS metric. Property tables are not scores."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: mmlu_pro
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: mmlu_pro
+        score: 82.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: mmlu_pro
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: mmlu_pro
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: mmlu_pro
+        score: 60.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: mmlu_pro
+        score: 67.6
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: aime_2026
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: aime_2026
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: aime_2026
+        score: 77.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: aime_2026
+        score: 42.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: aime_2026
+        score: 37.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: aime_2026
+        score: 20.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools. No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: live_code_bench
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: live_code_bench
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: live_code_bench
+        score: 72.0
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: live_code_bench
+        score: 52.0
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: live_code_bench
+        score: 44.0
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: live_code_bench
+        score: 29.1
+        unit: "percent"
+        printed: true
+        configuration: "v6 No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 2150
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 1718
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 1659
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 940
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 633
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: null
+        benchmark_as_labelled: "Codeforces ELO"
+        score: 110
+        unit: "elo"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: gpqa_diamond
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: gpqa_diamond
+        score: 82.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: gpqa_diamond
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: gpqa_diamond
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: gpqa_diamond
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: gpqa_diamond
+        score: 42.4
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: tau2
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: tau2
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: tau2
+        score: 69.0
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: tau2
+        score: 42.2
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: tau2
+        score: 24.5
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3."
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: tau2
+        score: 16.2
+        unit: "percent"
+        printed: true
+        configuration: "Average over 3. No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: hle
+        score: 19.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: hle
+        score: 8.7
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: hle
+        score: 5.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: hle_tools
+        score: 26.5
+        unit: "percent"
+        printed: true
+        configuration: "With search."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: hle_tools
+        score: 17.2
+        unit: "percent"
+        printed: true
+        configuration: "With search."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: bbeh
+        score: 74.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: bbeh
+        score: 64.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: bbeh
+        score: 53.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: bbeh
+        score: 33.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: bbeh
+        score: 21.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: bbeh
+        score: 19.3
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: mmmlu
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: mmmlu
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: mmmlu
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: mmmlu
+        score: 76.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: mmmlu
+        score: 67.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: mmmlu
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: mmmu_pro
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: mmmu_pro
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: mmmu_pro
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: mmmu_pro
+        score: 52.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: mmmu_pro
+        score: 44.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: mmmu_pro
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.131
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.149
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.164
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.181
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.290
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 0.365
+        unit: "edit distance"
+        printed: true
+        configuration: "Average edit distance, lower is better. No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 79.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 59.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 52.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: null
+        benchmark_as_labelled: "MATH-Vision"
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "No think."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: medxpertqa
+        score: 61.3
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: medxpertqa
+        score: 58.1
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: medxpertqa
+        score: 48.7
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: medxpertqa
+        score: 28.7
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: medxpertqa
+        score: 23.5
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "CoVoST"
+        score: 38.5
+        unit: "score"
+        printed: true
+        configuration: "Excluding Chinese."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "CoVoST"
+        score: 35.54
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: null
+        benchmark_as_labelled: "CoVoST"
+        score: 33.47
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 0.069
+        unit: "score"
+        printed: true
+        configuration: "Lower is better. Excluding Chinese."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 0.08
+        unit: "score"
+        printed: true
+        configuration: "Lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: null
+        benchmark_as_labelled: "FLEURS"
+        score: 0.09
+        unit: "score"
+        printed: true
+        configuration: "Lower is better."
+        role: subject
+      - model_as_labelled: "Gemma 4 31B"
+        model_id: google/gemma-4-31b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 66.4
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 4 26B A4B"
+        model_id: google/gemma-4-26b-a4b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 44.1
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 4 12B Unified"
+        model_id: google/gemma-4-12b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 4 E4B"
+        model_id: google/gemma-4-e4b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 25.4
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 4 E2B"
+        model_id: google/gemma-4-e2b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 19.1
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average."
+        role: subject
+      - model_as_labelled: "Gemma 3 27B (no think)"
+        model_id: google/gemma-3-27b-it
+        benchmark_id: deepmind_mrcr_v2
+        score: 13.5
+        unit: "percent"
+        printed: true
+        configuration: "8 needle, 128k, average. No think."
+        role: subject

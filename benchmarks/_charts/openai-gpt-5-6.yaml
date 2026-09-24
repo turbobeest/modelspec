@@ -1,0 +1,1825 @@
+page_url: "https://openai.com/index/gpt-5-6/"
+publisher: "OpenAI"
+read_on: "2026-09-24"
+charts:
+  - title: "Appendix comparison tables"
+    kind: html_table
+    footnotes: "One appendix groups professional, coding, science, computer use, cybersecurity, self-improvement, multimodal, academic, tool-use, long-context and abstract-reasoning tables. A dash is unpublished. Ultra is a separate Sol column. ExploitBench uses the API harness, 5 seeds and reasoning continuity. ExploitGym was run on the alpha API and latencies were rescaled. HealthBench Professional uses that paper's scorer. ARC-AGI-3 for Opus 4.8 is the published high-effort result. The post does not say in one place whether every rival number is that vendor's own report."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 52.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 50.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 46.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 40.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 45.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 32.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 43.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 37.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 35.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 31.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 31.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Management Consulting Tasks (Internal)"
+        score: 13.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Big Finance Bench"
+        score: 53
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Big Finance Bench"
+        score: 51
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Big Finance Bench"
+        score: 36
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Big Finance Bench"
+        score: 49
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Big Finance Bench"
+        score: 44
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: swe_bench_pro
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: swe_bench_pro
+        score: 63.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: swe_bench_pro
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: swe_bench_pro
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: swe_bench_pro
+        score: 80.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: swe_bench_pro
+        score: 77.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: swe_bench_pro
+        score: 80
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: swe_bench_pro
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 69.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 67
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 69.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 59
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 11.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: terminal_bench_v2_1
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol Ultra"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: terminal_bench_v2_1
+        score: 91.9
+        unit: "percent"
+        printed: true
+        configuration: "Ultra."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: terminal_bench_v2_1
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: terminal_bench_v2_1
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: terminal_bench_v2_1
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: terminal_bench_v2_1
+        score: 88
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: terminal_bench_v2_1
+        score: 83.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: terminal_bench_v2_1
+        score: 78.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: terminal_bench_v2_1
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 28.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 23.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 10.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 12
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 16
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 3.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "GeneBench Pro"
+        score: 8.14
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "LifeSciBench"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "LifeSciBench"
+        score: 56
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "LifeSciBench"
+        score: 51.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "LifeSciBench"
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "LifeSciBench"
+        score: 53.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "MedChemBench (Internal)"
+        score: 48.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "MedChemBench (Internal)"
+        score: 35
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "MedChemBench (Internal)"
+        score: 30.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "MedChemBench (Internal)"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: healthbench
+        score: 60.5
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: healthbench
+        score: 57.7
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: healthbench
+        score: 55.7
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: healthbench
+        score: 49.5
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: healthbench
+        score: 60.9
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: healthbench
+        score: 53
+        unit: "percent"
+        printed: true
+        configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 62.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 45.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 47.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld 2.0"
+        score: 54.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: browsecomp
+        score: 90.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol Ultra"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: browsecomp
+        score: 92.2
+        unit: "percent"
+        printed: true
+        configuration: "Ultra."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: browsecomp
+        score: 87.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: browsecomp
+        score: 83.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: browsecomp
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: browsecomp
+        score: 88
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: browsecomp
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: browsecomp
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: browsecomp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 70.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 62.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 63.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 44.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 38.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 27.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 73.9
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 55.8
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 65
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 61
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "BenchCAD"
+        score: 51.8
+        unit: "percent"
+        printed: true
+        configuration: "Python tool."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Capture-the-Flag Challenges"
+        score: 96.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Capture-the-Flag Challenges"
+        score: 91.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Capture-the-Flag Challenges"
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Capture-the-Flag Challenges"
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "SEC-Bench Pro"
+        score: 71.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol Ultra"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "SEC-Bench Pro"
+        score: 74.3
+        unit: "percent"
+        printed: true
+        configuration: "Ultra."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "SEC-Bench Pro"
+        score: 57.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "SEC-Bench Pro"
+        score: 48.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "SEC-Bench Pro"
+        score: 45.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 52.9
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 33.2
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 47.9
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 78
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 74.2
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitBench"
+        score: 40
+        unit: "percent"
+        printed: true
+        configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitGym"
+        score: 33.7
+        unit: "percent"
+        printed: true
+        configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitGym"
+        score: 23.2
+        unit: "percent"
+        printed: true
+        configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitGym"
+        score: 12.4
+        unit: "percent"
+        printed: true
+        configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitGym"
+        score: 15.1
+        unit: "percent"
+        printed: true
+        configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Internal Research Debugging Evaluation"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Internal Research Debugging Evaluation"
+        score: 67.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Internal Research Debugging Evaluation"
+        score: 50.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Internal Research Debugging Evaluation"
+        score: 50
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "KernelGen 1P"
+        score: 61.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "KernelGen 1P"
+        score: 49.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "KernelGen 1P"
+        score: 22.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "KernelGen 1P"
+        score: 29.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "NanoGPT"
+        score: 9.69
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "NanoGPT"
+        score: 14.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "NanoGPT"
+        score: 1.66
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "NanoGPT"
+        score: 2.65
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench Lite"
+        score: 50.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench Lite"
+        score: 51.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench Lite"
+        score: 29.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench Lite"
+        score: 38.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "RSI Index"
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "RSI Index"
+        score: 56.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "RSI Index"
+        score: 41.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "RSI Index"
+        score: 41.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: mmmu_pro
+        score: 83
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: mmmu_pro
+        score: 80.7
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: mmmu_pro
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: mmmu_pro
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: mmmu_pro
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: mmmu_pro
+        score: 82
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: mmmu_pro
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: mmmu_pro
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: gpqa_diamond
+        score: 94.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: gpqa_diamond
+        score: 92.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: gpqa_diamond
+        score: 92.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: gpqa_diamond
+        score: 93.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: gpqa_diamond
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: gpqa_diamond
+        score: 94.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: gpqa_diamond
+        score: 92.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: gpqa_diamond
+        score: 92
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: gpqa_diamond
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 89
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 78.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 87
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 80
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
+        score: 59.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 83
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 58.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 58
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 53.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 53.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 55.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 61.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Fable 5"
+        model_id: anthropic/claude-fable-5
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Toolathlon"
+        score: 48.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: openai_mrcr
+        score: 91.5
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 256K-512K."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: openai_mrcr
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 256K-512K."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: openai_mrcr
+        score: 41.3
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 256K-512K."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: openai_mrcr
+        score: 81.5
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 256K-512K."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: openai_mrcr
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 512K-1M."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: openai_mrcr
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 512K-1M."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: openai_mrcr
+        score: 41.3
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 512K-1M."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: openai_mrcr
+        score: 74
+        unit: "percent"
+        printed: true
+        configuration: "8-needle, 512K-1M."
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 90.7
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 81.3
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 73.7
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 85.7
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 256k context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 71.2
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 51.2
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 45.4
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 79.4
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 74.3
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: graphwalks_bfs_256k_1m
+        score: 68.1
+        unit: "percent"
+        printed: true
+        configuration: "BFS, 1M context. F1."
+        metric: f1
+        role: competitor
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 7.78
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Terra"
+        model_id: openai/gpt-5-6-terra
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 0.8
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Luna"
+        model_id: openai/gpt-5-6-luna
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 0.18
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: subject
+      - model_as_labelled: "GPT-5.5"
+        model_id: openai/gpt-5-5
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 0.43
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: competitor
+      - model_as_labelled: "Claude Opus 4.8"
+        model_id: anthropic/claude-opus-4-8
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 1.5
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro Preview"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "ARC-AGI-3"
+        score: 0.42
+        unit: "percent"
+        printed: true
+        configuration: "Opus 4.8 is the published high-effort result, not max."
+        role: competitor
+  - title: "Introduction scores not in the appendix percent"
+    kind: text
+    footnotes: "The introduction prints 53.6 on Agents' Last Exam and a two-hour ExploitGym pass rate of 24.9 percent. Deltas without their own absolute score are not separate bars."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 53.6
+        unit: "score"
+        printed: true
+        configuration: "Introduction. The appendix table prints 52.7 percent for the same name."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: null
+        benchmark_as_labelled: "ExploitGym"
+        score: 24.9
+        unit: "percent"
+        printed: true
+        configuration: "Two-hour cap. The appendix table's 33.7 percent is the six-hour result."
+        role: subject
+  - title: "Agents' Last Exam and Intelligence Index scatters"
+    kind: image
+    needs_reading: true
+    footnotes: "Score against API cost. Axis ticks and series names are printed. Point values are not."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      []
+  - title: "Multi-agent score against latency"
+    kind: image
+    needs_reading: true
+    footnotes: "BrowseComp, SEC-Bench Pro and Terminal-Bench 2.1, comparing one agent with ultra's four-agent default, and 16 agents where the post says so. Point values are not printed."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      []

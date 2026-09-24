@@ -1,0 +1,408 @@
+page_url: "https://huggingface.co/inclusionAI/Ling-3.0-flash-VL"
+publisher: "inclusionAI"
+read_on: "2026-09-24"
+charts:
+  - title: "Multimodal benchmarks"
+    kind: image
+    image_url: "https://cdn-uploads.huggingface.co/production/uploads/6666ca359f5a0b3229238a1a/w-V0gtCa3qy0un6vuz-sj.png"
+    image_sha256: "ffe97b34b9e24ef2cf6a640bf87b10a45d950e5ad6192f3b795e029b6745bc7e"
+    footnotes: "A star marks a number collected through an API at the official test settings. An underline marks a run without Python tool calls: Qwen MathVision and CharXiv, and Kimi MMMU-Pro, MathVision, and CharXiv. AntBench-Medical prints two unnamed figures, 0.96 / 0.93 for Ling, and is not split into bars. OmniDocBench here is a higher-is-better score, not an edit distance."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "CountBench"
+        score: 97.33
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "CountBench"
+        score: 96.70
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "CountBench"
+        score: 97.10
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "CountBench"
+        score: 95.70
+        unit: "percent"
+        printed: true
+        configuration: "thinking. API, official settings."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 45.67
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 22.87
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 42.83
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 50.63
+        unit: "percent"
+        printed: true
+        configuration: "thinking. API, official settings."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: mmmu_pro
+        score: 79.00
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: mmmu_pro
+        score: 76.00
+        unit: "percent"
+        printed: true
+        configuration: "xhigh."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: mmmu_pro
+        score: 79.00
+        unit: "percent"
+        printed: true
+        configuration: "high."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: mmmu_pro
+        score: 79.40
+        unit: "percent"
+        printed: true
+        configuration: "thinking. No Python tool calls."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 84.87
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 87.40
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings. No Python tool calls."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 79.24
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 87.40
+        unit: "percent"
+        printed: true
+        configuration: "thinking. API, official settings. No Python tool calls."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: hle
+        score: 19.88
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20. Multimodal slice."
+        role: subject
+        metric: multimodal
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: hle
+        score: 21.90
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. Multimodal slice. API, official settings."
+        role: competitor
+        metric: multimodal
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: hle
+        score: 20.12
+        unit: "percent"
+        printed: true
+        configuration: "high. Multimodal slice. API, official settings."
+        role: competitor
+        metric: multimodal
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: hle
+        score: 23.39
+        unit: "percent"
+        printed: true
+        configuration: "thinking. Multimodal slice. API, official settings."
+        role: competitor
+        metric: multimodal
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 91.35
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 91.10
+        unit: "percent"
+        printed: true
+        configuration: "xhigh."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 89.25
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 90.67
+        unit: "percent"
+        printed: true
+        configuration: "thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv_RQ"
+        score: 81.30
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv_RQ"
+        score: 83.70
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. No Python tool calls."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv_RQ"
+        score: 71.40
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv_RQ"
+        score: 80.40
+        unit: "percent"
+        printed: true
+        configuration: "thinking. No Python tool calls."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearch"
+        score: 79.00
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearch"
+        score: 79.70
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearch"
+        score: 78.67
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearch"
+        score: 80.00
+        unit: "percent"
+        printed: true
+        configuration: "thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 59.9
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 56.90
+        unit: "percent"
+        printed: true
+        configuration: "xhigh."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 54.52
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 49.60
+        unit: "percent"
+        printed: true
+        configuration: "thinking."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "WebVoyager"
+        score: 90.83
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "WebVoyager"
+        score: 90.80
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "WebVoyager"
+        score: 90.10
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "WebVoyager"
+        score: 85.43
+        unit: "percent"
+        printed: true
+        configuration: "thinking. API, official settings."
+        role: competitor
+      - model_as_labelled: "Ling-3.0-flash-VL"
+        model_id: "inclusionai/ling-3-0-flash-vl"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 57.69
+        unit: "percent"
+        printed: true
+        configuration: "temperature 0.6, top_p 0.95, top_k 20."
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 62.90
+        unit: "percent"
+        printed: true
+        configuration: "xhigh. API, official settings."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: "google/gemini-3-5-flash-lite"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 54.85
+        unit: "percent"
+        printed: true
+        configuration: "high. API, official settings."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 55.42
+        unit: "percent"
+        printed: true
+        configuration: "thinking. API, official settings."
+        role: competitor

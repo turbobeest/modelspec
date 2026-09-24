@@ -1,0 +1,1733 @@
+page_url: "https://huggingface.co/MiniMaxAI/MiniMax-M3"
+publisher: "MiniMax"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmark"
+    kind: image
+    image_url: "https://huggingface.co/MiniMaxAI/MiniMax-M3/resolve/main/figures/benchmark.jpeg"
+    image_sha256: "b4bc02e54f508f540e71a9286905477c780934bb79c0b17cd5892b6338313e57"
+    footnotes: "Columns are MiniMax M3, MiniMax M2.7, Claude Opus 4.7, GPT 5.5, Gemini 3.1 Pro, Claude Sonnet 4.6, DeepSeek V4 Pro, GLM 5.1 Thinking, and Kimi K2.6 Thinking. The methodology mixes in-house runs and figures taken from other labs, so competitor provenance is not one value. IMO 2025 and USAMO 2026 print 35/42 and 36/42 for MiniMax M3 and percents for other models; those two rows are left for the second reader because the unit changes inside the row."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: swe_bench_verified
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: swe_bench_verified
+        score: 79.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_verified
+        score: 87.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: swe_bench_verified
+        score: 82.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_verified
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: swe_bench_verified
+        score: 79.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_verified
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_verified
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Verified"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: swe_bench_pro
+        score: 59.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: swe_bench_pro
+        score: 56.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: swe_bench_pro
+        score: 64.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_pro
+        score: 55.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: swe_bench_pro
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_pro
+        score: 58.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-Bench Pro"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: terminal_bench_v2_1
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: terminal_bench_v2_1
+        score: 51.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: terminal_bench_v2_1
+        score: 66.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: terminal_bench_v2_1
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: terminal_bench_v2_1
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: terminal_bench_v2_1
+        score: 59.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: terminal_bench_v2_1
+        score: 48.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: terminal_bench_v2_1
+        score: 53.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Terminal-Bench 2.1"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 55.9
+            - reader: claude-opus
+              value: 53.9
+            - reader: claude-sonnet
+              value: 53.9
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 37.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 11.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 45.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 45.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 13.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-QnA"
+        score: 31.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-QnA"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 42.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 35.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 56.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 52.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 21.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. NL2Repo"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 30.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 18.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 38.21
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 42.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 29.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE Atlas-Test Writing"
+        score: 31.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE Atlas-Test Writing"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-fficiency"
+        score: 34.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-fficiency"
+        score: 14.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-fficiency"
+        score: 42.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-fficiency"
+        score: 46.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "SWE-fficiency"
+        score: 19.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SWE-fficiency"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveSQLBench"
+        score: 40.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveSQLBench"
+        score: 33.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveSQLBench"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveSQLBench"
+        score: 40.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "LiveSQLBench"
+        score: 39.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LiveSQLBench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "CL-Bench"
+        score: 20.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "CL-Bench"
+        score: 15.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "CL-Bench"
+        score: 22.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "CL-Bench"
+        score: 25.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "CL-Bench"
+        score: 21.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. CL-Bench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 50.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 37.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 50.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 28.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 45.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 48.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "VIBE-V2"
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VIBE-V2"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 63.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 48.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 62.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 59.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 64.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 56.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "SVG-Bench"
+        score: 60.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SVG-Bench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 37.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 13.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 42.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 39.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "PostTrainBench"
+        score: 15.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PostTrainBench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "KernelBench Hard"
+        score: 28.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "KernelBench Hard"
+        score: 10.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "KernelBench Hard"
+        score: 30.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "KernelBench Hard"
+        score: 20.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "KernelBench Hard"
+        score: 18.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. KernelBench Hard"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: paperbench
+        score: 52.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: paperbench
+        score: 30.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: paperbench
+        score: 58.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: paperbench
+        score: 57.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: paperbench
+        score: 46.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. PaperBench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: browsecomp
+        score: 83.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: browsecomp
+        score: 76.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: browsecomp
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: browsecomp
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: browsecomp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: browsecomp
+        score: 74.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: browsecomp
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: browsecomp
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: browsecomp
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BrowseComp"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "DRACO"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "DRACO"
+        score: 66.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "DRACO"
+        score: 77.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "DRACO"
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. DRACO"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 66.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 79.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 80.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 57.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 75.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "GDPval rubrics"
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. GDPval rubrics"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "BankerToolBench"
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "BankerToolBench"
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "BankerToolBench"
+        score: 81.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "BankerToolBench"
+        score: 70.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "BankerToolBench"
+        score: 67.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. BankerToolBench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 45.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 43.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 52.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "OfficeQA Pro"
+        score: 18.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OfficeQA Pro"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 88.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 84.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. SpreadSheetBench-v1"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 2.1
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: subject
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 2.34
+            - reader: claude-opus
+              value: "2.1M"
+            - reader: claude-sonnet
+              value: "2.1M"
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 0.0
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 2.2
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 2.24
+            - reader: claude-opus
+              value: "2.2M"
+            - reader: claude-sonnet
+              value: "2.2M"
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 1.3
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 1.34
+            - reader: claude-opus
+              value: "1.3M"
+            - reader: claude-sonnet
+              value: "1.3M"
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 1.1
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 1.14
+            - reader: claude-opus
+              value: "1.1M"
+            - reader: claude-sonnet
+              value: "1.1M"
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 0.1
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 0.34
+            - reader: claude-opus
+              value: "0.1M"
+            - reader: claude-sonnet
+              value: "0.1M"
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "YC-Bench"
+        score: 0.5
+        unit: "USD millions"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. YC-Bench"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 0.54
+            - reader: claude-opus
+              value: "0.5M"
+            - reader: claude-sonnet
+              value: "0.5M"
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "LOCA-Bench (256k)"
+        score: 49.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LOCA-Bench (256k)"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "LOCA-Bench (256k)"
+        score: 57.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. LOCA-Bench (256k)"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 74.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 49.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 69.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 61.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 73.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas"
+        score: 66.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MCP Atlas"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 27.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 5.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 37.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 41.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 33.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agents"
+        score: 26.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Apex-Agents"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 74.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: subject
+      - model_as_labelled: "MiniMax M2.7"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 57.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "DeepSeek V4 Pro"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "GLM 5.1 Thinking"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Claw-Eval"
+        score: 61.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Claw-Eval"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 75.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 82.8
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 78.7
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OSWorld-Verified"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 91.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 89.3
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 87.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench"
+        score: 86.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. OmniDocBench"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: mmmu_pro
+        score: 78.1
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: mmmu_pro
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: mmmu_pro
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "Claude Sonnet 4.6"
+        model_id: "anthropic/claude-sonnet-4-6"
+        benchmark_id: mmmu_pro
+        score: 74.5
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "Kimi K2.6 Thinking"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: mmmu_pro
+        score: 79.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. MMMU-Pro Without tools."
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MMMU"
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
+        role: subject
+      - model_as_labelled: "Claude Opus 4.7"
+        model_id: "anthropic/claude-opus-4-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MMMU"
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
+        role: competitor
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MMMU"
+        score: 86.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "Video-MMMU"
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. Video-MMMU"
+        role: competitor
+      - model_as_labelled: "MiniMax M3"
+        model_id: "minimax/minimax-m3"
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub)"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VideoMME (w/ sub)"
+        role: subject
+      - model_as_labelled: "GPT 5.5"
+        model_id: "openai/gpt-5-5"
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub)"
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VideoMME (w/ sub)"
+        role: competitor
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: "google/gemini-3-1-pro-preview"
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub)"
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: "Card chart. Several rows say the other models were run on MiniMax infrastructure; some rows cite an external source in the methodology. VideoMME (w/ sub)"
+        role: competitor
+  - title: "IMO 2025 and USAMO 2026"
+    kind: image
+    needs_reading: true
+    image_url: "https://huggingface.co/MiniMaxAI/MiniMax-M3/resolve/main/figures/benchmark.jpeg"
+    image_sha256: "b4bc02e54f508f540e71a9286905477c780934bb79c0b17cd5892b6338313e57"
+    footnotes: "MiniMax M3 prints a fraction and the other filled cells print percents."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+      - reader: claude-opus
+        date: "2026-09-24"
+    bars: []
