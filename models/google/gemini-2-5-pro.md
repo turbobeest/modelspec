@@ -694,12 +694,7 @@ benchmarks:
     chartqa: 87.5
     docvqa: 93.8
     finbench: 69.8
-    flores_en_de: 63.2
-    flores_en_es: 68.1
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
     gpqa_diamond: 80.5
-    gsm8k: 90.8
     helm_safety: 88.5
     humaneval: 91.2
     ifeval: 91.0
@@ -708,7 +703,6 @@ benchmarks:
     math_500: 95.2
     mathvista: 67.8
     medqa: 80.2
-    mgsm: 87.5
     mmlu_astronomy: 79.8
     mmlu_biology: 87.2
     mmlu_business_ethics: 81.2
@@ -989,7 +983,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: google/gemini-2-5-pro

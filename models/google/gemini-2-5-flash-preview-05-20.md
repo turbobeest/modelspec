@@ -672,30 +672,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aime_2025: 73.3
-    arena_elo_coding: 1330.0
-    arena_elo_math: 1350.0
-    arena_elo_overall: 1340.0
-    artificial_analysis_quality_index: 80.0
-    artificial_analysis_speed_index: 87.0
-    gpqa_diamond: 70.2
-    humaneval: 88.8
-    ifeval: 87.5
-    math_500: 90.5
-    mmlu_pro: 78.2
-    swe_bench_verified: 49.2
-    multipl_e_csharp: 78.5
-    multipl_e_php: 76.2
-    multipl_e_ruby: 64.5
-    multipl_e_swift: 64.8
-    multipl_e_r: 56.2
-    multipl_e_julia: 60.5
-    multipl_e_perl: 49.5
-    multipl_e_lua: 53.8
-    multipl_e_scala: 58.8
-    multipl_e_kotlin: 71.5
-    live_code_bench: 49.5
     aider_polyglot: 55.1
+  evidence:
+  - benchmark_id: aider_polyglot
+    model_id_as_evaluated: gemini-2.5-flash-preview-05-20 (24k think)
+    score: 55.1
+    unit: percent
+    source_url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+    source_kind: benchmark_author
+    evidence_date: '2025-05-25'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Aider polyglot (225 exercises)
+    configuration: Aider polyglot leaderboard YAML row model "gemini-2.5-flash-preview-05-20 (24k think)", edit_format
+      diff, pass_rate_2.
+    limitations: ''
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -856,7 +847,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
