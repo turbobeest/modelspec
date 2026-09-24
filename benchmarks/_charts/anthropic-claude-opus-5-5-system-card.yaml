@@ -5,7 +5,7 @@ document_sha256: "7311c9c6bbb16d012f1c12c7418b05949fcf7ae3e30d2c40f22050074b2a73
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
-    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. Terminal-Bench 4.0 in the summary table is xhigh effort. The section text also gives the max-effort score and the one-decimal table value beside the unrounded xhigh mean. GDPval-AA and AA-Briefcase are Elo from pairwise judging; Artificial Analysis ran those two. HealthBench length-adjusted Professional is the summary-table row. The HealthBench figure prints raw and length-adjusted overall scores. Professional raw scores are stated in the following section."
+    footnotes: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens. Competitor figures are taken from the developers' published system cards or from benchmark leaderboards. Terminal-Bench 4.0 in the summary table is xhigh effort. The section text also gives the max-effort score and the one-decimal table value beside the unrounded xhigh mean. HealthBench length-adjusted Professional is the summary-table row. The HealthBench figure prints raw and length-adjusted overall scores. Professional raw scores are stated in the following section."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
@@ -556,126 +556,6 @@ charts:
         printed: true
         configuration: "HealthBench Professional, raw score."
         role: subject
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: gdpval_aa
-        score: 1846
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2.1, max effort. Elo anchored at 1600."
-        role: subject
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: gdpval_aa
-        score: 1820
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2.1, xhigh effort."
-        role: subject
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: gdpval_aa
-        score: 1708
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2.1, max effort."
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: gdpval_aa
-        score: 1735
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2.1, max effort."
-        role: subject
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: gdpval_aa
-        score: 1542
-        unit: "elo"
-        printed: true
-        configuration: "GDPval-AA v2.1. Summary table."
-        role: competitor
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: aa_briefcase
-        score: 1822
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1, max effort."
-        role: subject
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: aa_briefcase
-        score: 1780
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1, xhigh effort."
-        role: subject
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: aa_briefcase
-        score: 1705
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1, high effort."
-        role: subject
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: aa_briefcase
-        score: 1673
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1, max effort."
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: aa_briefcase
-        score: 1678
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1, max effort."
-        role: subject
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: aa_briefcase
-        score: 1569
-        unit: "elo"
-        printed: true
-        configuration: "AA-Briefcase v1.1. Summary table."
-        role: competitor
-      - model_as_labelled: "Claude Opus 5.5"
-        model_id: "anthropic/claude-opus-5-5"
-        benchmark_id: automationbench
-        score: 40.0
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: subject
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: automationbench
-        score: 26.9
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: automationbench
-        score: 31.4
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: subject
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: automationbench
-        score: 41.4
-        unit: "percent"
-        printed: true
-        configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
-        role: competitor
       - model_as_labelled: "Claude Opus 5.5"
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
@@ -1857,24 +1737,6 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
     bars: []
-  - title: "Figure 6.5.4.1.A: Factuality net scores. Net score is the fraction of correct responses minus the fraction of incorrect responses on AA-Omniscience. Abstentio"
-    kind: image
-    needs_reading: true
-    footnotes: "Factuality net scores. Net score is the fraction of correct responses minus the fraction of incorrect responses on AA-Omniscience. Abstentions receive a score of zero. Unlike raw accuracy, net score also takes into account that an abstention is better than an incorrect respons"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
-  - title: "Figure 6.5.4.1.B: Factuality breakdown. Grade breakdown on the AA-Omniscience closed-book factuality benchmark. Each response was graded as correct, incorrect"
-    kind: image
-    needs_reading: true
-    footnotes: "Factuality breakdown. Grade breakdown on the AA-Omniscience closed-book factuality benchmark. Each response was graded as correct, incorrect, or an abstention. Claude Opus 5.5 received a net score of 0.58, which places it slightly above Claude Mythos 5 and Claude Mythos 5.1"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
   - title: "Figure 6.5.4.2.A: Honesty under pressure. Honesty rate on the public MASK split: the fraction of scored prompts where the model did not contradict its own eli"
     kind: image
     needs_reading: true
@@ -2275,15 +2137,6 @@ charts:
     kind: html_table
     needs_reading: true
     footnotes: "Toolathlon scores (internal harness). Models are evaluated with adaptive thinking and max effort; Claude Opus 5.5 and Claude Fable 5.1 were run with safety classifiers. Pass@1, Pass@3, and Pass³ are computed over all 108 tasks across three trials, per the paper’s protocol. Ou"
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-    bars: []
-  - title: "Figure 8.14.6.A: AutomationBench task-cost scores. Claude Opus 5.5 outperforms Claude Opus 5 across effort levels. Claude Opus 5.5’s cost per task is Anthrop"
-    kind: image
-    needs_reading: true
-    footnotes: "AutomationBench task-cost scores. Claude Opus 5.5 outperforms Claude Opus 5 across effort levels. Claude Opus 5.5’s cost per task is Anthropic's calculation from Zapier's recorded token counts at list prices with prompt caching. Other models' costs, including Claude Opus 5, ar"
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7

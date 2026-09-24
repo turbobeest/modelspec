@@ -1122,7 +1122,7 @@ _MODEL_ALIASES = {
     "3.5 flash": "gemini 3.5 flash",
 }
 # Longer phrases first. A version marker "v" before a digit is already gone.
-# "gdpval aa 2" stays "gdpval aa 2". v2 and v2.1 are different benchmarks.
+# v2 and v2.1 stay different benchmarks.
 _BENCH_ALIASES = (
     ("internal computer use safety benchmark w autoreview", "computer use safety autoreview"),
     ("computer use safety with autoreview", "computer use safety autoreview"),
@@ -1130,12 +1130,9 @@ _BENCH_ALIASES = (
     ("internal computer use safety benchmark", "computer use safety"),
     ("internal circumvention benchmark", "circumvention"),
     ("internal hallucination benchmark", "hallucination"),
-    ("artificial analysis coding agent index", "coding agent index"),
     ("humanity s last exam with tools", "hle tools"),
     ("humanity s last exam tools", "hle tools"),
     ("humanity s last exam", "hle"),
-    ("artificial analysis intelligence index", "artificial analysis"),
-    ("aa briefcase elo", "aa briefcase"),
     ("legal agent benchmark harvey s held out set", "harvey legal"),
     ("harvey legal agent benchmark held out", "harvey legal"),
     ("harvey s legal agent benchmark", "harvey legal"),
@@ -1143,7 +1140,6 @@ _BENCH_ALIASES = (
     ("harvey legal held out", "harvey legal"),
     ("gray swan ipi benchmark", "gray swan ipi"),
     ("simple qa verified", "simpleqa verified"),
-    ("gdp pdf aa", "gdp pdf"),
     ("swe bench verified", "swe verified"),
     ("live code bench", "livecodebench"),
     ("humaneval plus", "evalplus"),
@@ -1152,7 +1148,6 @@ _BENCH_ALIASES = (
     ("long bench 2", "longbench 2"),
     ("code forces", "codeforces"),
     ("arena hard", "arenahard"),
-    ("automation bench", "automationbench"),
     ("simple qa", "simpleqa"),
     ("big bench extra hard", "bbeh"),
     ("deepmind mrcr", "mrcr"),
@@ -1180,7 +1175,7 @@ _BENCH_ALIASES = (
     ("tone 1", "tone"),
 )
 # A version written beside the benchmark id, not in the benchmark name.
-_VERSION_STEMS = ("gdpval aa", "aa briefcase")
+_VERSION_STEMS = ("demo bench",)
 _QUALIFIERS = (
     ("with fallback", "fallback"),
     ("fallback", "fallback"),
@@ -1549,7 +1544,7 @@ def _fold_slices(bench: str, metric_key: str) -> tuple[str, str]:
 
 
 def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
-    """GDPval-AA v2 stays v2. v2.1 and AA-Briefcase v1.1 stay on the benchmark."""
+    """A version written next to an unversioned benchmark id stays on that benchmark."""
     if re.search(r"\d", bench):
         return bench, metric
     padded = f" {metric} "

@@ -114,46 +114,6 @@ charts:
     bars:
       - model_as_labelled: "GPT-6 Astra"
         model_id: "openai/gpt-6-astra"
-        benchmark_id: automationbench
-        score: 41.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: automationbench
-        score: 18.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: automationbench
-        score: 31.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: automationbench
-        score: 17.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: automationbench
-        score: 26.9
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
         benchmark_id: browsecomp
         score: 91.5
         unit: "percent"
@@ -181,60 +141,6 @@ charts:
         benchmark_id: browsecomp
         score: 90.8
         unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 61.2
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 60.9
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 65.7
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 62.1
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 63.1
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemini 3.8 Flash"
-        model_id: "google/gemini-3-8-flash"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 58.7
-        unit: "score"
         printed: true
         configuration: ""
         role: competitor
@@ -517,51 +423,6 @@ charts:
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
         score: 43.6
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 67.0
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 65.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 67.2
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 68.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemini 3.8 Flash"
-        model_id: "google/gemini-3-8-flash"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 61.2
         unit: "percent"
         printed: true
         configuration: ""

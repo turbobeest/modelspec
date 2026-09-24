@@ -147,9 +147,9 @@ def test_official_reports_against_an_independent_row_is_not_held():
         [
             _row(
                 94.14,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
-                configuration="Artificial Analysis leaderboard",
+                configuration="Independent leaderboard",
             ),
             _row(
                 91.0,
@@ -165,8 +165,8 @@ def test_official_reports_against_an_independent_row_is_not_held():
         {
             "score": 94.14,
             "unit": "percent",
-            "source_url": "https://artificialanalysis.ai/leaderboards/models",
-            "configuration": "Artificial Analysis leaderboard",
+            "source_url": "https://example.com/leaderboard",
+            "configuration": "Independent leaderboard",
             "source_kind": "independent_evaluator",
         },
         {
@@ -197,7 +197,7 @@ def test_official_reports_matches_a_provider_self_report():
         [
             _row(
                 57.9,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
             ),
             _row(
@@ -232,7 +232,7 @@ def test_official_reports_mismatches_a_different_self_report():
         [
             _row(
                 96.0,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
             ),
             _row(
@@ -369,8 +369,8 @@ def test_evaluated_bar_without_same_source_is_a_gap():
                 role="evaluated",
                 model_id="anthropic/claude-fable-5-1",
                 model_as_labelled="Claude Fable 5.1",
-                score=52.0,
-                score_text="52.0",
+                score=40.0,
+                score_text="40.0",
             )
         ],
         competitor_numbers="vendor_run",
@@ -378,13 +378,13 @@ def test_evaluated_bar_without_same_source_is_a_gap():
     model = _model(
         "anthropic/claude-fable-5-1",
         [
-            _row(55.8, source="https://www.anthropic.com/claude-fable-5-1-system-card"),
-            _row(57.88, source="https://www.tbench.ai/leaderboard"),
+            _row(44.2, source="https://www.anthropic.com/claude-fable-5-1-system-card"),
+            _row(48.0, source="https://www.tbench.ai/leaderboard"),
         ],
     )
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "competitor_gap"
-    assert round(bar["gap"], 2) == -3.8
+    assert round(bar["gap"], 2) == -4.2
     assert {row["source_url"] for row in bar["held_rows"]} == {
         "https://www.anthropic.com/claude-fable-5-1-system-card",
         "https://www.tbench.ai/leaderboard",
@@ -426,23 +426,23 @@ def test_sibling_configurations_that_miss_the_row_are_mismatches():
 
 def test_different_unit_is_not_a_gap():
     page = _page(
-        [_bar(role="evaluated", score=1565, score_text="1565", unit="elo")],
+        [_bar(role="evaluated", score=1200, score_text="1200", unit="elo")],
         competitor_numbers="vendor_run",
     )
     model = _model(
         "openai/gpt-6-astra",
-        [_row(53, unit="normalized Elo percent")],
+        [_row(40, unit="normalized Elo percent")],
     )
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "unit_differs"
-    assert bar["chart_score"] == 1565
-    assert bar["held"]["score"] == 53
+    assert bar["chart_score"] == 1200
+    assert bar["held"]["score"] == 40
     assert bar["held"]["unit"] == "normalized Elo percent"
 
 
 def test_other_metric_is_not_compared():
-    page = _page([_bar(score=41.6, score_text="41.6", metric="tasks_completed")])
-    model = _model("openai/gpt-6-astra", [_row(68.5)])
+    page = _page([_bar(score=12.5, score_text="12.5", metric="tasks_completed")])
+    model = _model("openai/gpt-6-astra", [_row(40.0)])
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "other_metric"
 
@@ -512,10 +512,10 @@ charts:
         encoding="utf-8",
     )
     fixture = load_fixture(fixture_path)
-    manifest = {"aa-1.png": "abc123"}
+    manifest = {"chart.png": "abc123"}
     readings = [
         {
-            "source": "aa-1.png",
+            "source": "chart.png",
             "reader": "reader-b",
             "read_on": "2026-09-25",
             "charts": [
@@ -570,7 +570,7 @@ charts:
             [fixture],
             [
                 {
-                    "source": "aa-1.png",
+                    "source": "chart.png",
                     "reader": "reader-b",
                     "read_on": "2026-09-25",
                     "charts": [
@@ -1009,20 +1009,20 @@ def test_section_header_and_main_set_pair():
 
 def test_version_labels_stay_part_of_the_benchmark():
     assert _classes(
-        _one_bar_fixture("Opus 5", "gdpval_aa", configuration="GDPval-AA v2, Elo."),
-        _one_reading("Opus 5", "GDPval-AA v2"),
+        _one_bar_fixture("Opus 5", "demo_bench", configuration="Demo Bench v2, Elo."),
+        _one_reading("Opus 5", "Demo Bench v2"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "GDPval-AA v2"),
-        _one_reading("Opus 5", "GDPval-AA v2.1"),
+        _one_bar_fixture("Opus 5", "Demo Bench v2"),
+        _one_reading("Opus 5", "Demo Bench v2.1"),
     ) == ["only_a", "only_b"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "AA-Briefcase"),
-        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+        _one_bar_fixture("Opus 5", "Demo Bench"),
+        _one_reading("Opus 5", "Demo Bench v1.1"),
     ) == ["only_a", "only_b"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "aa_briefcase", configuration="AA Briefcase v1.1 Elo."),
-        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+        _one_bar_fixture("Opus 5", "demo_bench", configuration="Demo Bench v1.1 Elo."),
+        _one_reading("Opus 5", "Demo Bench v1.1"),
     ) == ["agree"]
 
 
@@ -1277,10 +1277,10 @@ def test_effort_phrases_normalise_and_a_table_cell_stays_off_a_tooltip_effort():
         _one_reading("GPT-6 Astra", "Terminal-Bench 4.0", score=57.9, metric_or_setting="reasoning effort: Max"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("GPT-6 Sol", "AutomationBench", score=33.2, score_text="33.2", configuration="xhigh effort"),
+        _one_bar_fixture("GPT-6 Sol", "demo_bench", score=33.2, score_text="33.2", configuration="xhigh effort"),
         _one_reading(
             "GPT-6 Sol",
-            "AutomationBench",
+            "demo_bench",
             score=33.2,
             metric_or_setting="effort: xhigh (in row label); cost per task: $0.27",
         ),
@@ -1353,13 +1353,13 @@ def test_harness_phrases_normalise_and_different_harnesses_stay_apart():
 
 def test_version_labels_have_to_agree():
     assert _classes(
-        _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1, score_text="63.1"),
-        _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1),
+        _one_bar_fixture("Opus 5", "Demo Bench v4.1.1", score=63.1, score_text="63.1"),
+        _one_reading("Opus 5", "Demo Bench v4.1.1", score=63.1),
     ) == ["agree"]
     assert sorted(
         _classes(
-            _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1"),
-            _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.2"),
+            _one_bar_fixture("Opus 5", "Demo Bench v4.1.1"),
+            _one_reading("Opus 5", "Demo Bench v4.2"),
         )
     ) == ["only_a", "only_b"]
     assert _classes(
@@ -1425,7 +1425,6 @@ def test_openai_fixture_settings_name_the_harness_and_the_version():
         assert gone not in astra
         assert gone not in sol
     assert 'benchmark_as_labelled: "FrontierCode 1.1 Extended"' in astra
-    assert 'benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"' in astra
     assert 'configuration: "Codex-like developer message"' in astra
     assert 'configuration: "responses API harness"' in astra
     assert 'configuration: "no 6-hour cap"' in astra
