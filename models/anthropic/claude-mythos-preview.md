@@ -676,16 +676,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_overall: 1410.0
     browsecomp: 86.9
     charxiv_reasoning: 86.1
     charxiv_reasoning_tools: 93.2
     gpqa_diamond: 94.55
-    humaneval: 93.2
-    ifeval: 92.1
-    math_500: 96.4
-    mmlu_pro: 85.2
-    mt_bench: 9.4
     graphwalks_bfs_256k_1m: 80.0
     graphwalks_parents_256k_1m: 97.7
     hle: 56.8
@@ -727,9 +721,251 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [97.30292, 398.514614] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 93.9
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE-bench Verified
+    configuration: Project Glasswing evaluation table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 77.8
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE-bench Pro
+    configuration: Project Glasswing evaluation table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: swe_bench_multilingual
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 87.3
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE-bench Multilingual
+    configuration: Project Glasswing evaluation table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: swe_bench_multimodal
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 59.0
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: SWE-bench Multimodal (internal implementation)
+    configuration: 'Project Glasswing evaluation table. Anthropic: internal implementation, not comparable to public
+      leaderboard scores.'
+    limitations: ''
+  - benchmark_id: terminal_bench_2
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 82.0
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: Terminal-Bench 2.0
+    configuration: 'Project Glasswing: Terminus-2 harness, adaptive thinking at maximum effort, 1M-token task budget,
+      averaged over five attempts.'
+    limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 94.55
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: GPQA Diamond (198 questions)
+    configuration: 'System card section 6.6: 94.55%, averaged over 5 trials.'
+    limitations: ''
+  - benchmark_id: mmmlu
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 92.67
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MMMLU
+    configuration: 'System card section 6.7: 92.67% averaged over 5 trials, all non-English pairings.'
+    limitations: ''
+  - benchmark_id: usamo_2026
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 97.6
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: USAMO 2026
+    configuration: 'System card section 6.8: 97.6%, 10 trials per problem, max effort, no tools.'
+    limitations: ''
+  - benchmark_id: graphwalks_bfs_256k_1m
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 80.0
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: GraphWalks BFS 256K-1M
+    configuration: System card section 6.9, averaged over 5 trials.
+    limitations: ''
+  - benchmark_id: graphwalks_parents_256k_1m
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 97.7
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: GraphWalks parents 256K-1M
+    configuration: System card section 6.9, averaged over 5 trials.
+    limitations: ''
+  - benchmark_id: hle
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 56.8
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: Humanity's Last Exam, no tools
+    configuration: Project Glasswing table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: hle_tools
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 64.7
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: Humanity's Last Exam, with tools
+    configuration: Project Glasswing table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: browsecomp
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 86.9
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: BrowseComp
+    configuration: Project Glasswing table and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: osworld
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 79.6
+    unit: percent
+    source_url: https://www.anthropic.com/glasswing
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: OSWorld-Verified
+    configuration: Project Glasswing table (OSWorld-Verified) and system card Table 6.3.A.
+    limitations: ''
+  - benchmark_id: lab_bench_figqa
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 79.7
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: LAB-Bench FigQA, no tools
+    configuration: 'System card section 6.11.1: adaptive thinking, max effort, no tools.'
+    limitations: ''
+  - benchmark_id: lab_bench_figqa_tools
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 89.0
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: LAB-Bench FigQA, Python tools
+    configuration: 'System card section 6.11.1: adaptive thinking, max effort, Python tools.'
+    limitations: ''
+  - benchmark_id: screenspot_pro
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 79.5
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: ScreenSpot-Pro, no tools
+    configuration: 'System card section 6.11.2: adaptive thinking, max effort, no tools.'
+    limitations: ''
+  - benchmark_id: screenspot_pro_tools
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 92.8
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: ScreenSpot-Pro, Python tools
+    configuration: 'System card section 6.11.2: adaptive thinking, max effort, Python tools.'
+    limitations: ''
+  - benchmark_id: charxiv_reasoning
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 86.1
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: CharXiv Reasoning, no tools
+    configuration: 'System card section 6.11.3: 1,000 validation questions, averaged over five runs.'
+    limitations: ''
+  - benchmark_id: charxiv_reasoning_tools
+    model_id_as_evaluated: Claude Mythos Preview
+    score: 93.2
+    unit: percent
+    source_url: https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf
+    source_kind: provider_self_report
+    evidence_date: '2026-04-07'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: CharXiv Reasoning, Python tools
+    configuration: 'System card section 6.11.3: adaptive thinking, max effort, Python tools.'
+    limitations: ''
   benchmark_source: anthropic-system-card
   benchmark_as_of: 2026-04
-  benchmark_notes: arena_elo/mmlu_pro/humaneval/math_500/ifeval/mt_bench imputed at Opus 4.6 floor per system card claim of across-the-board improvement
+  benchmark_notes: ''
 deployment:
   api_only: false
   local_inference: false
@@ -887,7 +1123,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: anthropic/claude-mythos-preview
