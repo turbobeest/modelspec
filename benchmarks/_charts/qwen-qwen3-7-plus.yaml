@@ -1,0 +1,3593 @@
+page_url: "https://qwen.ai/blog?id=qwen3.7-plus"
+publisher: "Qwen"
+read_on: "2026-09-24"
+charts:
+  - title: "Text benchmarks"
+    kind: html_table
+    footnotes: "Same protocol notes as the Qwen3.7-Max post: Terminus-2 for Terminal-Bench 2.0, an internal scaffold for SWE-bench, Elo for the in-house front-end benches, and an xhigh prompt on the reasoning rows. The last column is Qwen3.7-Plus. Blanks are unpublished."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: terminal_bench_2_0
+        score: 65.4
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: terminal_bench_2_0
+        score: 66.7
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: terminal_bench_2_0
+        score: 63.5
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: terminal_bench_2_0
+        score: 67.9
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: terminal_bench_2_0
+        score: 61.6
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: terminal_bench_2_0
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "Terminus-2 harness. Average of 5."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: swe_bench_verified
+        score: 80.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: swe_bench_verified
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: swe_bench_verified
+        score: 80.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: swe_bench_verified
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: swe_bench_verified
+        score: 77.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: swe_bench_pro
+        score: 57.3
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: swe_bench_pro
+        score: 59.5
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: swe_bench_pro
+        score: 58.8
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: swe_bench_pro
+        score: 59.0
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: swe_bench_pro
+        score: 56.6
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: swe_bench_pro
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: "Corrected task set."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: swe_bench_multilingual
+        score: 77.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: swe_bench_multilingual
+        score: 76.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: swe_bench_multilingual
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: swe_bench_multilingual
+        score: 73.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: swe_bench_multilingual
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 47.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 41.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 35.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 34.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "NL2repo"
+        score: 41.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: scicode
+        score: 51.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: scicode
+        score: 52.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: scicode
+        score: 45.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: scicode
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: scicode
+        score: 51.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWebDev"
+        score: 1617
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWebDev"
+        score: 1564
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWebDev"
+        score: 1570
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWebDev"
+        score: 1500
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWebDev"
+        score: 1536
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1541
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1325
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1605
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1506
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1432
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSVG"
+        score: 1588
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 58.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 59.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 57.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Qwenclaw"
+        score: 61.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 66.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 64.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 61.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 57.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval"
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: skillsbench
+        score: 56.2
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode, 78 tasks, average of 5."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: skillsbench
+        score: 53.1
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode, 78 tasks, average of 5."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: skillsbench
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode, 78 tasks, average of 5."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: skillsbench
+        score: 45.7
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode, 78 tasks, average of 5."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: skillsbench
+        score: 54.9
+        unit: "percent"
+        printed: true
+        configuration: "OpenCode, 78 tasks, average of 5."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 76.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 70.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 68.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BFCL-V4"
+        score: 72.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 56.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 57.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 57.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 48.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Mark"
+        score: 58.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 66.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 73.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 74.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MCP-Atlas"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Vitabench"
+        score: 39.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Vitabench"
+        score: 45.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Vitabench"
+        score: 51.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Vitabench"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Vitabench"
+        score: 45.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 58.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 42.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 34.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 44.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 40.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Deep-Planning"
+        score: 62.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 89.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 84.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 84.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SpreadSheetBench-v1"
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 2.63
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 98
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 1.41
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 80
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 2.00
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 78
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 1.07
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 54
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 1.03
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: subject
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 48
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 2.06
+        unit: "score"
+        printed: true
+        configuration: "Median speedup over PyTorch eager."
+        metric: speedup
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Kernel Bench L3"
+        score: 98
+        unit: "percent"
+        printed: true
+        configuration: "Share of problems faster than torch.compile."
+        metric: faster_than_compile
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 50.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 47.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenWorldBench"
+        score: 62.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: gpqa_diamond
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: gpqa_diamond
+        score: 90.5
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: gpqa_diamond
+        score: 86.2
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: gpqa_diamond
+        score: 90.1
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: gpqa_diamond
+        score: 90.4
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: gpqa_diamond
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: hle
+        score: 40.0
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: hle
+        score: 36.4
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: hle
+        score: 34.7
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: hle
+        score: 37.7
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: hle
+        score: 28.8
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: hle
+        score: 34.7
+        unit: "percent"
+        printed: true
+        configuration: "xhigh system prompt."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: live_code_bench
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: live_code_bench
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: live_code_bench
+        score: 93.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: live_code_bench
+        score: 87.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: live_code_bench
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: hmmt2026
+        score: 96.2
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: hmmt2026
+        score: 92.7
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: hmmt2026
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: hmmt2026
+        score: 95.2
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: hmmt2026
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: hmmt2026
+        score: 92.9
+        unit: "percent"
+        printed: true
+        configuration: "February 2026."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 86.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 89.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench"
+        score: 86.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 12.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 8.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 4.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 12.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 2.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CritPT"
+        score: 6.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 34.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 24.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 11.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 38.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 8.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Apex"
+        score: 22.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: mmlu_pro
+        score: 89.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: mmlu_pro
+        score: 87.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: mmlu_pro
+        score: 86.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: mmlu_pro
+        score: 87.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: mmlu_pro
+        score: 88.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: mmlu_pro
+        score: 88.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 95.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 95.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 94.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 94.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-Redux"
+        score: 94.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 72.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 71.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 68.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 69.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 71.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SuperGPQA"
+        score: 71.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: ifeval
+        score: 91.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: ifeval
+        score: 94.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: ifeval
+        score: 94.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: ifeval
+        score: 91.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: ifeval
+        score: 94.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: ifeval
+        score: 94.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: ifbench
+        score: 62.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: ifbench
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: ifbench
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: ifbench
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: ifbench
+        score: 74.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: ifbench
+        score: 79.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: deepmind_mrcr_v2
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: deepmind_mrcr_v2
+        score: 63.1
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: deepmind_mrcr_v2
+        score: 62.0
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: deepmind_mrcr_v2
+        score: 74.4
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: deepmind_mrcr_v2
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: deepmind_mrcr_v2
+        score: 91.7
+        unit: "percent"
+        printed: true
+        configuration: "128k, 8 needles."
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 81.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 82.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++"
+        score: 84.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 81.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 87.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 87.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 88.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 88.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MAXIFE"
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: mmmlu
+        score: 90.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: mmmlu
+        score: 87.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: mmmlu
+        score: 87.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: mmmlu
+        score: 87.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: mmmlu
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: mmmlu
+        score: 89.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 83.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 83.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 83.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMLU-ProX"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 56.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 54.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 52.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 57.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "NOVA-63"
+        score: 58.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 85.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "INCLUDE"
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 91.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 90.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 89.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Global PIQA"
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "K2.6 Thinking"
+        model_id: moonshot/kimi-k2-6
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 82.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 Thinking"
+        model_id: zhipu/glm-5-1
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 67.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DeepSeek-V4-Pro Max"
+        model_id: deepseek/deepseek-v4-pro
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 72.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 77.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "PolyMATH"
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+  - title: "Multimodal benchmarks"
+    kind: html_table
+    footnotes: "Search-augmented rows are the multimodal search group. BabyVision and CharXiv print with a code interpreter first, then without. Ego3D-Bench is lower-is-better. QwenVision2Code is an Elo-style rating. VideoMME includes subtitles."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: mmmu_pro
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: mmmu_pro
+        score: 73.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: mmmu_pro
+        score: 81.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: mmmu_pro
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: mmmu_pro
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 91.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 53.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 12.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 55.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 37.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: "With a code interpreter."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 64.7
+        unit: "percent"
+        printed: true
+        configuration: "Without a code interpreter."
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv(RQ)"
+        score: 84.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv(RQ)"
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv(RQ)"
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CharXiv(RQ)"
+        score: 81.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: charxiv_reasoning_tools
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "With a code interpreter."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: charxiv_reasoning
+        score: 84.4
+        unit: "percent"
+        printed: true
+        configuration: "Without a code interpreter."
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "HiPhO"
+        score: 65.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "HiPhO"
+        score: 40.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "HiPhO"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "HiPhO"
+        score: 80.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "HiPhO"
+        score: 84.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 67.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 40.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 68.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 65.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "VisFactor"
+        score: 40.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "VisFactor"
+        score: 24.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "VisFactor"
+        score: 39.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VisFactor"
+        score: 36.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VisFactor"
+        score: 42.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: medxpertqa
+        score: 77.3
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: medxpertqa
+        score: 64.4
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: medxpertqa
+        score: 80.7
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: medxpertqa
+        score: 68.7
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: medxpertqa
+        score: 71.0
+        unit: "percent"
+        printed: true
+        configuration: "Multimodal."
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "ScreenSpot Pro"
+        score: 67.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ScreenSpot Pro"
+        score: 49.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "ScreenSpot Pro"
+        score: 68.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ScreenSpot Pro"
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ScreenSpot Pro"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 75.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 62.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 73.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 62.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 81.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "QwenVision2Code"
+        score: 1884.0
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenVision2Code"
+        score: 1518.0
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "QwenVision2Code"
+        score: 1632.0
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenVision2Code"
+        score: 1522.0
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenVision2Code"
+        score: 1772.0
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 54.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 45.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 49.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 55.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "SimpleVQA"
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "SimpleVQA"
+        score: 79.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "SimpleVQA"
+        score: 76.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SimpleVQA"
+        score: 69.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SimpleVQA"
+        score: 81.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 45.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 65.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 56.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 33.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "WorldVQA"
+        score: 61.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearchPlus"
+        score: 19.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearchPlus"
+        score: 38.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearchPlus"
+        score: 42.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearchPlus"
+        score: 19.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMSearchPlus"
+        score: 41.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "BC-VL"
+        score: 48.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "BC-VL"
+        score: 51.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "BC-VL"
+        score: 49.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BC-VL"
+        score: 26.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BC-VL"
+        score: 51.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "MMBC"
+        score: 18.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MMBC"
+        score: 46.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MMBC"
+        score: 28.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMBC"
+        score: 18.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MMBC"
+        score: 46.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: realworldqa
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: realworldqa
+        score: 73.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: realworldqa
+        score: 83.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: realworldqa
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: realworldqa
+        score: 86.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "CountQA"
+        score: 58.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "CountQA"
+        score: 32.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "CountQA"
+        score: 72.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CountQA"
+        score: 71.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CountQA"
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench1.5"
+        score: 85.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench1.5"
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench1.5"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench1.5"
+        score: 91.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench1.5"
+        score: 91.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(EN)"
+        score: 59.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(EN)"
+        score: 54.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(EN)"
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(EN)"
+        score: 67.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(EN)"
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(ZH)"
+        score: 57.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(ZH)"
+        score: 54.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(ZH)"
+        score: 58.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(ZH)"
+        score: 63.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OCR-Bench-V2(ZH)"
+        score: 67.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ODinW13"
+        score: 51.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ODinW13"
+        score: 51.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "LingoQA"
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "LingoQA"
+        score: 77.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "LingoQA"
+        score: 66.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "LingoQA"
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "LingoQA"
+        score: 83.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "Ego3D-Bench↓"
+        score: 6.9
+        unit: "percent"
+        printed: true
+        configuration: "Lower is better."
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "Ego3D-Bench↓"
+        score: 8.1
+        unit: "percent"
+        printed: true
+        configuration: "Lower is better."
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "Ego3D-Bench↓"
+        score: 10.4
+        unit: "percent"
+        printed: true
+        configuration: "Lower is better."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Ego3D-Bench↓"
+        score: 6.1
+        unit: "percent"
+        printed: true
+        configuration: "Lower is better."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Ego3D-Bench↓"
+        score: 5.9
+        unit: "percent"
+        printed: true
+        configuration: "Lower is better."
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "SURDS"
+        score: 64.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "SURDS"
+        score: 58.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "SURDS"
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SURDS"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "SURDS"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "VLADBench"
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "VLADBench"
+        score: 48.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "VLADBench"
+        score: 73.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VLADBench"
+        score: 75.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VLADBench"
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub.)"
+        score: 89.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub.)"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub.)"
+        score: 88.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub.)"
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMME (w/ sub.)"
+        score: 88.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMMMU"
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMMMU"
+        score: 85.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMMMU"
+        score: 85.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMMMU"
+        score: 84.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "VideoMMMU"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "MLVU (M-Avg)"
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MLVU (M-Avg)"
+        score: 81.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "MLVU (M-Avg)"
+        score: 84.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MLVU (M-Avg)"
+        score: 86.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MLVU (M-Avg)"
+        score: 87.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "TVBench"
+        score: 82.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "TVBench"
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "TVBench"
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "TVBench"
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "TVBench"
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GPT-5.4 (xhigh)"
+        model_id: openai/gpt-5-4
+        benchmark_id: null
+        benchmark_as_labelled: "LVBench"
+        score: 77.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus-4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "LVBench"
+        score: 63.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Gemini-3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "LVBench"
+        score: 75.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-Plus"
+        model_id: qwen/qwen3-6-plus
+        benchmark_id: null
+        benchmark_as_labelled: "LVBench"
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "LVBench"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject

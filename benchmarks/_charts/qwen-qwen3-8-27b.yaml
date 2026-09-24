@@ -1,0 +1,1013 @@
+page_url: "https://huggingface.co/Qwen/Qwen3.8-27B"
+publisher: "Qwen"
+read_on: "2026-09-24"
+charts:
+  - title: "Text performance"
+    kind: html_table
+    footnotes: "SWE-bench Pro uses Claude Code at temperature 1.0, top_p 0.95 and a 256K context, except Opus 4.6 Max, which is the published score, on a corrected task set. NL2Repo uses Claude Code and blocks repository-fetch commands. DeepSWE 1.1 uses Claude Code at the same sampling. QwenSWEBench is in-house, Claude Code, average of 3, 8-hour timeout, max tokens 32768. HLE is judged by GPT-4o. Blanks are unpublished. Rival columns mix a published Opus score with Qwen's own runs."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: terminal_bench_v2_1
+        score: 73.0
+        unit: "percent"
+        printed: true
+        configuration: "Terminus harness."
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: terminal_bench_v2_1
+        score: 63.4
+        unit: "percent"
+        printed: true
+        configuration: "Terminus harness."
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: terminal_bench_v2_1
+        score: 64.0
+        unit: "percent"
+        printed: true
+        configuration: "Terminus harness."
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: terminal_bench_v2_1
+        score: 51.7
+        unit: "percent"
+        printed: true
+        configuration: "Terminus harness."
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: terminal_bench_v2_1
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Terminus harness."
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: swe_bench_pro
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: swe_bench_pro
+        score: 53.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: swe_bench_pro
+        score: 57.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: swe_bench_pro
+        score: 51.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: swe_bench_pro
+        score: 53.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 42.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 36.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 41.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "NL2Repo-Bench"
+        score: 47.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 42.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 13.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE 1.1"
+        score: 14.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 49.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 59.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "QwenSWEBench"
+        score: 63.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 61.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "CoWorkBench"
+        score: 68.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 33.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 21.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "JobBench"
+        score: 27.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 20.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 42.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 10.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 27.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 13.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_1
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Agents' Last Exam"
+        score: 33.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: ifbench
+        score: 79.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: ifbench
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: ifbench
+        score: 79.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: ifbench
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: ifbench
+        score: 62.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: gpqa_diamond
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: gpqa_diamond
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: gpqa_diamond
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: gpqa_diamond
+        score: 83.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: gpqa_diamond
+        score: 91.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: hle
+        score: 30.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: hle
+        score: 24.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: hle
+        score: 34.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: hle
+        score: 22.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: hle
+        score: 40.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: live_code_bench
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: live_code_bench
+        score: 83.9
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: live_code_bench
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: live_code_bench
+        score: 88.8
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+  - title: "Vision-language performance"
+    kind: html_table
+    footnotes: "MathVision, BabyVision and CharXiv reasoning quote a no-code-interpreter setting and, where shown, a with-code-interpreter setting. Some MathVision and CharXiv labels were corrected after a manual check. WebArena-Verified uses the official grader under the OSWorld scaffold. RecreationBench is an in-house recreation task. ClawEval-MM reports pass@3 and the mean of three trials. Vision2Web averages frontend, webpage and website scores on Claude Code, judged by gpt-5.4-2026-03-05. SWE-MM uses the public dev split of SWE-bench Multimodal on Claude Code. Blanks are unpublished."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 73.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 65.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 72.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "WebArena-Verified"
+        score: 64.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "WebArena-Verified"
+        score: 48.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "WebArena-Verified"
+        score: 55.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 81.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 81.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "AndroidWorld"
+        score: 62.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "RecreationBench"
+        score: 47.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "RecreationBench"
+        score: 29.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "RecreationBench"
+        score: 30.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 56.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: average
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 42.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: average
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 57.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_3
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 60.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: average
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 52.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: pass_at_3
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ClawEval-MM"
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        metric: average
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: swe_bench_multimodal
+        score: 38.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: swe_bench_multimodal
+        score: 25.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: swe_bench_multimodal
+        score: 30.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: swe_bench_multimodal
+        score: 27.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 62.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 45.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "Vision2Web"
+        score: 42.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 94.6
+        unit: "percent"
+        printed: true
+        configuration: "With CI"
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 85.1
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 90.3
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "MathVision"
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 65.7
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: "With CI"
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 28.9
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 64.7
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 70.4
+        unit: "percent"
+        printed: true
+        configuration: "With CI"
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "BabyVision"
+        score: 12.6
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: charxiv_reasoning
+        score: 83.7
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: charxiv_reasoning_tools
+        score: 90.2
+        unit: "percent"
+        printed: true
+        configuration: "With CI"
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: charxiv_reasoning
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: charxiv_reasoning
+        score: 85.8
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: charxiv_reasoning_tools
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "With CI"
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: charxiv_reasoning_tools
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: charxiv_reasoning
+        score: 66.0
+        unit: "percent"
+        printed: true
+        configuration: "Without CI"
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 89.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 91.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench 1.5"
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: realworldqa
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: realworldqa
+        score: 84.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: realworldqa
+        score: 86.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: realworldqa
+        score: 73.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.8-27B"
+        model_id: cerebras/qwen-3-8-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 65.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: qwen/qwen3-6-27b
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 62.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Qwen3.7-Plus"
+        model_id: qwen/qwen3-7-plus
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Opus4.6 Max"
+        model_id: anthropic/claude-opus-4-6
+        benchmark_id: null
+        benchmark_as_labelled: "ERQA"
+        score: 40.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor

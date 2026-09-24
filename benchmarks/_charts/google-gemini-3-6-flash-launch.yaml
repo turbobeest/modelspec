@@ -1,0 +1,252 @@
+page_url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber/"
+publisher: "Google DeepMind"
+read_on: "2026-09-24"
+charts:
+  - title: "Gemini 3.6 Flash agentic benchmarks"
+    kind: image
+    image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-6-flash__evals__figure-.width-2000.format-webp.webp"
+    image_sha256: "eed20d4f60c90b41ada0198786fb5693f177d4e4671f048019ac2e43df5ca69c"
+    footnotes: "Printed bar labels for DeepSWE v1.1, MLE-Bench, GDPval-AA v2 and OSWorld-Verified. The output-token chart beside it is token use, not a score, and is not transcribed."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 12
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 37
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.6 Flash"
+        model_id: google/gemini-3-6-flash
+        benchmark_id: null
+        benchmark_as_labelled: "DeepSWE v1.1"
+        score: 49
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: mle_bench
+        score: 42.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: mle_bench
+        score: 49.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.6 Flash"
+        model_id: google/gemini-3-6-flash
+        benchmark_id: mle_bench
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: gdpval_aa
+        score: 965
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: gdpval_aa
+        score: 1349
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.6 Flash"
+        model_id: google/gemini-3-6-flash
+        benchmark_id: gdpval_aa
+        score: 1421
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Pro"
+        model_id: google/gemini-3-1-pro-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash"
+        model_id: google/gemini-3-5-flash
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.6 Flash"
+        model_id: google/gemini-3-6-flash
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+  - title: "Gemini 3.5 Flash-Lite versus 3.1 Flash-Lite"
+    kind: image
+    image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-5-flash-lite__evals__co.width-2000.format-webp.webp"
+    image_sha256: "99697cd9e80604eb57b225b1e93a71caa32b2d3027bda89fe540b7300ac3a271"
+    footnotes: "Printed labels. Terminal-bench 2.1 is a percent. GDPval-AA v2 is Elo."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3.1 Flash-Lite"
+        model_id: google/gemini-3-1-flash-lite
+        benchmark_id: terminal_bench_v2_1
+        score: 31.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: google/gemini-3-5-flash-lite
+        benchmark_id: terminal_bench_v2_1
+        score: 54.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.1 Flash-Lite"
+        model_id: google/gemini-3-1-flash-lite
+        benchmark_id: gdpval_aa
+        score: 642
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: google/gemini-3-5-flash-lite
+        benchmark_id: gdpval_aa
+        score: 1140
+        unit: "elo"
+        printed: true
+        configuration: ""
+        role: subject
+  - title: "Gemini 3.5 Flash-Lite versus Gemini 3 Flash"
+    kind: image
+    image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-5-flash-lite__evals__co.width-2000.format-webp_6AiRvQV.webp"
+    image_sha256: "97eba7abb0a58c6e93bc3891deeaefce7bc3cbc17d7084cdb33eca410d04eb43"
+    footnotes: "Printed labels. SWE-Bench Pro is the public set. OSWorld-Verified has no catalogue page."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: swe_bench_pro
+        score: 49.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: google/gemini-3-5-flash-lite
+        benchmark_id: swe_bench_pro
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3 Flash"
+        model_id: google/gemini-3-flash-preview
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 65.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        model_id: google/gemini-3-5-flash-lite
+        benchmark_id: null
+        benchmark_as_labelled: "OSWorld-Verified"
+        score: 74.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+  - title: "Gemini 3.5 Flash Cyber on CyberGym"
+    kind: image
+    image_url: "https://storage.googleapis.com/gweb-uniblog-publish-prod/images/gemini-3-5-flash-cyber__evals__c.width-2000.format-webp.webp"
+    image_sha256: "98884f4f8fc161da0df457b03cb93ac4a81ef17e62a8f35df295563ad418594c"
+    footnotes: "CyberGym accuracy. Each bar names the agent harness. Gemini 3.5 Flash Cyber has no catalogue card. The page does not say whether the other bars are those vendors' published scores."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Mythos Preview"
+        model_id: anthropic/claude-mythos-preview
+        benchmark_id: cybergym
+        score: 83.1
+        unit: "percent"
+        printed: true
+        configuration: "Anthropic agent."
+        role: competitor
+      - model_as_labelled: "Gemini 3.5 Flash Cyber"
+        model_id: null
+        benchmark_id: cybergym
+        score: 83.2
+        unit: "percent"
+        printed: true
+        configuration: "CodeMender, max 5 model calls."
+        role: subject
+      - model_as_labelled: "GPT-5.6 Sol"
+        model_id: openai/gpt-5-6-sol
+        benchmark_id: cybergym
+        score: 83.6
+        unit: "percent"
+        printed: true
+        configuration: "OpenAI agent."
+        role: competitor
+      - model_as_labelled: "Mythos 5"
+        model_id: anthropic/claude-mythos-5
+        benchmark_id: cybergym
+        score: 83.8
+        unit: "percent"
+        printed: true
+        configuration: "Anthropic agent."
+        role: competitor
+      - model_as_labelled: "GPT-5.5-Cyber"
+        model_id: null
+        benchmark_id: cybergym
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: "OpenAI agent."
+        role: competitor
