@@ -67,3 +67,39 @@ is `single_read`, which does not fail the check.
 `python scripts/chart_check.py reconcile --reader-b <dir> --out <dir>`
 compares a second reading. `--write-fixtures` records that reader and marks
 disagreements `disputed`.
+
+## In CI
+
+`Check evidence against release charts` in `.github/workflows/validate-cards.yml`
+runs on a pull request that changes a model card, a file in this directory, or
+`scripts/chart_check.py` / `scripts/chart_check_pr.py`. The job runs
+`python scripts/chart_check_pr.py --base origin/main`.
+
+The job classifies evidence rows the pull request adds or changes.
+
+A row is `verified` when a fixture bar from the same page agrees, within the
+printed precision, for the same model and benchmark. Sibling configurations
+count as agreement when any one of them matches.
+
+These block the job:
+
+- `mismatch`, a same-source bar for that model and benchmark that does not agree.
+- `disputed`, a matching bar that is still disputed.
+- A fixture file the pull request adds or changes, when a chart that has bars
+  has fewer than two distinct readers and no `single_read_reason`.
+- A `disputed` bar on such a fixture.
+- A `resolution` that does not satisfy the two-of-three rule.
+
+These do not block:
+
+- `no_bar`. The fixture exists and has no bar for this model and benchmark. Warning.
+- `no_fixture`. The page has no fixture yet. Warning, for now.
+- `no_fixture_dataset`. The source is machine-readable. Informational.
+  MODEL-111 layer 2 checks those sources.
+
+Fixtures the pull request does not change are left alone. An existing
+single-read chart does not block an unrelated pull request.
+
+To clear `no_fixture`, add a fixture for that page with two independent
+readings. MODEL-113 new-model pull requests are the ones this warning is for.
+The new card cites a page, and this directory does not have that page yet.
