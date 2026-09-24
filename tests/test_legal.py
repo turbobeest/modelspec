@@ -33,6 +33,7 @@ from api.ranking.engine import (
     MIN_BENCHMARK_COUNT,
     MIN_BENCHMARK_COVERAGE,
     NEUTRALITY_PLEDGE,
+    VENDOR_PURCHASE_RULE,
     neutrality_commitment,
     ranking_policy,
 )
@@ -81,6 +82,8 @@ def test_the_commitment_rides_with_the_floors() -> None:
     "accepts_provider_paid_visibility",
     "proxies_inference_tokens",
     "stores_customer_prompts",
+    "conceals_purchases_from_catalogued_vendors",
+    "lets_supplier_models_write_supplier_cards",
 ])
 def test_every_neutrality_assertion_is_false(assertion: str) -> None:
     """Each is a thing the service does not do. A true value is a different product."""
@@ -91,6 +94,44 @@ def test_neutrality_covers_the_stages_where_a_lean_would_hide() -> None:
     """Refusing payment is the easy half; a tie-break nobody audits is the other."""
     stages = set(neutrality_commitment()["source_neutral_at"])
     assert {"ranking", "tie_breaks", "hosting_suggestions", "route_advice"} <= stages
+
+
+def test_buying_from_a_catalogued_vendor_is_published_as_data() -> None:
+    """Neutrality 1.1. The pledge covers money coming in; this covers money going
+    out, to a vendor the catalogue also documents."""
+    commitment = neutrality_commitment()
+    assert commitment["vendor_purchases"] == VENDOR_PURCHASE_RULE
+    assert ranking_policy()["neutrality"]["vendor_purchases"] == VENDOR_PURCHASE_RULE
+
+
+def test_the_vendor_purchase_assertions_are_held_by_code() -> None:
+    """Each published `false` is a mechanism, not a promise.
+
+    `conceals_purchases_from_catalogued_vendors`: every vendor in
+    `schema/suppliers.py` gets a disclosure on its card page, derived from the
+    same table. `lets_supplier_models_write_supplier_cards`: the guard in
+    `scripts/attribution.py` protects exactly that table and refuses any listing
+    that puts a supplier in play. `tests/test_attribution.py` tests the refusals
+    end to end; this ties them to the published assertions.
+    """
+    from types import SimpleNamespace
+
+    from pipeline.render import supplier_disclosure
+    from schema.suppliers import SUPPLIERS
+    from scripts import attribution
+
+    assert SUPPLIERS, "the table is empty, so the assertions would hold vacuously"
+    assert attribution.SUPPLIER_SLUGS == frozenset(SUPPLIERS)
+    for slug in SUPPLIERS:
+        disclosure = supplier_disclosure({"provider": slug})
+        assert "Disclosure." in disclosure, slug
+        assert 'href="/legal/neutrality/"' in disclosure, slug
+        listing = SimpleNamespace(candidates=[slug], vendor=None)
+        assert attribution.supplier_conflict(listing) == slug
+        on_page = SimpleNamespace(candidates=[], vendor=slug)
+        assert attribution.supplier_conflict(on_page) == slug
+    assert supplier_disclosure({"provider": "not-a-supplier"}) == ""
+    assert callable(attribution.apply_policy)
 
 
 def test_the_commitment_survives_json_serialisation() -> None:
@@ -142,6 +183,20 @@ def test_the_honest_broker_rule_appears_verbatim_in_the_terms() -> None:
 def test_the_rule_and_the_pledge_appear_verbatim_in_the_commitment() -> None:
     assert flat(HONEST_BROKER_RULE) in FLAT_NEUTRALITY
     assert flat(NEUTRALITY_PLEDGE) in FLAT_NEUTRALITY
+
+
+def test_the_vendor_purchase_rule_appears_verbatim_in_the_commitment() -> None:
+    """Neutrality 1.1: the sentence in the JSON is the sentence in the document,
+    and the document names the files that hold it."""
+    assert flat(VENDOR_PURCHASE_RULE) in FLAT_NEUTRALITY
+    for path in ("schema/suppliers.py", "scripts/attribution.py", "pipeline/render.py"):
+        assert f"`{path}`" in NEUTRALITY, path
+        assert (REPO_ROOT / path).is_file(), path
+    for symbol in ("supplier_conflict", "apply_policy"):
+        assert f"`{symbol}`" in NEUTRALITY, symbol
+    for assertion in neutrality_commitment()["assertions"]:
+        assert f'"{assertion}": false' in NEUTRALITY, assertion
+    assert "1.1, 2026-09-23" in FLAT_NEUTRALITY
 
 
 def test_the_pledge_appears_verbatim_in_the_terms() -> None:
@@ -459,11 +514,12 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
 
 
 #: The version in force for each document. A change to what the service records
-#: is a change to the privacy statement, and it gets a new version and date
-#: rather than a silent edit of the adopted one.
+#: is a change to the privacy statement, and a commitment added to the neutrality
+#: commitment is a change to that; each gets a new version and date rather than
+#: a silent edit of the adopted one.
 IN_FORCE = {
     "terms": "Version `1.0`, effective 2026-09-19.",
-    "neutrality": "Version `1.0`, effective 2026-09-19.",
+    "neutrality": "Version `1.1`, effective 2026-09-23.",
     "privacy": "Version `1.1`, effective 2026-09-23.",
 }
 

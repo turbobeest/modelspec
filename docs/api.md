@@ -111,10 +111,13 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
         "accepts_paid_placement": false,
         "accepts_provider_paid_visibility": false,
         "proxies_inference_tokens": false,
-        "stores_customer_prompts": false
+        "stores_customer_prompts": false,
+        "conceals_purchases_from_catalogued_vendors": false,
+        "lets_supplier_models_write_supplier_cards": false
       },
       "source_neutral_at": ["ranking", "tie_breaks", "hosting_suggestions", "route_advice"],
       "charges": "the consumer of a recommendation, never its subjects",
+      "vendor_purchases": "We may be a paying customer of a vendor whose models we catalogue. When we are, the card says so, and no field on that vendor's card is ever set by that vendor's own model.",
       "method_source": "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py",
       "terms_url": "https://modelspec.dev/legal/terms/",
       "neutrality_url": "https://modelspec.dev/legal/neutrality/",

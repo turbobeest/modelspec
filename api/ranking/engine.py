@@ -1062,6 +1062,18 @@ NEUTRALITY_PLEDGE = (
     "permanently."
 )
 
+#: Verbatim, neutrality 1.1 (2026-09-23). The case the pledge does not reach:
+#: money flowing *to* a vendor we catalogue rather than from one. Quoted in
+#: `docs/legal/neutrality.md`; `tests/test_legal.py` holds the two equal. The
+#: mechanisms are `schema/suppliers.py` (the vendors we pay), the disclosure the
+#: card page prints from it (`pipeline/render.py`), and the refusals in
+#: `scripts/attribution.py` (`supplier_conflict`, `apply_policy`). MODEL-101.
+VENDOR_PURCHASE_RULE = (
+    "We may be a paying customer of a vendor whose models we catalogue. When we "
+    "are, the card says so, and no field on that vendor's card is ever set by "
+    "that vendor's own model."
+)
+
 #: Where a machine reads the long forms. Static Pages, no key, no account.
 LEGAL_BASE_URL = "https://modelspec.dev/legal"
 
@@ -1093,6 +1105,12 @@ def neutrality_commitment() -> dict[str, Any]:
             # nothing to retain, which is why this is architecture and not a
             # retention promise.
             "stores_customer_prompts": False,
+            # Neutrality 1.1: buying from a vendor we catalogue. The card
+            # page discloses it (`pipeline/render.py`, from
+            # `schema/suppliers.py`), and `scripts/attribution.py` refuses a
+            # supplier's model any field on that supplier's card.
+            "conceals_purchases_from_catalogued_vendors": False,
+            "lets_supplier_models_write_supplier_cards": False,
         },
         #: §10.3: neutrality past money, into sourcing. Naming the stages is the
         #: point — "neutral ranking" would leave the tie-break and the hosting
@@ -1104,6 +1122,7 @@ def neutrality_commitment() -> dict[str, Any]:
             "route_advice",
         ],
         "charges": "the consumer of a recommendation, never its subjects",
+        "vendor_purchases": VENDOR_PURCHASE_RULE,
         "method_source": (
             "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py"
         ),

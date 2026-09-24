@@ -1925,6 +1925,10 @@ components:
                       type: boolean
                     accepts_referral_fees:
                       type: boolean
+                    conceals_purchases_from_catalogued_vendors:
+                      type: boolean
+                    lets_supplier_models_write_supplier_cards:
+                      type: boolean
                     proxies_inference_tokens:
                       type: boolean
                     stores_customer_prompts:
@@ -1933,6 +1937,8 @@ components:
                   - accepts_paid_placement
                   - accepts_provider_paid_visibility
                   - accepts_referral_fees
+                  - conceals_purchases_from_catalogued_vendors
+                  - lets_supplier_models_write_supplier_cards
                   - proxies_inference_tokens
                   - stores_customer_prompts
                 charges:
@@ -1957,6 +1963,8 @@ components:
                     type: string
                 terms_url:
                   type: string
+                vendor_purchases:
+                  type: string
                 version:
                   type: string
               required:
@@ -1971,6 +1979,7 @@ components:
               - rule
               - source_neutral_at
               - terms_url
+              - vendor_purchases
               - version
             ordering:
               type: string
