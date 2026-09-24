@@ -196,12 +196,34 @@ def _frozen_pool(frozen: dict) -> list[Candidate]:
     ]
 
 
-@pytest.mark.parametrize("vector", sorted(_golden()["vectors"]))
-def test_the_rest_of_the_report_is_byte_identical_to_before(vector: str) -> None:
-    """Golden bytes, captured from the pre-MODEL-110 scorer on a real export slice.
+#: Significant digits a float keeps in the canonical form. Python 3.12 made
+#: `sum()` of floats compensated (Neumaier); 3.11, which CI runs, sums naively.
+#: The unrounded coverage and bound fields therefore differ in the last ULP
+#: between interpreters (e.g. 40.004 vs 40.00399999999999) with no change to
+#: the code. Every published score is rounded to 2 decimals, so 10 significant
+#: digits is still far finer than anything the scorer promises. The golden was
+#: computed under both 3.11 and 3.14 and agreed.
+CANONICAL_FLOAT_DIGITS = 10
 
-    Serialised exactly as `write_export` serialises `rankings.json`. Drop the one
-    new key and nothing else may differ — not a score, not an order, not a count.
+
+def _canonical(value):
+    """The report with floats cut to CANONICAL_FLOAT_DIGITS; everything else exact."""
+    if isinstance(value, float):
+        return float(f"{value:.{CANONICAL_FLOAT_DIGITS}g}")
+    if isinstance(value, dict):
+        return {key: _canonical(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_canonical(item) for item in value]
+    return value
+
+
+@pytest.mark.parametrize("vector", sorted(_golden()["vectors"]))
+def test_the_rest_of_the_report_is_identical_to_before(vector: str) -> None:
+    """Golden digests, captured from the pre-MODEL-110 scorer on a real export slice.
+
+    Serialised as `write_export` serialises `rankings.json` (sorted keys), after
+    `_canonical`. Drop the one new key and nothing else may differ — no id, rank,
+    score, order, count, label or string, and no float beyond interpreter noise.
     """
     frozen = _golden()
     kwargs = dict(frozen["vectors"][vector])
@@ -209,11 +231,19 @@ def test_the_rest_of_the_report_is_byte_identical_to_before(vector: str) -> None
     report = rank_report(_frozen_pool(frozen), profile, **kwargs)
     assert "unranked_candidates" in report
     before = {k: v for k, v in report.items() if k != "unranked_candidates"}
-    digest = hashlib.sha256(
-        json.dumps(before, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(json.dumps(
+        _canonical(before), sort_keys=True, default=str).encode("utf-8")).hexdigest()
     assert before["ranked_count"] == frozen["golden"][vector]["ranked_count"]
-    assert digest == frozen["golden"][vector]["sha256"], (
+    assert digest == frozen["golden"][vector]["canonical_sha256"], (
         f"{vector}: rank_report changed outside unranked_candidates")
+
+
+def test_the_canonical_form_absorbs_only_last_digit_noise() -> None:
+    """The tolerance is interpreter noise, not a licence to move a score."""
+    assert _canonical(40.00399999999999) == _canonical(40.004)
+    assert _canonical(0.7466253374662533) == _canonical(0.7466253374662534)
+    assert _canonical(84.78) != _canonical(84.79)
+    assert _canonical(23.8454666) != _canonical(23.8454676)
 
 
 def test_the_golden_slice_exercises_the_disclosure() -> None:
