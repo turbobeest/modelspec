@@ -34,8 +34,9 @@ def test_every_price_and_credit_number_comes_from_tiers_json(tmp_path: Path) -> 
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     result = pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text(encoding="utf-8")
-    assert result["billing_enabled"] is True
-    assert "Billing is not live" not in html
+    # Follows BILLING_ENABLED (off while the sites are in holding mode).
+    assert result["billing_enabled"] is pricing.billing_enabled(REPO_ROOT)
+    assert ("Billing is not live" in html) is (not result["billing_enabled"])
     for _pid, row in tiers["billing"]["prices"].items():
         assert f"{row['credits']:,}" in html
         assert f"${row['usd']}" in html
@@ -113,6 +114,13 @@ def test_every_plan_and_pack_has_a_buy_form_when_billing_is_live() -> None:
         assert posted[pid] == ("Subscribe" if row["kind"] == "plan" else "Buy")
 
 
+def test_the_shipped_page_follows_the_flag(tmp_path: Path) -> None:
+    pricing.write(tmp_path, REPO_ROOT, _build())
+    html = (tmp_path / "pricing" / "index.html").read_text(encoding="utf-8")
+    assert len(_forms(html)) == (6 if pricing.billing_enabled(REPO_ROOT) else 0)
+    assert "<script" not in html.lower()
+
+
 def test_no_buy_form_when_billing_is_off() -> None:
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     html = pricing.page(tiers, live=False, build=_build())
@@ -122,9 +130,9 @@ def test_no_buy_form_when_billing_is_off() -> None:
     assert "Billing is not live" in html
 
 
-def test_the_live_page_ships_buy_forms_and_no_script(tmp_path: Path) -> None:
-    pricing.write(tmp_path, REPO_ROOT, _build())
-    html = (tmp_path / "pricing" / "index.html").read_text(encoding="utf-8")
+def test_the_live_page_ships_buy_forms_and_no_script() -> None:
+    tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
+    html = pricing.page(tiers, live=True, build=_build())
     assert len(_forms(html)) == 6
     assert "<script" not in html.lower()
 

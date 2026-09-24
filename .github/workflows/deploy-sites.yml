@@ -3,6 +3,19 @@ name: Build and deploy the sites
 # The published state of both domains should always be a commit, never whatever
 # somebody last pushed from a laptop. Build on every merge to main; deploy only
 # from main, and only after the build has succeeded.
+#
+# Holding mode (Jamie, 2026-09-24). The repository variable SITE_MODE is the one
+# switch. The real modelspec site is always built and always deployed to the
+# Pages preview branch `internal` (https://internal.modelspec-7np.pages.dev).
+# Production (`--branch=main`) gets that real site only when SITE_MODE is
+# exactly `live`; unset, empty or anything else gets the modelspec holding tree
+# (pipeline/holding.py): a holding page, with /api/**, /legal/** and openapi.yaml
+# byte for byte as the real build has them. A missing variable fails closed.
+# benchgraph.dev (MODEL-126) is the same `_redirects` file in both modes, on
+# `main` and on `internal` (https://internal.benchgraph.pages.dev). It has no
+# holding page. Its paths redirect to modelspec.dev, so the dark 404 and the
+# live /api/** are the modelspec tree the redirect lands on.
+# Relaunch, go dark again, test: docs/handoff/holding-mode.md.
 
 on:
   push:
@@ -16,6 +29,9 @@ on:
 permissions:
   contents: read
 
+env:
+  SITE_MODE: ${{ vars.SITE_MODE }}
+
 concurrency:
   group: deploy-sites-${{ github.ref }}
   cancel-in-progress: true
@@ -24,6 +40,9 @@ jobs:
   build:
     name: Build both sites
     runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.holding.outputs.mode }}
+      production: ${{ steps.holding.outputs.production }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,20 +66,43 @@ jobs:
             echo '```'
             echo
             echo "modelspec.dev: $(find dist/modelspec -type f | wc -l) files, $(du -sh dist/modelspec | cut -f1)"
-            echo "benchgraph.dev: $(find dist/benchgraph -type f | wc -l) files, $(du -sh dist/benchgraph | cut -f1)"
+            echo "benchgraph.dev: $(find dist/benchgraph -type f | wc -l) files, $(du -sh dist/benchgraph | cut -f1) (redirect only)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the holding trees, and pick what production gets
+        id: holding
+        run: |
+          python -m pipeline.holding build --src dist --out dist-holding
+          mode=$(python -m pipeline.holding mode)
+          if [ "$mode" = "live" ]; then production=dist; else production=dist-holding; fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "production=$production" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Site mode: $mode"
+            echo
+            echo "Repository variable SITE_MODE: \`${SITE_MODE:-unset}\`."
+            echo "Production modelspec.dev gets \`$production/modelspec\`."
+            echo "benchgraph.dev gets \`$production/benchgraph\`, the redirect file"
+            echo '(the same bytes as `dist/benchgraph`, in both modes).'
+            echo 'The preview branch `internal` gets `dist`.'
+            echo
+            echo "holding modelspec: $(find dist-holding/modelspec -type f | wc -l) files, $(du -sh dist-holding/modelspec | cut -f1)"
+            echo "holding benchgraph: $(find dist-holding/benchgraph -type f | wc -l) files, $(du -sh dist-holding/benchgraph | cut -f1)"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guard the Cloudflare Pages limits
         run: |
           # Pages refuses a deployment over 20,000 files or with any file over 25 MiB.
           # Failing here is far cheaper than a rejected deploy.
-          for site in modelspec benchgraph; do
-            count=$(find "dist/$site" -type f | wc -l)
+          # benchgraph, in dist and in dist-holding, is the one-file redirect.
+          # The limit still applies. There is no minimum size.
+          for site in dist/modelspec dist/benchgraph dist-holding/modelspec dist-holding/benchgraph; do
+            count=$(find "$site" -type f | wc -l)
             if [ "$count" -ge 20000 ]; then
               echo "::error::$site has $count files, at or over the Pages limit of 20,000"
               exit 1
             fi
-            big=$(find "dist/$site" -type f -size +25M | head -1)
+            big=$(find "$site" -type f -size +25M | head -1)
             if [ -n "$big" ]; then
               echo "::error::$site contains a file over 25 MiB: $big"
               exit 1
@@ -72,19 +114,52 @@ jobs:
           set -e
           test -s dist/modelspec/index.html
           test -s dist/modelspec/models/index.html
+          test -s dist/modelspec/benchmarks/index.html
           test -s dist/modelspec/sitemap.xml
           test -s dist/modelspec/404.html
-          test -s dist/benchgraph/index.html
-          test -s dist/benchgraph/benchmarks/index.html
-          test -s dist/benchgraph/sitemap.xml
-          test -s dist/benchgraph/404.html
-          test -s dist/benchgraph/api/catalogue.json
           test -s dist/modelspec/api/index.json
           test -s dist/modelspec/api/build.json
+          test -s dist/modelspec/api/catalogue.json
           test -s dist/modelspec/api/rank/candidates.json
           test -s dist/modelspec/api/rank/profiles.json
           test -s dist/modelspec/api/policy/catalogue.json
           test -s dist/modelspec/api/graph/views/hardware.json
+          test -n "$(find dist/modelspec/b -name index.html -print -quit)"
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("dist/benchgraph")
+          files = sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file())
+          if files != ["_redirects"]:
+              raise SystemExit(f"dist/benchgraph should be only _redirects, found {files}")
+          expected = (
+              "/   https://modelspec.dev/benchmarks/  301\n"
+              "/*  https://modelspec.dev/:splat       301\n"
+          )
+          got = (root / "_redirects").read_text(encoding="utf-8")
+          if got != expected:
+              raise SystemExit(f"_redirects content: {got!r}")
+          print("benchgraph.dev redirect tree ok")
+          PY
+
+      - name: Check the holding trees are dark and keep the data
+        run: |
+          set -e
+          test -s dist-holding/modelspec/index.html
+          test -s dist-holding/modelspec/404.html
+          grep -q 'X-Robots-Tag: noindex' dist-holding/modelspec/_headers
+          test ! -e dist-holding/modelspec/sitemap.xml
+          test ! -e dist-holding/modelspec/_worker.js
+          test ! -e dist-holding/modelspec/llms.txt
+          test ! -e dist-holding/modelspec/b
+          diff -r dist/modelspec/api dist-holding/modelspec/api
+          test -s dist-holding/modelspec/api/catalogue.json
+          test -n "$(find dist-holding/modelspec/api/benchmarks -name '*.json' -print -quit)"
+          diff -r dist/modelspec/legal dist-holding/modelspec/legal
+          cmp dist/modelspec/openapi.yaml dist-holding/modelspec/openapi.yaml
+          # benchgraph is the redirect file in both trees. No holding page, no local /api.
+          diff -r dist/benchgraph dist-holding/benchgraph
+          test -s dist-holding/benchgraph/_redirects
+          test "$(find dist-holding/benchgraph -type f | wc -l)" -eq 1
 
       - name: Check the export carries a pin-able schema version
         run: |
@@ -155,6 +230,12 @@ jobs:
           # from every deploy (MODEL-94).
           include-hidden-files: true
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sites-holding
+          path: dist-holding
+          retention-days: 7
+
   deploy:
     name: Deploy to Cloudflare Pages
     needs: build
@@ -190,18 +271,46 @@ jobs:
           name: sites
           path: dist
 
-      - name: Deploy modelspec.dev
-        if: steps.creds.outputs.ready == 'true' 
-        uses: cloudflare/wrangler-action@v3
+      - uses: actions/download-artifact@v4
+        if: steps.creds.outputs.ready == 'true'
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/modelspec --project-name=modelspec --branch=main
+          name: sites-holding
+          path: dist-holding
 
-      - name: Deploy benchgraph.dev
+      # Production first, so the domains show what SITE_MODE says even if a
+      # preview deploy below fails. `production` is dist-holding unless
+      # SITE_MODE is exactly `live` (the build job's summary names it).
+      - name: Deploy modelspec.dev (${{ needs.build.outputs.mode }})
         if: steps.creds.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/benchgraph --project-name=benchgraph --branch=main
+          command: pages deploy ${{ needs.build.outputs.production || 'dist-holding' }}/modelspec --project-name=modelspec --branch=main
+
+      # Redirect file in both modes: dist-holding/benchgraph is a copy of dist/benchgraph.
+      - name: Deploy benchgraph.dev (${{ needs.build.outputs.mode }})
+        if: steps.creds.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy ${{ needs.build.outputs.production || 'dist-holding' }}/benchgraph --project-name=benchgraph --branch=main
+
+      # The real site, always, on the preview branch `internal`, for testing.
+      - name: Deploy the real modelspec site to the internal preview
+        if: steps.creds.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/modelspec --project-name=modelspec --branch=internal
+
+      # Same redirect file production deploys. Benchmark pages preview on modelspec.
+      - name: Deploy the real benchgraph site to the internal preview
+        if: steps.creds.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/benchgraph --project-name=benchgraph --branch=internal

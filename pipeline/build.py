@@ -1,10 +1,10 @@
-"""Build both sites from the repository.
+"""Build modelspec.dev, and the redirect tree for benchgraph.dev.
 
     python -m pipeline.build [--out dist]
 
-Produces one tree per domain, each self-contained and deployable as static
-files. The JSON export is written inside each tree under /api/, so the pages and
-any consumer of the API always read the same build.
+Pages, the benchmark catalogue and the JSON export are one tree under
+modelspec.dev. benchgraph.dev deploys `_redirects` only: `/` goes to the
+catalogue, and every other path goes to the same path on modelspec.dev.
 """
 
 from __future__ import annotations
@@ -23,6 +23,13 @@ from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
 ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
+
+#: Cloudflare Pages redirects. `/` is the catalogue; every other path keeps
+#: its path on modelspec.dev. Order matters: the first match wins.
+BENCHGRAPH_REDIRECTS = (
+    "/   https://modelspec.dev/benchmarks/  301\n"
+    "/*  https://modelspec.dev/:splat       301\n"
+)
 
 #: Rank API and MCP live on api.modelspec.dev, not on the Pages hosts, so both
 #: sites' llms.txt point at the same URLs.
@@ -198,60 +205,29 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
 
 
 def benchgraph_headline_stats(models, benchmarks, coverage: dict | None = None) -> dict[str, int]:
-    """The four figures the benchgraph landing quotes.
+    """The four figures at the top of the benchmark catalogue.
 
     `scored_benchmarks` is distinct keys with a numeric score on a card, not
-    the number of published pages. Those two used to ship as one number.
+    the number of published pages. Those two used to ship as one number. The
+    three score figures count evidence records as well as flat card scores, so
+    they agree with the coverage tables they summarise.
     """
     if coverage is None:
-        coverage = exporter.models_by_benchmark(models)
+        coverage = exporter.models_by_benchmark(models, benchmarks)
     return {
         "pages": len(benchmarks),
         "scored_benchmarks": len(coverage),
-        "scored_models": sum(1 for m in models if m.scores),
+        "scored_models": len({row["model_id"] for rows in coverage.values() for row in rows}),
         "scores": sum(len(rows) for rows in coverage.values()),
     }
 
 
-_TODAY_OPEN = '<p class="today">'
-
-
-def wire_benchgraph_landing(html: str, stats: dict[str, int]) -> str:
-    """Inject live headline counts so they cannot drift from the cards.
-
-    The landing used to bake these in `site/benchgraph/build/build.py`, which
-    also redraws PNGs and is never run in CI. Distinct scored keys then read
-    as the page count. A page without `p.today` fails rather than shipping
-    placeholders or a stale sentence.
-    """
-    start = html.find(_TODAY_OPEN)
-    if start == -1:
-        raise ValueError(
-            "site/benchgraph/index.html has no p.today; headline figures must come from the build"
-        )
-    end = html.find("</p>", start)
-    if end == -1:
-        raise ValueError("site/benchgraph/index.html p.today is unclosed")
-    sentence = (
-        f'{_TODAY_OPEN}Today the graph holds '
-        f'<b>{stats["pages"]:,}</b> benchmark pages and '
-        f'<b>{stats["scored_benchmarks"]:,}</b> benchmarks with reported scores, across '
-        f'<b>{stats["scored_models"]:,}</b> scored models, '
-        f'<b>{stats["scores"]:,}</b> scores in all, each carrying the date it was taken.</p>'
-    )
-    return html[:start] + sentence + html[end + len("</p>"):]
-
-
 def _ship_instrument(root: Path, *dests: Path) -> None:
-    """Serve the shared stylesheet and its self-hosted faces from every site.
+    """Serve the shared stylesheet and its self-hosted faces.
 
-    The generated pages inline `render.CSS`; the hand-written pages (the two
-    landings and the wizard) link `/instrument.css`, which is the same string.
+    The generated pages inline `render.CSS`; the hand-written pages (the
+    landing and the wizard) link `/instrument.css`, which is the same string.
     Their colours and fonts used to be copied in by hand and had drifted.
-
-    Both sites share one stylesheet, so a face missing from either one silently
-    falls back to the system sans on that domain only — the kind of difference
-    nobody notices until the two sites are compared side by side.
     """
     for dest in dests:
         dest.mkdir(parents=True, exist_ok=True)
@@ -319,14 +295,12 @@ def main(argv: list[str] | None = None) -> int:
 
     ms = out / "modelspec"
     bg = out / "benchgraph"
-    _ship_instrument(root, ms, bg)
+    _ship_instrument(root, ms)
     ms.mkdir(parents=True, exist_ok=True)
     bg.mkdir(parents=True, exist_ok=True)
+    (bg / "_redirects").write_text(BENCHGRAPH_REDIRECTS, encoding="utf-8")
 
-    counts = exporter.write(ms / "api", models, benchmarks, catalogue, build,
-                            parts=("index", "models"))
-    exporter.write(bg / "api", models, benchmarks, catalogue, build,
-                   parts=("catalogue", "benchmarks"))
+    counts = exporter.write(ms / "api", models, benchmarks, catalogue, build)
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # the published graph and the database cannot disagree about the cards.
@@ -382,7 +356,7 @@ def main(argv: list[str] | None = None) -> int:
         ms / "api", cards, build.to_json())
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
-    coverage = exporter.models_by_benchmark(models)
+    coverage = exporter.models_by_benchmark(models, benchmarks)
 
     # modelspec.dev
     pages = {m.model_id for m in models}
@@ -431,17 +405,20 @@ def main(argv: list[str] | None = None) -> int:
     pricing_counts = pricing.write(ms, root, build)
     ms_paths.extend(pricing_counts["sitemap_paths"])
 
-    # benchgraph.dev
-    bg_paths = ["/", "/benchmarks/"]
+    # Benchmark pages sit beside /m/ and /p/. The catalogue carries the headline
+    # figures the build computes, so those counts cannot drift from the cards.
+    ms_paths.append("/benchmarks/")
     for bench in benchmarks:
-        (bg / "b" / bench.benchmark_id).mkdir(parents=True, exist_ok=True)
-        (bg / "b" / bench.benchmark_id / "index.html").write_text(
+        (ms / "b" / bench.benchmark_id).mkdir(parents=True, exist_ok=True)
+        (ms / "b" / bench.benchmark_id / "index.html").write_text(
             r.benchmark_page(bench, build, catalogue, coverage.get(bench.benchmark_id, [])),
             encoding="utf-8")
-        bg_paths.append(f"/b/{bench.benchmark_id}/")
-    (bg / "benchmarks").mkdir(exist_ok=True)
-    (bg / "benchmarks/index.html").write_text(
-        r.catalogue_page(benchmarks, catalogue, build, coverage), encoding="utf-8")
+        ms_paths.append(f"/b/{bench.benchmark_id}/")
+    (ms / "benchmarks").mkdir(exist_ok=True)
+    (ms / "benchmarks/index.html").write_text(
+        r.catalogue_page(benchmarks, catalogue, build, coverage,
+                         benchgraph_headline_stats(models, benchmarks, coverage)),
+        encoding="utf-8")
 
     # Landing pages: use the designed ones when present, else a plain index.
     if _copy_static(root / "site/holding", ms):
@@ -463,52 +440,32 @@ def main(argv: list[str] | None = None) -> int:
             f"The open knowledge graph of AI models. {len(models)} cards, "
             f"{counts['score_keys']} benchmarks reported.",
             [("Every model", "/models/"), ("Providers", "/providers/"),
-             ("Benchmark catalogue", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")],
+             ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
-    if _copy_static(root / "site/benchgraph", bg):
-        landing = bg / "index.html"
-        landing.write_text(wire_benchgraph_landing(
-            landing.read_text(encoding="utf-8"),
-            benchgraph_headline_stats(models, benchmarks, coverage),
-        ), encoding="utf-8")
-        landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
-                                         r.site_nav("benchgraph", r.BG_NAV),
-                                         "site/benchgraph/index.html"), encoding="utf-8")
-    else:
-        (bg / "index.html").write_text(_fallback_home(
-            "benchgraph", "benchgraph",
-            f"Every AI benchmark, as a graph you can read. {len(benchmarks)} pages, "
-            f"{counts['active']} in the active catalogue.",
-            [("Benchmark catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"),
-             ("API", "/api/catalogue.json")],
-            build, r.BG_NAV, "https://benchgraph.dev/"), encoding="utf-8")
 
-    for tree, base, paths, site, nav in [
-        (ms, "https://modelspec.dev", ms_paths, "ModelSpec", r.MS_NAV),
-        (bg, "https://benchgraph.dev", bg_paths, "benchgraph", r.BG_NAV),
-    ]:
-        (tree / "sitemap.xml").write_text(r.sitemap(base, paths, today), encoding="utf-8")
-        (tree / "robots.txt").write_text(ROBOTS.format(base=base), encoding="utf-8")
-        (tree / "404.html").write_text(r.not_found(site, build, nav, base + "/"), encoding="utf-8")
-        (tree / "llms.txt").write_text(
-            llms_txt(site=site, base=base, build=build), encoding="utf-8")
+    (ms / "sitemap.xml").write_text(
+        r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
+    (ms / "robots.txt").write_text(
+        ROBOTS.format(base="https://modelspec.dev"), encoding="utf-8")
+    (ms / "404.html").write_text(
+        r.not_found("ModelSpec", build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
+    (ms / "llms.txt").write_text(
+        llms_txt(site="ModelSpec", base="https://modelspec.dev", build=build), encoding="utf-8")
 
     from pipeline import agent_ready
     agent_counts = agent_ready.ship(
-        root=root, ms=ms, bg=bg, models=models, benchmarks=benchmarks,
-        catalogue=catalogue, build=build, by_provider=by_provider,
-        coverage=coverage)
+        root=root, ms=ms, models=models, benchmarks=benchmarks,
+        catalogue=catalogue, build=build, by_provider=by_provider)
 
-    for tree, name in ((ms, "modelspec"), (bg, "benchgraph")):
-        missing = missing_internal_hrefs(tree)
-        if missing:
-            print(f"error: {name} has {len(missing)} internal href(s) with no output page:",
-                  file=sys.stderr)
-            for src, href in missing[:20]:
-                print(f"  {src}: {href}", file=sys.stderr)
-            if len(missing) > 20:
-                print(f"  … and {len(missing) - 20} more", file=sys.stderr)
-            return 2
+    missing = missing_internal_hrefs(ms)
+    if missing:
+        print(f"error: modelspec has {len(missing)} internal href(s) with no output page:",
+              file=sys.stderr)
+        for src, href in missing[:20]:
+            print(f"  {src}: {href}", file=sys.stderr)
+        if len(missing) > 20:
+            print(f"  … and {len(missing) - 20} more", file=sys.stderr)
+        return 2
 
     summary = {
         **counts,
@@ -519,7 +476,6 @@ def main(argv: list[str] | None = None) -> int:
         "commit": build.commit[:12],
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
-        "benchgraph_urls": len(bg_paths),
         "agent_ready": agent_counts,
     }
     print(json.dumps(summary, indent=1))

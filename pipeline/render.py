@@ -1,4 +1,4 @@
-"""Render the export into static pages for modelspec.dev and benchgraph.dev.
+"""Render the export into static pages for modelspec.dev.
 
 Design rules this module enforces, rather than leaves to the author:
 
@@ -21,7 +21,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from pipeline.export import Build
+from pipeline.export import Build, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.applicability import FIELD_RULES
 from schema.card import applicability_block
@@ -67,7 +67,6 @@ CSS = FONT_FACES + """
 --seg-bench:#63c9d9;--seg-cap:#78b5a2;--seg-type:#f5b342;--seg-ctx:#8fa4d4;--seg-cost:#9aa5b6;
 --sans:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
 --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
-[data-site="benchgraph"]{--accent:#38bdf8}
 *{box-sizing:border-box}
 html{color-scheme:dark}
 body{margin:0;background:var(--ground);color:var(--ink);
@@ -372,9 +371,7 @@ def human_count(value: Any) -> str:
     return f"{n:,.0f}"
 
 
-MS_NAV = [("Downselect", "/downselect/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "https://benchgraph.dev/benchmarks/"), ("API", "/api/index.json")]
-BG_NAV = [("Catalogue", "/benchmarks/"), ("Models", "https://modelspec.dev/models/"),
-          ("Graph", "https://modelspec.dev/graph/"), ("API", "/api/catalogue.json")]
+MS_NAV = [("Downselect", "/downselect/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
 
 
 def _write(path: Path, text: str) -> None:
@@ -979,7 +976,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
     for key, value in sorted(scores.items(), key=lambda kv: kv[0]):
         bench = benchmarks.get(key)
         name = esc(bench.name) if bench else esc(key)
-        link = f'<a href="https://benchgraph.dev/b/{esc(key)}/">{name}</a>' if bench else name
+        link = f'<a href="/b/{esc(key)}/">{name}</a>' if bench else name
         disposition = catalogue.for_benchmark(key).status
         rows.append(
             f'<tr><td>{link}</td><td><span class="pill {esc(disposition)}">{esc(disposition)}</span></td>'
@@ -1144,7 +1141,7 @@ def provider_page(slug: str, models: list[Model], build: Build) -> str:
                  site="ModelSpec", nav_links=MS_NAV)
 
 
-# ── benchgraph.dev ───────────────────────────────────────────────────────────
+# ── benchmark pages ──────────────────────────────────────────────────────────
 
 DISPOSITION_BLURB = {
     "active": "This benchmark is in the default catalogue: its identity, protocol, current model "
@@ -1162,9 +1159,11 @@ DISPOSITION_BLURB = {
 
 
 def _safe_link(url: Any, label: Any) -> str:
-    """Link only http(s) URLs; anything else renders as escaped plain text."""
+    """Link http(s) URLs and same-site paths. Anything else is plain text."""
     u = str(url or "").strip()
     text = str(label or "").strip() or u
+    if u.startswith("/") and not u.startswith("//"):
+        return f'<a href="{esc(u)}">{esc(text)}</a>'
     if u.lower().startswith(("http://", "https://")):
         return f'<a href="{esc(u)}" rel="nofollow noopener">{esc(text)}</a>'
     return esc(text)
@@ -1185,9 +1184,10 @@ def _body_href(url: str) -> str | None:
     """Resolve a body link to an absolute http(s) URL, or None to render plain text.
 
     Absolute http(s) passes through. A sibling benchmark page (`mmlu.md`) links to
-    its benchgraph page. Any other repo-relative path resolves against benchmarks/
-    to the file on GitHub, the same base as "Edit on GitHub". Other schemes,
-    protocol-relative URLs, bare fragments and paths escaping the repo do not link.
+    `/b/<id>/` on this site. Any other repo-relative path resolves against
+    benchmarks/ to the file on GitHub, the same base as "Edit on GitHub". Other
+    schemes, protocol-relative URLs, bare fragments and paths escaping the repo
+    do not link.
     """
     u = url.strip()
     if u.lower().startswith(("http://", "https://")):
@@ -1197,7 +1197,7 @@ def _body_href(url: str) -> str | None:
     path, _, frag = u.partition("#")
     sibling = _SIBLING_PAGE.match(path)
     if sibling:
-        return f"https://benchgraph.dev/b/{sibling.group(1)}/"
+        return f"/b/{sibling.group(1)}/"
     resolved = posixpath.normpath(posixpath.join("benchmarks", path))
     if not path or resolved.startswith("..") or "\\" in resolved:
         return None
@@ -1393,6 +1393,26 @@ def fact_notes(facts: list[tuple[str, str]]) -> str:
     return _section("Notes", f'<div class="notes">{notes}</div>' if notes else "")
 
 
+def _covered_row(c: dict[str, Any]) -> str:
+    """One coverage row. A flat card score is dated by its card, not by a run."""
+    evaluated_as = c.get("model_id_as_evaluated")
+    model = (f'<a href="https://modelspec.dev/m/{esc(c["model_id"])}/">{esc(c["display_name"])}</a>'
+             + (f'<div class="meta">evaluated as {esc(evaluated_as)}</div>'
+                if evaluated_as and evaluated_as != c["display_name"] else ""))
+    when = esc(c.get("as_of") or "undated")
+    if c.get("as_of"):
+        when += f' <span class="pill">{esc(c.get("date_type") or "card")}</span>'
+    basis = str(c["attribution"])
+    attribution = f'<span class="pill basis-{esc(basis)}">{esc(basis)}</span>'
+    if c.get("source_kind"):
+        attribution += f' <span class="pill">{esc(str(c["source_kind"]).replace("_", " "))}</span>'
+    if basis == "verified" and c.get("source"):
+        attribution += f' {_safe_link(c["source"], "source")}'
+    return (f'<tr><td>{model}</td><td>{esc(c["provider_display"])}</td>'
+            f'<td class="num">{esc(format_score(c["score"], c.get("unit")))}</td>'
+            f'<td>{when}</td><td>{attribution}</td></tr>')
+
+
 def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
                    covered: list[dict[str, Any]]) -> str:
     disposition = catalogue.for_benchmark(bench.benchmark_id)
@@ -1427,20 +1447,25 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 
     covered_block = '<p class="lede">No model card in ModelSpec reports this benchmark yet.</p>'
     if covered:
-        rows = "".join(
-            f'<tr><td><a href="https://modelspec.dev/m/{esc(c["model_id"])}/">{esc(c["display_name"])}</a></td>'
-            f'<td>{esc(c["provider_display"])}</td><td class="num">{esc(c["score"])}</td>'
-            f'<td>{esc(c.get("as_of") or "undated")}</td></tr>'
-            for c in covered[:200]
-        )
+        rows = "".join(_covered_row(c) for c in covered[:200])
         more = (f'<p class="meta">Showing the top 200 of {len(covered)}.</p>'
                 if len(covered) > 200 else "")
+        attributions = {c["attribution"] for c in covered}
+        notices = ""
+        if "verified" in attributions:
+            notices += ('<div class="notice ok">Rows marked verified come from a card\'s '
+                        'evidence records. A reviewer checked each against its source, and each '
+                        'carries its own date and source kind.</div>')
+        if "unverified-legacy" in attributions:
+            notices += ('<div class="notice">Rows marked unverified-legacy come from a card\'s '
+                        'flat score list, which carries one collection date per card and no '
+                        'per-score source. They are shown as reported, not as verified '
+                        'evidence.</div>')
         covered_block = (
-            '<div class="notice">These figures come from the model cards, which carry one '
-            'collection date per card and no per-score attribution. They are shown as reported, '
-            'not as verified evidence.</div>'
-            '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'
-            f'<th>Card as of</th></tr></thead><tbody>{rows}</tbody></table></div>{more}')
+            notices
+            + '<div class="scroll"><table><thead><tr><th>Model</th><th>Provider</th><th>Score</th>'
+            f'<th>Date</th><th>Attribution</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            f'{more}')
 
     front = bench.front
     facts = benchmark_facts(front)
@@ -1477,16 +1502,27 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 <a href="https://github.com/turbobeest/modelspec/blob/main/benchmarks/{esc(bench.path.name)}">Edit on GitHub</a></p>
 """
     return shell(
-        title=f"{bench.name} — benchgraph",
+        title=f"{bench.name} — ModelSpec",
         description=(bench.summary[:180] or f"{bench.name}: what it measures, who publishes it, and which models report it."),
-        canonical=f"https://benchgraph.dev/b/{bench.benchmark_id}/",
-        body=body, build=build, site="benchgraph", nav_links=BG_NAV,
+        canonical=f"https://modelspec.dev/b/{bench.benchmark_id}/",
+        body=body, build=build, site="ModelSpec", nav_links=MS_NAV,
         robots="index, follow" if status in {"active", "unverified", "historical"} else "index, follow",
     )
 
 
+def catalogue_headline(stats: dict[str, int]) -> str:
+    """Page count and scored-key count, kept apart. Both come from the build."""
+    return (
+        '<p class="today">Today the graph holds '
+        f'<b>{stats["pages"]:,}</b> benchmark pages and '
+        f'<b>{stats["scored_benchmarks"]:,}</b> benchmarks with reported scores, across '
+        f'<b>{stats["scored_models"]:,}</b> scored models, '
+        f'<b>{stats["scores"]:,}</b> scores in all, each carrying the date it was taken.</p>'
+    )
+
+
 def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Build,
-                   coverage: dict[str, list[dict[str, Any]]]) -> str:
+                   coverage: dict[str, list[dict[str, Any]]], stats: dict[str, int]) -> str:
     groups: dict[str, list[Benchmark]] = {}
     for bench in benchmarks:
         groups.setdefault(catalogue.for_benchmark(bench.benchmark_id).status, []).append(bench)
@@ -1496,7 +1532,7 @@ def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Bui
             f'<tr><td><a href="/b/{esc(b.benchmark_id)}/">{esc(b.name)}</a></td>'
             f'<td class="mono">{esc(b.benchmark_id)}</td>'
             f'<td>{esc(b.category)}</td>'
-            f'<td class="num">{len(coverage.get(b.benchmark_id, []))}</td></tr>'
+            f'<td class="num">{models_reporting(coverage.get(b.benchmark_id, []))}</td></tr>'
             for b in sorted(items, key=lambda b: b.name.lower())
         )
         return ('<div class="scroll"><table><thead><tr><th>Benchmark</th><th>ID</th>'
@@ -1522,13 +1558,14 @@ def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Bui
         sections += [f'<h2>{heading} <span class="pill {status}">{len(items)}</span></h2>',
                      f'<p class="lede">{blurb}</p>', table(items)]
 
-    body = (f'<h1>The benchmark catalogue</h1><p class="lede">{len(benchmarks)} pages. '
+    body = (f'<h1>The benchmark catalogue</h1>{catalogue_headline(stats)}'
+            f'<p class="lede">{len(benchmarks)} pages. '
             f'{len(active)} hold active eligibility as of {esc(catalogue.as_of.isoformat())}.</p>'
             + "".join(sections))
-    return shell(title="Benchmark catalogue — benchgraph",
+    return shell(title="Benchmark catalogue — ModelSpec",
                  description=f"{len(benchmarks)} AI benchmark pages, partitioned by whether their evidence supports presenting them as current.",
-                 canonical="https://benchgraph.dev/benchmarks/", body=body, build=build,
-                 site="benchgraph", nav_links=BG_NAV)
+                 canonical="https://modelspec.dev/benchmarks/", body=body, build=build,
+                 site="ModelSpec", nav_links=MS_NAV)
 
 
 # ── shared furniture ─────────────────────────────────────────────────────────

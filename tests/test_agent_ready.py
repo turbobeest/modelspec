@@ -29,7 +29,6 @@ REMOTE_RESOURCE = re.compile(
 )
 THIRD_PARTY_OK = (
     "https://modelspec.dev/",
-    "https://benchgraph.dev/",
 )
 
 
@@ -206,31 +205,28 @@ def dist(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return out
 
 
-def test_built_robots_on_both_sites(dist: Path) -> None:
-    for site, base in (("modelspec", "https://modelspec.dev"),
-                       ("benchgraph", "https://benchgraph.dev")):
-        text = (dist / site / "robots.txt").read_text(encoding="utf-8")
-        assert "Content-Signal: search=yes, ai-input=yes, ai-train=yes" in text
-        assert "Allow: /" in text
-        assert f"Sitemap: {base}/sitemap.xml" in text
-        assert "contentsignals.org" in text
+def test_built_robots_on_modelspec(dist: Path) -> None:
+    text = (dist / "modelspec" / "robots.txt").read_text(encoding="utf-8")
+    assert "Content-Signal: search=yes, ai-input=yes, ai-train=yes" in text
+    assert "Allow: /" in text
+    assert "Sitemap: https://modelspec.dev/sitemap.xml" in text
+    assert "contentsignals.org" in text
+    assert not (dist / "benchgraph" / "robots.txt").exists()
 
 
-def test_built_favicon_ico_on_both_sites(dist: Path) -> None:
-    for site in ("modelspec", "benchgraph"):
-        ico = (dist / site / "favicon.ico").read_bytes()
-        png = (dist / site / "favicon-64.png").read_bytes()
-        assert ico[:4] == b"\x00\x00\x01\x00"
-        assert png in ico
+def test_built_favicon_ico(dist: Path) -> None:
+    ico = (dist / "modelspec" / "favicon.ico").read_bytes()
+    png = (dist / "modelspec" / "favicon-64.png").read_bytes()
+    assert ico[:4] == b"\x00\x00\x01\x00"
+    assert png in ico
+    assert not (dist / "benchgraph" / "favicon.ico").exists()
 
 
 def test_built_markdown_twins_and_alternate_links(dist: Path) -> None:
     ms = dist / "modelspec"
-    bg = dist / "benchgraph"
     assert (ms / "index.md").is_file()
-    assert (bg / "index.md").is_file()
     assert 'rel="alternate" type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
-    assert 'rel="alternate" type="text/markdown" href="/index.md"' in (bg / "index.html").read_text(encoding="utf-8")
+    assert not (dist / "benchgraph" / "index.md").exists()
 
     models = sorted((ms / "m").glob("*/*/index.html"))[:8]
     assert models
@@ -247,14 +243,15 @@ def test_built_markdown_twins_and_alternate_links(dist: Path) -> None:
     for html_path in providers:
         assert html_path.with_name("index.md").is_file()
 
-    benches = sorted((bg / "b").glob("*/index.html"))[:8]
+    benches = sorted((ms / "b").glob("*/index.html"))[:8]
     assert benches
     for html_path in benches:
         md_path = html_path.with_name("index.md")
         assert md_path.is_file()
         html = html_path.read_text(encoding="utf-8")
-        rel = "/" + html_path.parent.relative_to(bg).as_posix() + "/index.md"
+        rel = "/" + html_path.parent.relative_to(ms).as_posix() + "/index.md"
         assert f'rel="alternate" type="text/markdown" href="{rel}"' in html
+        assert f"https://modelspec.dev/b/{html_path.parent.name}/" in md_path.read_text(encoding="utf-8")
 
 
 def test_built_api_catalog_rfc9727(dist: Path) -> None:
@@ -274,20 +271,25 @@ def test_built_api_catalog_rfc9727(dist: Path) -> None:
 
 def test_built_link_headers(dist: Path) -> None:
     ms = (dist / "modelspec" / "_headers").read_text(encoding="utf-8")
-    bg = (dist / "benchgraph" / "_headers").read_text(encoding="utf-8")
     assert 'rel="describedby"' in ms and "</llms.txt>" in ms
     assert 'rel="sitemap"' in ms and "</sitemap.xml>" in ms
     assert 'rel="service-desc"' in ms and "</openapi.yaml>" in ms
-    assert 'rel="describedby"' in bg
-    assert 'rel="api-catalog"' not in bg
+    assert "Referrer-Policy: strict-origin-when-cross-origin" in ms
+    assert "Permissions-Policy:" in ms
+    assert not (dist / "benchgraph" / "_headers").exists()
 
 
 def test_built_auth_mcp_and_skills_are_modelspec_only(dist: Path) -> None:
     ms = dist / "modelspec"
     bg = dist / "benchgraph"
     auth = (ms / "auth.md").read_text(encoding="utf-8")
-    assert "Billing is enabled" in auth
-    assert "Billing is not live" not in auth
+    if ar._flag_off(ar.wrangler_vars(ROOT).get("BILLING_ENABLED")):
+        assert "Billing is not live" in auth
+        assert "503 billing_not_enabled" in auth
+        assert "keeps its credits" in auth
+    else:
+        assert "Billing is enabled" in auth
+        assert "Billing is not live" not in auth
     assert "test_" in auth
     card = json.loads((ms / ".well-known" / "mcp.json").read_text(encoding="utf-8"))
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT
@@ -304,58 +306,63 @@ def test_built_auth_mcp_and_skills_are_modelspec_only(dist: Path) -> None:
 
 def test_built_jsonld_dataset_and_per_page(dist: Path) -> None:
     ms_html = (dist / "modelspec" / "index.html").read_text(encoding="utf-8")
-    bg_html = (dist / "benchgraph" / "index.html").read_text(encoding="utf-8")
     assert '"@type": "Dataset"' in ms_html
     assert '"@type": "WebAPI"' in ms_html
     assert ar.RANK_API in ms_html
     assert ar.MCP_ENDPOINT in ms_html
-    assert '"@type": "Dataset"' in bg_html
     assert "aggregateRating" not in ms_html
     model_html = next((dist / "modelspec" / "m").glob("*/*/index.html")).read_text(encoding="utf-8")
     assert '"@type": "SoftwareApplication"' in model_html
     assert "aggregateRating" not in model_html
-    bench_html = next((dist / "benchgraph" / "b").glob("*/index.html")).read_text(encoding="utf-8")
+    bench_html = next((dist / "modelspec" / "b").glob("*/index.html")).read_text(encoding="utf-8")
     assert '"@type": "Dataset"' in bench_html
+    assert "https://modelspec.dev/b/" in bench_html
+    assert "https://benchgraph.dev" not in bench_html
 
 
 def test_built_llms_full_under_cap(dist: Path) -> None:
-    for site in ("modelspec", "benchgraph"):
-        path = dist / site / "llms-full.txt"
-        data = path.read_bytes()
-        text = data.decode("utf-8")
-        assert len(data) <= ar.LLMS_FULL_CAP
-        assert f"# cap_bytes: {ar.LLMS_FULL_CAP}" in text
-        match = re.search(r"# bytes: (\d+)", text)
-        assert match is not None
-        assert int(match.group(1)) == len(data)
-        assert "## " in text
+    path = dist / "modelspec" / "llms-full.txt"
+    data = path.read_bytes()
+    text = data.decode("utf-8")
+    assert len(data) <= ar.LLMS_FULL_CAP
+    assert f"# cap_bytes: {ar.LLMS_FULL_CAP}" in text
+    match = re.search(r"# bytes: (\d+)", text)
+    assert match is not None
+    assert int(match.group(1)) == len(data)
+    assert "## " in text
+    assert "https://modelspec.dev/m/" in text
+    assert "https://modelspec.dev/b/" in text
+    assert not (dist / "benchgraph" / "llms-full.txt").exists()
 
 
 def test_built_openapi_and_functions_uploaded_alongside(dist: Path) -> None:
     assert (dist / "modelspec" / "openapi.yaml").is_file()
     spec = (dist / "modelspec" / "openapi.yaml").read_text(encoding="utf-8")
     assert "\nopenapi:" in spec or spec.startswith("openapi:")
-    for site in ("modelspec", "benchgraph"):
-        assert (dist / site / "functions" / "_middleware.js").is_file()
-        assert (dist / site / "_worker.js").is_file()
-        worker = (dist / site / "_worker.js").read_text(encoding="utf-8")
-        assert "text/markdown" in worker
-        routes = json.loads((dist / site / "_routes.json").read_text(encoding="utf-8"))
-        assert routes["version"] == 1
-        assert "/api/*" in routes["exclude"]
+    assert (dist / "modelspec" / "functions" / "_middleware.js").is_file()
+    assert (dist / "modelspec" / "_worker.js").is_file()
+    worker = (dist / "modelspec" / "_worker.js").read_text(encoding="utf-8")
+    assert "text/markdown" in worker
+    routes = json.loads((dist / "modelspec" / "_routes.json").read_text(encoding="utf-8"))
+    assert routes["version"] == 1
+    assert "/api/*" in routes["exclude"]
+    assert not (dist / "benchgraph" / "functions").exists()
+    assert not (dist / "benchgraph" / "_worker.js").exists()
 
 
 def test_built_file_count_under_pages_limit(dist: Path) -> None:
-    for site in ("modelspec", "benchgraph"):
-        count = sum(1 for path in (dist / site).rglob("*") if path.is_file())
-        assert count < ar.PAGES_FILE_LIMIT, f"{site} has {count} files"
+    count = sum(1 for path in (dist / "modelspec").rglob("*") if path.is_file())
+    assert count < ar.PAGES_FILE_LIMIT, f"modelspec has {count} files"
+    redirect_files = [path for path in (dist / "benchgraph").rglob("*") if path.is_file()]
+    assert len(redirect_files) == 1
+    assert redirect_files[0].name == "_redirects"
 
 
 def test_built_404_still_has_no_canonical(dist: Path) -> None:
-    for site in ("modelspec", "benchgraph"):
-        html = (dist / site / "404.html").read_text(encoding="utf-8")
-        assert CANONICAL.search(html) is None
-        assert "noindex" in html
+    html = (dist / "modelspec" / "404.html").read_text(encoding="utf-8")
+    assert CANONICAL.search(html) is None
+    assert "noindex" in html
+    assert not (dist / "benchgraph" / "404.html").exists()
 
 
 def test_built_pages_make_no_new_third_party_requests(dist: Path) -> None:

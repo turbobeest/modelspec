@@ -80,6 +80,16 @@ class Model:
         return {k: v for k, v in raw.items() if isinstance(v, (int, float))}
 
     @property
+    def evidence(self) -> list[dict[str, Any]]:
+        """Reviewed per-score records, each with its own source and date."""
+        block = self.front.get("benchmarks") or {}
+        raw = block.get("evidence") if isinstance(block, dict) else None
+        if not isinstance(raw, list):
+            return []
+        return [r for r in raw if isinstance(r, dict) and r.get("benchmark_id")
+                and isinstance(r.get("score"), (int, float))]
+
+    @property
     def scores_as_of(self) -> str | None:
         block = self.front.get("benchmarks") or {}
         value = block.get("benchmark_as_of") if isinstance(block, dict) else None
@@ -115,6 +125,11 @@ class Benchmark:
     def aliases(self) -> list[str]:
         raw = self.front.get("aliases")
         return [str(a) for a in raw] if isinstance(raw, list) else []
+
+    @property
+    def lower_is_better(self) -> bool:
+        metric = self.front.get("metric")
+        return isinstance(metric, dict) and metric.get("direction") == "lower_is_better"
 
 
 @dataclass(frozen=True)

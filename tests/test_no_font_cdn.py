@@ -39,10 +39,9 @@ def test_no_runtime_file_or_built_page_names_a_google_font_host(tmp_path) -> Non
     if fixture.is_dir():
         hits.extend(_scan_tree(fixture))
 
-    ms, bg = tmp_path / "modelspec", tmp_path / "benchgraph"
-    builder._ship_instrument(ROOT, ms, bg)
-    for site in (ms, bg):
-        hits.extend(_scan_tree(site))
+    ms = tmp_path / "modelspec"
+    builder._ship_instrument(ROOT, ms)
+    hits.extend(_scan_tree(ms))
 
     assert sorted(hits) == [], [str(p) for p in sorted(hits)]
     assert not _mentions_cdn(r.FONTS)

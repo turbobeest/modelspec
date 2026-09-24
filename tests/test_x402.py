@@ -728,4 +728,5 @@ def test_entry_billing_paths_are_not_x402_paid_resources(entry):
         assert code in {
             "billing_not_enabled", "billing_not_configured",
             "invalid_webhook_signature", "invalid_request",
+            "access_store_not_configured",
         }, (path, response.status, code)
