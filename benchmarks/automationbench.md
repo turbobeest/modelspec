@@ -32,20 +32,23 @@ metric:
     runner also reports partial_credit (fraction of assertions) for training and debugging; that
     figure is not the leaderboard metric. Zapier says run-to-run variance is typically within 1%.
     Cost in USD per task is shown beside the pass rate. Paper (April 2026): Opus 4.7 (max) 9.9%
-    on the then-private set. Live zapier.com/benchmarks leaderboard, dataset 1.0.6: GPT 6 Astra
-    (Max) 41.4% ($1.77/task). Public 600-task README table (highest reasoning effort): Claude
-    Opus 5 (max) 50.3%. Those three figures are not interchangeable.
+    on the then-private set. Live zapier.com/benchmarks leaderboard, dataset 1.0.6, read
+    2026-09-23 (112 rows): Claude Opus 5.5 (default fallbacks, Max) 42.47% ($1.44/task). That
+    label means a fallback model answered refused steps, so the row is not Opus 5.5 alone. The
+    highest row with no fallback label is GPT 6 Astra (Max) at 41.4% ($1.73/task). Public
+    600-task README table (highest reasoning effort): Claude Opus 5 (max) 50.3%. Those figures
+    are not interchangeable.
 dataset:
   size: 657
   size_note: >
-    Official leaderboard uses a held-out private split. Zapier's 1.0.6 FAQ states Opus 5 handled
-    260 of 657 tasks in a Fable 5.1 fallback run, matching Artificial Analysis's 657-task private
-    split of dataset v1.0.6. The public GitHub set is 600 scored tasks (100 each in Sales,
-    Marketing, Operations, Support, Finance, HR) plus a 200-task `simple` domain that is not
-    part of the headline score. The April 2026 paper table listed 600 public and "600+" private;
-    later 1.0.6 materials use 657 for the private eval set. About 500 API endpoints across 47
-    simulated apps (paper and zapier.com/benchmarks). Artificial Analysis's July 2026 write-up
-    of the same private split said 40 apps.
+    Official leaderboard uses a held-out private split. Zapier's 1.0.6 leaderboard note states
+    Opus 5 handled ~40% of tasks (260 of 657) in a Fable 5.1 fallback run, matching Artificial
+    Analysis's 657-task private split of dataset v1.0.6. The public GitHub set is 600 scored
+    tasks (100 each in Sales, Marketing, Operations, Support, Finance, HR) plus a 200-task
+    `simple` domain that is not part of the headline score. The April 2026 paper table listed
+    600 public and "600+" private; later 1.0.6 materials use 657 for the private eval set. About
+    500 API endpoints across 47 simulated apps (paper and zapier.com/benchmarks). Artificial
+    Analysis's July 2026 write-up of the same private split said 40 apps.
   url: "https://github.com/zapier/AutomationBench"
   license: MIT
   languages:
@@ -68,7 +71,7 @@ paper:
 leaderboard_url: "https://zapier.com/benchmarks"
 repo_url: "https://github.com/zapier/AutomationBench"
 released: "2026-04"
-last_updated: "2026-08"
+last_updated: "2026-09"
 lineage:
   family: ""
   predecessor: ""
@@ -77,13 +80,17 @@ lineage:
     - automationbench_aa
 saturation:
   status: open
-  top_score: 41.4
+  top_score: 42.47
   as_of: "2026-09"
   note: >
-    Live official private-set leaderboard (dataset 1.0.6) lists GPT 6 Astra (Max) at 41.4%, well
-    short of a 100% ceiling. Domain tops on the same page range from HR 26.67% (Gemini 3.8 Flash
-    Medium) to Operations 62.0% (GPT 6 Astra Max). The April 2026 paper's "below 10%" claim is
-    a snapshot of older models on an earlier private set, not the current ceiling.
+    Live official private-set leaderboard (dataset 1.0.6, 112 rows, read 2026-09-23) lists
+    Claude Opus 5.5 (default fallbacks, Max) at 42.47%. Zapier says a default-fallback row
+    reruns refused tasks on the provider's fallback model, so this is not Opus 5.5 alone.
+    GPT 6 Astra (Max), with no fallback label, is at 41.4%. Both sit well short of 100%.
+    Domain tops range from HR 26.67% (Gemini 3.8 Flash Medium) to Operations 65.0%
+    (Claude Opus 5.5 default fallbacks, Max). Zapier drops the Fable 5.1 with-Opus-5 row
+    from that domain table as not directly comparable. The April 2026 paper's "below 10%"
+    claim is a snapshot of older models on an earlier private set, not the current ceiling.
 contamination:
   risk: medium
   note: >
@@ -115,7 +122,7 @@ sources:
     accessed: "2026-09-08"
   - url: "https://github.com/zapier/AutomationBench"
     title: "zapier/AutomationBench repository README"
-    accessed: "2026-09-08"
+    accessed: "2026-09-23"
   - url: "https://raw.githubusercontent.com/zapier/AutomationBench/main/LICENSE"
     title: "AutomationBench LICENSE (MIT plus schema disclaimer)"
     accessed: "2026-09-08"
@@ -124,13 +131,13 @@ sources:
     accessed: "2026-09-08"
   - url: "https://zapier.com/benchmarks"
     title: "AutomationBench official leaderboard (dataset 1.0.6)"
-    accessed: "2026-09-08"
+    accessed: "2026-09-23"
   - url: "https://zapier.com/blog/introducing-automationbench/"
     title: "Introducing AutomationBench (Zapier, 20 April 2026)"
     accessed: "2026-09-08"
 freshness:
-  researched: "2026-09-08"
-  researched_by: "Grok Build, batch-076 (Codex coordinated)"
+  researched: "2026-09-23"
+  researched_by: "Grok Build 4.7 (grok-4.7-build-fast), MODEL-120"
   reviewed: ""
   reviewed_by: ""
 ---
@@ -145,11 +152,11 @@ Tasks cover six domains Zapier says match common customer workflows: Sales, Mark
 
 The headline metric is `task_completed_correctly`: a task scores 1 only if every assertion on the final state passes, else 0. The official pass rate is the mean of that flag over the scored domains. The runner also records `partial_credit`, the fraction of assertions that passed, for debugging and as an RL reward; Zapier and the paper both say that figure is not the leaderboard score. Assertions include both "must pass" checks and "must not occur" checks, so shotgun actions fail. There is no LLM judge. Each official run is a single attempt with a 50-step cap. Zapier reports typical run-to-run variance within 1%, and publishes USD cost per task next to the pass rate.
 
-Do not mix score sources. The April 2026 paper posted Opus 4.7 (max) at 9.9% on the private set then in use. The live 1.0.6 leaderboard at zapier.com/benchmarks lists GPT 6 Astra (Max) at 41.4%. The public GitHub README table, 600 tasks at max reasoning effort, lists Claude Opus 5 at 50.3%. Leaderboard API-mode scores also differ from the optional Zapier and Limited Zapier toolsets, which the paper showed can raise pass rates.
+Do not mix score sources. Three sources use different sets. The April 2026 paper posted Opus 4.7 (max) at 9.9% on the private set then in use. The live 1.0.6 leaderboard at zapier.com/benchmarks has 112 rows. Claude Opus 5.5 (default fallbacks, Max) leads at 42.47% ($1.44/task). Zapier says default fallbacks send a refused step to the provider's fallback model, and only those refused tasks are rerun. The same leaderboard lists GPT 6 Astra (Max) at 41.4% ($1.73/task), with no fallback label. The Fable 5.1 note says Opus 5 handled ~40% of tasks (260 of 657), and those completions count toward 31.4%. The public GitHub README table, 600 tasks at max reasoning effort, lists Claude Opus 5 at 50.3%. Leaderboard API-mode scores also differ from the optional Zapier and Limited Zapier toolsets, which the paper showed can raise pass rates.
 
 ## Dataset and licence
 
-The public repository ships 100 tasks in each of the six scored domains (600) plus 200 simpler tasks that are excluded from the headline average. Official numbers use a harder private split. As of dataset 1.0.6 that private split is 657 tasks (Zapier FAQ; Artificial Analysis's matching split). The April 2026 paper table still said "600+" private. Tasks were generated from workflow shapes on Zapier's platform with Opus 4.6, GPT 5.3 Codex, and Gemini 3; Zapier states no customer PII went into the items. About 500 endpoints across 47 simulated apps appear in the paper and on the leaderboard page.
+The public repository ships 100 tasks in each of the six scored domains (600) plus 200 simpler tasks that are excluded from the headline average. Official numbers use a harder private split. Dataset 1.0.6 puts that private split at 657 tasks, the count in the Fable fallback note and on Artificial Analysis's page. The April 2026 paper table still said "600+" private. Tasks were generated from workflow shapes on Zapier's platform with Opus 4.6, GPT 5.3 Codex, and Gemini 3; Zapier states no customer PII went into the items. About 500 endpoints across 47 simulated apps appear in the paper and on the leaderboard page.
 
 The GitHub `LICENSE` is MIT for Zapier's original code, mocks, and docs. Derived third-party API schema shapes are called out as not claimed as original works. The arXiv HTML page marks the paper CC BY 4.0; that licence is for the article, not a substitute for the repo grant.
 
@@ -163,7 +170,7 @@ This page is Zapier's own protocol, not Artificial Analysis's [AutomationBench-A
 
 ## Saturation and contamination
 
-The current private-set field is open. GPT 6 Astra (Max) at 41.4% on 1.0.6 is far from 100%, and HR remains much harder than Operations on Zapier's domain table. The paper's "below 10%" line is dated April 2026. Public tasks and assertions are in git, so contamination risk on local scores is real; official numbers stay on the unreleased split, which Zapier says it hardens when fixes would otherwise lift the top score.
+The current private-set field is open. GPT 6 Astra (Max) at 41.4% on 1.0.6 is far from 100%, and HR remains much harder than Operations on Zapier's domain table. The 42.47% leader's label is a fallback run, and that score is far from 100% as well. Domain tops run from HR 26.67% (Gemini 3.8 Flash Medium) to Operations 65.0% (the same Opus 5.5 fallback row). Zapier omits the Fable 5.1 combo from that table. The paper's "below 10%" line is dated April 2026. This board lists Claude Opus 4.7 (Max) at 13.39%. Public tasks and assertions are in git, so contamination risk on local scores is real. Official numbers stay on the unreleased split, which the README says Zapier hardens when fixes would otherwise lift the top score.
 
 ## How to run it
 
@@ -171,4 +178,4 @@ Clone `zapier/AutomationBench`, `uv sync`, then `uv run auto-bench --model <id>`
 
 ## Reading the numbers
 
-A high official score means the agent left every checked system in the required state on the private set, not that its self-report was fluent. Partial credit can look strong while the strict pass rate stays low; Zapier designed it that way. Public-set README percentages run higher than the hosted leaderboard. AA's [AutomationBench-AA](automationbench_aa.md) number is a different metric on the same private tasks. Look at cost per task and domain mix before treating two pass rates as the same skill.
+A high official score means the agent left every checked system in the required state on the private set, not that its self-report was fluent. A default-fallbacks row, or a with-Opus-5-fallback row, includes tasks a second model answered. Partial credit can look strong while the strict pass rate stays low; Zapier designed it that way. Public-set README percentages run higher than the hosted leaderboard. AA's [AutomationBench-AA](automationbench_aa.md) number is a different metric on the same private tasks. Look at cost per task, domain mix, effort, and the fallback label before treating two pass rates as the same skill.

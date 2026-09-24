@@ -2,13 +2,14 @@
   "active_ids": [
     "aa_briefcase",
     "aa_lcr",
+    "automationbench",
     "automationbench_aa",
     "critpt",
     "gdp_pdf_aa",
     "gdpval_aa",
     "scicode"
   ],
-  "as_of": "2026-09-09",
+  "as_of": "2026-09-23",
   "mechanical_validation_note": "Mechanical validation does not prove source truth; reviewer approval is required.",
   "rows": [
     {
@@ -86,20 +87,42 @@
       "status": "active"
     },
     {
-      "accepted_results": [],
+      "accepted_results": [
+        {
+          "benchmark_version": "AutomationBench 1.0.6 / Zapier private split",
+          "configuration": "Zapier private leaderboard, dataset 1.0.6, toolset api, metric task_completed_correctly. Labels on the shared pair: GPT 6 Astra (Max), effort Max, no fallback annotation; DeepSeek V4 Flash (Max), effort Max, no fallback annotation, cost cell marked with the Fireworks cached-rate footnote. Each row uses that model's own Max effort, not matched compute. Fallback contamination: neither row is a fallback run. The 42.47% leader, Claude Opus 5.5 (default fallbacks, Max), is excluded because Zapier says refused tasks were rerun on the provider's fallback model.",
+          "date_type": "evaluated",
+          "evidence_date": "2026-09-23",
+          "model_id": "GPT-6 Astra (max)",
+          "score": 41.4,
+          "source_kind": "benchmark_author",
+          "source_url": "https://zapier.com/benchmarks",
+          "unit": "percent",
+          "verified_at": "2026-09-23"
+        },
+        {
+          "benchmark_version": "AutomationBench 1.0.6 / Zapier private split",
+          "configuration": "Zapier private leaderboard, dataset 1.0.6, toolset api, metric task_completed_correctly. Labels on the shared pair: GPT 6 Astra (Max), effort Max, no fallback annotation; DeepSeek V4 Flash (Max), effort Max, no fallback annotation, cost cell marked with the Fireworks cached-rate footnote. Each row uses that model's own Max effort, not matched compute. Fallback contamination: neither row is a fallback run. The 42.47% leader, Claude Opus 5.5 (default fallbacks, Max), is excluded because Zapier says refused tasks were rerun on the provider's fallback model.",
+          "date_type": "evaluated",
+          "evidence_date": "2026-09-23",
+          "model_id": "DeepSeek V4 Flash (Max)",
+          "score": 18.11,
+          "source_kind": "benchmark_author",
+          "source_url": "https://zapier.com/benchmarks",
+          "unit": "percent",
+          "verified_at": "2026-09-23"
+        }
+      ],
       "candidate_id": "automationbench",
       "canonical_id": "automationbench",
       "reasons": [
-        "no qualifying current frontier/open coverage from different organizations",
-        "review is not approved",
-        "task, metric, and protocol are incomplete",
-        "usefulness is not established",
-        "usefulness is unknown"
+        "qualifying current coverage"
       ],
       "source_evidence": [
-        "https://github.com/zapier/AutomationBench"
+        "https://github.com/zapier/AutomationBench",
+        "https://zapier.com/benchmarks"
       ],
-      "status": "unverified"
+      "status": "active"
     },
     {
       "accepted_results": [
