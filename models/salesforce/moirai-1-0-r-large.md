@@ -824,7 +824,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
@@ -832,4 +832,4 @@ card_updated: '2026-09-18'
 
 Auto-generated from HuggingFace Hub metadata for [Salesforce/moirai-1.0-R-large](https://huggingface.co/Salesforce/moirai-1.0-R-large).
 
-Licence: cc-by-nc-4.0. Creator distribution https://huggingface.co/Salesforce/moirai-1.0-R-large/raw/main/README.md (cc-by-nc-4.0) and Hub cardData.license cc-by-nc-4.0, read 2026-09-18.
+Licence: cc-by-nc-4.0, taken from the Hugging Face repository tag. The Hub API https://huggingface.co/api/models/Salesforce/moirai-1.0-R-large reports cardData.license cc-by-nc-4.0 and the README frontmatter https://huggingface.co/Salesforce/moirai-1.0-R-large/raw/main/README.md carries the same tag (revision b6b84e3fbeb9), read 2026-09-23. The README does not state a licence in words. The repository ships no LICENSE file and sets no license_name or license_link. Kept as cc-by-nc-4.0 on that basis (decision 2026-09-23): the tag is the publisher's own declaration. First typed from the same tag 2026-09-18 (MODEL-86).
