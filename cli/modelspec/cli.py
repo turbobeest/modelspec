@@ -48,6 +48,11 @@ from . import decide_cmd as _decide_cmd  # noqa: E402
 
 app.command("decide")(_decide_cmd.decide)
 
+# The decision snapshot (MODEL-138): a new subcommand beside `fetch` and `status`.
+from . import snapshot_build_cmd as _snapshot_build_cmd  # noqa: E402
+
+_offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_build_cmd.build)
+
 console = Console()
 
 # ───────────────────────────────────────────────────────────────

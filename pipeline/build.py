@@ -271,11 +271,21 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
-def main(argv: list[str] | None = None) -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="dist", help="output directory (default: dist)")
     parser.add_argument("--root", default=str(REPO_ROOT), help="repository root")
-    args = parser.parse_args(argv)
+    # MODEL-138: off by default. Writes the decision snapshot beside the export,
+    # linked from no page, and fails the build if the completeness gate fails.
+    parser.add_argument("--decision-snapshot", action="store_true",
+                        help="also write api/decision/snapshot.json.gz (off by default)")
+    parser.add_argument("--premier", default=None,
+                        help="premier list for the snapshot gate (default premier/slice-1.yaml)")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
 
     root = Path(args.root).resolve()
     out = Path(args.out).resolve()
@@ -301,6 +311,16 @@ def main(argv: list[str] | None = None) -> int:
     (bg / "_redirects").write_text(BENCHGRAPH_REDIRECTS, encoding="utf-8")
 
     counts = exporter.write(ms / "api", models, benchmarks, catalogue, build)
+
+    if args.decision_snapshot:
+        from decision import snapshot as decision_snapshot
+        premier = Path(args.premier) if args.premier else root / "premier" / "slice-1.yaml"
+        try:
+            decision_snapshot.build_from_repo(root, premier=premier, as_of=today).write(
+                ms / "api" / "decision" / "snapshot.json.gz")
+        except decision_snapshot.SnapshotError as exc:
+            print(f"error: decision snapshot: {exc}", file=sys.stderr)
+            return 2
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # the published graph and the database cannot disagree about the cards.
