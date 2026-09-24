@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision Table</title>
+<meta name="description" content="Prototype C for MODEL-147: a spreadsheet-power decision table with a condition builder, live funnel counts per condition, weighted columns and grouped eliminations. FICTIONAL SAMPLE DATA.">
+<style>
+:root,[data-theme="light"]{color-scheme:light;
+--bg:#fafaf8;--surface:#ffffff;--raise:#f1f0ec;--ink:#141413;--ink2:#3b3b38;--mute:#6b6b66;--grid:#e3e2dc;
+--neutral:#a3a29b;--accent:#b86e00;--accent-ink:#8a5200;--warn:#b3541e;--ok:#1d7a4a;
+--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;
+--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"JetBrains Mono",SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+--bg:#07080a;--surface:#0d1014;--raise:#13171d;--ink:#e6eaf0;--ink2:#c3cad4;--mute:#8b95a3;--grid:#1f252e;
+--neutral:#5b6573;--accent:#f5b342;--accent-ink:#f5b342;--warn:#e8894a;--ok:#4cc38a;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181}}
+[data-theme="dark"]{color-scheme:dark;
+--bg:#07080a;--surface:#0d1014;--raise:#13171d;--ink:#e6eaf0;--ink2:#c3cad4;--mute:#8b95a3;--grid:#1f252e;
+--neutral:#5b6573;--accent:#f5b342;--accent-ink:#f5b342;--warn:#e8894a;--ok:#4cc38a;
+--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans)}
+a{color:var(--accent-ink)}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fake{background:repeating-linear-gradient(135deg,var(--raise) 0 10px,var(--surface) 10px 20px);border-bottom:1px solid var(--grid);
+padding:6px 16px;font:600 11px/1.4 var(--mono);letter-spacing:.08em;color:var(--warn);text-align:center}
+.top{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--grid);flex-wrap:wrap}
+.top .brand{font:700 13px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.top .brand b{color:var(--accent-ink)}
+.top nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.top nav a{font:12px var(--mono);text-decoration:none;color:var(--mute);padding:4px 8px;border-radius:6px}
+.top nav a[aria-current]{background:var(--raise);color:var(--ink)}
+.btn{background:var(--raise);border:1px solid var(--grid);border-radius:8px;padding:6px 12px}
+.btn:hover{border-color:var(--neutral)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#141413;font-weight:650}
+.eyebrow{font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.card{background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:16px}
+.big{font:700 34px/1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--grid);background:var(--raise);border-radius:999px;padding:4px 6px 4px 11px;font-size:13px}
+.chip.gov{border-color:color-mix(in srgb,var(--warn) 55%,var(--grid))}
+.chip .x{border:0;background:none;color:var(--mute);width:22px;height:22px;border-radius:50%;padding:0}
+.chip .x:hover{background:var(--grid);color:var(--ink)}
+.pill{display:inline-block;font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 6px;border:1px solid var(--grid);color:var(--mute)}
+.pill.win{color:var(--accent-ink);border-color:var(--accent)}.pill.warn{color:var(--warn);border-color:var(--warn)}
+.why{border-left:3px solid var(--accent);padding:6px 10px;background:var(--raise);border-radius:0 8px 8px 0;font-size:14px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+pre,textarea.spec{font:12.5px/1.5 var(--mono)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+main{padding:18px 20px;max-width:1440px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}
+.lede{color:var(--mute);margin:0 0 14px;font-size:14px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media (max-width:1000px){.grid2{grid-template-columns:1fr}}
+.cond{display:grid;grid-template-columns:28px minmax(120px,1.2fr) 86px minmax(110px,1.3fr) 130px 70px 28px;gap:6px;align-items:center;padding:5px 0;border-top:1px solid var(--grid)}
+.cond:first-of-type{border-top:0}
+.cond select,.cond input{width:100%;background:var(--raise);border:1px solid var(--grid);border-radius:6px;padding:4px 6px;font-size:13px}
+.cond .n{font:600 13px var(--mono);text-align:right}
+.cond .n small{color:var(--mute);font-weight:400}
+.cond .i{font:11px var(--mono);color:var(--mute)}
+.cond .rm{border:0;background:none;color:var(--mute);font-size:18px}
+@media (max-width:700px){.cond{grid-template-columns:1fr 1fr;}.cond .i{display:none}}
+.tabs{display:flex;gap:4px;margin:14px 0 8px}
+.tabs button{border:1px solid var(--grid);background:var(--surface);border-radius:8px 8px 0 0;padding:6px 12px;font-size:13px}
+.tabs button[aria-selected="true"]{border-bottom-color:var(--surface);font-weight:650;background:var(--raise)}
+.w{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px}
+.w label{display:flex;align-items:center;gap:6px}
+.w input[type=range]{width:110px;accent-color:var(--accent)}
+.w .sw{width:10px;height:10px;border-radius:2px}
+.tbl{overflow-x:auto;margin-top:12px;border:1px solid var(--grid);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:1060px;font-size:13px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);position:sticky;top:0;background:var(--surface);cursor:pointer}
+th[aria-sort]::after{content:" ↓";color:var(--accent-ink)}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+tr.grp td{background:var(--raise);font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);cursor:pointer}
+tr.row{cursor:pointer}
+tr.row:hover td{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+tr.win td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+tr.out td{color:var(--mute)}
+tr.detail td{white-space:normal;background:var(--raise)}
+.mbar{display:inline-block;width:110px;height:14px;position:relative;vertical-align:middle;background:var(--raise);border-radius:3px}
+.mbar i{position:absolute;top:5px;height:4px;background:var(--neutral);border-radius:2px;opacity:.7}
+.mbar b{position:absolute;top:2px;width:3px;height:10px;background:var(--ink2);border-radius:1px}
+tr.win .mbar b{background:var(--accent)}
+.stack{display:inline-flex;height:12px;width:150px;gap:2px;vertical-align:middle}
+.stack span{height:12px;border-radius:2px}
+.pb{display:inline-block;width:60px;height:8px;background:var(--grid);border-radius:4px;position:relative;vertical-align:middle;margin-right:6px;overflow:hidden}
+.pb i{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.flag{font:600 11px var(--mono)}.flag.y{color:var(--ok)}.flag.n{color:var(--mute)}.flag.u{color:var(--warn)}
+.reason{white-space:normal;min-width:200px;max-width:280px;font-size:12.5px}
+.near{color:var(--warn);font-weight:600}
+textarea.spec{width:100%;min-height:180px;background:var(--surface);border:1px solid var(--grid);border-radius:10px;padding:10px}
+.err{color:var(--warn);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Decision table</h1>
+  <p class="lede">Every condition shows how many offerings survive it. Weights drive the ranking; sorting a column only changes the view. Unknowns are never dropped silently.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="eyebrow" style="display:flex;justify-content:space-between"><span>Conditions (ANDed, in order)</span><span>left after · unknown policy</span></div>
+      <div id="conds"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <select id="addf" class="btn" aria-label="Add a condition on a facet"><option value="">+ add condition…</option></select>
+        <select id="preset" class="btn" aria-label="Load a preset"><option value="">Presets…</option></select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Objective · weights (normalised to 100%)</div>
+      <div class="w" id="weights" style="margin-top:8px"></div>
+      <div id="norm" style="font-size:12px;color:var(--mute);margin-top:8px"></div>
+      <div class="eyebrow" style="margin-top:12px">Tipping points</div>
+      <div id="tips" style="font-size:13px"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary" id="share">Copy share link</button><span class="eyebrow" id="did"></span></div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-t="table">Table</button><button role="tab" aria-selected="false" data-t="spec">Raw spec</button></div>
+  <section id="t-table">
+    <div class="tbl"><table aria-label="Decision table"><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table></div>
+  </section>
+  <section id="t-spec" hidden>
+    <textarea class="spec" id="raw" spellcheck="false" aria-label="Raw spec"></textarea>
+    <div style="display:flex;gap:8px;align-items:center"><button class="btn" id="apply">Apply</button><span class="err" id="err" role="alert"></span></div>
+  </section>
+</main>
+<script>
+/* === ms-components:begin === */
+/* ModelSpec downselect components, MODEL-147 prototypes. Identical in every page
+   under docs/ux/prototypes/ (tests/test_ux_prototypes.py checks). Four parts:
+   1. FICTIONAL SAMPLE DATA. Invented labs, models, providers and benchmarks.
+      No value here is a real score, price or fact about a real model.
+   2. A toy decision engine shaped like the decision response (design §6–7):
+      three-valued filter, funnel, may-qualify, weighted objective with the
+      normalisation shown, P(best) and rank spread by resampling, constraint
+      costs, tipping points, "why not X". It stands in for decision/contract.py.
+   3. Spec <-> text <-> URL, so every view is a shareable, reproducible link.
+   4. SVG chart components used by the prototypes, the launch report and the
+      social cards alike. */
+const MS = (() => {
+  "use strict";
+
+  // ---------- 1. FICTIONAL SAMPLE DATA ----------
+  const FAKE_NOTICE = "FICTIONAL SAMPLE DATA: invented models, labs, providers and scores";
+  const SNAPSHOT = "snap_FAKE-2026-09-24";
+  // [id, name, lab, released, open weights, context, lab origin, lifecycle,
+  //  coding [est, lo, hi], reasoning [..], writing [..]]
+  const M = [
+    ["kestrel/k4-pro", "Kestrel K4 Pro", "Kestrel Labs", "2026-07-02", false, 400e3, "US", "active", [82, 76, 87], [80, 74, 85], [74, 68, 79]],
+    ["kestrel/k4-swift", "Kestrel K4 Swift", "Kestrel Labs", "2026-07-02", false, 200e3, "US", "active", [71, 66, 76], [66, 60, 71], [69, 63, 74]],
+    ["kestrel/k3-pro", "Kestrel K3 Pro", "Kestrel Labs", "2025-11-12", false, 200e3, "US", "deprecated", [72, 68, 76], [70, 66, 74], [72, 68, 76]],
+    ["northwind/atlas-3", "Northwind Atlas 3", "Northwind AI", "2026-08-14", false, 1e6, "US", "active", [79, 70, 86], [84, 78, 89], [81, 75, 86]],
+    ["northwind/atlas-3-mini", "Atlas 3 Mini", "Northwind AI", "2026-08-14", false, 1e6, "US", "active", [66, 60, 72], [70, 64, 75], [67, 61, 72]],
+    ["halcyon/hx-2", "Halcyon HX-2", "Halcyon", "2026-06-20", false, 256e3, "FR", "active", [74, 69, 79], [73, 68, 78], [78, 73, 83]],
+    ["halcyon/hx-2-open", "HX-2 Open", "Halcyon", "2026-06-20", true, 128e3, "FR", "active", [68, 63, 73], [65, 59, 70], [70, 64, 75]],
+    ["tern/t3", "Tern T-3", "Tern Research", "2026-09-22", true, 256e3, "CA", "active", [80, 68, 89], [76, 64, 86], [71, 60, 80]],
+    ["tern/t2", "Tern T-2", "Tern Research", "2026-02-10", true, 128e3, "CA", "active", [70, 66, 74], [68, 64, 72], [66, 62, 70]],
+    ["quillon/q7", "Quillon Q7", "Quillon", "2026-08-01", true, 256e3, "SG", "active", [77, 72, 82], [75, 70, 80], [68, 63, 73]],
+    ["quillon/q7-flash", "Q7 Flash", "Quillon", "2026-08-01", true, 128e3, "SG", "active", [65, 60, 70], [61, 55, 66], [60, 55, 65]],
+    ["ossify/coder-2", "Ossify Coder 2", "Ossify", "2026-05-15", true, 128e3, "DE", "active", [73, 65, 80], [62, 55, 69], [55, 49, 61]],
+    ["mistwood/long", "Mistwood Long", "Mistwood", "2026-04-03", false, 2e6, "US", "active", [62, 57, 67], [66, 61, 71], [76, 71, 81]],
+    ["aurel/aurel-9", "Aurel 9", "Aurel", "2026-03-18", false, 300e3, "US", "active", [76, 73, 79], [77, 74, 80], [75, 72, 78]],
+  ];
+  const MODELS = Object.fromEntries(M.map(r => [r[0], {
+    id: r[0], name: r[1], lab: r[2], released: r[3], open: r[4], context: r[5], origin: r[6],
+    lifecycle: r[7], est: { coding: r[8], reasoning: r[9], writing: r[10] },
+  }]));
+  // [model, provider, region, $/M input, $/M output, tokens/s or null,
+  //  zero retention (true/false/null = unknown), SOC 2, trains on customer data]
+  const O = [
+    ["kestrel/k4-pro", "Kestrel API", "us", 5, 25, 62, false, true, false],
+    ["kestrel/k4-pro", "Cloudbank", "eu", 5.5, 27, 55, true, true, false],
+    ["kestrel/k4-swift", "Kestrel API", "us", 0.8, 4, 180, false, true, false],
+    ["kestrel/k4-swift", "Cloudbank", "eu", 0.9, 4.4, 160, true, true, false],
+    ["kestrel/k3-pro", "Kestrel API", "us", 3, 15, 70, false, true, false],
+    ["northwind/atlas-3", "Northwind API", "us", 2.5, 15, 95, null, true, null],
+    ["northwind/atlas-3", "Meridian Cloud", "eu", 2.75, 16.5, 88, true, true, false],
+    ["northwind/atlas-3-mini", "Northwind API", "us", 0.3, 2.5, 240, null, true, null],
+    ["halcyon/hx-2", "Halcyon API", "eu", 2, 6, 110, true, true, false],
+    ["halcyon/hx-2", "Meridian Cloud", "eu", 2.2, 6.6, 100, true, true, false],
+    ["halcyon/hx-2-open", "Harbor Inference", "eu", 0.4, 1.2, 150, true, null, false],
+    ["tern/t3", "Harbor Inference", "us", 0.6, 2.4, null, true, null, false],
+    ["tern/t3", "Tern API", "us", 0.5, 2, 130, false, false, null],
+    ["tern/t2", "Harbor Inference", "us", 0.3, 1.2, 170, true, null, false],
+    ["quillon/q7", "Quillon API", "ap", 0.35, 1.4, 120, false, false, true],
+    ["quillon/q7", "Harbor Inference", "eu", 0.6, 2.2, 105, true, null, false],
+    ["quillon/q7-flash", "Harbor Inference", "us", 0.1, 0.4, 310, true, null, false],
+    ["ossify/coder-2", "Harbor Inference", "eu", 0.25, 1, 140, true, null, false],
+    ["ossify/coder-2", "Cloudbank", "eu", 0.35, 1.3, null, true, true, false],
+    ["mistwood/long", "Mistwood API", "us", 1.2, 4.8, 75, false, true, false],
+    ["aurel/aurel-9", "Aurel API", "us", 3, 12, 85, false, true, false],
+    ["aurel/aurel-9", "Meridian Cloud", "eu", 3.3, 13.2, 80, true, true, false],
+  ];
+  const TASK_TOKENS = { in: 30000, out: 5000 };  // the "typical task" cost basis, shown in the UI
+  const ROWS = O.map((r, i) => {
+    const m = MODELS[r[0]];
+    return {
+      key: `${r[0]}@${r[1]}:${r[2]}`, i, model: m, provider: r[1], region: r[2],
+      price_in: r[3], price_out: r[4], tps: r[5], zdr: r[6], soc2: r[7], trains: r[8],
+      cost: +((r[3] * TASK_TOKENS.in + r[4] * TASK_TOKENS.out) / 1e6).toFixed(4),
+      coding: m.est.coding[0], reasoning: m.est.reasoning[0], writing: m.est.writing[0],
+      context: m.context, open: m.open, origin: m.origin, lifecycle: m.lifecycle, released: m.released,
+    };
+  });
+
+  // Facet registry (a slice of design §8). kind sets the unknown policy:
+  // capability → "may qualify"; governance → not satisfied (fail-safe).
+  const FACETS = {
+    coding: { label: "Coding", unit: "est.", kind: "capability", type: "num", dir: 1, est: true, help: "Capability estimate, software engineering (fictional units, 0–100)" },
+    reasoning: { label: "Reasoning", unit: "est.", kind: "capability", type: "num", dir: 1, est: true, help: "Capability estimate, maths and STEM" },
+    writing: { label: "Writing", unit: "est.", kind: "capability", type: "num", dir: 1, est: true, help: "Capability estimate, writing" },
+    cost: { label: "Cost per task", unit: "$", kind: "capability", type: "num", dir: -1, help: `Derived: ${TASK_TOKENS.in / 1000}k in + ${TASK_TOKENS.out / 1000}k out tokens at list price` },
+    tps: { label: "Speed", unit: "tok/s", kind: "capability", type: "num", dir: 1, help: "Output throughput, best effort; unknown on some offerings" },
+    context: { label: "Context", unit: "tokens", kind: "capability", type: "num", dir: 1, help: "Context window" },
+    open: { label: "Open weights", kind: "capability", type: "bool", help: "Weights downloadable" },
+    region: { label: "Region", kind: "governance", type: "set", values: ["us", "eu", "ap"], help: "Where the offering processes data" },
+    origin: { label: "Lab jurisdiction", kind: "governance", type: "set", values: ["US", "FR", "DE", "CA", "SG"], help: "Country of the lab that trained it (not weights hosting)" },
+    zdr: { label: "Zero retention", kind: "governance", type: "bool", help: "Documented zero data retention on this offering" },
+    soc2: { label: "SOC 2", kind: "governance", type: "bool", help: "Documented SOC 2 report for the provider" },
+    trains: { label: "Trains on your data", kind: "governance", type: "bool", help: "Provider documents training on customer data" },
+    lifecycle: { label: "Lifecycle", kind: "capability", type: "set", values: ["active", "deprecated"], help: "Deprecated models stay, with a warning" },
+  };
+  const DIM_ORDER = ["coding", "reasoning", "writing", "cost", "tps"];
+
+  // ---------- 2. The toy decision engine ----------
+  function rng(seed) {  // mulberry32: same spec + snapshot → same draws → same decision
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function gauss(r) { return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }
+
+  function evalCond(row, c) {  // → "pass" | "fail" | "unknown"
+    const v = row[c.f];
+    if (v === null || v === undefined) return "unknown";
+    const x = c.v;
+    switch (c.op) {
+      case ">=": return v >= x ? "pass" : "fail";
+      case "<=": return v <= x ? "pass" : "fail";
+      case "=": return v === x ? "pass" : "fail";
+      case "!=": return v !== x ? "pass" : "fail";
+      case "in": return x.includes(v) ? "pass" : "fail";
+      case "not in": return !x.includes(v) ? "pass" : "fail";
+    }
+    throw new Error(`unknown operator ${c.op}`);
+  }
+  function unknownPolicy(c) { return c.unknown || (FACETS[c.f].kind === "governance" ? "fail" : "list"); }
+
+  function fmt(f, v) {
+    if (v === null || v === undefined) return "unknown";
+    if (f === "cost") return v < 0.1 ? `$${v.toFixed(3)}` : `$${v.toFixed(2)}`;
+    if (f === "context") return v >= 1e6 ? `${v / 1e6}M` : `${Math.round(v / 1000)}k`;
+    if (f === "tps") return `${v} tok/s`;
+    if (typeof v === "boolean") return v ? "yes" : "no";
+    if (Array.isArray(v)) return `{${v.join(", ")}}`;
+    return String(v);
+  }
+  function condText(c) {
+    const s = `${c.f} ${c.op} ${Array.isArray(c.v) ? `{${c.v.join(",")}}` : c.v}`;
+    return c.soft ? `${s} soft(${c.soft})` : s;
+  }
+  function condPlain(c) {
+    const F = FACETS[c.f], v = c.v;
+    const ops = { ">=": "at least", "<=": "at most", "=": "is", "!=": "is not", in: "in", "not in": "not in" };
+    if (F.type === "bool") return `${F.label}: ${(c.op === "=") === v ? "yes" : "no"}`;
+    return `${F.label} ${ops[c.op]} ${Array.isArray(v) ? v.join(" or ") : fmt(c.f, v)}`;
+  }
+
+  function score(rows, weights, pick) {  // min-max over the candidate set; the ranges are returned so the UI can show them
+    const dims = Object.keys(weights).filter(d => weights[d]);
+    const range = {};
+    for (const d of dims) {
+      const vals = rows.map(r => pick(r, d));
+      range[d] = [Math.min(...vals), Math.max(...vals)];
+    }
+    const tot = dims.reduce((s, d) => s + Math.abs(weights[d]), 0) || 1;
+    return rows.map(r => {
+      const parts = dims.map(d => {
+        const [lo, hi] = range[d], v = pick(r, d);
+        let n = hi === lo ? 1 : (v - lo) / (hi - lo);
+        if (FACETS[d].dir < 0) n = 1 - n;
+        const w = Math.abs(weights[d]) / tot;
+        return { dim: d, weight: w, value: v, norm: n, part: w * n };
+      });
+      return { row: r, parts, score: parts.reduce((s, p) => s + p.part, 0) };
+    }).sort((a, b) => b.score - a.score || a.row.i - b.row.i);
+  }
+
+  function decide(spec, opt = {}) {
+    const conds = spec.where || [];
+    const weights = spec.weights || { coding: 1 };
+    let alive = ROWS.filter(r => spec.include_retired || r.lifecycle !== "retired");
+    const funnel = [], eliminated = [], unknownOf = new Map();
+    for (const c of conds) {
+      const before = alive.length, keep = [];
+      for (const r of alive) {
+        const e = evalCond(r, c);
+        if (e === "pass" || (e === "fail" && c.soft)) keep.push(r);
+        else if (e === "unknown" && unknownPolicy(c) === "list") { keep.push(r); unknownOf.set(r, [...(unknownOf.get(r) || []), c.f]); }
+        else if (e === "unknown" && unknownPolicy(c) === "pass") keep.push(r);
+        else eliminated.push({ row: r, cond: c, value: r[c.f], unverified: e === "unknown", gap: gapOf(r, c) });
+      }
+      alive = keep;
+      funnel.push({ cond: c, before, after: alive.length, unknown: alive.filter(r => unknownOf.has(r)).length });
+    }
+    // Rows unknown on a weighted dimension cannot be ranked honestly: they may qualify.
+    for (const r of alive) for (const d of Object.keys(weights)) if (weights[d] && r[d] == null) unknownOf.set(r, [...new Set([...(unknownOf.get(r) || []), d])]);
+    const rankable = alive.filter(r => !unknownOf.has(r));
+    const mayQualify = alive.filter(r => unknownOf.has(r)).map(r => ({ row: r, unknown: unknownOf.get(r) }));
+    const penalty = r => conds.filter(c => c.soft && evalCond(r, c) === "fail").reduce((s, c) => s + c.soft, 0);
+    const pointPick = (r, d) => r[d];
+    const ranked = score(rankable, weights, pointPick).map(x => ({ ...x, score: x.score - penalty(x.row) }))
+      .sort((a, b) => b.score - a.score || a.row.i - b.row.i);
+    const status = ranked.length ? (mayQualify.length ? "partial" : "answered") : "no_feasible";
+    const base = { spec, snapshot: SNAPSHOT, decision_id: `dec_FAKE_${hash(specText(spec) + SNAPSHOT).toString(36)}`, status, results: ranked, may_qualify: mayQualify, funnel, eliminated, total: ROWS.length };
+    if (opt.fast || !ranked.length) return base;
+    // P(best), top-3 stability and rank spread: resample every estimate inside its interval.
+    const N = opt.draws || 400, R = rng(hash(specText(spec) + SNAPSHOT));
+    const wins = new Map(), top3 = new Map(), ranks = new Map(ranked.map(x => [x.row, []]));
+    const draws = [];
+    for (let k = 0; k < N; k++) {
+      const drawn = new Map();
+      for (const m of new Set(rankable.map(r => r.model))) {
+        const z = {};
+        for (const d of ["coding", "reasoning", "writing"]) { const [e, lo, hi] = m.est[d]; z[d] = Math.max(0, Math.min(100, e + gauss(R) * (hi - lo) / 3.92)); }
+        drawn.set(m, z);
+      }
+      const pick = (r, d) => FACETS[d].est ? drawn.get(r.model)[d] : r[d];
+      const s = score(rankable, weights, pick).map(x => ({ ...x, score: x.score - penalty(x.row) })).sort((a, b) => b.score - a.score);
+      s.forEach((x, i) => { ranks.get(x.row).push(i + 1); if (i < 3) top3.set(x.row, (top3.get(x.row) || 0) + 1); });
+      wins.set(s[0].row, (wins.get(s[0].row) || 0) + 1);
+      if (k < 40) draws.push(new Map([...drawn].map(([m, z]) => [m.id, z])));
+    }
+    for (const x of ranked) {
+      const rs = ranks.get(x.row).sort((a, b) => a - b);
+      x.p_best = (wins.get(x.row) || 0) / N;
+      x.top3 = (top3.get(x.row) || 0) / N;
+      x.rank_spread = [rs[Math.floor(N * 0.05)], rs[Math.floor(N * 0.95) - 1]];
+    }
+    base.hops = draws;  // the first 40 draws, for hypothetical-outcome animation
+    base.constraint_costs = conds.map((c, i) => {
+      const d = decide({ ...spec, where: conds.filter((_, j) => j !== i) }, { fast: true });
+      const w = d.results[0];
+      return { cond: c, freed: d.results.length + d.may_qualify.length - ranked.length - mayQualify.length, new_winner: w && w.row !== ranked[0].row ? w.row : null, gain: w ? gainText(ranked[0].row, w.row, weights) : "" };
+    });
+    base.tipping = tipping(rankable, weights, penalty, ranked[0].row);
+    return base;
+  }
+  function gainText(a, b, weights) {
+    if (a === b) return "";
+    return Object.keys(weights).filter(d => weights[d]).map(d => {
+      const dv = b[d] - a[d];
+      if (!dv) return "";
+      return d === "cost" ? `${dv < 0 ? "−" : "+"}$${Math.abs(dv).toFixed(3)}/task` : `${dv > 0 ? "+" : "−"}${Math.abs(Math.round(dv))} ${FACETS[d].label.toLowerCase()}`;
+    }).filter(Boolean).join(", ");
+  }
+  function gapOf(r, c) {
+    const v = r[c.f];
+    if (typeof v !== "number" || typeof c.v !== "number" || !c.v) return null;
+    return (v - c.v) / Math.abs(c.v);  // relative miss; small ones are "near misses"
+  }
+  function tipping(rows, weights, penalty, winner) {  // sweep each weight's share; where does #1 change?
+    const out = [];
+    const dims = Object.keys(weights).filter(d => weights[d]);
+    if (dims.length < 2) return out;
+    const tot = dims.reduce((s, d) => s + Math.abs(weights[d]), 0);
+    for (const d of dims) {
+      const share = Math.abs(weights[d]) / tot, others = tot - Math.abs(weights[d]);
+      const at = s => {
+        const w = {};
+        for (const e of dims) w[e] = e === d ? s : Math.abs(weights[e]) * (1 - s) / (others || 1);
+        const r = score(rows, w, (row, k) => row[k]).map(x => ({ ...x, score: x.score - penalty(x.row) })).sort((a, b) => b.score - a.score);
+        return r[0].row;
+      };
+      let lo = null, hi = null;
+      for (let s = share; s >= 0; s -= 0.01) { if (at(s) !== winner) { lo = { s: +(s).toFixed(2), who: at(s) }; break; } }
+      for (let s = share; s <= 1; s += 0.01) { if (at(s) !== winner) { hi = { s: +(s).toFixed(2), who: at(s) }; break; } }
+      out.push({ dim: d, share: +share.toFixed(2), lo, hi });
+    }
+    return out;
+  }
+  function tippingText(t) {
+    const L = FACETS[t.dim].label.toLowerCase(), pct = s => `${Math.round(s * 100)}%`;
+    const parts = [];
+    if (t.lo) parts.push(`below ${pct(t.lo.s)} → ${t.lo.who.model.name}`);
+    if (t.hi) parts.push(`above ${pct(t.hi.s)} → ${t.hi.who.model.name}`);
+    return parts.length ? `${L} weight ${pct(t.share)}: #1 changes ${parts.join("; ")}` : `${L} weight ${pct(t.share)}: #1 holds at any share`;
+  }
+
+  function whyNot(dec, row) {  // one sentence plus the facts behind it
+    const name = label(row);
+    const e = dec.eliminated.find(x => x.row === row);
+    if (e) {
+      if (e.unverified) return { kind: "eliminated", text: `${name} is out: “${condPlain(e.cond)}” is a governance condition and its ${FACETS[e.cond.f].label.toLowerCase()} is not documented, so it counts as not satisfied.`, cond: e.cond };
+      const near = e.gap !== null && Math.abs(e.gap) <= 0.15;
+      return { kind: near ? "near-miss" : "eliminated", text: `${name} is out on “${condPlain(e.cond)}”: it has ${fmt(e.cond.f, e.value)}${near ? ` — a near miss, ${Math.round(Math.abs(e.gap) * 100)}% off` : ""}.`, cond: e.cond };
+    }
+    const m = dec.may_qualify.find(x => x.row === row);
+    if (m) return { kind: "may-qualify", text: `${name} may qualify: ${m.unknown.map(f => FACETS[f].label.toLowerCase()).join(" and ")} ${m.unknown.length > 1 ? "are" : "is"} unknown, so it is listed, not ranked and not dropped.` };
+    const i = dec.results.findIndex(x => x.row === row);
+    if (i === 0) return { kind: "winner", text: `${name} is #1, best in ${Math.round(row && dec.results[0].p_best * 100)} of 100 resamples.` };
+    if (i < 0) return { kind: "none", text: "" };
+    const a = dec.results[0], b = dec.results[i];
+    const deltas = b.parts.map((p, k) => ({ dim: p.dim, d: p.part - a.parts[k].part })).sort((x, y) => x.d - y.d);
+    const worst = deltas[0], best = deltas[deltas.length - 1];
+    return {
+      kind: "ranked", deltas,
+      text: `${name} ranks #${i + 1}: it loses most on ${FACETS[worst.dim].label.toLowerCase()} (${fmt(worst.dim, b.row[worst.dim])} vs ${fmt(worst.dim, a.row[worst.dim])})` +
+        (best.d > 0 ? ` and gains on ${FACETS[best.dim].label.toLowerCase()} (${fmt(best.dim, b.row[best.dim])} vs ${fmt(best.dim, a.row[best.dim])})` : "") +
+        `. It is best in ${Math.round((b.p_best || 0) * 100)} of 100 resamples.`,
+    };
+  }
+
+  // ---------- 3. Spec <-> text <-> URL ----------
+  function specText(spec) {  // a readable form of the request (spec §6), also the raw editor's format
+    const lines = [];
+    if (spec.task) lines.push(`task: ${spec.task}`);
+    lines.push("where:");
+    for (const c of spec.where || []) lines.push(`  - ${condText(c)}${c.unknown ? ` unknown(${c.unknown})` : ""}`);
+    const w = spec.weights || {};
+    lines.push(`optimize: { ${Object.keys(w).filter(d => w[d]).map(d => `${FACETS[d].dir < 0 ? "-" : ""}${d}: ${Math.abs(w[d])}`).join(", ")} }`);
+    return lines.join("\n");
+  }
+  function parseValue(f, s) {
+    s = s.trim();
+    const F = FACETS[f];
+    if (s.startsWith("{")) return s.replace(/[{}]/g, "").split(",").map(x => x.trim()).filter(Boolean);
+    if (F.type === "bool") { if (!/^(true|false)$/.test(s)) throw new Error(`${f} takes true or false`); return s === "true"; }
+    if (F.type === "num") { const n = Number(s.replace(/[$,k]/g, "")) * (/k$/.test(s) ? 1000 : 1); if (Number.isNaN(n)) throw new Error(`${f} takes a number`); return n; }
+    return s;
+  }
+  function parseSpec(text) {  // unknown facets fail loudly (design §6.1); nothing is silently ignored
+    const spec = { where: [], weights: {} };
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      if (!line || line === "where:") continue;
+      let m;
+      if ((m = line.match(/^task:\s*(.*)$/))) { spec.task = m[1]; continue; }
+      if ((m = line.match(/^optimize:\s*\{(.*)\}$/))) {
+        for (const part of m[1].split(",").map(x => x.trim()).filter(Boolean)) {
+          const [k, v] = part.split(":").map(x => x.trim()), f = k.replace(/^-/, "");
+          if (!FACETS[f]) throw new Error(`unknown facet “${f}”`);
+          spec.weights[f] = Math.abs(Number(v));  // magnitude; direction comes from the facet
+        }
+        continue;
+      }
+      if ((m = line.match(/^-\s*([a-z_]+)\s*(>=|<=|!=|=|not in|in)\s*(.+?)(?:\s+soft\(([\d.]+)\))?(?:\s+unknown\((pass|fail|list)\))?$/))) {
+        if (!FACETS[m[1]]) throw new Error(`unknown facet “${m[1]}”`);
+        const c = { f: m[1], op: m[2], v: parseValue(m[1], m[3]) };
+        if (m[4]) c.soft = Number(m[4]);
+        if (m[5]) c.unknown = m[5];
+        spec.where.push(c);
+        continue;
+      }
+      throw new Error(`cannot read “${line}”`);
+    }
+    return spec;
+  }
+  const b64 = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const unb64 = s => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
+  function specToHash(spec, view) { return `#spec=${b64(JSON.stringify({ v: 1, snap: SNAPSHOT, ...spec }))}${view ? `&view=${view}` : ""}`; }
+  function specFromHash(h = location.hash) {
+    const m = h.match(/spec=([\w-]+)/);
+    if (!m) return null;
+    try { const s = JSON.parse(unb64(m[1])); delete s.v; delete s.snap; return s; } catch { return null; }
+  }
+
+  // ---------- 4. SVG chart components ----------
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const label = r => r.provider ? `${r.model.name} · ${r.provider} ${r.region.toUpperCase()}` : r.model.name;
+  const short = r => r.model.name;
+  // Chart CSS: every colour is a token, so one chart renders in light, dark and on a card.
+  const CHART_CSS = `
+  .ms-c{font:12px/1.3 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--ink2)}
+  .ms-c .ax{stroke:var(--grid);stroke-width:1}.ms-c .axl{fill:var(--mute);font-size:11px}
+  .ms-c .ttl{fill:var(--ink);font-weight:650}.ms-c .lbl{fill:var(--ink);font-weight:600}
+  .ms-c .dim{fill:var(--mute)}.ms-c .dot{fill:var(--neutral);stroke:var(--surface);stroke-width:2}
+  .ms-c .dot.front{fill:var(--ink2)}.ms-c .dot.win{fill:var(--accent)}
+  .ms-c .dot.out{fill:none;stroke:var(--mute);stroke-width:1.25;opacity:.55}
+  .ms-c .dot.may{fill:var(--surface);stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:2 2}
+  .ms-c .dot.near{fill:none;stroke:var(--warn);stroke-width:2}
+  .ms-c .ci{stroke:var(--neutral);stroke-width:2;stroke-linecap:round}.ms-c .ci.win{stroke:var(--accent)}
+  .ms-c .ci.out{opacity:.25}.ms-c .frontier{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:5 4;opacity:.8}
+  .ms-c .ok-zone{fill:var(--accent);opacity:.06}.ms-c .limit{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:3 3}
+  .ms-c .s1{fill:var(--s1)}.ms-c .s2{fill:var(--s2)}.ms-c .s3{fill:var(--s3)}.ms-c .s4{fill:var(--s4)}.ms-c .s5{fill:var(--s5)}
+  .ms-c .ia-on{fill:var(--accent)}.ms-c .ia-off{fill:var(--grid)}
+  .ms-c .bar{fill:var(--neutral)}.ms-c .bar.hl{fill:var(--accent)}.ms-c .claim{fill:var(--surface);stroke:var(--ink2);stroke-width:2}
+  .ms-c .wm{fill:var(--mute);font-size:10px;letter-spacing:.08em}
+  .ms-c .knob rect{fill:var(--ink)}.ms-c .knob text{fill:var(--surface);font-weight:650;font-size:11px}.ms-c .knob{cursor:grab}
+  .ms-c [data-key]{cursor:pointer}.ms-c .hit{fill:transparent}`;
+  const SLOT = { coding: "s1", cost: "s2", tps: "s3", writing: "s4", reasoning: "s5" };  // reference palette order; adjacent pairs pass the CVD check
+  const svgOpen = (w, h, aria) => `<svg class="ms-c" viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(aria)}" xmlns="http://www.w3.org/2000/svg">`;
+  const watermark = (w, h) => `<text class="wm" x="${w - 8}" y="12" text-anchor="end">${FAKE_NOTICE.split(":")[0]}</text>`;
+
+  // Frontier scatter: x = cost per task (log), y = capability estimate with its interval.
+  function scatterGeom(o = {}) {  // exposed so a page can invert it for dragging
+    const W = o.w || 760, H = o.h || 440, P = { l: 52, r: 18, t: 18, b: 44 };
+    const xs = [0.003, 0.5], ys = o.yDomain || [50, 95], lx = Math.log(xs[0]), span = Math.log(xs[1]) - lx;
+    return {
+      W, H, P,
+      X: v => P.l + (Math.log(v) - lx) / span * (W - P.l - P.r),
+      Y: v => H - P.b - (v - ys[0]) / (ys[1] - ys[0]) * (H - P.t - P.b),
+      Xi: px => Math.exp(lx + (px - P.l) / (W - P.l - P.r) * span),
+      Yi: py => ys[0] + (H - P.b - py) / (H - P.t - P.b) * (ys[1] - ys[0]),
+    };
+  }
+  function scatter(dec, o = {}) {
+    const { W, H, P, X, Y } = scatterGeom(o), dim = o.y || "coding", ys = o.yDomain || [50, 95];
+    const all = ROWS.filter(r => r[dim] != null);
+    const state = new Map();
+    dec.eliminated.forEach(e => state.set(e.row, e.gap !== null && Math.abs(e.gap) <= 0.15 ? "near" : "out"));
+    dec.may_qualify.forEach(m => state.set(m.row, "may"));
+    const alive = dec.results.map(x => x.row);
+    // Pareto frontier among the ranked rows: nothing cheaper is at least as capable.
+    const front = alive.filter(a => !alive.some(b => b !== a && b.cost <= a.cost && b[dim] >= a[dim] && (b.cost < a.cost || b[dim] > a[dim]))).sort((a, b) => a.cost - b.cost);
+    const win = o.highlight ? ROWS.find(r => r.model.id === o.highlight) : dec.results[0] && dec.results[0].row;
+    let s = svgOpen(W, H, o.aria || `Frontier scatter of ${FACETS[dim].label} against cost per task; ${alive.length} ranked, winner ${win ? label(win) : "none"}`);
+    for (const t of [0.003, 0.01, 0.03, 0.1, 0.3]) s += `<line class="ax" x1="${X(t)}" x2="${X(t)}" y1="${P.t}" y2="${H - P.b}"/><text class="axl" x="${X(t)}" y="${H - P.b + 16}" text-anchor="middle">$${t}</text>`;
+    for (let t = Math.ceil(ys[0] / 10) * 10; t <= ys[1]; t += 10) s += `<line class="ax" x1="${P.l}" x2="${W - P.r}" y1="${Y(t)}" y2="${Y(t)}"/><text class="axl" x="${P.l - 8}" y="${Y(t) + 4}" text-anchor="end">${t}</text>`;
+    s += `<text class="axl" x="${W - P.r}" y="${H - 8}" text-anchor="end">cost per task → (log scale, cheaper left)</text>`;
+    s += `<text class="axl" x="${P.l}" y="${P.t - 4}">${FACETS[dim].label} estimate ↑</text>`;
+    if (o.limits) {  // the feasible zone the draggable constraints enclose
+      const cx = o.limits.cost ? X(o.limits.cost) : W - P.r, cy = o.limits.floor ? Y(o.limits.floor) : P.t;
+      s += `<rect class="ok-zone" x="${P.l}" y="${P.t}" width="${cx - P.l}" height="${cy - P.t}"/>`;
+      if (o.limits.cost) s += `<line class="limit" x1="${cx}" x2="${cx}" y1="${P.t}" y2="${H - P.b}"/>`;
+      if (o.limits.floor) s += `<line class="limit" x1="${P.l}" x2="${W - P.r}" y1="${cy}" y2="${cy}"/>`;
+      if (o.handles) {  // drag affordances; the page owns the pointer logic
+        s += `<g class="knob" data-drag="cost"><rect x="${cx - 34}" y="${P.t}" width="68" height="20" rx="10"/><text x="${cx}" y="${P.t + 14}" text-anchor="middle">≤ ${fmt("cost", o.limits.cost)}</text></g>`;
+        s += `<g class="knob" data-drag="floor"><rect x="${W - P.r - 64}" y="${cy - 10}" width="64" height="20" rx="10"/><text x="${W - P.r - 32}" y="${cy + 4}" text-anchor="middle">≥ ${Math.round(o.limits.floor)}</text></g>`;
+      }
+    }
+    if (front.length > 1) s += `<path class="frontier" d="M${front.map(r => `${X(r.cost)},${Y(r[dim])}`).join("L")}"/>`;
+    const draw = o.hop ? r => o.hop.get(r.model.id)[dim] : r => r[dim];
+    const order = [...all].sort((a, b) => (state.get(a) ? 0 : 1) - (state.get(b) ? 0 : 1) || (a === win) - (b === win));
+    for (const r of order) {
+      const st = o.highlight ? (r.model.id === o.highlight ? "win" : "ok") : state.get(r) || (r === win ? "win" : front.includes(r) ? "front" : "ok");
+      const [, lo, hi] = r.model.est[dim], x = X(r.cost), y = Y(draw(r));
+      if (!o.hop) s += `<line class="ci ${st === "win" ? "win" : st === "out" || st === "near" ? "out" : ""}" x1="${x}" x2="${x}" y1="${Y(lo)}" y2="${Y(hi)}"/>`;
+      s += `<g data-key="${esc(r.key)}"><title>${esc(label(r))}: ${fmt("cost", r.cost)}/task, ${dim} ${r[dim]} [${lo}–${hi}]${st === "out" ? " (eliminated)" : st === "near" ? " (near miss)" : st === "may" ? " (may qualify)" : ""}</title><circle class="hit" cx="${x}" cy="${y}" r="12"/><circle class="dot ${st}" cx="${x}" cy="${y}" r="${st === "win" ? 8 : 6}" style="transition:cy .35s"/></g>`;
+    }
+    // Direct labels: the winner and the frontier only (selective, never every point).
+    const seen = new Set();  // one label per model, even when it has several offerings
+    const labelled = (o.labels || [win, ...front.filter(r => r !== win)]).filter(r => r && !seen.has(r.model) && seen.add(r.model)).slice(0, o.maxLabels || 5);
+    const placed = [];
+    if (o.nearLabels) for (const e of dec.eliminated) if (state.get(e.row) === "near" && labelled.length < 8 && !labelled.some(r => r.model === e.row.model)) { labelled.push(e.row); e.row._near = e; }
+    for (const r of labelled) {
+      let x = X(r.cost) + 11, y = Y(draw(r)) + 4, anchor = "start";
+      if (x > W - 150) { x = X(r.cost) - 11; anchor = "end"; }
+      while (placed.some(p => Math.abs(p.y - y) < 14 && Math.abs(p.x - x) < 130)) y += 14;
+      placed.push({ x, y });
+      const nearTxt = o.nearLabels && state.get(r) === "near" && r._near ? ` · near miss, ${Math.round(Math.abs(r._near.gap) * 100)}% off` : "";
+      s += `<text class="${r === win ? "ttl" : nearTxt ? "dim" : "lbl"}" x="${x}" y="${y}" text-anchor="${anchor}">${esc(o.shortLabels ? short(r) : label(r))}${nearTxt}</text>`;
+    }
+    return s + watermark(W, H) + "</svg>";
+  }
+
+  // P(best) as an icon array: "best in 62 of 100 resamples" (frequency framing).
+  function iconArray(p, o = {}) {
+    const n = 100, k = Math.round(p * n), c = o.cell || 9, W = Math.max(10 * c, 104), H = 10 * c + 18;
+    let s = svgOpen(W, H, `Best in ${k} of 100 resamples`);
+    for (let i = 0; i < n; i++) s += `<rect class="${i < k ? "ia-on" : "ia-off"}" x="${(i % 10) * c}" y="${Math.floor(i / 10) * c}" width="${c - 2}" height="${c - 2}" rx="1.5"/>`;
+    return s + `<text class="axl" x="0" y="${H - 3}">best in ${k} of 100</text></svg>`;
+  }
+
+  // Contributions: one stacked bar per result, one slot per objective dimension.
+  function contributions(dec, o = {}) {
+    const rows = dec.results.slice(0, o.n || 5), W = o.w || 520, rowH = 30, L = o.labelW || 190, H = rows.length * rowH + 30;
+    const max = Math.max(...rows.map(r => r.score), 0.01);
+    let s = svgOpen(W, H, `Score contributions for the top ${rows.length}`);
+    rows.forEach((r, i) => {
+      let x = L; const y = i * rowH + 4;
+      s += `<g data-key="${esc(r.row.key)}"><text class="${i ? "lbl" : "ttl"}" x="${L - 10}" y="${y + 15}" text-anchor="end">${i + 1}. ${esc(short(r.row))}</text>`;
+      for (const p of r.parts) {
+        const w = Math.max(0, p.part / max * (W - L - 60));
+        if (w > 0.5) s += `<rect class="${SLOT[p.dim]}" x="${x}" y="${y + 3}" width="${Math.max(w - 2, 1)}" height="16" rx="3"><title>${FACETS[p.dim].label}: ${fmt(p.dim, p.value)} → ${(p.norm * 100).toFixed(0)}% of range × weight ${(p.weight * 100).toFixed(0)}% = ${(p.part * 100).toFixed(1)} pts</title></rect>`;
+        x += w;
+      }
+      s += `<text class="dim" x="${x + 6}" y="${y + 15}">${(r.score * 100).toFixed(0)}</text></g>`;
+    });
+    let lx = L;
+    for (const p of rows[0] ? rows[0].parts : []) { s += `<rect class="${SLOT[p.dim]}" x="${lx}" y="${H - 14}" width="10" height="10" rx="2"/><text class="axl" x="${lx + 14}" y="${H - 5}">${FACETS[p.dim].label} ${(p.weight * 100).toFixed(0)}%</text>`; lx += 120; }
+    return s + "</svg>";
+  }
+
+  // Funnel: the count left after each condition, with the "may qualify" share hatched.
+  function funnel(dec, o = {}) {
+    const W = o.w || 520, rowH = 26, L = o.labelW || 200, steps = [{ label: "All offerings", after: dec.total, unknown: 0 }, ...dec.funnel.map(f => ({ label: condPlain(f.cond), after: f.after, unknown: f.unknown }))];
+    const H = steps.length * rowH + 6;
+    let s = svgOpen(W, H, `Funnel: ${steps.map(x => `${x.label} ${x.after}`).join(", ")}`);
+    s += `<defs><pattern id="ms-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" class="bar"/><line x1="0" y1="0" x2="0" y2="5" stroke="var(--surface)" stroke-width="2"/></pattern></defs>`;
+    steps.forEach((st, i) => {
+      const y = i * rowH + 3, w = st.after / dec.total * (W - L - 40), wu = st.unknown / dec.total * (W - L - 40);
+      s += `<text class="${i ? "lbl" : "dim"}" x="${L - 10}" y="${y + 14}" text-anchor="end">${esc(st.label)}</text>`;
+      s += `<rect class="bar ${i === steps.length - 1 ? "hl" : ""}" x="${L}" y="${y + 2}" width="${Math.max(w - wu, 1)}" height="16" rx="3" style="transition:width .3s"/>`;
+      if (wu) s += `<rect x="${L + w - wu}" y="${y + 2}" width="${wu}" height="16" rx="3" fill="url(#ms-hatch)"><title>${st.unknown} may qualify (unknown on this facet)</title></rect>`;
+      s += `<text class="lbl" x="${L + w + 6}" y="${y + 14}">${st.after}${st.unknown ? `<tspan class="dim"> (${st.unknown}?)</tspan>` : ""}</text>`;
+    });
+    return s + "</svg>";
+  }
+
+  // Interval strip: each model's estimate in one domain, winner highlighted.
+  function intervals(rows, dim, o = {}) {
+    const W = o.w || 520, rowH = o.rowH || 26, L = o.labelW || 150, H = rows.length * rowH + 26, ys = o.domain || [50, 95];
+    const X = v => L + (v - ys[0]) / (ys[1] - ys[0]) * (W - L - 20);
+    let s = svgOpen(W, H, `${FACETS[dim].label} estimates with intervals`);
+    for (let t = Math.ceil(ys[0] / 10) * 10; t <= ys[1]; t += 10) s += `<line class="ax" x1="${X(t)}" x2="${X(t)}" y1="0" y2="${H - 22}"/><text class="axl" x="${X(t)}" y="${H - 8}" text-anchor="middle">${t}</text>`;
+    rows.forEach((m, i) => {
+      const [e, lo, hi] = m.est[dim], y = i * rowH + rowH / 2, hl = o.highlight === m.id;
+      s += `<text class="${hl ? "ttl" : "lbl"}" x="${L - 10}" y="${y + 4}" text-anchor="end">${esc(m.name)}</text>`;
+      s += `<line class="ci ${hl ? "win" : ""}" x1="${X(lo)}" x2="${X(hi)}" y1="${y}" y2="${y}" stroke-width="6" style="stroke-width:6;opacity:${hl ? 0.45 : 0.35}"/>`;
+      s += `<circle class="dot ${hl ? "win" : "front"}" cx="${X(e)}" cy="${y}" r="${hl ? 7 : 5}"><title>${esc(m.name)}: ${e} [${lo}–${hi}]</title></circle>`;
+    });
+    return s + "</svg>";
+  }
+
+  // Claims vs independent evidence (dumbbell): hollow = lab's claim, filled = independent.
+  function dumbbell(items, o = {}) {
+    const W = o.w || 520, rowH = 30, L = o.labelW || 170, H = items.length * rowH + 34, xs = o.domain || [0, 100];
+    const X = v => L + (v - xs[0]) / (xs[1] - xs[0]) * (W - L - 50);
+    let s = svgOpen(W, H, "Lab claims against independent evidence");
+    items.forEach((it, i) => {
+      const y = i * rowH + 16;
+      s += `<text class="lbl" x="${L - 10}" y="${y + 4}" text-anchor="end">${esc(it.bench)}</text>`;
+      if (it.claim != null && it.indep != null) s += `<line class="ax" x1="${X(it.claim)}" x2="${X(it.indep)}" y1="${y}" y2="${y}" style="stroke-width:3"/>`;
+      if (it.claim != null) s += `<circle class="claim" cx="${X(it.claim)}" cy="${y}" r="6"><title>Lab claim ${it.claim}</title></circle>`;
+      if (it.indep != null) s += `<circle class="dot win" cx="${X(it.indep)}" cy="${y}" r="6"><title>Independent ${it.indep}</title></circle>`;
+      const note = it.indep == null ? "no independent run yet" : it.claim == null ? "lab did not report" : `${it.indep - it.claim > 0 ? "+" : ""}${(it.indep - it.claim).toFixed(1)}`;
+      s += `<text class="dim" x="${X(Math.max(it.claim ?? 0, it.indep ?? 0)) + 12}" y="${y + 4}">${note}</text>`;
+    });
+    s += `<circle class="claim" cx="${L + 4}" cy="${H - 10}" r="5"/><text class="axl" x="${L + 14}" y="${H - 6}">lab's claim</text><circle class="dot win" cx="${L + 110}" cy="${H - 10}" r="5"/><text class="axl" x="${L + 120}" y="${H - 6}">independent</text>`;
+    return s + "</svg>";
+  }
+
+  // Resolved token values, so an exported SVG/PNG looks like the page it came from.
+  function resolvedStyle(el) {
+    const cs = getComputedStyle(el), vars = ["--ink", "--ink2", "--mute", "--grid", "--neutral", "--surface", "--accent", "--warn", "--s1", "--s2", "--s3", "--s4", "--s5"];
+    return `<style>svg{${vars.map(v => `${v}:${cs.getPropertyValue(v)}`).join(";")}}${CHART_CSS}</style>`;
+  }
+  function downloadPNG(svgEl, w, h, name) {
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute("width", w); clone.setAttribute("height", h);
+    clone.insertAdjacentHTML("afterbegin", resolvedStyle(svgEl));
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      const a = document.createElement("a"); a.download = name; a.href = c.toDataURL("image/png"); a.click();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+
+  // Page chrome shared by every prototype: the fictional-data banner, nav, theme toggle, share.
+  const PAGES = [["a-guided.html", "A · Guided"], ["b-canvas.html", "B · Trade-off canvas"], ["c-table.html", "C · Decision table"], ["launch-report.html", "Launch report + cards"]];
+  function mountChrome(active, title) {
+    const st = document.createElement("style"); st.textContent = CHART_CSS; document.head.append(st);
+    const head = document.createElement("header");
+    head.innerHTML = `<div class="fake" role="note">${FAKE_NOTICE}. A MODEL-147 prototype, not a product.</div>
+      <div class="top"><span class="brand">Model<b>Spec</b></span><span class="eyebrow">${esc(title)}</span>
+      <nav aria-label="Prototypes">${PAGES.map(([h, t]) => `<a href="${h}${location.hash}"${h === active ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>
+      <button class="btn" id="ms-theme" aria-label="Toggle light or dark theme">◐</button></div>`;
+    document.body.prepend(head);
+    const toast = document.createElement("div"); toast.className = "toast"; toast.setAttribute("role", "status"); document.body.append(toast);
+    document.getElementById("ms-theme").onclick = () => {
+      const dark = matchMedia("(prefers-color-scheme: dark)").matches, cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+      document.documentElement.dataset.theme = cur === "dark" ? "light" : "dark";
+      document.dispatchEvent(new Event("ms-theme"));
+    };
+    head.querySelectorAll("nav a").forEach(a => a.addEventListener("click", () => { a.href = a.getAttribute("href").split("#")[0] + location.hash; }));
+  }
+  function say(msg) { const t = document.querySelector(".toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(say.t); say.t = setTimeout(() => t.classList.remove("on"), 1800); }
+  function share(spec, view) {
+    history.replaceState(null, "", specToHash(spec, view));
+    const url = location.href;
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => say("Link copied: same spec, same snapshot, same decision"), () => say("Link is in the address bar"));
+    return url;
+  }
+
+  const PRESETS = {
+    "Coding agent, best value": { where: [{ f: "context", op: ">=", v: 200000 }], weights: { coding: 0.7, cost: 0.3 } },
+    "EU, private data": { where: [{ f: "region", op: "in", v: ["eu"] }, { f: "zdr", op: "=", v: true }, { f: "trains", op: "=", v: false }], weights: { coding: 0.6, cost: 0.3, tps: 0.1 } },
+    "Self-hosted, open weights": { where: [{ f: "open", op: "=", v: true }], weights: { coding: 0.8, cost: 0.2 } },
+    "Cheap and fast": { where: [{ f: "cost", op: "<=", v: 0.03 }], weights: { coding: 0.4, tps: 0.4, cost: 0.2 } },
+  };
+
+  return {
+    FAKE_NOTICE, SNAPSHOT, MODELS, ROWS, FACETS, DIM_ORDER, SLOT, TASK_TOKENS, PRESETS, CHART_CSS,
+    decide, whyNot, tippingText, condText, condPlain, fmt, label, short, esc,
+    specText, parseSpec, specToHash, specFromHash, hash,
+    mountChrome, say, share, PAGES,
+    scatter, scatterGeom, iconArray, contributions, funnel, intervals, dumbbell, downloadPNG,
+  };
+})();
+/* === ms-components:end === */
+
+MS.mountChrome("c-table.html", "Prototype C · decision table + condition builder");
+const $ = id => document.getElementById(id);
+let spec = MS.specFromHash() || JSON.parse(JSON.stringify(MS.PRESETS["EU, private data"]));
+let sortBy = null, open = new Set(), collapsed = new Set(["eliminated"]), dec;
+
+function opsFor(F) { return F.type === "num" ? [">=", "<="] : F.type === "bool" ? ["=", "!="] : ["in", "not in"]; }
+function valueInput(c, i) {
+  const F = MS.FACETS[c.f];
+  if (F.type === "bool") return `<select data-i="${i}" data-k="v"><option value="true"${c.v === true ? " selected" : ""}>yes</option><option value="false"${c.v === false ? " selected" : ""}>no</option></select>`;
+  if (F.type === "set") return `<select data-i="${i}" data-k="v" multiple size="1" title="Ctrl/Cmd-click for several">${F.values.map(v => `<option${c.v.includes(v) ? " selected" : ""}>${v}</option>`).join("")}</select>`;
+  return `<input data-i="${i}" data-k="v" type="number" step="any" value="${c.v}">`;
+}
+function renderConds() {
+  $("conds").innerHTML = spec.where.map((c, i) => {
+    const F = MS.FACETS[c.f], f = dec.funnel[i];
+    return `<div class="cond"><span class="i">${i + 1}</span>
+      <select data-i="${i}" data-k="f" aria-label="Facet">${Object.keys(MS.FACETS).map(k => `<option value="${k}"${k === c.f ? " selected" : ""}>${MS.FACETS[k].label}</option>`).join("")}</select>
+      <select data-i="${i}" data-k="op" aria-label="Operator">${opsFor(F).map(o => `<option${o === c.op ? " selected" : ""}>${o}</option>`).join("")}</select>
+      ${valueInput(c, i)}
+      <select data-i="${i}" data-k="unknown" aria-label="If unknown" title="${F.kind === "governance" ? "Governance: unknown counts as not satisfied by default" : "Capability: unknown may qualify by default"}">
+        <option value="">unknown: ${F.kind === "governance" ? "fail (default)" : "list (default)"}</option><option value="list"${c.unknown === "list" ? " selected" : ""}>unknown: list</option><option value="fail"${c.unknown === "fail" ? " selected" : ""}>unknown: fail</option><option value="pass"${c.unknown === "pass" ? " selected" : ""}>unknown: pass</option></select>
+      <span class="n" title="${f.before} before this condition">${f.after}${f.unknown ? ` <small>(${f.unknown}?)</small>` : ""}</span>
+      <button class="rm" data-rm="${i}" aria-label="Remove condition ${i + 1}">×</button></div>`;
+  }).join("") || `<p style="color:var(--mute);font-size:14px">No conditions: every offering qualifies.</p>`;
+  $("conds").querySelectorAll("[data-k]").forEach(el => el.onchange = () => {
+    const c = spec.where[+el.dataset.i], k = el.dataset.k;
+    if (k === "f") { spec.where[+el.dataset.i] = defaultCond(el.value); }
+    else if (k === "op") c.op = el.value;
+    else if (k === "unknown") { if (el.value) c.unknown = el.value; else delete c.unknown; }
+    else { const F = MS.FACETS[c.f]; c.v = F.type === "bool" ? el.value === "true" : F.type === "set" ? [...el.selectedOptions].map(o => o.value) : +el.value; }
+    render();
+  });
+  $("conds").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { spec.where.splice(+b.dataset.rm, 1); render(); });
+}
+function defaultCond(f) {
+  const F = MS.FACETS[f];
+  if (F.type === "bool") return { f, op: "=", v: f !== "trains" };
+  if (F.type === "set") return { f, op: "in", v: [F.values[0]] };
+  const vals = MS.ROWS.map(r => r[f]).filter(v => v != null).sort((a, b) => a - b);
+  return { f, op: F.dir < 0 ? "<=" : ">=", v: vals[Math.floor(vals.length / 2)] };
+}
+function renderWeights() {
+  const w = spec.weights, tot = Object.values(w).reduce((a, b) => a + b, 0) || 1;
+  $("weights").innerHTML = MS.DIM_ORDER.map(d => `<label><span class="sw" style="background:var(--${MS.SLOT[d]})"></span>${MS.FACETS[d].label}
+    <input type="range" min="0" max="100" value="${Math.round((w[d] || 0) * 100)}" data-d="${d}" aria-label="Weight on ${MS.FACETS[d].label}"><b class="num">${Math.round((w[d] || 0) / tot * 100)}%</b></label>`).join("");
+  $("weights").querySelectorAll("input").forEach(i => i.oninput = () => { const v = +i.value / 100; if (v) spec.weights[i.dataset.d] = v; else delete spec.weights[i.dataset.d]; render(); });
+  const r = dec.results;
+  $("norm").textContent = r.length ? `Normalisation: each weighted column is rescaled min→max across the ${r.length} ranked offerings; ${r[0].parts.map(p => { const vals = r.map(x => x.row[p.dim]); return `${MS.FACETS[p.dim].label.toLowerCase()} ${MS.fmt(p.dim, Math.min(...vals))}–${MS.fmt(p.dim, Math.max(...vals))}${MS.FACETS[p.dim].dir < 0 ? " (lower is better)" : ""}`; }).join(", ")}.` : "";
+  $("tips").innerHTML = (dec.tipping || []).map(t => MS.esc(MS.tippingText(t))).join("<br>") || "—";
+}
+
+const COLS = [
+  ["rank", "#"], ["name", "Model · offering"], ["pbest", "P(best)"], ["spread", "Plausible rank"], ["contrib", "Why it scores"],
+  ["coding", "Coding"], ["reasoning", "Reasoning"], ["writing", "Writing"], ["cost", "$/task"], ["tps", "tok/s"], ["context", "Context"],
+  ["zdr", "Zero ret."], ["trains", "Trains"], ["soc2", "SOC 2"],
+];
+const flag = (v, good = true) => v == null ? `<span class="flag u" title="not documented">?</span>` : v === good ? `<span class="flag y">yes</span>` : `<span class="flag n">no</span>`;
+const mbar = (r, d) => { const [e, lo, hi] = r.model.est[d], X = v => (v - 50) / 45 * 100; return `<span class="mbar" title="${e} [${lo}–${hi}]"><i style="left:${X(lo)}%;width:${X(hi) - X(lo)}%"></i><b style="left:calc(${X(e)}% - 1px)"></b></span> <span class="num">${e}</span>`; };
+function cells(r, x, i) {
+  const tot = x ? x.score : 0;
+  return {
+    rank: x ? `<b>${i + 1}</b>` : "", name: `<b>${MS.esc(r.model.name)}</b> <span style="color:var(--mute)">${MS.esc(r.provider)} · ${r.region.toUpperCase()}</span>${r.lifecycle === "deprecated" ? ' <span class="pill warn">deprecated</span>' : ""}${r.model.released >= "2026-09-17" ? ' <span class="pill warn">provisional</span>' : ""}`,
+    pbest: x ? `<span class="pb"><i style="width:${x.p_best * 100}%"></i></span><span class="num">${Math.round(x.p_best * 100)}%</span>` : "",
+    spread: x ? `#${x.rank_spread[0]}–${x.rank_spread[1]}` : "",
+    contrib: x ? `<span class="stack">${x.parts.map(p => `<span style="width:${p.part / (dec.results[0].score || 1) * 100}%;background:var(--${MS.SLOT[p.dim]})" title="${MS.FACETS[p.dim].label}: ${(p.part * 100).toFixed(1)} pts"></span>`).join("")}</span> <span class="num">${(tot * 100).toFixed(0)}</span>` : "",
+    coding: mbar(r, "coding"), reasoning: mbar(r, "reasoning"), writing: mbar(r, "writing"),
+    cost: `<span class="num">${MS.fmt("cost", r.cost)}</span>`, tps: r.tps ? `<span class="num">${r.tps}</span>` : `<span class="flag u">?</span>`, context: MS.fmt("context", r.context),
+    zdr: flag(r.zdr), trains: flag(r.trains, false), soc2: flag(r.soc2),
+  };
+}
+function sortRows(list, get) {
+  if (!sortBy) return list;
+  const key = r => sortBy === "name" ? r.model.name : sortBy === "cost" ? -r.cost : r[sortBy] ?? -Infinity;
+  return [...list].sort((a, b) => { const A = key(get(a)), B = key(get(b)); return typeof A === "string" ? A.localeCompare(B) : B - A; });
+}
+function renderTable() {
+  $("head").innerHTML = COLS.map(([k, t]) => `<th data-k="${k}"${sortBy === k ? ' aria-sort="descending"' : ""} scope="col">${t}</th>${k === "name" ? '<th scope="col">Status / reason</th>' : ""}`).join("");
+  $("head").querySelectorAll("th[data-k]").forEach(th => th.onclick = () => { sortBy = sortBy === th.dataset.k || ["rank", "pbest", "spread", "contrib"].includes(th.dataset.k) ? null : th.dataset.k; render(); });
+  const row = (r, x, i, cls, reason) => {
+    const c = cells(r, x, i), openRow = open.has(r.key);
+    let h = `<tr class="row ${cls}" data-key="${MS.esc(r.key)}" aria-expanded="${openRow}">${COLS.map(([k]) => `<td class="${["cost", "tps"].includes(k) ? "r" : ""}">${c[k]}</td>${k === "name" ? `<td class="reason">${reason || ""}</td>` : ""}`).join("")}</tr>`;
+    if (openRow) {
+      const w = MS.whyNot(dec, r);
+      const diff = w.deltas ? `<div style="margin-top:6px">${w.deltas.map(d => `${MS.FACETS[d.dim].label}: <b class="num">${d.d > 0 ? "+" : ""}${(d.d * 100).toFixed(1)}</b> pts vs #1`).join(" · ")}</div>` : "";
+      h += `<tr class="detail"><td colspan="${COLS.length + 1}"><div class="why">${MS.esc(w.text)}${diff}</div></td></tr>`;
+    }
+    return h;
+  };
+  const grp = (id, title, n) => `<tr class="grp" data-g="${id}"><td colspan="${COLS.length + 1}">${collapsed.has(id) ? "▸" : "▾"} ${title} · ${n}</td></tr>`;
+  let h = grp("ranked", "Ranked", dec.results.length);
+  if (!collapsed.has("ranked")) h += sortRows(dec.results, x => x.row).map(x => row(x.row, x, dec.results.indexOf(x), dec.results.indexOf(x) === 0 ? "win" : "", "")).join("");
+  h += grp("may", "May qualify: unknown on a facet you care about, so listed and not ranked", dec.may_qualify.length);
+  if (!collapsed.has("may")) h += sortRows(dec.may_qualify, x => x.row).map(x => row(x.row, null, 0, "", `unknown: ${x.unknown.map(f => MS.FACETS[f].label.toLowerCase()).join(", ")}`)).join("");
+  const nears = dec.eliminated.filter(e => e.gap !== null && Math.abs(e.gap) <= 0.15).length;
+  h += grp("eliminated", `Eliminated${nears ? `, ${nears} near miss${nears > 1 ? "es" : ""}` : ""}`, dec.eliminated.length);
+  if (!collapsed.has("eliminated")) h += sortRows(dec.eliminated, e => e.row).map(e => {
+    const near = e.gap !== null && Math.abs(e.gap) <= 0.15;
+    return row(e.row, null, 0, "out", `${near ? '<span class="near">near miss</span> · ' : ""}fails “${MS.esc(MS.condPlain(e.cond))}”${e.unverified ? " (not documented)" : `: ${MS.esc(MS.fmt(e.cond.f, e.value))}`}`);
+  }).join("");
+  $("body").innerHTML = h;
+  $("body").querySelectorAll("tr.grp").forEach(t => t.onclick = () => { const g = t.dataset.g; collapsed.has(g) ? collapsed.delete(g) : collapsed.add(g); render(); });
+  $("body").querySelectorAll("tr.row").forEach(t => t.onclick = () => { open.has(t.dataset.key) ? open.delete(t.dataset.key) : open.add(t.dataset.key); render(); });
+}
+function render() {
+  dec = MS.decide(spec);
+  renderConds(); renderWeights(); renderTable();
+  $("did").textContent = `${dec.decision_id} · ${dec.snapshot}`;
+  if (document.activeElement !== $("raw")) $("raw").value = MS.specText(spec);
+  history.replaceState(null, "", MS.specToHash(spec, "table"));
+}
+$("addf").innerHTML += Object.keys(MS.FACETS).map(f => `<option value="${f}">${MS.FACETS[f].label}${MS.FACETS[f].kind === "governance" ? " (governance)" : ""}</option>`).join("");
+$("addf").onchange = e => { if (e.target.value) { spec.where.push(defaultCond(e.target.value)); e.target.value = ""; render(); } };
+$("preset").innerHTML += Object.keys(MS.PRESETS).map(p => `<option>${p}</option>`).join("");
+$("preset").onchange = e => { if (e.target.value) { spec = JSON.parse(JSON.stringify(MS.PRESETS[e.target.value])); e.target.value = ""; render(); } };
+document.querySelectorAll("[role=tab]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x === b));
+  $("t-table").hidden = b.dataset.t !== "table"; $("t-spec").hidden = b.dataset.t !== "spec";
+});
+$("apply").onclick = () => { try { spec = MS.parseSpec($("raw").value); $("err").textContent = ""; render(); } catch (e) { $("err").textContent = e.message; } };
+$("share").onclick = () => MS.share(spec, "table");
+render();
+</script>
+</body>
+</html>
