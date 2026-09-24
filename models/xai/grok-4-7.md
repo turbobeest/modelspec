@@ -668,7 +668,22 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 37.58
+    unit: percent
+    source_url: https://www.tbench.ai/leaderboard
+    source_kind: benchmark_author
+    evidence_date: '2026-09-21'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Official Terminal-Bench 4.0 leaderboard (tbench.ai; /leaderboard
+      now serves from the site root), row 'Grok 4.7', reasoning effort xhigh, agent
+      Grok Build, 330 trials. The row's own date (Sep 21, 2026) is used. Read 2026-09-24.
+      xAI's launch post (Sep 21, 2026) quotes the same run as 37.6%.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
