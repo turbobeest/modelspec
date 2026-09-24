@@ -676,59 +676,9 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 45.2
-    alpaca_eval: 40.5
-    arena_elo_coding: 1250.0
     arena_elo_hard_prompts: 1320.1
-    arena_elo_math: 1240.0
-    arena_elo_overall: 1260.0
     arena_elo_style_control: 1318.0
-    artificial_analysis_quality_index: 76.0
-    artificial_analysis_speed_index: 73.0
-    bbh: 58.1
-    bbq: 80.1
-    gpqa_diamond: 50.2
-    gsm8k: 95.0
-    helm_safety: 84.2
-    humaneval: 80.5
-    ifeval: 78.5
-    live_code_bench: 28.8
-    math_500: 73.2
     mgsm: 91.1
-    mmlu_astronomy: 71.5
-    mmlu_biology: 80.2
-    mmlu_business_ethics: 72.8
-    mmlu_chemistry: 72.5
-    mmlu_clinical_knowledge: 78.5
-    mmlu_computer_science: 80.5
-    mmlu_jurisprudence: 69.5
-    mmlu_physics: 76.8
-    mmlu_pro: 66.5
-    mmlu_professional_accounting: 63.8
-    mmlu_professional_law: 68.2
-    mt_bench: 8.6
-    multipl_e: 72.9
-    multipl_e_cpp: 72.8
-    multipl_e_csharp: 72.5
-    multipl_e_go: 68.5
-    multipl_e_java: 77.5
-    multipl_e_javascript: 75.8
-    multipl_e_julia: 52.2
-    multipl_e_kotlin: 62.5
-    multipl_e_lua: 45.8
-    multipl_e_perl: 40.5
-    multipl_e_php: 70.2
-    multipl_e_python: 80.2
-    multipl_e_r: 48.5
-    multipl_e_ruby: 55.8
-    multipl_e_rust: 60.5
-    multipl_e_scala: 50.2
-    multipl_e_swift: 55.5
-    multipl_e_typescript: 74.8
-    musr: 24.5
-    swe_bench_verified: 25.8
-    toxigen: 88.2
-    wildbench: 68.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
@@ -785,6 +735,18 @@ benchmarks:
     benchmark_version: GPQA Diamond
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: mgsm
+    model_id_as_evaluated: Llama 3.3 70B Instruct
+    score: 91.1
+    unit: percent
+    source_url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/MODEL_CARD.md
+    source_kind: provider_self_report
+    evidence_date: '2024-12-06'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MGSM
+    configuration: 'Meta Llama 3.3 model card, instruction-tuned table: MGSM, 0-shot, em, 91.1.'
     limitations: ''
 deployment:
   api_only: false
@@ -943,7 +905,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: meta/llama-3-3-70b-instruct

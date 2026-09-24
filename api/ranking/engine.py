@@ -991,6 +991,7 @@ BENCHMARK_RANGES.update({
     # Confirmed from each benchmark's page: higher_is_better, %, max 100.
     "aa_briefcase": (0.0, 100.0),
     "aa_lcr": (0.0, 100.0),
+    "automationbench": (0.0, 100.0),
     "automationbench_aa": (0.0, 100.0),
     "critpt": (0.0, 100.0),
     "gdp_pdf_aa": (0.0, 100.0),

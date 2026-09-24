@@ -672,39 +672,9 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 55.1
-    aime_2025: 73.3
-    arena_elo_coding: 1330.0
     arena_elo_hard_prompts: 1420.0
-    arena_elo_math: 1350.0
-    arena_elo_overall: 1340.0
     arena_elo_style_control: 1411.0
     arena_elo_vision: 1213.4
-    artificial_analysis_quality_index: 80.0
-    artificial_analysis_speed_index: 87.0
-    flores_en_de: 63.2
-    flores_en_es: 68.1
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
-    gpqa_diamond: 70.2
-    gsm8k: 86.2
-    humaneval: 88.8
-    ifeval: 87.5
-    live_code_bench: 49.5
-    math_500: 90.5
-    mgsm: 82.6
-    mmlu_pro: 78.2
-    multipl_e_csharp: 78.5
-    multipl_e_julia: 60.5
-    multipl_e_kotlin: 71.5
-    multipl_e_lua: 53.8
-    multipl_e_perl: 49.5
-    multipl_e_php: 76.2
-    multipl_e_r: 56.2
-    multipl_e_ruby: 64.5
-    multipl_e_scala: 58.8
-    multipl_e_swift: 64.8
-    swe_bench_verified: 49.2
   benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -721,20 +691,6 @@ benchmarks:
     benchmark_version: AA-LCR v1.1
     configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
       evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: arena_elo_style_control
-    model_id_as_evaluated: gemini-2.5-flash
-    score: 1409.79
-    unit: elo
-    source_url: https://lmarena.ai/leaderboard
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
   - benchmark_id: critpt
     model_id_as_evaluated: Gemini 2.5 Flash
@@ -762,6 +718,55 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1417.27
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1417.27 (95% CI 1414.84-1419.70), 122732 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1423.43
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1423.43 (95% CI 1419.18-1427.68), 25656 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1409.69
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1409.69 (95% CI 1407.22-1412.16), 122732 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
 deployment:
   api_only: false
   local_inference: false
@@ -919,7 +924,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: google/gemini-2-5-flash

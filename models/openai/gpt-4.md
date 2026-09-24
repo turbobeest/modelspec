@@ -686,11 +686,6 @@ benchmarks:
     toxigen: 93.5
     wildbench: 80.5
     mgsm: 74.5
-    gsm8k: 92.0
-    flores_en_es: 71.2
-    flores_en_de: 67.3
-    flores_en_ja: 61.4
-    flores_en_zh: 59.7
     multipl_e_csharp: 76.5
     multipl_e_php: 74.2
     multipl_e_ruby: 62.5
@@ -917,7 +912,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # GPT-4

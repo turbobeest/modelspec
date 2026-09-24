@@ -199,6 +199,29 @@ DESCRIPTIONS: dict[str, str] = {
         "The card's guide, including source URL and accessed date on every claim. Null "
         "when absent. Never generated at request time."
     ),
+    "RankResponse.unranked_candidates": (
+        "The models this answer could not rank, named: they passed every filter, match the "
+        "use case's model types, and lack the benchmark evidence to be ordered. Always "
+        "present. Disclosure only; nothing in result depends on it."
+    ),
+    "RankResponse.unranked_candidates.count": (
+        "How many such models there are. Never capped; at most unranked_count."
+    ),
+    "RankResponse.unranked_candidates.cap": "How many are named in models, at most.",
+    "RankResponse.unranked_candidates.models": (
+        "Newest release_date first; undated last; then by model_id."
+    ),
+    "RankResponse.unranked_candidates.models[].release_date": (
+        "The card's release date, or null when the card has none."
+    ),
+    "RankResponse.unranked_candidates.models[].reason": (
+        "no_scores (no score on any benchmark this use case weighs), below_count_floor "
+        "(fewer than policy.min_benchmark_count), or below_coverage_floor (under "
+        "policy.min_benchmark_coverage). A model failing both floors is below_count_floor."
+    ),
+    "RankResponse.unranked_candidates.models[].missing_benchmarks": (
+        "The use case's weighted benchmarks this model has no score for."
+    ),
     "RankedModel.score": "Composite, 0–100, on the conservative lower bound.",
     "RankedModel.evidence_basis": (
         "Provenance of the benchmark inputs — none, unverified-legacy, mixed, "
@@ -345,6 +368,7 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
                 "fits": {"example_device": True} if c.open_weights else {},
                 "verified_benchmarks": sorted(c.verified_benchmarks),
                 "rehost_of": c.rehost_of,
+                "release_date": c.release_date,
             }
             for c in pool
         ],
@@ -654,6 +678,9 @@ VOCABULARIES: dict[str, Any] = {
     # `state` is unique on RankResponse (authoring_guide.state). Do not add
     # `why` here: applied.unbound[].why is free-text, not this enum.
     "state": lambda: list(service.AUTHORING_GUIDE_STATES),
+    # `reason` is unique on RankResponse (unranked_candidates.models[].reason).
+    "reason": lambda: returned_strings(REPO_ROOT / "pipeline" / "ranking.py",
+                                       "_unranked_reason"),
 }
 
 
@@ -1199,25 +1226,35 @@ def _billing_paths() -> dict[str, Any]:
     async def samples():
         kv = access_kv.MemoryKV()
         hook_ok = await billing_mod.webhook(
-            payload=body, signature=header, secret=secret, flag=True, kv=kv,
+            payload=body, signature=header, secret=secret, kv=kv,
             policy=policy, now=now, service_commit=_COMMIT)
         hook_bad = await billing_mod.webhook(
-            payload=body, signature="", secret=secret, flag=True, kv=kv,
+            payload=body, signature="", secret=secret, kv=kv,
             policy=policy, now=now, service_commit=_COMMIT)
-        hook_off = await billing_mod.webhook(
-            payload=body, signature=header, secret=secret, flag=False, kv=kv,
+        # BILLING_ENABLED gates Checkout only (2026-09-24). The webhook, claim
+        # and rotate answer 503 only when the deployment lacks their secret or
+        # store, so those are their 503 samples.
+        hook_unset = await billing_mod.webhook(
+            payload=body, signature=header, secret=None, kv=kv,
             policy=policy, now=now, service_commit=_COMMIT)
+        unbound = await billing_mod.claim(
+            session_id="cs_spec", kv=access_kv.UnboundKV("ACCESS"), policy=policy,
+            now=now, service_commit=_COMMIT)
+        check_off = await billing_mod.checkout(
+            payload={"price_id": price}, flag=False, secret="sk_test_openapi",
+            origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
+            policy=policy, service_commit=_COMMIT, http=_Stripe())
         claimed = await billing_mod.claim(
-            session_id="cs_spec", flag=True, kv=kv, policy=policy, now=now,
+            session_id="cs_spec", kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         gone = await billing_mod.claim(
-            session_id="cs_spec", flag=True, kv=kv, policy=policy, now=now,
+            session_id="cs_spec", kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         empty = await billing_mod.claim(
-            session_id="", flag=True, kv=kv, policy=policy, now=now,
+            session_id="", kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         not_ready = await billing_mod.claim(
-            session_id="cs_unknown", flag=True, kv=kv, policy=policy, now=now,
+            session_id="cs_unknown", kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         check = await billing_mod.checkout(
             payload={"price_id": price}, flag=True, secret="sk_test_openapi",
@@ -1241,14 +1278,14 @@ def _billing_paths() -> dict[str, Any]:
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
             policy=policy, service_commit=_COMMIT, http=_Stripe())
         rot_missing = await billing_mod.rotate(
-            api_key=None, flag=True, kv=kv, policy=policy, now=now,
+            api_key=None, kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
-        return (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready,
-                check, check_omit, check_bad, check_form, check_unmapped,
-                rot_missing)
+        return (hook_ok, hook_bad, hook_unset, unbound, check_off, claimed, gone,
+                empty, not_ready, check, check_omit, check_bad, check_form,
+                check_unmapped, rot_missing)
 
-    (hook_ok, hook_bad, hook_off, claimed, gone, empty, not_ready, check,
-     check_omit, check_bad, check_form, check_unmapped,
+    (hook_ok, hook_bad, hook_unset, unbound, check_off, claimed, gone, empty,
+     not_ready, check, check_omit, check_bad, check_form, check_unmapped,
      rot_missing) = asyncio.run(samples())
     if (check_form.status != billing_mod.HTTP_SEE_OTHER
             or check_form.headers.get("location") != check.body["url"]):
@@ -1256,7 +1293,9 @@ def _billing_paths() -> dict[str, Any]:
     for name, outcome, code in (
             ("webhook ok", hook_ok, None),
             ("webhook bad", hook_bad, billing_mod.INVALID_SIGNATURE),
-            ("webhook off", hook_off, billing_mod.BILLING_NOT_ENABLED),
+            ("webhook unset", hook_unset, billing_mod.BILLING_NOT_CONFIGURED),
+            ("claim unbound", unbound, billing_mod.STORE_NOT_CONFIGURED),
+            ("checkout off", check_off, billing_mod.BILLING_NOT_ENABLED),
             ("claim", claimed, None),
             ("claim gone", gone, billing_mod.CLAIM_CONSUMED),
             ("claim empty", empty, billing_mod.INVALID_REQUEST),
@@ -1277,7 +1316,12 @@ def _billing_paths() -> dict[str, Any]:
         return _json_body(description, _infer(outcome.body))
 
     skip = {"x-modelspec-probe": "skip"}
-    off = "BILLING_ENABLED is off."
+    off = "BILLING_ENABLED is off: no new purchase can start."
+    unset = ("STRIPE_WEBHOOK_SECRET or the ACCESS store is not configured on this "
+             "deployment. BILLING_ENABLED does not gate the webhook: refunds, "
+             "disputes and renewals of past purchases apply with it off.")
+    unbound_503 = ("The ACCESS store is not bound on this deployment. "
+                   "BILLING_ENABLED does not gate this path.")
     return {
         "/v1/billing/checkout": {
             "post": {
@@ -1289,7 +1333,8 @@ def _billing_paths() -> dict[str, Any]:
                     "`Authorization: Bearer` binds the payment to that key (fingerprint "
                     "only, never the key): a pack ADDs credits, a plan attaches. Unknown "
                     "or revoked key: 401, never anonymous. No key: claim mints one. "
-                    "Flag off: 503.\n\n"
+                    "BILLING_ENABLED off: 503 billing_not_enabled, before any call "
+                    "to Stripe. The flag gates this endpoint alone.\n\n"
                     "Form variant (MODEL-105): the buy buttons on "
                     "https://modelspec.dev/pricing post "
                     "`application/x-www-form-urlencoded` with one `price_id` field. "
@@ -1346,7 +1391,7 @@ def _billing_paths() -> dict[str, Any]:
                         check_unmapped,
                         "price_not_mapped: the price_id is not in the tier table, or "
                         "(form post) is a placeholder. Refused, never redirected."),
-                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(check_off, off),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),
@@ -1373,7 +1418,7 @@ def _billing_paths() -> dict[str, Any]:
                     "200": envelope(hook_ok, "Received. duplicate is true on a replay."),
                     str(billing_mod.HTTP_BAD_REQUEST): envelope(
                         hook_bad, "Missing, wrong, or stale Stripe-Signature."),
-                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_unset, unset),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),
@@ -1407,7 +1452,7 @@ def _billing_paths() -> dict[str, Any]:
                         not_ready, "Payment received, key not ready. Retry in a few seconds.")),
                     str(billing_mod.HTTP_GONE): _with_html(envelope(
                         gone, "Already shown. Rotate if you still hold the key.")),
-                    str(billing_mod.HTTP_UNAVAILABLE): _with_html(envelope(hook_off, off)),
+                    str(billing_mod.HTTP_UNAVAILABLE): _with_html(envelope(unbound, unbound_503)),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),
@@ -1434,7 +1479,7 @@ def _billing_paths() -> dict[str, Any]:
                     str(billing_mod.HTTP_CONFLICT): envelope(
                         not_ready, "Payment received, key not ready. Retry in a few seconds."),
                     str(billing_mod.HTTP_GONE): envelope(gone, "Already shown."),
-                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(unbound, unbound_503),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),
@@ -1452,7 +1497,7 @@ def _billing_paths() -> dict[str, Any]:
                 "responses": {
                     str(billing_mod.HTTP_UNAUTHORIZED): envelope(
                         rot_missing, "No current key presented."),
-                    str(billing_mod.HTTP_UNAVAILABLE): envelope(hook_off, off),
+                    str(billing_mod.HTTP_UNAVAILABLE): envelope(unbound, unbound_503),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
                         {"$ref": "#/components/schemas/TransportError"}),

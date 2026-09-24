@@ -672,24 +672,30 @@ availability:
 benchmarks:
   scores:
     alpaca_eval: 39.3
-    arena_elo_coding: 1260.0
     arena_elo_hard_prompts: 1340.1
-    arena_elo_math: 1250.0
-    arena_elo_overall: 1270.0
     arena_elo_style_control: 1334.2
-    artificial_analysis_quality_index: 80.0
-    artificial_analysis_speed_index: 45.0
-    gpqa_diamond: 49.8
     gsm8k: 96.8
-    humaneval: 81.2
-    ifeval: 80.0
-    live_code_bench: 30.5
     math_500: 73.8
     medqa: 82.9
-    mmlu_pro: 67.5
+  evidence:
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: Llama 3.1 405B Instruct
+    score: 96.8
+    unit: percent
+    source_url: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md
+    source_kind: provider_self_report
+    evidence_date: '2024-07-23'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: GSM-8K (CoT)
+    configuration: 'Meta Llama 3.1 model card, instruction-tuned table: GSM-8K (CoT), 8-shot, em_maj1@1, 96.8.'
+    limitations: ''
   benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds Meta''s MATH
+    (CoT, 0-shot, final_em) 73.8 for Llama 3.1 405B Instruct, from the Llama 3.1 MODEL_CARD.md. Each value is confirmed
+    for this exact model but is not the benchmark its key names, so it stays in the flat block and is not promoted
+    to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -847,7 +853,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: meta/llama-3-1-405b-instruct

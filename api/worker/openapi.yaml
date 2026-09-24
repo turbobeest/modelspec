@@ -131,9 +131,9 @@ x-modelspec-access:
     tier_not_configured: 500
   documented_in: docs/api-access.md
 x-modelspec-billing:
-  status: wired; enabled
+  status: wired; flag off
   ticket: MODEL-93
-  enabled: true
+  enabled: false
   switch: BILLING_ENABLED in api/worker/wrangler.jsonc
   unit: credit
   what_is_sold: 'credits on this API key: a monthly allowance that resets each paid invoice (no rollover),
@@ -424,7 +424,8 @@ paths:
       description: 'Redirect the browser to `url`. `price_id` is required; omitted is 400 naming the valid
         ids, never a guessed purchase. A live key in `Authorization: Bearer` binds the payment to that
         key (fingerprint only, never the key): a pack ADDs credits, a plan attaches. Unknown or revoked
-        key: 401, never anonymous. No key: claim mints one. Flag off: 503.
+        key: 401, never anonymous. No key: claim mints one. BILLING_ENABLED off: 503 billing_not_enabled,
+        before any call to Stripe. The flag gates this endpoint alone.
 
 
         Form variant (MODEL-105): the buy buttons on https://modelspec.dev/pricing post `application/x-www-form-urlencoded`
@@ -680,7 +681,7 @@ paths:
                   service_commit:
                     type: string
         '503':
-          description: BILLING_ENABLED is off.
+          description: 'BILLING_ENABLED is off: no new purchase can start.'
           content:
             application/json:
               schema:
@@ -806,7 +807,9 @@ paths:
                   service_commit:
                     type: string
         '503':
-          description: BILLING_ENABLED is off.
+          description: 'STRIPE_WEBHOOK_SECRET or the ACCESS store is not configured on this deployment.
+            BILLING_ENABLED does not gate the webhook: refunds, disputes and renewals of past purchases
+            apply with it off.'
           content:
             application/json:
               schema:
@@ -1034,7 +1037,8 @@ paths:
               schema:
                 type: string
         '503':
-          description: BILLING_ENABLED is off.
+          description: The ACCESS store is not bound on this deployment. BILLING_ENABLED does not gate
+            this path.
           content:
             application/json:
               schema:
@@ -1253,7 +1257,8 @@ paths:
                   service_commit:
                     type: string
         '503':
-          description: BILLING_ENABLED is off.
+          description: The ACCESS store is not bound on this deployment. BILLING_ENABLED does not gate
+            this path.
           content:
             application/json:
               schema:
@@ -1335,7 +1340,8 @@ paths:
                   service_commit:
                     type: string
         '503':
-          description: BILLING_ENABLED is off.
+          description: The ACCESS store is not bound on this deployment. BILLING_ENABLED does not gate
+            this path.
           content:
             application/json:
               schema:
@@ -2202,6 +2208,56 @@ components:
         service_commit:
           description: The sha of the deployed Worker. Fixed per deployment.
           type: string
+        unranked_candidates:
+          description: 'The models this answer could not rank, named: they passed every filter, match
+            the use case''s model types, and lack the benchmark evidence to be ordered. Always present.
+            Disclosure only; nothing in result depends on it.'
+          type: object
+          properties:
+            cap:
+              description: How many are named in models, at most.
+              type: integer
+            count:
+              description: How many such models there are. Never capped; at most unranked_count.
+              type: integer
+            models:
+              description: Newest release_date first; undated last; then by model_id.
+              type: array
+              items:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  missing_benchmarks:
+                    description: The use case's weighted benchmarks this model has no score for.
+                    type: array
+                    items:
+                      type: string
+                  model_id:
+                    type: string
+                  reason:
+                    description: no_scores (no score on any benchmark this use case weighs), below_count_floor
+                      (fewer than policy.min_benchmark_count), or below_coverage_floor (under policy.min_benchmark_coverage).
+                      A model failing both floors is below_count_floor.
+                    type: string
+                    enum:
+                    - below_count_floor
+                    - below_coverage_floor
+                    - no_scores
+                  release_date:
+                    description: The card's release date, or null when the card has none.
+                    type: string
+                    nullable: true
+                required:
+                - display_name
+                - missing_benchmarks
+                - model_id
+                - reason
+                - release_date
+          required:
+          - cap
+          - count
+          - models
         unranked_count:
           type: integer
       required:
@@ -2219,6 +2275,7 @@ components:
       - result
       - schema_version
       - service_commit
+      - unranked_candidates
       - unranked_count
     Health:
       type: object

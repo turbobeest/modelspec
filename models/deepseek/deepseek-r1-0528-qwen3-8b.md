@@ -667,17 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
+  scores: {}
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard
   benchmark_as_of: 2026-04
   evidence:
@@ -877,7 +867,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # DeepSeek R1 0528 Qwen3 8B

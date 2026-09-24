@@ -667,18 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 46.0
-    bbh: 54.6
-    math_500: 19.9
-    gpqa_diamond: 32.0
-    musr: 43.8
-    mmlu_pro: 40.9
-    mmmu: 54.1
-    mathvista: 58.2
-    docvqa: 94.5
-    chartqa: 83.0
-    ai2d: 83.0
+  scores: {}
   benchmark_source: open-llm-leaderboard-v2, multimodal-evals
   benchmark_as_of: 2025-03
   benchmark_notes: ''
@@ -839,7 +828,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Qwen2 VL 7B Instruct AWQ

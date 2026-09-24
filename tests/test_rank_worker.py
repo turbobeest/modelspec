@@ -257,6 +257,9 @@ def test_the_worker_returns_the_bytes_the_cli_returns(name: str, cache: Path) ->
     assert answer["ranking_status"] == envelope["ranking_status"], name
     assert answer["ranked_count"] == envelope["ranked_count"], name
     assert answer["unranked_count"] == envelope["unranked_count"], name
+    # MODEL-110: the models neither could rank are named the same way, byte for byte.
+    assert _bytes(answer["unranked_candidates"]) == _bytes(envelope["unranked_candidates"]), (
+        f"{name}: the Worker and the CLI name different unranked candidates")
     expected_status = (service.HTTP_NO_MATCH
                        if envelope["ranking_status"] in {"empty", "unavailable"}
                        else service.HTTP_OK)
@@ -357,6 +360,39 @@ def test_an_evidence_no_match_is_reachable_without_the_catalogue() -> None:
     assert answer["error"]["code"] == "insufficient_evidence"
     assert answer["error"]["eliminated_by"]["constraint"] == "policy.min_benchmark_coverage"
     assert answer["result"] == []
+    # The 422 is where naming them matters most: nothing ranked, and here is why.
+    block = answer["unranked_candidates"]
+    assert block["count"] == 1
+    assert block["models"][0]["model_id"] == "m"
+    assert block["models"][0]["reason"] == "no_scores"
+
+
+def test_the_worker_reads_the_release_date_the_export_carries() -> None:
+    """MODEL-110: ordering needs `release_date`; an older export without it degrades."""
+    export = {"build": {"commit": "abc", "export_schema_version": "3.0"},
+              "candidates": [
+                  {"model_id": "old", "display_name": "Old", "provider": "P",
+                   "model_type": "llm-chat", "release_date": "2025-01-01"},
+                  {"model_id": "new", "display_name": "New", "provider": "P",
+                   "model_type": "llm-chat", "release_date": "2026-09-01"},
+                  {"model_id": "pre-110", "display_name": "Pre", "provider": "P",
+                   "model_type": "llm-chat"}]}
+    _status, answer = service.rank({"use_case": "coding"}, export, None,
+                                   SERVICE_COMMIT, ORIGIN)
+    models = answer["unranked_candidates"]["models"]
+    assert [m["model_id"] for m in models] == ["new", "old", "pre-110"]
+    assert models[-1]["release_date"] is None
+
+
+def test_the_catalogue_names_models_it_cannot_rank_for_coding() -> None:
+    """The ticket's case, on the real catalogue: disclosure is non-empty and bounded."""
+    status, answer = _worker_rank({"use_case": "coding"})
+    assert status == service.HTTP_OK
+    block = answer["unranked_candidates"]
+    assert 0 < block["count"] <= answer["unranked_count"]
+    assert len(block["models"]) == min(block["cap"], block["count"])
+    ranked = {row["model_id"] for row in answer["result"]}
+    assert not ranked & {m["model_id"] for m in block["models"]}
 
 
 # ── refusals ─────────────────────────────────────────────────────────────────

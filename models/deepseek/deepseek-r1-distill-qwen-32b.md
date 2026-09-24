@@ -669,27 +669,12 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1370.0
-    arena_elo_math: 1400.0
-    arena_elo_overall: 1360.0
-    artificial_analysis_quality_index: 84.0
-    artificial_analysis_speed_index: 40.0
     bbh: 50.1
     gpqa_diamond: 52.8
     humaneval: 78.2
     ifeval: 76.0
     math_500: 86.2
-    mmlu_astronomy: 76.5
-    mmlu_biology: 84.2
-    mmlu_business_ethics: 77.8
-    mmlu_chemistry: 78.5
-    mmlu_clinical_knowledge: 83.5
-    mmlu_computer_science: 85.5
-    mmlu_jurisprudence: 74.5
-    mmlu_physics: 82.8
     mmlu_pro: 65.5
-    mmlu_professional_accounting: 68.2
-    mmlu_professional_law: 72.5
     musr: 20.8
     live_code_bench: 57.2
   benchmark_source: lmarena.ai, provider-reports, open-llm-leaderboard-v2
@@ -879,7 +864,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-r1-distill-qwen-32b

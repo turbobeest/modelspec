@@ -684,18 +684,11 @@ benchmarks:
     bbq: 82.8
     chartqa: 79.2
     docvqa: 88.5
-    flores_en_de: 63.2
-    flores_en_es: 68.1
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
     gpqa_diamond: 55.8
-    gsm8k: 90.8
     helm_safety: 87.5
-    humaneval: 84.1
     ifeval: 82.0
     math_500: 74.3
     mathvista: 55.8
-    mgsm: 87.5
     mmlu_pro: 72.0
     mmmu: 62.8
     toxigen: 91.2
@@ -860,7 +853,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Gemini 1.5 Pro

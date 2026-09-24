@@ -666,17 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    beir: 49.5
-    miracl: 51.0
-    mteb_classification: 66.0
-    mteb_clustering: 44.0
-    mteb_overall: 60.0
-    mteb_retrieval: 56.5
-    mteb_reranking: 60.0
-    mteb_sts: 77.5
-    mteb_pair_classification: 82.0
-    mteb_summarization: 28.0
+  scores: {}
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -837,7 +827,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # Qwen3 VL Embedding 2B

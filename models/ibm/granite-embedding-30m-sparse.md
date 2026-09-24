@@ -666,17 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    beir: 43.0
-    mteb_classification: 60.0
-    mteb_clustering: 37.5
-    mteb_overall: 53.0
-    mteb_retrieval: 48.5
-    mteb_reranking: 50.0
-    mteb_sts: 75.0
-    mteb_pair_classification: 78.5
-    mteb_summarization: 25.5
-    miracl: 32.0
+  scores: {}
   benchmark_source: mteb-leaderboard, miracl
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -837,7 +827,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # granite embedding 30M sparse

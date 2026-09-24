@@ -669,23 +669,8 @@ availability:
 benchmarks:
   scores:
     alpaca_eval: 22.9
-    arena_elo_coding: 1160
     arena_elo_hard_prompts: 1221.8
-    arena_elo_math: 1150
-    arena_elo_overall: 1170
     arena_elo_style_control: 1211.0
-    artificial_analysis_quality_index: 62
-    artificial_analysis_speed_index: 92
-    bbh: 39.2
-    bbq: 72.8
-    gpqa_diamond: 28.5
-    helm_safety: 78.5
-    humaneval: 55.5
-    ifeval: 62
-    math_500: 42
-    mmlu_pro: 40.5
-    musr: 12.8
-    toxigen: 82.1
   benchmark_source: lmarena.ai, provider-reports, safety-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
 deployment:
@@ -845,7 +830,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: meta/llama-3-1-8b-instruct

@@ -694,12 +694,7 @@ benchmarks:
     chartqa: 87.5
     docvqa: 93.8
     finbench: 69.8
-    flores_en_de: 63.2
-    flores_en_es: 68.1
-    flores_en_ja: 58.1
-    flores_en_zh: 56.8
     gpqa_diamond: 80.5
-    gsm8k: 90.8
     helm_safety: 88.5
     humaneval: 91.2
     ifeval: 91.0
@@ -708,7 +703,6 @@ benchmarks:
     math_500: 95.2
     mathvista: 67.8
     medqa: 80.2
-    mgsm: 87.5
     mmlu_astronomy: 79.8
     mmlu_biology: 87.2
     mmlu_business_ethics: 81.2
@@ -766,20 +760,6 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
-  - benchmark_id: arena_elo_style_control
-    model_id_as_evaluated: gemini-2.5-pro
-    score: 1445.62
-    unit: elo
-    source_url: https://lmarena.ai/leaderboard
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: critpt
     model_id_as_evaluated: Gemini 2.5 Pro
     score: 2.57
@@ -832,6 +812,55 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gemini-2.5-pro
+    score: 1457.77
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1457.77 (95% CI 1455.31-1460.24), 122554 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gemini-2.5-pro
+    score: 1452.3
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1452.30 (95% CI 1448.04-1456.55), 26265 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gemini-2.5-pro
+    score: 1445.5
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1445.50 (95% CI 1443.01-1447.99), 122554 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
 deployment:
   api_only: false
   local_inference: false
@@ -989,7 +1018,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: google/gemini-2-5-pro

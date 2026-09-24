@@ -669,20 +669,8 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    arena_elo_coding: 1260
-    arena_elo_math: 1250
-    arena_elo_overall: 1270
     artificial_analysis_quality_index: 76
     artificial_analysis_speed_index: 70
-    chartqa: 73.2
-    docvqa: 82.5
-    gpqa_diamond: 50.1
-    humaneval: 80.5
-    ifeval: 78
-    math_500: 72
-    mathvista: 48.8
-    mmlu_pro: 65.5
-    mmmu: 55.5
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals
   benchmark_as_of: 2026-04
 deployment:
@@ -842,7 +830,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

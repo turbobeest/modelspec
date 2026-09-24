@@ -154,7 +154,7 @@ path that raise if they are touched.
 
 The rows are not a hand-written fixture. They come out of
 `pipeline.ranking.rank_report` — the function the live endpoint and
-`modelspec offline rank --json` both call — run over four synthetic candidates
+`modelspec offline rank --json` both call — run over five synthetic candidates
 defined in the module. Every field a live row has, a sandbox row has, with the
 same types, because the same code produced both; a field added to the scorer
 appears in the sandbox on the next deploy with nobody remembering to update
@@ -162,8 +162,9 @@ anything.
 
 The values are unmistakable: models are `sandbox/fixture-…`, the provider is
 `ModelSpec Sandbox`, `scores_as_of` is fixed, and `"sandbox": true` rides on the
-response. One of the four has thin evidence, so an integrator sees a real
-`unranked` count and a real `evidence_basis` before paying for either.
+response. Two of the five have thin evidence, so an integrator sees a real
+`unranked` count, named `unranked_candidates` and a real `evidence_basis` before
+paying for any of them.
 
 ## Keys are never written down
 

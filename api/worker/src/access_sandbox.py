@@ -39,7 +39,7 @@ DEFAULT_USE_CASE = "general"
 DEFAULT_ROW_COUNT = 10
 
 #: The synthetic catalogue: a strong managed model, a strong open-weights
-#: model, a cheap small one, and one with thin evidence so a caller sees what
+#: model, a cheap small one, and two with thin evidence so a caller sees what
 #: `unranked` and a real `evidence_basis` look like before they pay for either.
 _FIXTURES: tuple[dict[str, Any], ...] = (
     {"model_id": "sandbox/fixture-flagship", "display_name": "Sandbox Flagship",
@@ -58,6 +58,13 @@ _FIXTURES: tuple[dict[str, Any], ...] = (
      "quality": 0.40, "coverage": 0.0, "verified": False, "cost_input": None,
      "context_window": 8_000, "open_weights": True,
      "model_type": "llm-chat", "tier": "tier-3"},
+    # A newer model with one benchmark in: `unranked_candidates` (MODEL-110)
+    # then shows a dated entry beside the undated one above, and a reason
+    # other than `no_scores`.
+    {"model_id": "sandbox/fixture-preview", "display_name": "Sandbox Preview",
+     "quality": 0.70, "coverage": 0.15, "verified": False, "cost_input": 2.0,
+     "context_window": 128_000, "open_weights": False,
+     "model_type": "llm-reasoning", "tier": "tier-2", "release_date": SCORES_AS_OF},
 )
 
 _PROVIDER = "ModelSpec Sandbox"
@@ -98,6 +105,7 @@ def _candidates(use_case: str) -> list[Candidate]:
             scores_as_of=SCORES_AS_OF,
             fits={},
             verified_benchmarks=set(covered) if spec["verified"] else set(),
+            release_date=spec.get("release_date"),
         ))
     return out
 
@@ -181,6 +189,7 @@ def rank_response(request: dict[str, Any], *, envelope: dict[str, Any],
         "ranking_status": report["ranking_status"],
         "ranked_count": report["ranked_count"],
         "unranked_count": report["unranked_count"],
+        "unranked_candidates": report["unranked_candidates"],
         "candidates_considered": len(pool),
         "result": report["ranked"],
         # Sandbox fixtures are not catalogue cards; they have no authoring

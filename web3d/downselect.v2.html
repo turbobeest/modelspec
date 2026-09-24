@@ -43,6 +43,10 @@ color:var(--ink);border-bottom:0}
 #results>p.lede{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
 color:var(--mute)}
 #status{padding:30px 0;color:var(--mute)}
+.fresh{margin:0 0 14px;font-size:12px;color:var(--mute)}
+.fresh b{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+color:var(--dim);font-weight:500;margin-right:8px}
+.fresh a{color:var(--ink)}
 footer p{max-width:68ch}
 </style>
 </head>
@@ -269,6 +273,7 @@ the server engine: filter, score, rank, explain.</p>
         return a.c.display_name.localeCompare(b.c.display_name);
       });
     var shown = ranked.slice(0, 25);
+    var fresh = notYetRanked(unranked, profile);
 
     var reasons = [];
     if (dropped.open) { reasons.push(dropped.open + " not open-weights"); }
@@ -282,10 +287,44 @@ the server engine: filter, score, rank, explain.</p>
       "%) · " + unranked.length.toLocaleString() + " unranked for insufficient evidence" +
       (reasons.length ? " — excluded: " + reasons.join(", ") : "");
 
-    render(shown, unranked, s);
+    render(shown, unranked, s, fresh);
     var query = Object.keys(s).filter(function (k) { return s[k]; })
       .map(function (k) { return k + "=" + encodeURIComponent(s[k]); }).join("&");
     history.replaceState(null, "", query ? "?" + query : location.pathname);
+  }
+
+  // MODEL-110: name the models of this use case's types that passed every filter
+  // and still have too little evidence to order — newest first, undated last —
+  // as pipeline/ranking.py's unranked_candidates does for the CLI and the API.
+  var ORDERABLE_DATE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+  var NOT_YET_RANKED_CAP = 10;
+  function notYetRanked(unranked, profile) {
+    var preferred = profile.preferred_types || [];
+    var rows = unranked.filter(function (r) {
+      return r.c.model_type && [r.c.model_type].concat(r.c.model_subtypes || [])
+        .some(function (t) { return preferred.indexOf(t) !== -1; });
+    });
+    function dateKey(r) {
+      var d = r.c.release_date;
+      return d && ORDERABLE_DATE.test(d) ? d : "";
+    }
+    rows.sort(function (a, b) {
+      var da = dateKey(a), db = dateKey(b);
+      if (da !== db) { return da < db ? 1 : -1; }
+      return a.c.model_id < b.c.model_id ? -1 : a.c.model_id > b.c.model_id ? 1 : 0;
+    });
+    return { count: rows.length, models: rows.slice(0, NOT_YET_RANKED_CAP) };
+  }
+
+  function freshStrip(fresh) {
+    if (!fresh.count) { return ""; }
+    var rest = fresh.count - fresh.models.length;
+    return '<p class="fresh"><b>New — not yet ranked</b>' +
+      fresh.models.map(function (r) {
+        return '<a href="/m/' + r.c.model_id + '/">' + r.c.display_name + "</a>";
+      }).join(", ") +
+      (rest > 0 ? ", and " + rest.toLocaleString() + " more" : "") +
+      " — too little benchmark evidence to order, newest first.</p>";
   }
 
   function bar(value, max, color) {
@@ -293,7 +332,7 @@ the server engine: filter, score, rank, explain.</p>
     return '<div class="bar" style="width:' + pct.toFixed(1) + '%;background:' + color + '"></div>';
   }
 
-  function render(ranked, unranked, state) {
+  function render(ranked, unranked, state, fresh) {
     $("status").style.display = "none";
     if (!ranked.length && !unranked.length) {
       $("results").innerHTML =
@@ -345,7 +384,7 @@ the server engine: filter, score, rank, explain.</p>
         '<div style="margin-top:9px">' + openPill + speed + stale + "</div>" +
         "</div>";
     }
-    var html = "";
+    var html = freshStrip(fresh);
     if (!ranked.length) {
       html += '<div class="notice">Nothing has enough evidence to order for this use case. ' +
         'Models below are visible as unranked, not ranked last.</div>';

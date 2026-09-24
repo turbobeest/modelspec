@@ -765,19 +765,51 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gpt-4.1-mini-2025-04-14
+    score: 1340.21
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1340.21 (95% CI 1335.91-1344.52), 38631 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: ''
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gpt-4.1-mini-2025-04-14
+    score: 1367.23
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1367.23 (95% CI 1359.72-1374.73), 6811 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-4.1-mini-2025-04-14
-    score: 1382.32
+    score: 1382.52
     unit: elo
-    source_url: https://lmarena.ai/leaderboard
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1382.52 (95% CI 1378.18-1386.85), 38631 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
     limitations: ''
 deployment:
   api_only: false

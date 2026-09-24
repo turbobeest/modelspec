@@ -670,26 +670,8 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 58.5
-    alpaca_eval: 42.8
-    arena_elo_coding: 1350.0
     arena_elo_hard_prompts: 1446.6
-    arena_elo_math: 1330.0
-    arena_elo_overall: 1340.0
     arena_elo_style_control: 1424.4
-    artificial_analysis_quality_index: 80.0
-    artificial_analysis_speed_index: 70.0
-    bbh: 64.1
-    bbq: 73.5
-    gpqa_diamond: 64.5
-    gsm8k: 89.3
-    helm_safety: 78.2
-    humaneval: 88.5
-    ifeval: 87.0
-    live_code_bench: 59.3
-    math_500: 92.5
-    mmlu_pro: 78.8
-    mt_bench: 8.8
     multipl_e_csharp: 82.5
     multipl_e_julia: 64.2
     multipl_e_kotlin: 75.2
@@ -700,14 +682,6 @@ benchmarks:
     multipl_e_ruby: 68.5
     multipl_e_scala: 63.2
     multipl_e_swift: 68.5
-    musr: 29.8
-    swe_bench_agent: 35.8
-    swe_bench_verified: 42.5
-    tau_bench: 41.2
-    terminal_bench: 37.7
-    terminal_bench_2: 46.4
-    toxigen: 82.5
-    wildbench: 70.2
   benchmark_source: lmarena.ai, provider-reports, safety-evals, preference-evals,
     open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
@@ -725,20 +699,6 @@ benchmarks:
     benchmark_version: AA-LCR v1.1
     configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
       evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: arena_elo_style_control
-    model_id_as_evaluated: deepseek-v3.2
-    score: 1425.25
-    unit: elo
-    source_url: https://lmarena.ai/leaderboard
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
   - benchmark_id: critpt
     model_id_as_evaluated: DeepSeek V3.2
@@ -779,6 +739,55 @@ benchmarks:
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: deepseek-v3.2
+    score: 1424.8
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1424.80 (95% CI 1421.27-1428.33), 46458 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: deepseek-v3.2
+    score: 1448.66
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1448.66 (95% CI 1442.30-1455.02), 10510 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: deepseek-v3.2
+    score: 1425.18
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1425.18 (95% CI 1421.63-1428.73), 46458 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
 deployment:
   api_only: false
   local_inference: true
@@ -936,7 +945,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-v3-2

@@ -678,16 +678,6 @@ benchmarks:
     ifeval: 80.5
     math_500: 80.5
     mmlu_pro: 70.2
-    multipl_e_csharp: 78.5
-    multipl_e_php: 76.2
-    multipl_e_ruby: 64.5
-    multipl_e_swift: 64.5
-    multipl_e_r: 56.8
-    multipl_e_julia: 60.2
-    multipl_e_perl: 49.2
-    multipl_e_lua: 53.5
-    multipl_e_scala: 58.8
-    multipl_e_kotlin: 71.2
     live_code_bench: 69.6
     aider_polyglot: 49.3
   benchmark_source: lmarena.ai, provider-reports
@@ -850,7 +840,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

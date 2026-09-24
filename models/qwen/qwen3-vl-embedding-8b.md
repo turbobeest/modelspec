@@ -666,17 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    beir: 57.5
-    miracl: 60.0
-    mteb_classification: 72.5
-    mteb_clustering: 52.0
-    mteb_overall: 68.0
-    mteb_retrieval: 65.5
-    mteb_reranking: 65.6
-    mteb_sts: 81.1
-    mteb_pair_classification: 85.5
-    mteb_summarization: 30.5
+  scores: {}
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -837,7 +827,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: qwen/qwen3-vl-embedding-8b

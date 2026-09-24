@@ -668,35 +668,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 72.1
-    arena_elo_coding: 1400.0
     arena_elo_hard_prompts: 1495.4
-    arena_elo_math: 1380.0
-    arena_elo_overall: 1390.0
     arena_elo_style_control: 1477.0
     arena_elo_vision: 1277.9
-    gpqa_diamond: 77.2
-    humaneval: 92.1
-    ifeval: 91.8
-    live_code_bench: 84.6
-    math_500: 95.5
     medqa: 95.8
-    mmlu_pro: 84.8
-    multipl_e_csharp: 88.5
-    multipl_e_julia: 70.5
-    multipl_e_kotlin: 82.8
-    multipl_e_lua: 65.5
-    multipl_e_perl: 62.8
-    multipl_e_php: 85.2
-    multipl_e_r: 68.2
-    multipl_e_ruby: 78.2
-    multipl_e_scala: 72.5
-    multipl_e_swift: 76.5
-    swe_bench_agent: 55.2
-    swe_bench_verified: 69.3
-    tau_bench: 58.5
-    terminal_bench: 48.8
-    terminal_bench_2: 64.0
   evidence:
   - benchmark_id: metr_time_horizon_50
     model_id_as_evaluated: gpt_5_2
@@ -882,7 +857,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-5-2

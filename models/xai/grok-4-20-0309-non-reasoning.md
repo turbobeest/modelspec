@@ -668,29 +668,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    aider_polyglot: 70.8
-    arena_elo_coding: 1360.0
-    arena_elo_math: 1380.0
-    arena_elo_overall: 1370.0
-    gpqa_diamond: 75.2
-    humaneval: 91.0
-    ifeval: 90.0
-    math_500: 94.0
-    mmlu_pro: 82.5
-    swe_bench_agent: 50.2
-    swe_bench_verified: 64.5
-    multipl_e_csharp: 85.2
-    multipl_e_php: 82.8
-    multipl_e_ruby: 73.5
-    multipl_e_swift: 72.8
-    multipl_e_r: 64.5
-    multipl_e_julia: 67.8
-    multipl_e_perl: 57.5
-    multipl_e_lua: 61.2
-    multipl_e_scala: 68.2
-    multipl_e_kotlin: 79.5
-    live_code_bench: 81.9
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -851,7 +829,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

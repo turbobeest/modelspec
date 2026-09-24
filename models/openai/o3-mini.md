@@ -668,12 +668,9 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 80.5
     aime_2025: 83.3
-    arena_elo_coding: 1350.0
     arena_elo_hard_prompts: 1401.1
     arena_elo_math: 1370.0
-    arena_elo_overall: 1340.0
     arena_elo_style_control: 1363.2
     gpqa_diamond: 79.7
     humaneval: 88.9
@@ -686,17 +683,10 @@ benchmarks:
     multipl_e_csharp: 82.5
     multipl_e_julia: 64.2
     multipl_e_kotlin: 75.2
-    multipl_e_lua: 58.5
     multipl_e_perl: 54.2
     multipl_e_php: 80.2
-    multipl_e_r: 60.5
-    multipl_e_ruby: 68.5
     multipl_e_scala: 63.2
-    multipl_e_swift: 68.2
-    swe_bench_agent: 62.8
     swe_bench_verified: 71.2
-    tau_bench: 65.5
-    terminal_bench: 58.2
   benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -713,6 +703,52 @@ benchmarks:
     benchmark_version: GPQA Diamond
     configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
       evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: o3-mini
+    score: 1319.14
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1319.14 (95% CI 1315.59-1322.68), 56655 votes. The
+      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: ''
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: o3-mini
+    score: 1363.09
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1363.09 (95% CI 1356.64-1369.54), 9385 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: ''
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: o3-mini
+    score: 1347.74
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1347.74 (95% CI 1344.18-1351.29), 56655 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
     limitations: ''
 deployment:
   api_only: false
@@ -871,7 +907,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: openai/o3-mini

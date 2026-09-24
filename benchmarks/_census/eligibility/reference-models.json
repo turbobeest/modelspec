@@ -72,6 +72,15 @@
       "openness": "open_weight",
       "source_url": "https://artificialanalysis.ai/models/glm-5-3",
       "rationale": "Current open text model selected for scientific_reasoning based on the dated September 4 v4.2 per-model component chart. The linked model page establishes organization and open_weight status; exact evaluation display configuration is retained."
+    },
+    {
+      "model_id": "DeepSeek V4 Flash (Max)",
+      "organization": "DeepSeek",
+      "domain": "agentic",
+      "cohort": "open",
+      "openness": "open_weight",
+      "source_url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash",
+      "rationale": "Strongest open model on Zapier's 1.0.6 private board whose row states Max effort and whose organization is not OpenAI. The Hugging Face card deepseek-ai/DeepSeek-V4-Flash declares an MIT licence, confirmed in the repository LICENSE file. Zapier's label does not say 0731; the sibling card deepseek-ai/DeepSeek-V4-Flash-0731 is also MIT. GLM-5.3 is not on this board. This label does not assert open-source licensing."
     }
   ]
 }

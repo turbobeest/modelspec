@@ -675,6 +675,92 @@ benchmarks:
     ai2d: 82.9
     ocrbench: 89.4
     realworldqa: 68.5
+  evidence:
+  - benchmark_id: ai2d
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 82.9
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: AI2D
+    configuration: MiniCPM-V-4 model card, single-image OpenCompass table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: chartqa
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 84.4
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: ChartQA
+    configuration: MiniCPM-V-4 model card, single-image results table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: docvqa
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 92.9
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: DocVQA
+    configuration: MiniCPM-V-4 model card, single-image results table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: mathvista
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 66.9
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MathVista
+    configuration: MiniCPM-V-4 model card, single-image OpenCompass table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: mmmu
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 51.2
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: MMMU
+    configuration: MiniCPM-V-4 model card, single-image OpenCompass table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: ocrbench
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 89.4
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: OCRBench
+    configuration: MiniCPM-V-4 model card, single-image OpenCompass table; reported 894 of 1000, stored as 89.4, row
+      MiniCPM-V-4.0 (4.1B).
+    limitations: ''
+  - benchmark_id: realworldqa
+    model_id_as_evaluated: MiniCPM-V-4.0
+    score: 68.5
+    unit: percent
+    source_url: https://huggingface.co/openbmb/MiniCPM-V-4/blob/main/README.md
+    source_kind: provider_self_report
+    evidence_date: '2025-07-12'
+    date_type: published
+    verified_at: '2026-09-23'
+    benchmark_version: RealWorldQA
+    configuration: MiniCPM-V-4 model card, single-image results table, row MiniCPM-V-4.0 (4.1B).
+    limitations: ''
   benchmark_source: multimodal-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -835,7 +921,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # MiniCPM V 4

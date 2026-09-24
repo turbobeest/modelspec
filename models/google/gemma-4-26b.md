@@ -677,14 +677,7 @@ availability:
 benchmarks:
   scores:
     aider_polyglot: 52.1
-    arena_elo_coding: 1290.0
-    arena_elo_math: 1270.0
-    arena_elo_overall: 1280.0
     bbh: 60.1
-    gpqa_diamond: 65.2
-    humaneval: 82.5
-    ifeval: 81.5
-    math_500: 85.1
     mmlu_astronomy: 72.2
     mmlu_biology: 80.8
     mmlu_business_ethics: 73.5
@@ -693,7 +686,6 @@ benchmarks:
     mmlu_computer_science: 81.2
     mmlu_jurisprudence: 70.2
     mmlu_physics: 77.5
-    mmlu_pro: 72.3
     mmlu_professional_accounting: 64.5
     mmlu_professional_law: 69.2
     multipl_e: 75.4
@@ -705,7 +697,6 @@ benchmarks:
     multipl_e_rust: 65.2
     multipl_e_typescript: 76.8
     musr: 28.7
-    swe_bench_verified: 28.5
     multipl_e_csharp: 72.5
     multipl_e_php: 69.8
     multipl_e_ruby: 55.5
@@ -876,7 +867,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-23'
 ---
 
 

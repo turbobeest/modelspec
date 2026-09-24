@@ -729,6 +729,754 @@ benchmarks:
     mmlu_us_foreign_policy: 32.0
     mmlu_virology: 25.3
     mmlu_world_religions: 21.6
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.58
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task arc:challenge (25-shot, acc_norm), x100.
+    limitations: ''
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 1.06
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task gsm8k (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 39.87
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hellaswag (10-shot, acc_norm), x100.
+    limitations: ''
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-abstract_algebra (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.63
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-anatomy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 19.74
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-astronomy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-business_ethics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 30.19
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-clinical_knowledge (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.69
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_biology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_chemistry (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_computer_science (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 23.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 24.28
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_medicine (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.49
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-college_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 37.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-computer_security (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 31.06
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-conceptual_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 24.56
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-econometrics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 38.62
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-electrical_engineering (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.93
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-elementary_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 21.43
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-formal_logic (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 27.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-global_facts (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.06
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_biology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 27.59
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_chemistry (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 33.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_computer_science (5-shot, acc),
+      x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.09
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_european_history (5-shot, acc),
+      x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 35.86
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_geography (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 32.64
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_government_and_politics (5-shot,
+      acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 26.92
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_macroeconomics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 24.44
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_mathematics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 26.05
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_microeconomics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 30.46
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_physics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 31.74
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_psychology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.46
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_statistics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.49
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_us_history (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 30.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-high_school_world_history (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 14.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-human_aging (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 35.11
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-human_sexuality (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.93
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-international_law (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-jurisprudence (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.83
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-logical_fallacies (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 32.14
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-machine_learning (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 37.86
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-management (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 33.33
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-marketing (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 21.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-medical_genetics (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.25
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-miscellaneous (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.03
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-moral_disputes (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 27.26
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-moral_scenarios (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 30.39
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-nutrition (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.26
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-philosophy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 28.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-prehistory (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 24.47
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_accounting (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 29.01
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_law (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 41.54
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_medicine (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 24.18
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-professional_psychology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 33.64
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-public_relations (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.31
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-security_studies (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 33.83
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-sociology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 32.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-us_foreign_policy (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 25.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-virology (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 21.64
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task hendrycksTest-world_religions (5-shot, acc), x100.
+    limitations: ''
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 44.02
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task truthfulqa:mc (0-shot, mc2), x100.
+    limitations: ''
+  - benchmark_id: winogrande
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-1.3b-instruct
+    score: 52.41
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/blob/main/deepseek-ai/deepseek-coder-1.3b-instruct/results_2023-12-04T15-02-34.832979.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-04'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Open LLM Leaderboard v1 harness task winogrande (5-shot, acc), x100.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v1
   benchmark_as_of: 2024-07
   benchmark_notes: ''
@@ -889,7 +1637,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # deepseek coder 1.3B instruct

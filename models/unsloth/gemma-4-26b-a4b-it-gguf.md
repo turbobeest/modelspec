@@ -670,16 +670,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arena_elo_coding: 1290.0
-    arena_elo_math: 1270.0
-    arena_elo_overall: 1280.0
-    gpqa_diamond: 65.2
-    humaneval: 82.5
-    ifeval: 81.5
-    math_500: 85.1
-    mmlu_pro: 72.3
-    swe_bench_verified: 28.5
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -840,7 +831,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 

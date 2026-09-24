@@ -675,7 +675,22 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Claude Mythos 5.1
+    score: 60.9
+    unit: percent
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-01'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
+      1, 2026), section 8, body text naming Mythos 5.1. 10 trials per task (660 trials),
+      Claude Code --bare, max thinking effort; SE ±1.6-2 pts.
+    limitations: Mythos 5.1 is access-restricted; Artificial Analysis and LMArena list
+      no Mythos 5.1 row.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

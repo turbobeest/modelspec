@@ -383,8 +383,11 @@ def test_a_rejection_names_the_key_only_by_its_fingerprint(origin: Origin, cache
 
 #: The envelope as it stood before MODEL-71. Frozen here rather than derived,
 #: so a change to the code cannot quietly change what the test expects.
+#: MODEL-110 added `unranked_candidates` to every rank envelope, keyed or not —
+#: an additive field under schema 1.0, added here by hand for that reason.
 RANK_ENVELOPE_KEYS = {"schema_version", "command", "freshness", "result",
-                      "ranking_status", "ranked_count", "unranked_count"}
+                      "ranking_status", "ranked_count", "unranked_count",
+                      "unranked_candidates"}
 FIT_ENVELOPE_KEYS = {"schema_version", "command", "freshness", "result"}
 FRESHNESS_KEYS = {"fetched_at", "age_days", "stale", "stale_after_days", "origin",
                   "build_commit", "built_at", "export_schema_version"}

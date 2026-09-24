@@ -683,10 +683,6 @@ benchmarks:
     bbq: 85.5
     chartqa: 87.2
     docvqa: 87.2
-    flores_en_de: 67.3
-    flores_en_es: 71.2
-    flores_en_ja: 61.4
-    flores_en_zh: 59.7
     gpqa_diamond: 49.3
     gsm8k: 93.0
     helm_safety: 89.5
@@ -705,7 +701,6 @@ benchmarks:
     multipl_e_perl: 52.5
     multipl_e_php: 78.2
     multipl_e_r: 58.2
-    multipl_e_ruby: 68.5
     multipl_e_scala: 62.8
     multipl_e_swift: 66.5
     toxigen: 93.2
@@ -895,7 +890,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 # GPT-4 Turbo

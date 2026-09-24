@@ -668,7 +668,142 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 89.9
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Pro
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials.'
+    limitations: ''
+  - benchmark_id: swe_bench_multilingual
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 93.9
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Multilingual
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials.'
+    limitations: ''
+  - benchmark_id: swe_bench_multimodal
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 61.4
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Multimodal
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials.'
+    limitations: ''
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Claude Opus 5.5 (xhigh)
+    score: 66.4
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials. Terminal-Bench
+      4.0 is reported at xhigh effort (the card''s note); launch page gives SE ±2.6
+      pts.'
+    limitations: ''
+  - benchmark_id: terminal_bench_science
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 58.7
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench-Science 0.1
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials.'
+    limitations: ''
+  - benchmark_id: hle
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 64.4
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam (no tools)
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials. No-tools
+      row.'
+    limitations: ''
+  - benchmark_id: hle_tools
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 67.7
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam (with tools)
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials. With-tools
+      row.'
+    limitations: ''
+  - benchmark_id: automationbench
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 40.0
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: AutomationBench
+    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
+      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
+      thinking at max effort, default sampling, averaged over five trials. Launch-page
+      footnote: run and reported by Zapier during early access, without fallback models,
+      so safeguard interventions counted as failures. Zapier''s live leaderboard row
+      (default fallbacks) follows as a separate record.'
+    limitations: ''
+  - benchmark_id: automationbench
+    model_id_as_evaluated: Claude Opus 5.5 (default fallbacks, Max)
+    score: 42.47
+    unit: percent
+    source_url: https://zapier.com/benchmarks
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AutomationBench 1.0.6 (strict pass rate, private held-out set)
+    configuration: 'Zapier''s own AutomationBench leaderboard, dataset 1.0.6, row ''Claude
+      Opus 5.5 (default fallbacks, Max)''. Max effort. Default fallbacks: refused steps
+      were rerun with Anthropic''s default fallback routing, so the row is not Opus
+      5.5 alone. The page states no as-of date; evidence_date is the observation, fetched
+      2026-09-24.'
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
