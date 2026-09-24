@@ -1,0 +1,1208 @@
+# Expected decisions for the audit's 20 questions, re-read 2026-09-24.
+# A model in `acceptable` may appear in the results. The lists are sets.
+# They are not a rank order unless a note says the evidence separates them.
+# `must_flag` means a key fact is unknown, so the model may qualify and must
+# not be dropped. Jamie approves this file before it gates anything.
+read_date: "2026-09-24"
+questions:
+  - id: Q01
+    notes: >
+      No unique winner. Terminal-Bench 4.0 (board updated 2026-09-21) and
+      Scale SWE-bench Pro V2 hard name different leaders, and the hard tab
+      does not publish the task count or intervals. Official SWE-bench
+      Verified on swebench.com has no September 2026 model; its newest rows
+      are from February 2026 and sit near 79% resolved. A result set whose
+      leaders are only older models is not supported while these rows exist.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: >
+          Top Terminal-Bench 4.0 row, 58.18% with Codex at max effort
+          (n=330), and 90.20 on SWE-bench Pro V2 hard with Codex at high effort.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: >
+          Terminal-Bench 4.0 57.88% with Claude Code at max effort, inside
+          Astra's published interval, and 92.20 on SWE-bench Pro V2 hard.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: >
+          Highest rendered SWE-bench Pro V2 hard score, 98.00 with Claude
+          Code at xhigh effort. On Terminal-Bench 4.0 its best row is 53.94
+          at xhigh, behind Astra and Fable 5.1.
+        sources:
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: anthropic/claude-sonnet-5
+        reason: >
+          SWE-bench Pro V2 hard 88.20, 1.8 points behind Astra on a tab that
+          does not publish an interval, so it is not separated from Astra there.
+        sources:
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+      - model_id: moonshot/kimi-k3
+        reason: >
+          SWE-bench Pro V2 hard 88.20 with mini-swe-agent at max effort, tied
+          with Sonnet 5 on the rendered table.
+        sources:
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model cannot edit a repository.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+            note: Catalogue model_type is embedding-text at this commit.
+      - model_id: nvidia/nv-embed-v2
+        reason: An embedding model cannot edit a repository.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/nvidia/nv-embed-v2.md
+            read: "2026-09-24"
+            note: Catalogue model_type is embedding-text at this commit.
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: >
+          MathArena lists a 2026-09-22 release. It has no row on the
+          Terminal-Bench 4.0 board, the SWE-bench Pro V2 hard table, the
+          Arena snapshot published 2026-09-13, or Epoch's GPQA table.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q02
+    notes: >
+      The direct board is Terminal-Bench 4.0. Astra at 58.18% (interval
+      half-width 2.79) and Fable 5.1 at 57.88% are not separated. Opus 5's
+      best row is 53.94 at xhigh effort. Gemini 3.8 Flash is 19.09 on this
+      version. SWE-bench Pro V2 measures repository patches, not shell
+      reliability, so it does not reorder this question.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: Leading Terminal-Bench 4.0 accuracy, 58.18% at max effort.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Terminal-Bench 4.0 57.88% at max effort, not separated from Astra.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: Next current Terminal-Bench 4.0 row, 53.94% at xhigh effort.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model is not a shell agent.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: No Terminal-Bench 4.0 row. The board's updated_at is 2026-09-21.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q03
+    notes: >
+      No defect-review benchmark was found on SWE-bench, Terminal-Bench,
+      Scale, or Arena. Arena coding preference (snapshot 2026-09-13) puts
+      Claude Opus 4.6 high at 1535.27, and that interval does not overlap
+      GPT-6 Astra max (upper 1512.2). Repository-editing boards put newer
+      models first. Those are different measurements. A refusal to order
+      them is the accurate decision.
+    acceptable:
+      - model_id: anthropic/claude-opus-4-6
+        reason: >
+          Highest Arena coding rating in the 2026-09-13 snapshot,
+          1535.27 for the high-effort variant, with a large vote count.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: SWE-bench Pro V2 hard leader at 98.00, and an Arena coding row of 1531.98 at high effort.
+        sources:
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Strong on both Terminal-Bench 4.0 and SWE-bench Pro V2 hard. Arena coding interval is wide.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-astra
+        reason: Terminal-Bench 4.0 leader. Arena coding rating 1488.58 sits below Opus 4.6's interval.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not review a pull request.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: No row on the coding boards read today.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q04
+    notes: >
+      Arena text overall, published 2026-09-13, does not separate Fable 5.1
+      max (1507.58, interval 1499.4 to 1515.7), Opus 5 max (1504.96), Opus 5
+      high (1504.92) and Opus 4.6 high (1502.96). Style control changes the
+      leader to Fable 5 (1505.68) and the intervals still overlap. This is
+      preference, not a tool-use score. GPT-6 Astra max is overall rank 59.
+    acceptable:
+      - model_id: anthropic/claude-fable-5-1
+        reason: Highest raw Arena overall rating. The interval overlaps Opus 5 and Opus 4.6 high.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: Arena overall ranks 2 and 3 for the max and high effort variants, not separated from Fable 5.1.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-6
+        reason: Arena overall rank 4 at high effort, interval overlapping the models above.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: Style-controlled Arena overall leader at 1505.68. Raw overall is lower.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model is not a general assistant.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: Released after the Arena snapshot, so its preference rating is unknown.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-sol
+        reason: MathArena dates the max variant 2026-09-22, after the Arena snapshot.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-luna
+        reason: On the current OpenAI price list, and not in the Arena snapshot's leading rows.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q05
+    notes: >
+      Same Arena snapshot as Q04. Raw overall and style control do not
+      agree on a winner, and the leading intervals overlap. GPT-4.1
+      (2025-04-14) is overall rank 157 at 1382.77, far below that cluster.
+    acceptable:
+      - model_id: anthropic/claude-fable-5-1
+        reason: Highest raw Arena overall rating, not separated by its interval from Opus 5 or Opus 4.6 high.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: Arena overall ranks 2 and 3. Style control does not put it first.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-6
+        reason: Arena overall rank 4 at high effort, interval overlapping the models above.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: Style-controlled overall leader. Raw overall is outside the top cluster's point estimate.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-4-1
+        reason: >
+          Arena overall rank 157 at 1382.77. It is not a leading chat model
+          on this snapshot.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model is not a chat model.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: Not in the Arena snapshot published 2026-09-13.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-sol
+        reason: Dated 2026-09-22 by MathArena, after the Arena snapshot.
+        sources:
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q06
+    notes: >
+      Epoch GPQA Diamond does not separate the top. Astra max is 0.9577
+      (stderr 0.0137), Gemini 3.8 Flash high is 0.9539 (stderr 0.0140), and
+      Gemini 3.7 Flash high is 0.9482 (stderr 0.0135). FrontierMath Tier 4
+      v2, a research-math benchmark, puts Astra near 0.976 and Fable 5 / 5.1
+      at 0.902 and 0.878. Those are different tasks. Neither orders all
+      difficult reasoning.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: Highest Epoch GPQA Diamond mean, and the FrontierMath Tier 4 v2 leader, at max or high effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Epoch GPQA Diamond 0.9539 at high effort, overlapping Astra.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: google/gemini-3-7-flash
+        reason: Epoch GPQA Diamond 0.9482 at high effort, overlapping Astra.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: Epoch GPQA Diamond 0.9388 at max effort, within about two standard errors of Astra.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: FrontierMath Tier 4 v2 mean 0.902 at max effort. Not a GPQA leader in this download.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: FrontierMath Tier 4 v2 mean 0.878 at max effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not solve reasoning problems.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: Absent from Epoch GPQA Diamond and from FrontierMath Tier 4 v2 in the 2026-09-24 download.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: xai/grok-4-7
+        reason: Absent from Epoch GPQA Diamond in the 2026-09-24 download.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-sol
+        reason: Absent from Epoch GPQA Diamond. MathArena dates a max variant 2026-09-22.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q07
+    notes: >
+      Contest maths does not separate a winner. MathArena marks AIME 2026
+      deprecated. On that table GPT-5.5 (xhigh) and Claude Opus 4.8 (max)
+      score 100%, with a contamination warning, and September 2026 models
+      are absent. Epoch's OTIS mock AIME is saturated at 100% for several
+      models, including Astra max and Fable 5.1 max. FrontierMath and
+      MathArena's live ArXiv sets are research mathematics, not this question.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: Epoch OTIS mock AIME mean 1.000 at high effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-6-sol
+        reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-5
+        reason: >
+          MathArena AIME 2026 accuracy 100% at xhigh effort, with a
+          contamination warning, on a competition MathArena now marks deprecated.
+        sources:
+          - url: https://matharena.ai/competition_tables/aime--aime_2026
+            read: "2026-09-24"
+          - url: https://matharena.ai/
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-8
+        reason: MathArena AIME 2026 accuracy 100% at max effort, with a contamination warning.
+        sources:
+          - url: https://matharena.ai/competition_tables/aime--aime_2026
+            read: "2026-09-24"
+      - model_id: qwen/qwen3-8-max
+        reason: Epoch OTIS mock AIME mean 1.000 for qwen3.8-max-0902 at xhigh effort.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not sit a mathematics contest.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: >
+          Absent from AIME 2026 and from the OTIS 100% rows. MathArena's
+          83.4% expected performance is over non-deprecated research sets.
+        sources:
+          - url: https://matharena.ai/competition_tables/aime--aime_2026
+            read: "2026-09-24"
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q08
+    notes: >
+      The class constraint is the part the evidence can settle. The model
+      must generate, and its published context must be at least 200,000
+      tokens. No allowed board measures grounded answer quality over a
+      200,000-token collection. Arena's document split is a preference
+      board, published 2026-09-13, and its leading intervals overlap.
+      Order among the generators below is not established.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: Published context window 1,050,000 tokens. It generates text.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Model card says a context window of up to 1M tokens, and it accepts documents.
+        sources:
+          - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5-5
+        reason: >
+          Claude pricing says 4.6 and later models include a 1M token context
+          window. Fast mode also refers to Opus 5.5 requests over 200k tokens.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: A Claude model later than 4.6, so the same 1M context statement applies.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: A Claude model later than 4.6, so the same 1M context statement applies.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-6
+        reason: Named by the 1M context statement for Claude 4.6 and later.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-2-5-flash
+        reason: Pricing page says a 1M token context window.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: The generator is not an embedding model.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+      - model_id: nvidia/nv-embed-v2
+        reason: The generator is not an embedding model.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/nvidia/nv-embed-v2.md
+            read: "2026-09-24"
+      - model_id: baai/bge-m3
+        reason: The generator is not an embedding model.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/baai/bge-m3.md
+            read: "2026-09-24"
+    must_flag:
+      - rule: generator whose published context length was not read
+        reason: >
+          A context at least 200,000 tokens is required. Unknown context
+          may still qualify and must not be dropped.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+            note: Shows that context is a published fact, and that it was checked model by model.
+    missing_cards: []
+
+  - id: Q09
+    notes: >
+      No faithfulness benchmark for long technical summaries was read.
+      Arena document preference (2026-09-13, 44 models) overlaps for Opus 5
+      high (1516.3), Fable 5.1 max (1512.6) and Opus 4.6 high (1507.3).
+      That is preference, not faithfulness. Models with a published context
+      of at least the length of a long document may appear. Order is not established.
+    acceptable:
+      - model_id: anthropic/claude-opus-5
+        reason: Arena document rating 1516.3, interval overlapping Fable 5.1 and Opus 4.6.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Arena document rating 1512.6, wide interval, not separated from Opus 5.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-6
+        reason: Arena document rating 1507.3 at high effort, interval overlapping the two above.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-astra
+        reason: Context window 1,050,000. Arena document rank 16, so preference does not put it first.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Context up to 1M. It is not among the 44 Arena document rows.
+        sources:
+          - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not write a summary.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: 1M context by the Claude 4.6-and-later rule, and no Arena document row.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q10
+    notes: >
+      Meeting the cap is not a quality ranking. No general-assistant
+      comparison among these cheap models was read. Standard input price
+      is the figure used. A price that is sometimes above the cap does not
+      clear it. Gemini 2.0 Flash is not on Google's current pricing page.
+    acceptable:
+      - model_id: openai/gpt-6-luna
+        reason: Standard input price $0.10 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-6-luna
+        reason: Standard input price $0.20 per million tokens, which meets at most $0.20.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-4-nano
+        reason: Standard input price $0.20 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-nano
+        reason: Standard input price $0.05 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1-nano
+        reason: Standard input price $0.10 per million tokens. Price qualification is not a quality win.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4o-mini
+        reason: Standard input price $0.15 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-2-5-flash-lite
+        reason: Text input price $0.10 per million tokens.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: Standard input price $10 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1
+        reason: Standard input price $2 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1-mini
+        reason: Standard input price $0.40 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Input price $0.75 per million tokens through 2026-12-31.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-haiku-4-5
+        reason: Standard input price $1 per million tokens.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: Not an assistant.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: deepseek/deepseek-flash
+        reason: >
+          Cache-miss input is $0.15 off-peak and $0.30 at peak, so it does
+          not always sit at or under $0.20. The page identifies this row as
+          DeepSeek-V4.1-Flash.
+        sources:
+          - url: https://api-docs.deepseek.com/quick_start/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-2-0-flash
+        reason: Not listed on the current Gemini pricing page, so today's input price was not read.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: deepseek/deepseek-v3-1
+        reason: The current DeepSeek pricing page lists deepseek-flash and deepseek-v4-pro only.
+        sources:
+          - url: https://api-docs.deepseek.com/quick_start/pricing
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q11
+    notes: >
+      Same rule as Q10 at a $0.50 cap. Support quality was not compared.
+      DeepSeek-V4.1-Flash stays under $0.50 at both the peak and off-peak
+      cache-miss input prices. Haiku 4.5 at $1 does not.
+    acceptable:
+      - model_id: openai/gpt-6-luna
+        reason: Standard input price $0.10 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-nano
+        reason: Standard input price $0.05 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1-nano
+        reason: Standard input price $0.10 per million tokens. That does not establish support quality.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1-mini
+        reason: Standard input price $0.40 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-5-mini
+        reason: Standard input price $0.25 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4o-mini
+        reason: Standard input price $0.15 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-3-5-turbo
+        reason: Standard input price $0.50 per million tokens, on the boundary of the cap.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-2-5-flash-lite
+        reason: Text input price $0.10 per million tokens.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-2-5-flash
+        reason: Text input price $0.30 per million tokens.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-3-1-flash-lite
+        reason: Text input price $0.25 per million tokens.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-3-5-flash-lite
+        reason: Input price $0.30 per million tokens.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: deepseek/deepseek-flash
+        reason: >
+          Cache-miss input is $0.15 off-peak and $0.30 at peak, both at or
+          under $0.50. The row is DeepSeek-V4.1-Flash.
+        sources:
+          - url: https://api-docs.deepseek.com/quick_start/pricing
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: Standard input price $10 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: openai/gpt-4-1
+        reason: Standard input price $2 per million tokens.
+        sources:
+          - url: https://developers.openai.com/api/docs/pricing
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Input price $0.75 per million tokens through 2026-12-31.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-haiku-4-5
+        reason: Standard input price $1 per million tokens.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: Not a support chatbot.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: google/gemini-2-0-flash
+        reason: Not listed on the current Gemini pricing page.
+        sources:
+          - url: https://ai.google.dev/gemini-api/docs/pricing
+            read: "2026-09-24"
+      - model_id: deepseek/deepseek-v3-1
+        reason: Not listed on the current DeepSeek pricing page.
+        sources:
+          - url: https://api-docs.deepseek.com/quick_start/pricing
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q12
+    notes: >
+      No like-for-like self-hosted coding order was found. Terminal-Bench
+      4.0's rendered board has no DeepSeek or Qwen row. SWE-bench.com
+      Verified does not include the September 2026 open models. The three
+      current open-weight contenders below have weights on Hugging Face and
+      no shared coding score in the boards read today, so they may qualify
+      and must not be ranked from a missing score.
+    acceptable:
+      - rule: no separated open-weights coding winner
+        reason: >
+          The allowed coding boards do not place DeepSeek-V4.1-Flash,
+          Qwen3.8-Flash-Next and Qwen3.8-27B on one comparison.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://www.swebench.com/
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: Closed weights. The question asks for a model to self-host.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5-5
+        reason: Sold as an API model. Not an open-weights download.
+        sources:
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+    must_flag:
+      - model_id: deepseek/deepseek-flash
+        reason: >
+          Hugging Face lists MIT weights for DeepSeek-V4.1-Flash. No
+          Terminal-Bench 4.0 or SWE-bench.com row was found for it.
+        sources:
+          - url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4.1-Flash
+            read: "2026-09-24"
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: qwen/qwen3-8-flash-next
+        reason: >
+          Hugging Face lists about 180.0 billion BF16 parameters and licence
+          "other". No shared coding row was found. The licence is not a
+          known open-source licence.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+            read: "2026-09-24"
+      - name: Qwen3.8-27B
+        reason: >
+          Hugging Face Qwen/Qwen3.8-27B is Apache-2.0 and about 27.8 billion
+          parameters. The catalogue has no canonical card, only a hosted
+          Cerebras card. No shared coding row was found.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+    missing_cards:
+      - name: Qwen3.8-27B
+        reason: Canonical weights exist. The catalogue card is the hosted cerebras/qwen-3-8-27b entry only.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+
+  - id: Q13
+    notes: >
+      Epoch GPQA Diamond's leading rows are closed models, and their
+      intervals overlap. Open-weight reasoning models are not on that same
+      top cluster in this download, and the September open releases are not
+      in the file. Adequate hardware does not make different labs' harnesses
+      one comparison. No order is established.
+    acceptable:
+      - rule: no separated open-weights reasoning winner
+        reason: GPQA does not place the current open-weight releases in one ordered table.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: Closed weights. GPQA leader, but not self-hostable from a public download.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+    must_flag:
+      - model_id: deepseek/deepseek-flash
+        reason: Open MIT weights. Absent from Epoch GPQA Diamond.
+        sources:
+          - url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4.1-Flash
+            read: "2026-09-24"
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - model_id: qwen/qwen3-8-flash-next
+        reason: Weights are public. Licence field is "other". Absent from Epoch GPQA Diamond.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+            read: "2026-09-24"
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+      - name: Qwen3.8-27B
+        reason: Open weights on Hugging Face. No canonical catalogue card. Absent from Epoch GPQA Diamond.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+    missing_cards:
+      - name: Qwen3.8-27B
+        reason: See Q12. The hosted card cerebras/qwen-3-8-27b is not the weights.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+
+  - id: Q14
+    notes: >
+      The Arena dataset has no vision category. Its document split is
+      preference, not chart reading, and the top intervals overlap. No
+      chart or screenshot benchmark was read on the allowed boards. A
+      chart-specific order is not established.
+    acceptable:
+      - model_id: anthropic/claude-opus-5
+        reason: Arena document rating 1516.3 at high effort. This is a document proxy, not a chart score.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Arena document rating 1512.6 at max effort, interval overlapping Opus 5.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-6
+        reason: Arena document rating 1507.3 at high effort, interval overlapping the two above.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not interpret an image.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: google/gemini-3-8-flash
+        reason: >
+          The model card accepts images. It is not on the Arena document
+          board, and no chart score was read.
+        sources:
+          - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+            read: "2026-09-24"
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5-5
+        reason: No Arena document row and no chart score read.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-24"
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q15
+    notes: >
+      MTEB English v2 retrieval mean, over models with all ten retrieval
+      tasks, is the comparison. The leading means are 0.7069, 0.7000 and
+      0.6944. The gaps are about 0.006, so a unique winner is not
+      established. Ingot's MTEB row lists training on datasets that overlap
+      retrieval tasks, and its openWeights field is false.
+    acceptable:
+      - name: IEITYuan/Yuan-embedding-2.0-en
+        reason: English v2 retrieval mean 0.7069. Apache-2.0. Open weights. No catalogue card.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+      - name: jcorners/ingot-8b-r3
+        reason: English v2 retrieval mean 0.7000. Closed weights on the MTEB row. Licence field empty.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+      - model_id: qwen/qwen3-embedding-8b
+        reason: English v2 retrieval mean 0.6944. Apache-2.0 and open weights.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: A text generator, not an embedding model.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+    must_flag: []
+    missing_cards:
+      - name: IEITYuan/Yuan-embedding-2.0-en
+        reason: Leading English v2 retrieval mean. No card under models/.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+      - name: jcorners/ingot-8b-r3
+        reason: Second English v2 retrieval mean. No card under models/.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+
+  - id: Q16
+    notes: >
+      Semantic search is retrieval. On MTEB multilingual v2, open-weight
+      models with all 18 retrieval tasks, harrier-oss-v1-27b (0.7827) and
+      KaLM-Embedding-Gemma3-12B-2511 (0.7566) lead. Octen-Embedding-8B
+      (0.7161), geevec-embeddings-1.0-lite (0.7091) and Qwen3-Embedding-8B
+      (0.7088) are not separated. The all-task public mean, a different
+      aggregate, puts Qwen3-Embedding-8B third and does not put Octen or
+      the geevec lite model in the top three.
+    acceptable:
+      - name: microsoft/harrier-oss-v1-27b
+        reason: Open-weight multilingual v2 retrieval mean 0.7827. MIT on the MTEB row. Also first on the all-task mean.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - model_id: tencent/kalm-embedding-gemma3-12b-2511
+        reason: Open-weight retrieval mean 0.7566. The MTEB licence field is empty.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - name: Octen/Octen-Embedding-8B
+        reason: Open-weight retrieval mean 0.7161. Not separated from the next two.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - name: geevec-ai/geevec-embeddings-1.0-lite
+        reason: Open-weight retrieval mean 0.7091. Apache-2.0 on the MTEB row.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - model_id: qwen/qwen3-embedding-8b
+        reason: Open-weight retrieval mean 0.7088. Third on the all-task open-weight mean (0.7058).
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+    must_never:
+      - name: jcorners/ingot-8b-r3
+        reason: MTEB marks openWeights false. This question requires open weights.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: An API embedding, not a weights download, and not in the open-weight multilingual table.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: tencent/kalm-embedding-gemma3-12b-2511
+        reason: Open weights are declared. The licence string on the MTEB row is empty, so rights are unknown.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+    missing_cards:
+      - name: microsoft/harrier-oss-v1-27b
+        reason: Leading open-weight multilingual retrieval mean. No card under models/.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - name: Octen/Octen-Embedding-8B
+        reason: In the unresolved third-place retrieval group. No card under models/.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+      - name: geevec-ai/geevec-embeddings-1.0-lite
+        reason: In the unresolved third-place retrieval group. No card under models/.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+            read: "2026-09-24"
+
+  - id: Q17
+    notes: >
+      Quantization and context length were not specified, and no local
+      coding run on one 24 GB GPU was found. A 180 billion parameter model
+      does not fit. Models near 26 to 31 billion parameters fit only at an
+      aggressive quant, which was not measured. Small Gemma models fit the
+      memory and have no coding score on the boards read today. No local
+      top three is established.
+    acceptable:
+      - model_id: google/gemma-4-e2b-it
+        reason: >
+          About 5.12 billion BF16 parameters, so the weights are near 10 GB
+          and fit in 24 GB. Coding quality on the boards above was not found.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+            read: "2026-09-24"
+      - model_id: google/gemma-4-e4b-it
+        reason: >
+          About 8.00 billion BF16 parameters, so the weights are near 16 GB
+          before KV cache. They can fit. Coding quality was not found.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+            read: "2026-09-24"
+    must_never:
+      - model_id: qwen/qwen3-8-flash-next
+        reason: >
+          About 180.0 billion BF16 parameters. Four-bit weights are about
+          90 GB, which does not fit in 24 GB.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+            read: "2026-09-24"
+      - model_id: openai/gpt-6-astra
+        reason: No local weights. Not a 24 GB model.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+    must_flag:
+      - name: Qwen3.8-27B
+        reason: >
+          About 27.8 billion parameters. BF16 does not fit in 24 GB. A 4-bit
+          download might, and that file was not measured. No canonical card.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+      - model_id: google/gemma-4-31b-it
+        reason: About 31.3 billion BF16 parameters. Fit depends on the quant, which was not specified.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-31B-it
+            read: "2026-09-24"
+      - model_id: google/gemma-4-26b-a4b-it
+        reason: About 25.8 billion parameters. Fit depends on the quant, which was not specified.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-26B-A4B-it
+            read: "2026-09-24"
+    missing_cards:
+      - name: Qwen3.8-27B
+        reason: Weights are public. Catalogue identity is only cerebras/qwen-3-8-27b.
+        sources:
+          - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+            read: "2026-09-24"
+
+  - id: Q18
+    notes: >
+      "Base Apple M4" names neither the product nor the RAM. The MacBook Air
+      specs page read today is the M5, with 16 GB unified memory on the
+      first memory row, and it is not an M4 specification. A Mac mini specs
+      page the same day is also the M5. Fit on a base M4 was therefore not
+      established. No chat-quality order on that device was found.
+    acceptable:
+      - rule: no established local chat winner for an unspecified base M4
+        reason: RAM is unknown, and no on-device chat comparison was read.
+        sources:
+          - url: https://www.apple.com/macbook-air/specs/
+            read: "2026-09-24"
+          - url: https://www.apple.com/mac-mini/specs/
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: No local weights for an Apple device.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: Not a chat model.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: google/gemma-4-e2b-it
+        reason: About 5.12 billion parameters. Whether a base M4 can hold it depends on RAM that was not established.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+            read: "2026-09-24"
+          - url: https://www.apple.com/macbook-air/specs/
+            read: "2026-09-24"
+      - model_id: google/gemma-4-e4b-it
+        reason: About 8.00 billion parameters. Fit on an unspecified base M4 is unknown.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+            read: "2026-09-24"
+      - model_id: google/gemma-4-26b-a4b-it
+        reason: About 25.8 billion parameters. Fit depends on RAM and quant, both unknown for a base M4.
+        sources:
+          - url: https://huggingface.co/api/models/google/gemma-4-26B-A4B-it
+            read: "2026-09-24"
+      - model_id: microsoft/phi-4
+        reason: A small local chat candidate in the catalogue. Its weight size was not re-read, so fit is unknown.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/microsoft/phi-4.md
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q19
+    notes: >
+      No Terminal-Bench Science board was present on tbench.ai. Epoch GPQA
+      is a science exam, not a tool-using research workflow. End-to-end
+      research accuracy was not measured. The terminal-agent leaders are a
+      proxy for tool use only, and must not be presented as a science ranking.
+    acceptable:
+      - model_id: openai/gpt-6-astra
+        reason: Strongest tool-use proxy on Terminal-Bench 4.0. Not a science-workflow score.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5-1
+        reason: Terminal-Bench 4.0 57.88%, not separated from Astra. Not a science-workflow score.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-5
+        reason: Next Terminal-Bench 4.0 row. Not a science-workflow score.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+    must_never:
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not search or call tools.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - model_id: anthropic/claude-opus-5-5
+        reason: No science-workflow row and no Terminal-Bench 4.0 row were read.
+        sources:
+          - url: https://www.tbench.ai/leaderboard
+            read: "2026-09-24"
+          - url: https://matharena.ai/models
+            read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Epoch GPQA Diamond 0.9539 is an exam score, not evidence it can run a research workflow.
+        sources:
+          - url: https://epoch.ai/data/benchmark_data.zip
+            read: "2026-09-24"
+    missing_cards: []
+
+  - id: Q20
+    notes: >
+      Language, streaming and audio length are unspecified. The allowed
+      boards do not publish a general transcription comparison. The Open
+      ASR results dataset on Hugging Face has no licence field, so its
+      word-error figures were not used. The accurate decision is to refuse
+      to name a model. Any speech-to-text model may still qualify once the
+      missing constraints are known.
+    acceptable:
+      - rule: do not name a transcription model
+        reason: >
+          The question leaves language, streaming and duration open, and no
+          licensed independent transcription board was used.
+        sources:
+          - url: https://huggingface.co/api/datasets/hf-audio/open-asr-leaderboard-results
+            read: "2026-09-24"
+            note: Dataset card has no licence field. Scores from it were not used.
+    must_never:
+      - model_id: openai/gpt-6-astra
+        reason: A text model with a token context window, not a speech recognizer.
+        sources:
+          - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+            read: "2026-09-24"
+      - model_id: openai/text-embedding-3-large
+        reason: An embedding model does not transcribe audio.
+        sources:
+          - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+            read: "2026-09-24"
+    must_flag:
+      - rule: any model whose class is speech-to-text
+        reason: The question does not say which language, latency or audio length, so none of them can be dropped.
+        sources:
+          - url: https://huggingface.co/api/datasets/hf-audio/open-asr-leaderboard-results
+            read: "2026-09-24"
+    missing_cards: []
