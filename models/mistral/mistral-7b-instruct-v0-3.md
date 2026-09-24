@@ -673,6 +673,21 @@ benchmarks:
     gpqa_diamond: 27.9
     musr: 37.4
     mmlu_pro: 30.8
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Mistral-7B-Instruct-v0.3
+    score: 15.18
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.01 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

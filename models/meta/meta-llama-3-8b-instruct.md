@@ -735,6 +735,21 @@ benchmarks:
     gpqa_diamond: 29.3
     musr: 38.1
     mmlu_pro: 35.9
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Meta-Llama-3-8B-Instruct
+    score: 26.07
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.70 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

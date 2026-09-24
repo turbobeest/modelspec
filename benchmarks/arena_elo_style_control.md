@@ -30,8 +30,8 @@ metric:
 dataset:
   size: null
   size_note: "Same live vote corpus as the arena_elo family; no separate vote count for the style-controlled fit was found from a source read for this page."
-  url: "https://huggingface.co/lmarena-ai"
-  license: ""
+  url: "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+  license: "CC BY 4.0"
   languages: []
   modalities:
     - text
@@ -85,6 +85,9 @@ sources:
   - url: "https://www.lmsys.org/blog/2024-08-28-style-control"
     title: "Does style matter? Disentangling style and substance in Chatbot Arena (LMSYS blog)"
     accessed: "2026-09-08"
+  - url: "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+    title: "lmarena-ai/leaderboard-dataset (Hugging Face dataset card, CC BY 4.0)"
+    accessed: "2026-09-24"
   - url: "https://arena.ai/blog/style-control"
     title: "Does Style Matter? (Arena blog, updated republication)"
     accessed: "2026-09-08"
@@ -118,3 +121,15 @@ meaningful share of its plain-board standing comes from formatting and verbosity
 substance. The authors describe this as a first step, not a causal isolation of style from
 quality, since length and genuine quality (for example, a chain-of-thought explanation) can be
 correlated for legitimate reasons.
+
+## Source and attribution
+
+Since MODEL-123 this key holds the style-controlled **overall** text board and nothing
+else. Values come only from LMArena's Hugging Face dataset
+[lmarena-ai/leaderboard-dataset](https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset),
+licensed **CC BY 4.0**, never from lmarena.ai itself: the `text_style_control` subset,
+category `overall`, `latest` split, at the dataset revision pinned in
+`api/ranking/engine.py` (`ARENA_SNAPSHOT`). The ranker converts a rating to twice its
+expected win rate against that snapshot's leader, so the leader scores 100, and a value
+read on any other date does not count. Attribution: LMArena, Arena leaderboard dataset,
+CC BY 4.0. The per-category style-controlled boards have their own keys, `arena_sc_*`.

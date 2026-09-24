@@ -684,6 +684,21 @@ benchmarks:
       6 Sol (XHigh) at 33.2%, the figure OpenAI quotes on its launch page. The page
       states no as-of date; evidence_date is the observation, fetched 2026-09-24.
     limitations: ''
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: gpt-6-sol-max
+    score: 1685.9
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
+      MODEL-123 max-effort rule). Rating 1685.90 [1669.28, 1702.52], 1521 votes, rank 5.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

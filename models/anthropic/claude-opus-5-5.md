@@ -804,6 +804,51 @@ benchmarks:
       5.5 alone. The page states no as-of date; evidence_date is the observation, fetched
       2026-09-24.'
     limitations: ''
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: claude-opus-5.5-max
+    score: 1818.41
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
+      MODEL-123 max-effort rule). Rating 1818.41 [1797.27, 1839.55], 1219 votes, rank 1.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: cursorbench_4
+    model_id_as_evaluated: Opus 5.5 (max)
+    score: 57.8
+    unit: percent
+    source_url: https://cursor.com/cursorbench
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: CursorBench 4.0
+    configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
+      per its changelog); the board states no row date, so the reading is dated by the observation.
+      Highest-effort row (max); $13.43 a task.
+    limitations: Runs only in Cursor's production agent harness.
+  - benchmark_id: healthbench_professional
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 65.6
+    unit: percent
+    source_url: https://www.anthropic.com/claude-opus-5-5-system-card
+    source_kind: provider_self_report
+    evidence_date: '2026-09-22'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: HealthBench Professional, length-adjusted
+    configuration: 'Claude Opus 5.5 System Card (published 2026-09-22), Table 8.1.A and section
+      8.15.2: length-adjusted HealthBench Professional score (the method in the HealthBench
+      Professional paper). Adaptive thinking at max effort, averaged over five trials, Claude
+      Opus 4.8 as the grader model, no tools. Anthropic''s own models only; the table''s GPT-6
+      Astra column is a competitor''s score and is not attached.'
+    limitations: Graded by the provider's own model; not comparable across graders.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

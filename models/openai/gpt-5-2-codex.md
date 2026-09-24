@@ -683,6 +683,35 @@ benchmarks:
     benchmark_version: Terminal-Bench 2.0
     configuration: 'OpenAI "Introducing GPT-5.2-Codex" Terminal-Bench 2.0 chart: GPT-5.2-Codex 64.0%.'
     limitations: ''
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: gpt-5.2-codex
+    score: 1338.73
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1338.73 [1329.69, 1347.78], 6402 votes, rank 104.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: gpt-5.2-codex
+    score: 41.04
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/swe_bench_pro_public
+    source_kind: independent_evaluator
+    evidence_date: '2026-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-Bench Pro, public dataset, Scale Labs leaderboard
+    configuration: 'Scale Labs leaderboard entry read 2026-09-24; entry created 2026-01-27T03:45:23.000Z;
+      effort default; ±3.57 (95% CI). Harness: the board''s default scaffold (the board marks
+      mini-swe-agent runs with an asterisk).'
+    limitations: ''
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

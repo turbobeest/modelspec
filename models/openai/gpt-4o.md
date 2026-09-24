@@ -680,6 +680,34 @@ benchmarks:
   scores:
     arena_elo_hard_prompts: 1456.0
     arena_elo_style_control: 1443.0
+  evidence:
+  - benchmark_id: hle
+    model_id_as_evaluated: GPT-4o (November 2024)
+    score: 2.72
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-04-10'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-04-10T19:24:55.000Z;
+      effort default; ±0.64 (95% CI).
+    limitations: This model was used as an initial filter for the dataset.
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: gpt-4o
+    score: 11.67
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort default; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: ''
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, safety-evals,
     preference-evals, domain-evals, llm-stats, intlpull
   benchmark_as_of: 2026-04
