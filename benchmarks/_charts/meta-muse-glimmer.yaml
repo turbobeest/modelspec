@@ -1,0 +1,878 @@
+page_url: "https://huggingface.co/meta-models/Muse-Glimmer-30B"
+publisher: "Meta"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmarks"
+    kind: html_table
+    footnotes: "Muse Glimmer is the high-reasoning column. Gemma 4 31B and Qwen3.6 27B are in thinking mode. Sampling on the card is temperature 1.0, top_p 0.95, top_k 64. The linked methodology says rival scores are the better of a self-report and an internal rerun, and that Artificial Analysis numbers are used when that source covers every model. CI Memories and Siren AgentDojo print two measures in one cell."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas (Public)"
+        score: 75.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas (Public)"
+        score: 54.2
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "MCP Atlas (Public)"
+        score: 62.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: deepsearchqa
+        score: 74.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: deepsearchqa
+        score: 61.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: deepsearchqa
+        score: 71.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "𝛕3-Banking"
+        score: 23.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "𝛕3-Banking"
+        score: 15.1
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "𝛕3-Banking"
+        score: 16.7
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "WildClawBench"
+        score: 47.6
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "WildClawBench"
+        score: 37.6
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "WildClawBench"
+        score: 43.2
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: gdpval_aa
+        score: 953
+        unit: "elo"
+        printed: true
+        configuration: "AA v2"
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: gdpval_aa
+        score: 811
+        unit: "elo"
+        printed: true
+        configuration: "AA v2"
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: gdpval_aa
+        score: 1141
+        unit: "elo"
+        printed: true
+        configuration: "AA v2"
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "Gaia2"
+        score: 43.3
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Gaia2"
+        score: 36.4
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Gaia2"
+        score: 40.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: skillsbench
+        score: 44.3
+        unit: "percent"
+        printed: true
+        configuration: "With skills."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: skillsbench
+        score: 32.4
+        unit: "percent"
+        printed: true
+        configuration: "With skills."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: skillsbench
+        score: 46.6
+        unit: "percent"
+        printed: true
+        configuration: "With skills."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: osworld
+        score: 65.9
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: osworld
+        score: 58.5
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: osworld
+        score: 75.6
+        unit: "percent"
+        printed: true
+        configuration: "Verified."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: swe_bench_pro
+        score: 51.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: swe_bench_pro
+        score: 36.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: swe_bench_pro
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: swe_bench_verified
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: swe_bench_verified
+        score: 66.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: swe_bench_verified
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: terminal_bench_v2_1
+        score: 51.7
+        unit: "percent"
+        printed: true
+        configuration: "terminus2 harness."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: terminal_bench_v2_1
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: "terminus2 harness."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: terminal_bench_v2_1
+        score: 60.7
+        unit: "percent"
+        printed: true
+        configuration: "terminus2 harness."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: scicode
+        score: 43.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: scicode
+        score: 43.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: scicode
+        score: 39.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: charxiv_reasoning
+        score: 78.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: charxiv_reasoning
+        score: 77.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: charxiv_reasoning
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: screenspot_pro
+        score: 75.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: screenspot_pro
+        score: 75.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: screenspot_pro
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench v1.5"
+        score: 75.8
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench v1.5"
+        score: 72.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "OmniDocBench v1.5"
+        score: 77.8
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: mmmu_pro
+        score: 74
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: mmmu_pro
+        score: 73
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: mmmu_pro
+        score: 75
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 26.4
+        unit: "score"
+        printed: true
+        configuration: "Violation rate"
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 64.8
+        unit: "score"
+        printed: true
+        configuration: "Coverage"
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 12.1
+        unit: "score"
+        printed: true
+        configuration: "Violation rate"
+        role: competitor
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 53.0
+        unit: "score"
+        printed: true
+        configuration: "Coverage"
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 53.4
+        unit: "score"
+        printed: true
+        configuration: "Violation rate"
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "CI Memories"
+        score: 66.9
+        unit: "score"
+        printed: true
+        configuration: "Coverage"
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 28.4
+        unit: "score"
+        printed: true
+        configuration: "Attack success rate"
+        role: subject
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 94.2
+        unit: "score"
+        printed: true
+        configuration: "Utility"
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 25.6
+        unit: "score"
+        printed: true
+        configuration: "Attack success rate"
+        role: competitor
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 90.8
+        unit: "score"
+        printed: true
+        configuration: "Utility"
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 40.3
+        unit: "score"
+        printed: true
+        configuration: "Attack success rate"
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Siren AgentDojo"
+        score: 92.7
+        unit: "score"
+        printed: true
+        configuration: "Utility"
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: ifbench
+        score: 77.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: ifbench
+        score: 76.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: ifbench
+        score: 70.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: aime_2026
+        score: 94.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: aime_2026
+        score: 89.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: aime_2026
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: gpqa_diamond
+        score: 83.5
+        unit: "percent"
+        printed: true
+        configuration: "Artificial Analysis."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: gpqa_diamond
+        score: 85.7
+        unit: "percent"
+        printed: true
+        configuration: "Artificial Analysis."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: gpqa_diamond
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: "Artificial Analysis."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: hle
+        score: 22.0
+        unit: "percent"
+        printed: true
+        configuration: "Text subset, Artificial Analysis."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: hle
+        score: 23.6
+        unit: "percent"
+        printed: true
+        configuration: "Text subset, Artificial Analysis."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: hle
+        score: 23.1
+        unit: "percent"
+        printed: true
+        configuration: "Text subset, Artificial Analysis."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: aa_lcr
+        score: 80.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: aa_lcr
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: aa_lcr
+        score: 73.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "Beam128K"
+        score: 65.1
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "Beam128K"
+        score: 58.2
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "Beam128K"
+        score: 63.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Preparedness, chem and bio"
+    kind: html_table
+    footnotes: "Kimi K3 is included beside the size-class comparison. The card gives these as knowledge and wet-lab checks, not as a ranking of the main agent table."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "MBCT"
+        score: 41.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "MBCT"
+        score: 50.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "MBCT"
+        score: 45.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "MBCT"
+        score: 58.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "HPCT"
+        score: 52.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "HPCT"
+        score: 54.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "HPCT"
+        score: 48.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "HPCT"
+        score: 59.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: null
+        benchmark_as_labelled: "VCT"
+        score: 37.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: null
+        benchmark_as_labelled: "VCT"
+        score: 43.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: null
+        benchmark_as_labelled: "VCT"
+        score: 33.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: null
+        benchmark_as_labelled: "VCT"
+        score: 48.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: wmdp
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "Bio."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: wmdp
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: "Bio."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: wmdp
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "Bio."
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: wmdp
+        score: 89.1
+        unit: "percent"
+        printed: true
+        configuration: "Bio."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: wmdp
+        score: 75.2
+        unit: "percent"
+        printed: true
+        configuration: "Chem."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: wmdp
+        score: 80.5
+        unit: "percent"
+        printed: true
+        configuration: "Chem."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: wmdp
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: "Chem."
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: wmdp
+        score: 84.2
+        unit: "percent"
+        printed: true
+        configuration: "Chem."
+        role: competitor
+      - model_as_labelled: "Muse Glimmer-30B"
+        model_id: "meta/muse-glimmer-30b"
+        benchmark_id: lab_bench
+        score: 80.2
+        unit: "percent"
+        printed: true
+        configuration: "ProtocolQA."
+        role: subject
+      - model_as_labelled: "Gemma4-31B"
+        model_id: "google/gemma-4-31b-it"
+        benchmark_id: lab_bench
+        score: 75.8
+        unit: "percent"
+        printed: true
+        configuration: "ProtocolQA."
+        role: competitor
+      - model_as_labelled: "Qwen3.6-27B"
+        model_id: "qwen/qwen3-6-27b"
+        benchmark_id: lab_bench
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: "ProtocolQA."
+        role: competitor
+      - model_as_labelled: "*Kimi K3*"
+        model_id: "moonshot/kimi-k3"
+        benchmark_id: lab_bench
+        score: 81.9
+        unit: "percent"
+        printed: true
+        configuration: "ProtocolQA."
+        role: competitor

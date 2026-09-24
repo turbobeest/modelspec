@@ -1,0 +1,37 @@
+page_url: "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
+publisher: "NVIDIA"
+read_on: "2026-09-24"
+charts:
+  - title: "Customer task chart"
+    kind: image
+    needs_reading: true
+    image_url: "https://blogs.nvidia.com/wp-content/uploads/2026/08/nemotron-3.5-lightning-positioning-chart2-1680x945.png"
+    image_sha256: "5630bf9c6ea2eb0d97ceced2cdec456b5bc68087da2a9f8051700f6f7bcf32b1"
+    footnotes: "Accuracy axis with printed deltas on the Lightning bars. Absolute bar heights are not printed."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "PinchBench against time"
+    kind: image
+    needs_reading: true
+    image_url: "https://blogs.nvidia.com/wp-content/uploads/2026/08/nemotron-3.5-lightning-positioning-chart3-1680x945.png"
+    image_sha256: "0a76905dec859ee57df3aec276d0d943788109602e251230f8812deed432d3cc"
+    footnotes: "PinchBench accuracy against time to finish 10,000 tasks. Points are named and not labelled with values."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []
+  - title: "Tasks completed against cost"
+    kind: image
+    needs_reading: true
+    image_url: "https://blogs.nvidia.com/wp-content/uploads/2026/08/nemotron-3.5-lightning-positioning-chart4-1680x945.png"
+    image_sha256: "04000939e9a456eef582f51942392abc7f46835b18d98bb4f4b69113361afdab"
+    footnotes: "Percent of tasks completed against cost. Points are named and not labelled with values."
+    competitor_numbers: unstated
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars: []

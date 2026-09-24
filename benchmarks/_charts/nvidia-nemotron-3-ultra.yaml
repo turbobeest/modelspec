@@ -1,0 +1,2398 @@
+page_url: "https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16"
+publisher: "NVIDIA"
+read_on: "2026-09-24"
+charts:
+  - title: "Benchmarks"
+    kind: html_table
+    footnotes: "NVIDIA collected the table with Nemo Evaluator, using Nemo Gym, Nemo Skills, and Harbor. BrowseComp with search, TauBench 3, ProfBench with search, PinchBench, Vals.ai, and LongBench v2 were not in those open tools yet; those rows use the benchmark's own code or an internal scaffold. IOI 2025 is a contest score. A dash means the cell was not printed."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: terminal_bench_v2_1
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: terminal_bench_v2_1
+        score: 55.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: terminal_bench_v2_1
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: terminal_bench_v2_1
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: terminal_bench_v2_1
+        score: 49.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: terminal_bench_v2_1
+        score: 49.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: terminal_bench_v2_1
+        score: 54.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gdpval
+        score: 46.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: gdpval
+        score: 47.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: gdpval
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: gdpval
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: gdpval
+        score: 34.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: gdpval
+        score: 54.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: gdpval
+        score: 50.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_verified
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: swe_bench_verified
+        score: 75.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: swe_bench_verified
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_verified
+        score: 75.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: swe_bench_verified
+        score: 73.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_verified
+        score: 74.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: swe_bench_verified
+        score: 73.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_multilingual
+        score: 67.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: swe_bench_multilingual
+        score: 71.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: swe_bench_multilingual
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_multilingual
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: swe_bench_multilingual
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: swe_bench_multilingual
+        score: 76.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: swe_bench_multilingual
+        score: 75.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 56.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 52.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 46.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 56.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 53.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 59.9
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 57.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 90.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 77.6
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 81.2
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 90.2
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 86.6
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 88.6
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 91.3
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 81.5
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 75.3
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 85.0
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 85.8
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 76.5
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 80.8
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 80.8
+        unit: "score"
+        printed: true
+        configuration: "Airline"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 86.4
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 84.9
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 84.1
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 82.9
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 88.5
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 88.9
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 89.1
+        unit: "score"
+        printed: true
+        configuration: "Retail"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 92.9
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 89.6
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 96.9
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 97.8
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 98.0
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 96.3
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 98.3
+        unit: "score"
+        printed: true
+        configuration: "Telecom"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 22.6
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 14.6
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 12.8
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 23.1
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 20.9
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 25.9
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 26.7
+        unit: "score"
+        printed: true
+        configuration: "Banking"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 70.9
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 66.1
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 69.7
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 72.4
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 71.0
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 73.2
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 73.7
+        unit: "score"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: browsecomp
+        score: 44.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: browsecomp
+        score: 54.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: browsecomp
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: browsecomp
+        score: 61.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: browsecomp
+        score: 40.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: browsecomp
+        score: 59.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: browsecomp
+        score: 46.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 60.1
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 51.3
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 60.2
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 54.0
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 61.3
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 58.9
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 58.4
+        unit: "score"
+        printed: true
+        configuration: "without web search"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 53.7
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 50.5
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 60.7
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 58.8
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 59.0
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 62.3
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
+        score: 60.1
+        unit: "score"
+        printed: true
+        configuration: "with web search"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 570.0
+        unit: "points"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 456.5
+        unit: "points"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 585.0
+        unit: "points"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 441.3
+        unit: "points"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 580.1
+        unit: "points"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: live_code_bench
+        score: 89.0
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: live_code_bench
+        score: 77.2
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: live_code_bench
+        score: 85.7
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: live_code_bench
+        score: 90.2
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: live_code_bench
+        score: 79.3
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: live_code_bench
+        score: 92.5
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: live_code_bench
+        score: 90.9
+        unit: "percent"
+        printed: true
+        configuration: "v6"
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 88.6
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 83.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 93.0
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (no tools)"
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 92.3
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 75.1
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 91.1
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 93.71
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 84.51
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 85.4
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "IMOAnswerBench (with tools)"
+        score: 89.6
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 74.9
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 28.9
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 71.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 77.4
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 61.4
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 85.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (no tools)"
+        score: 82.4
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 84.8
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 51.9
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 79.0
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 73.2
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 60.4
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 86.5
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Shortlist (with tools)"
+        score: 82.0
+        unit: "percent"
+        printed: true
+        configuration: "With tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gpqa
+        score: 87.0
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: gpqa
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: gpqa
+        score: 86.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: gpqa
+        score: 91.0
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: gpqa
+        score: 87.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: gpqa
+        score: 87.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: gpqa
+        score: 88.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: scicode
+        score: 44.6
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: scicode
+        score: 38.3
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: scicode
+        score: 47.7
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: scicode
+        score: 52.0
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: scicode
+        score: 48.0
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: scicode
+        score: 50.5
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: scicode
+        score: 48.2
+        unit: "percent"
+        printed: true
+        configuration: "Subtask score."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: hle
+        score: 26.7
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: hle
+        score: 23.1
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: hle
+        score: 27.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: hle
+        score: 34.8
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: hle
+        score: 28.5
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: hle
+        score: 37.7
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: hle
+        score: 32.2
+        unit: "percent"
+        printed: true
+        configuration: "No tools."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: hle_tools
+        score: 37.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: hle_tools
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: hle_tools
+        score: 54.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: hle_tools
+        score: 48.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: hle_tools
+        score: 48.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: hle_tools
+        score: 45.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: critpt
+        score: 3.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: critpt
+        score: 0.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: critpt
+        score: 3.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: critpt
+        score: 9.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: critpt
+        score: 2.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: critpt
+        score: 14.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: critpt
+        score: 10.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: mmlu_pro
+        score: 86.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: mmlu_pro
+        score: 81.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: mmlu_pro
+        score: 85.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: mmlu_pro
+        score: 88.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: mmlu_pro
+        score: 88.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: mmlu_pro
+        score: 87.5
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: mmlu_pro
+        score: 86.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 24.1
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 20.5
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 31.3
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 35.5
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 35.9
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 46.8
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 39.9
+        unit: "percent"
+        printed: true
+        metric: accuracy
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 78.7
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 74.4
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 66.8
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 67.1
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 7.4
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 5.7
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: artificialanalysis_aa_omniscience_public
+        score: 2.8
+        unit: "percent"
+        printed: true
+        metric: non_hallucination
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ifbench
+        score: 81.7
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: ifbench
+        score: 74.6
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: ifbench
+        score: 76.6
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: ifbench
+        score: 73.7
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: ifbench
+        score: 78.2
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: ifbench
+        score: 79.1
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: ifbench
+        score: 82.0
+        unit: "percent"
+        printed: true
+        configuration: "Prompt-loose."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 63.8
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 42.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 63.0
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 63.1
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 63.9
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 64.1
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "Multi-Challenge"
+        score: 63.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: aa_lcr
+        score: 65.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: aa_lcr
+        score: 69.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: aa_lcr
+        score: 66.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: aa_lcr
+        score: 70.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: aa_lcr
+        score: 68.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: aa_lcr
+        score: 67.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: aa_lcr
+        score: 62.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ruler
+        score: 94.7
+        unit: "percent"
+        printed: true
+        configuration: "1M context."
+        role: subject
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: ruler
+        score: 90.1
+        unit: "percent"
+        printed: true
+        configuration: "1M context."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: ruler
+        score: 94.2
+        unit: "percent"
+        printed: true
+        configuration: "1M context."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: ruler
+        score: 87.7
+        unit: "percent"
+        printed: true
+        configuration: "1M context."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: longbenchv2
+        score: 61.9
+        unit: "percent"
+        printed: true
+        configuration: "Items up to 1M tokens."
+        role: subject
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: longbenchv2
+        score: 68.9
+        unit: "percent"
+        printed: true
+        configuration: "Items up to 1M tokens."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: longbenchv2
+        score: 62.1
+        unit: "percent"
+        printed: true
+        configuration: "Items up to 1M tokens."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: longbenchv2
+        score: 57.0
+        unit: "percent"
+        printed: true
+        configuration: "Items up to 1M tokens."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: mmlu_prox
+        score: 83.0
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: mmlu_prox
+        score: 78.4
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: mmlu_prox
+        score: 85.8
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: mmlu_prox
+        score: 85.0
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: mmlu_prox
+        score: 86.4
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: mmlu_prox
+        score: 85.6
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: mmlu_prox
+        score: 84.3
+        unit: "percent"
+        printed: true
+        configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
+        role: competitor
+      - model_as_labelled: "N-3-Ultra 550B-A55B"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 83.7
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: subject
+      - model_as_labelled: "MiniMax-2.7 230B-A10B"
+        model_id: "minimax/minimax-m2-7"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 82.8
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "GLM-5.1 744B-A40B"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 84.4
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6 1T-A32B"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 84.5
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5 397B-17B"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 86.8
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
+        model_id: "deepseek/deepseek-v4-pro"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 85.9
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "DS-v4-Flash 284B-A13B"
+        model_id: "deepseek/deepseek-v4-flash"
+        benchmark_id: null
+        benchmark_as_labelled: "WMT24++ (en→xx)"
+        score: 85.9
+        unit: "score"
+        printed: true
+        configuration: ""
+        role: competitor
+  - title: "Accuracy"
+    kind: image
+    image_url: "https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16/resolve/main/accuracy_plot.png"
+    image_sha256: "aafed6bbf7231ffbbc4ba5add68ba7aab8e614b9f2017449e5c1f5ebef8f6570"
+    footnotes: "Printed bar labels. BF16 and NVFP4 are separate series. TauBench V3 on this figure is the average. IOI is drawn as a percentage of 600. The throughput panel is not a benchmark score."
+    competitor_numbers: vendor_run
+    readings:
+      - reader: grok-build-4.7
+        date: "2026-09-24"
+    bars:
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: terminal_bench_v2_1
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: terminal_bench_v2_1
+        score: 63.9
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: terminal_bench_v2_1
+        score: 59.3
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: terminal_bench_v2_1
+        score: 67.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: terminal_bench_v2_1
+        score: 49.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_verified
+        score: 70.7
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_verified
+        score: 69.5
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: swe_bench_verified
+        score: 76.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_verified
+        score: 75.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: swe_bench_verified
+        score: 73.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_multilingual
+        score: 67.7
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: swe_bench_multilingual
+        score: 69.1
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: swe_bench_multilingual
+        score: 74.8
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: swe_bench_multilingual
+        score: 77.1
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: swe_bench_multilingual
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 70.9
+        unit: "percent"
+        printed: true
+        configuration: "BF16. Average"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 70.3
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4. Average"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 69.7
+        unit: "percent"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 72.4
+        unit: "percent"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "TauBench V3"
+        score: 71.0
+        unit: "percent"
+        printed: true
+        configuration: "Average"
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gdpval
+        score: 46.7
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: gdpval
+        score: 47.9
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: gdpval
+        score: 54.7
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: gdpval
+        score: 50.4
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: gdpval
+        score: 34.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 56.0
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 56.4
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 46.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 56.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "ProfBench (Search)"
+        score: 53.0
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 90.0
+        unit: "percent"
+        printed: true
+        configuration: "BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 89.8
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 81.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 90.2
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "PinchBench"
+        score: 86.6
+        unit: "percent"
+        printed: true
+        configuration: ""
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 95.0
+        unit: "percent"
+        printed: true
+        configuration: "BF16. Shown as a percentage of 600"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 94.1
+        unit: "percent"
+        printed: true
+        configuration: "NVFP4. Shown as a percentage of 600"
+        role: subject
+      - model_as_labelled: "GLM-5.1"
+        model_id: "zhipu/glm-5-1"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 76.1
+        unit: "percent"
+        printed: true
+        configuration: "Shown as a percentage of 600"
+        role: competitor
+      - model_as_labelled: "Kimi-K2.6"
+        model_id: "moonshot/kimi-k2-6"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 97.5
+        unit: "percent"
+        printed: true
+        configuration: "Shown as a percentage of 600"
+        role: competitor
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: null
+        benchmark_as_labelled: "IOI 2025"
+        score: 73.6
+        unit: "percent"
+        printed: true
+        configuration: "Shown as a percentage of 600"
+        role: competitor
+      - model_as_labelled: "Nemotron-3-Ultra BF16"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ruler
+        score: 94.7
+        unit: "percent"
+        printed: true
+        configuration: "1M context.. BF16"
+        role: subject
+      - model_as_labelled: "Nemotron-3-Ultra NVFP4"
+        model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
+        benchmark_id: ruler
+        score: 94.0
+        unit: "percent"
+        printed: true
+        configuration: "1M context.. NVFP4"
+        role: subject
+      - model_as_labelled: "Qwen-3.5"
+        model_id: "qwen/qwen3-5-397b-a17b"
+        benchmark_id: ruler
+        score: 90.1
+        unit: "percent"
+        printed: true
+        configuration: "1M context."
+        role: competitor
