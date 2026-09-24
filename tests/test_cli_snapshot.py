@@ -23,7 +23,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
+from api.ranking.engine import ARENA_SNAPSHOT, USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
 
 
@@ -46,6 +46,10 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
                 {"model_id": "a/one", "display_name": "One", "provider": "A",
                  "model_type": "llm-chat", "benchmark_scores": {
                      b: 90.0 for b in USE_CASE_PROFILES["coding"]["benchmark_weights"]},
+                 # MODEL-123: an Arena value counts only on its pinned snapshot date.
+                 "evidence_dates": {
+                     b: board["published"] for b, board in ARENA_SNAPSHOT["boards"].items()
+                     if b in USE_CASE_PROFILES["coding"]["benchmark_weights"]},
                  "capability_tiers": {}, "cost_input": 1.0, "context_window": 128000,
                  "open_weights": True, "fits": {"gpu": 40.0}},
             ]},
@@ -501,11 +505,13 @@ def test_offline_rank_keeps_snapshot_verified_benchmarks(cache: Path) -> None:
     _write(cache)
     path = cache / "snapshot.json"
     payload = json.loads(path.read_text())
-    payload["data"]["candidates"]["candidates"][0]["verified_benchmarks"] = ["humaneval"]
+    payload["data"]["candidates"]["candidates"][0]["verified_benchmarks"] = ["swe_bench_pro"]
     path.write_text(json.dumps(payload))
 
     rebuilt = offline._candidates(snapshot.load(cache))
-    assert rebuilt[0].verified_benchmarks == {"humaneval"}
+    assert rebuilt[0].verified_benchmarks == {"swe_bench_pro"}
+    assert rebuilt[0].evidence_dates["arena_sc_coding"] == (
+        ARENA_SNAPSHOT["boards"]["arena_sc_coding"]["published"])
 
     result = _run(["offline", "rank", "coding", "--json", "-n", "1"], cache)
     assert result.returncode == offline.EXIT_OK

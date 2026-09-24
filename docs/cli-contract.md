@@ -175,6 +175,44 @@ nothing bumps: the envelope stays `"1.0"`, `rankings.json` `"2.0"`,
 `build.export_schema_version` `"3.0"`. A snapshot from before this field has no
 `release_date`; its candidates are named, all undated, ordered by id.
 
+### Current benchmarks, one Arena snapshot, stale readings (MODEL-123)
+
+An interim fix, pending the learned-weight ranking (MODEL-129). The use-case
+profiles now weight benchmarks that 2026 models are run on: Terminal-Bench 4.0,
+SWE-bench Pro, HLE, FrontierMath Tiers 1-3 v2, SimpleQA Verified, τ³-Banking,
+OSWorld 2.0, MTEB v2 and the Arena style-controlled boards. A percentage
+benchmark's ceiling is 100. What a caller sees:
+
+* **Three new fields on every ranked and unranked row**, always present:
+  `stale_benchmarks` (live-board readings behind the row older than
+  `policy.stale_after_days`, 45; flagged, still counted), `oldest_live_reading`
+  (a date, or `null` when no live reading contributed) and
+  `off_snapshot_benchmarks` (Arena scores that did not count, below).
+* **Arena is normalised within one snapshot.** `policy.arena_snapshot` names the
+  Hugging Face dataset revision (`lmarena-ai/leaderboard-dataset`, CC BY 4.0),
+  each board's publish date and its leader. A rating becomes twice its expected
+  win rate against that board's leader, so the leader scores 100. An Arena value
+  read on any other date is treated as missing and listed in
+  `off_snapshot_benchmarks`.
+* **Evidence selection.** Of several records for one benchmark, an independent
+  board beats a provider self-report, then the highest reasoning effort wins,
+  then the newest. A self-report never counts on a benchmark an independent
+  board carries.
+* **`candidates.json`** rows gain `evidence_dates` and `live_benchmarks`. A
+  snapshot without them still ranks, but no Arena value counts in it.
+* **Profiles.** `profiles.json` profiles may carry `status: suspended` and a
+  `suspended_reason`: speech_to_text, text_to_speech, safety and
+  content_moderation, which have no current source. A suspended profile still
+  answers; it is not featured, so `text_to_speech` leaves the wizard and
+  `rankings.json`, as speech_to_text did under MODEL-30.
+
+**Versioning.** Every change above is a new field or a new value of data, not a
+widened range of an existing field: `oldest_live_reading` is nullable from its
+first release, and a changed weight, key or ranked count is data. Under
+MODEL-59 nothing bumps: the envelope stays `"1.0"`, `rankings.json` `"2.0"`,
+`build.export_schema_version` `"3.0"`. The graph path (`RankingEngine`) reads
+only flat scores, so no Arena value counts there.
+
 When `--json` is supplied and a command fails before it can produce an answer,
 it writes this machine-readable error object to stderr and writes no answer to
 stdout:

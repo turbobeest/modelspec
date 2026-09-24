@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from api.ranking.engine import USE_CASE_PROFILES
+from api.ranking.engine import ARENA_SNAPSHOT, USE_CASE_PROFILES
 from pipeline import ranking
 from pipeline.ranking import Candidate, rank_report
 
@@ -30,9 +30,12 @@ GOLDEN = Path(__file__).resolve().parent / "fixtures" / "rank_golden_pre_model11
 
 
 def full(model_id: str, **kw) -> Candidate:
-    """Enough coding evidence to rank."""
+    """Enough coding evidence to rank. Arena values carry their snapshot date (MODEL-123)."""
+    dates = {b: ARENA_SNAPSHOT["boards"][b]["published"]
+             for b in CODING_BENCHMARKS if b in ARENA_SNAPSHOT["boards"]}
     return Candidate(model_id, model_id, "Test", kw.pop("model_type", "llm-code"),
-                     benchmark_scores={b: 60.0 for b in CODING_BENCHMARKS}, **kw)
+                     benchmark_scores={b: 60.0 for b in CODING_BENCHMARKS},
+                     evidence_dates=dates, **kw)
 
 
 def bare(model_id: str, release_date: str | None = None, **kw) -> Candidate:
@@ -66,15 +69,16 @@ def test_a_zero_score_model_that_passes_the_filters_is_named_with_no_scores() ->
 
 
 def test_the_reasons_are_the_ones_the_floors_can_tell_apart() -> None:
-    one = bare("thin/one", benchmark_scores={"scicode": 70.0})
-    two = bare("thin/two", benchmark_scores={"humaneval": 80.0, "aider_polyglot": 50.0})
-    # With the coverage floor lowered to 10%, one benchmark (scicode, 20%) fails
-    # only the count floor.
+    one = bare("thin/one", benchmark_scores={"swe_bench_pro": 70.0})
+    two = bare("thin/two", benchmark_scores={"terminal_bench_v4_0": 80.0,
+                                             "swe_bench_verified": 50.0})
+    # With the coverage floor lowered to 10%, one benchmark (swe_bench_pro,
+    # 12-15%) fails only the count floor.
     low = rank_report([one, bare("none/at-all")], "coding", min_benchmark_coverage=0.10)
     reasons = {m["model_id"]: m["reason"] for m in low["unranked_candidates"]["models"]}
     assert reasons == {"thin/one": "below_count_floor", "none/at-all": "no_scores"}
-    # At the CLI floor, two benchmarks worth 28% fail only the coverage floor, and
-    # scicode alone fails both — the count floor is named first.
+    # At the CLI floor, two benchmarks worth 36-40% fail only the coverage floor,
+    # and swe_bench_pro alone fails both — the count floor is named first.
     cli = rank_report([one, two], "coding")
     reasons = {m["model_id"]: m["reason"] for m in cli["unranked_candidates"]["models"]}
     assert reasons == {"thin/one": "below_count_floor", "thin/two": "below_coverage_floor"}
@@ -159,7 +163,8 @@ def test_an_empty_disclosure_is_present_not_absent() -> None:
 
 
 def test_the_wizard_floor_is_the_floor_the_reasons_use() -> None:
-    two = bare("thin/two", benchmark_scores={"scicode": 70.0, "humaneval": 80.0})  # 36%
+    two = bare("thin/two", benchmark_scores={"terminal_bench_v4_0": 70.0,
+                                             "swe_bench_verified": 80.0})  # 32-40%
     assert names(rank_report([two], "coding")) == ["thin/two"]
     assert names(rank_report([two], "coding",
                              min_benchmark_coverage=ranking.WIZARD_BENCHMARK_COVERAGE)) == []
@@ -219,11 +224,16 @@ def _canonical(value):
 
 @pytest.mark.parametrize("vector", sorted(_golden()["vectors"]))
 def test_the_rest_of_the_report_is_identical_to_before(vector: str) -> None:
-    """Golden digests, captured from the pre-MODEL-110 scorer on a real export slice.
+    """Golden digests on a real export slice, without `unranked_candidates`.
 
-    Serialised as `write_export` serialises `rankings.json` (sorted keys), after
-    `_canonical`. Drop the one new key and nothing else may differ — no id, rank,
-    score, order, count, label or string, and no float beyond interpreter noise.
+    Captured from the pre-MODEL-110 scorer to prove that ticket moved nothing
+    else; re-captured at MODEL-123, which changed the profiles, the bounds and
+    Arena normalisation on purpose. The slice predates the pinned Arena
+    snapshot and the new keys, so most vectors now rank nothing, which is the
+    honest answer for that data. Serialised as `write_export` serialises
+    `rankings.json` (sorted keys), after `_canonical`. Nothing may differ — no
+    id, rank, score, order, count, label or string, and no float beyond
+    interpreter noise — unless a ticket re-captures it on purpose.
     """
     frozen = _golden()
     kwargs = dict(frozen["vectors"][vector])

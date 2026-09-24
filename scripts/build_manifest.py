@@ -67,7 +67,16 @@ BENCHMARK_WRITE_RULE = (
     "observation date) and source_kind: independent_evaluator. The observation "
     "date is the correct date for that fact, not a proxy for an unknown "
     "publication date. When parsing a cached copy later, carry the original "
-    "fetch date through; do not substitute the parse-pass date."
+    "fetch date through; do not substitute the parse-pass date. "
+    "Effort (MODEL-123): when a source lists a model at several reasoning "
+    "efforts, the max-effort result is the product row; name the effort in "
+    "model_id_as_evaluated or configuration. The ranker enforces it by "
+    "preferring the highest effort among a card's rows for one benchmark. "
+    "Self-reports (MODEL-123): a provider_self_report may fill a benchmark only "
+    "when no independent board carries that benchmark "
+    "(api.ranking.engine.SELF_REPORTED_KEYS). On a benchmark an independent "
+    "board carries (INDEPENDENT_BOARD_KEYS) a self-report may be recorded, but "
+    "the ranker never counts it."
 )
 
 # ─── What a gap unblocks ────────────────────────────────────────

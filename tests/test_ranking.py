@@ -20,7 +20,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import (  # noqa: E402
-    BENCHMARK_RANGES, MIN_BENCHMARK_COUNT, MIN_BENCHMARK_COVERAGE, USE_CASE_PROFILES,
+    ARENA_SNAPSHOT, BENCHMARK_RANGES, MIN_BENCHMARK_COUNT, MIN_BENCHMARK_COVERAGE,
+    USE_CASE_PROFILES,
 )
 from pipeline import hardware  # noqa: E402
 from pipeline.ranking import (  # noqa: E402
@@ -62,7 +63,9 @@ def test_no_new_benchmark_loses_its_normalisation_range() -> None:
     lower-is-better metric. This test does not fail on the ones already known
     (MODEL-30 fixes those); it fails if a new one appears.
     """
-    ids = set(BENCHMARK_RANGES)
+    # An Arena board is normalised against its pinned snapshot's leader instead
+    # of a fixed range (MODEL-123): a normalisation, not a guess.
+    ids = set(BENCHMARK_RANGES) | set(ARENA_SNAPSHOT["boards"])
     unknown = {
         bench
         for profile in USE_CASE_PROFILES.values()
@@ -124,10 +127,10 @@ def test_a_model_with_no_data_is_unranked() -> None:
 
 
 def test_benchmarks_contribute_and_are_explained() -> None:
-    result = score(_candidate(benchmark_scores={"humaneval": 90.0}),
+    result = score(_candidate(benchmark_scores={"swe_bench_pro": 90.0}),
                    USE_CASE_PROFILES["coding"])
     assert result["benchmark_score"] > 0
-    assert "humaneval" in result["benchmark_contributions"]
+    assert "swe_bench_pro" in result["benchmark_contributions"]
     assert result["evidence_basis"] == "unverified-legacy"
 
 
@@ -321,7 +324,7 @@ def test_reviewed_evidence_beats_the_flat_block_for_the_same_benchmark() -> None
     """Same measurement, checked. The reviewed value wins."""
     import glob as _glob
 
-    from pipeline.ranking import build_candidates
+    from pipeline.ranking import build_candidates, select_evidence
     from schema.graph import CollectingSink
 
     files = [f for f in sorted(_glob.glob(str(REPO_ROOT / "models/**/*.md"), recursive=True))
@@ -329,7 +332,8 @@ def test_reviewed_evidence_beats_the_flat_block_for_the_same_benchmark() -> None
     assert files, "expected a card carrying reviewed evidence"
     cards = [ModelCard.from_yaml_file(files[0])]
     candidate = build_candidates(cards, CollectingSink())[0]
-    for record in cards[0].benchmarks.evidence:
+    # One record per benchmark wins under the MODEL-123 rules; that one is the score.
+    for record in select_evidence(cards[0].benchmarks.evidence).values():
         assert candidate.benchmark_scores[record.benchmark_id] == record.score
         assert record.benchmark_id in candidate.verified_benchmarks
 
@@ -347,9 +351,9 @@ def test_evidence_basis_distinguishes_verified_from_legacy() -> None:
 
 def test_a_ranking_reports_how_much_of_it_is_verified() -> None:
     profile = USE_CASE_PROFILES["coding"]
-    plain = _candidate(benchmark_scores={"humaneval": 90.0})
-    checked = _candidate(benchmark_scores={"humaneval": 90.0},
-                         verified_benchmarks={"humaneval"})
+    plain = _candidate(benchmark_scores={"swe_bench_pro": 90.0})
+    checked = _candidate(benchmark_scores={"swe_bench_pro": 90.0},
+                         verified_benchmarks={"swe_bench_pro"})
     assert score(plain, profile)["evidence_basis"] == "unverified-legacy"
     assert score(checked, profile)["evidence_basis"] == "partial-verified"
     assert score(checked, profile)["verified_contributions"] == 1

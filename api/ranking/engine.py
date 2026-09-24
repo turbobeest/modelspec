@@ -19,105 +19,114 @@ logger = logging.getLogger("modelspec.ranking")
 # ═══════════════════════════════════════════════════════════════
 # Maps benchmark_id -> (min_plausible, max_plausible) for 0-100 normalization.
 # Scores below min map to 0, above max map to 100.
-# For ELO-based scores, the range is wider; for percentage-based, it's 0-100.
+#
+# MODEL-123 (Jamie, 2026-09-23, audit §8.2): a percentage benchmark's ceiling is
+# its natural 100. A ceiling below 100 clipped the frontier flat — 94 cards sat
+# above GPQA Diamond's old 80 and tied there. `tests/test_profile_refresh.py`
+# reads each benchmark page's unit and fails on a percentage ceiling below 100.
+#
+# Arena keys that a profile weights are not here at all: they are normalised
+# within one pinned snapshot (`ARENA_SNAPSHOT`, below), never against a fixed
+# Elo bound. The raw `arena_elo_*` entries that remain are unweighted legacy
+# keys from the April 2026 scrape.
 
 BENCHMARK_RANGES: dict[str, tuple[float, float]] = {
     # Knowledge & Reasoning (percentage-based, 0-100)
-    "mmlu_pro":         (20.0, 90.0),
-    "gpqa_diamond":     (20.0, 80.0),
-    "hle":              (0.0, 50.0),
+    "mmlu_pro":         (20.0, 100.0),
+    "gpqa_diamond":     (20.0, 100.0),
+    "hle":              (0.0, 100.0),
     "arc_challenge":    (40.0, 100.0),
     "hellaswag":        (40.0, 100.0),
-    "truthfulqa":       (20.0, 90.0),
-    "bbh":              (20.0, 95.0),
-    "ifeval":           (20.0, 95.0),
-    "musr":             (10.0, 80.0),
+    "truthfulqa":       (20.0, 100.0),
+    "bbh":              (20.0, 100.0),
+    "ifeval":           (20.0, 100.0),
+    "musr":             (10.0, 100.0),
     "winogrande":       (50.0, 100.0),
     # Math
     "math_500":         (10.0, 100.0),
-    "aime_2025":        (0.0, 80.0),
-    "aime_2026":        (0.0, 80.0),
+    "aime_2025":        (0.0, 100.0),
+    "aime_2026":        (0.0, 100.0),
     "gsm8k":            (20.0, 100.0),
     "mgsm":             (10.0, 100.0),
     # Coding
     "humaneval":        (10.0, 100.0),
     "humaneval_plus":   (10.0, 100.0),
-    "swe_bench_verified": (0.0, 70.0),
-    "live_code_bench":  (0.0, 60.0),
-    "aider_polyglot":   (0.0, 90.0),
-    "terminal_bench":   (0.0, 80.0),
+    "swe_bench_verified": (0.0, 100.0),
+    "live_code_bench":  (0.0, 100.0),
+    "aider_polyglot":   (0.0, 100.0),
+    "terminal_bench":   (0.0, 100.0),
     "mbpp":             (20.0, 100.0),
     "multipl_e":        (10.0, 100.0),
     # Multimodal
-    "mmmu":             (20.0, 80.0),
-    "mathvista":        (20.0, 80.0),
+    "mmmu":             (20.0, 100.0),
+    "mathvista":        (20.0, 100.0),
     "docvqa":           (40.0, 100.0),
     "chartqa":          (40.0, 100.0),
     # Safety
     "helm_safety":      (30.0, 100.0),
     "bbq":              (30.0, 100.0),
     "toxigen":          (30.0, 100.0),
-    # Human preference (ELO-based: typical range 900-1400)
+    # Human preference, raw (not style-controlled) Arena view. Unweighted since
+    # MODEL-123; kept so an old snapshot's values still normalise the same way.
     "arena_elo_overall":       (1000.0, 1400.0),
     "arena_elo_coding":        (1000.0, 1400.0),
     "arena_elo_math":          (1000.0, 1400.0),
     "arena_elo_vision":        (1000.0, 1400.0),
     "arena_elo_hard_prompts":  (1000.0, 1400.0),
-    "arena_elo_style_control": (1000.0, 1400.0),
     "mt_bench":         (5.0, 10.0),
-    "alpaca_eval":      (0.0, 60.0),
+    "alpaca_eval":      (0.0, 100.0),
     "wildbench":        (-100.0, 100.0),
     # Embedding (percentage or ratio-based)
-    "mteb_overall":       (30.0, 80.0),
-    "mteb_retrieval":     (20.0, 70.0),
-    "mteb_classification": (40.0, 90.0),
-    "mteb_clustering":    (20.0, 60.0),
-    "mteb_reranking":     (20.0, 70.0),
-    "mteb_sts":           (40.0, 90.0),
-    "mteb_pair_classification": (50.0, 95.0),
-    "mteb_summarization": (20.0, 50.0),
+    "mteb_overall":       (30.0, 100.0),
+    "mteb_retrieval":     (20.0, 100.0),
+    "mteb_classification": (40.0, 100.0),
+    "mteb_clustering":    (20.0, 100.0),
+    "mteb_reranking":     (20.0, 100.0),
+    "mteb_sts":           (40.0, 100.0),
+    "mteb_pair_classification": (50.0, 100.0),
+    "mteb_summarization": (20.0, 100.0),
     "beir":               (20.0, 70.0),
-    "miracl":             (10.0, 70.0),
+    "miracl":             (10.0, 100.0),
     # Agentic
-    "swe_bench_agent":  (0.0, 60.0),
-    "swe_bench_pro":    (0.0, 80.0),
-    "swe_bench_multilingual": (0.0, 90.0),
-    "swe_bench_multimodal":   (0.0, 60.0),
-    "tau_bench":        (0.0, 80.0),
+    "swe_bench_agent":  (0.0, 100.0),
+    "swe_bench_pro":    (0.0, 100.0),
+    "swe_bench_multilingual": (0.0, 100.0),
+    "swe_bench_multimodal":   (0.0, 100.0),
+    "tau_bench":        (0.0, 100.0),
     "web_arena":        (0.0, 50.0),
-    "osworld":          (0.0, 80.0),
-    # Agentic search
-    "browsecomp":       (0.0, 90.0),
-    "hle":              (0.0, 65.0),
-    "hle_tools":        (0.0, 70.0),
+    "osworld":          (0.0, 100.0),
+    # Agentic search. (`hle` is defined once, above; MODEL-108 §5 found it
+    # twice, and the later entry silently won.)
+    "browsecomp":       (0.0, 100.0),
+    "hle_tools":        (0.0, 100.0),
     # Multimodal (advanced)
-    "charxiv_reasoning":       (20.0, 95.0),
+    "charxiv_reasoning":       (20.0, 100.0),
     "charxiv_reasoning_tools": (20.0, 95.0),
-    "lab_bench_figqa":         (20.0, 90.0),
-    "lab_bench_figqa_tools":   (20.0, 90.0),
-    "screenspot_pro":          (10.0, 95.0),
-    "screenspot_pro_tools":    (10.0, 95.0),
+    "lab_bench_figqa":         (20.0, 100.0),
+    "lab_bench_figqa_tools":   (20.0, 100.0),
+    "screenspot_pro":          (10.0, 100.0),
+    "screenspot_pro_tools":    (10.0, 100.0),
     # Long context
-    "graphwalks_bfs_256k_1m":     (0.0, 85.0),
+    "graphwalks_bfs_256k_1m":     (0.0, 100.0),
     "graphwalks_parents_256k_1m": (0.0, 100.0),
     # Math (competition)
     "usamo_2026":       (0.0, 100.0),
     "ipho_2025_theory": (0.0, 100.0),
     # Agentic research
     "deepsearchqa":             (0.0, 80.0),
-    "frontierscience_research": (0.0, 50.0),
+    "frontierscience_research": (0.0, 100.0),
     # Health / Medical (advanced)
-    "healthbench_hard":         (0.0, 50.0),
-    "medxpertqa_multimodal":    (20.0, 85.0),
+    "healthbench_hard":         (0.0, 100.0),
+    "medxpertqa_multimodal":    (20.0, 100.0),
     # Visual reasoning
-    "zerobench":        (0.0, 50.0),
+    "zerobench":        (0.0, 100.0),
     "ai2d":             (40.0, 100.0),
     "ocrbench":         (0.0, 100.0),
-    "realworldqa":      (30.0, 90.0),
+    "realworldqa":      (30.0, 100.0),
     # AGI benchmarks
-    "arc_agi_2":        (0.0, 80.0),
+    "arc_agi_2":        (0.0, 100.0),
     # Multilingual knowledge
-    "mmmlu":            (40.0, 95.0),
+    "mmmlu":            (40.0, 100.0),
     # Per-language MultiPL-E (percentage-based, 0-100)
     "multipl_e_python":     (10.0, 100.0),
     "multipl_e_rust":       (10.0, 100.0),
@@ -137,85 +146,85 @@ BENCHMARK_RANGES: dict[str, tuple[float, float]] = {
     "multipl_e_perl":       (10.0, 100.0),
     "multipl_e_lua":        (10.0, 100.0),
     # Terminal-Bench 2.0 (percentage-based, 0-100)
-    "terminal_bench_2":     (0.0, 80.0),
+    "terminal_bench_2":     (0.0, 100.0),
     # MMLU subject scores (percentage-based, 0-100)
     # All 57 MMLU (hendrycksTest) subjects from the evaluation harness
-    "mmlu_abstract_algebra":                    (20.0, 75.0),
-    "mmlu_anatomy":                             (20.0, 90.0),
-    "mmlu_astronomy":                           (20.0, 95.0),
-    "mmlu_business_ethics":                     (20.0, 90.0),
-    "mmlu_clinical_knowledge":                  (20.0, 95.0),
-    "mmlu_college_biology":                     (20.0, 95.0),
-    "mmlu_college_chemistry":                   (20.0, 80.0),
-    "mmlu_college_computer_science":            (20.0, 95.0),
-    "mmlu_college_mathematics":                 (20.0, 80.0),
-    "mmlu_college_medicine":                    (20.0, 90.0),
-    "mmlu_college_physics":                     (20.0, 80.0),
-    "mmlu_computer_security":                   (20.0, 95.0),
-    "mmlu_conceptual_physics":                  (20.0, 95.0),
-    "mmlu_econometrics":                        (20.0, 85.0),
-    "mmlu_electrical_engineering":              (20.0, 90.0),
-    "mmlu_elementary_mathematics":              (20.0, 90.0),
-    "mmlu_formal_logic":                        (20.0, 80.0),
-    "mmlu_global_facts":                        (20.0, 75.0),
-    "mmlu_high_school_biology":                 (20.0, 95.0),
-    "mmlu_high_school_chemistry":               (20.0, 90.0),
-    "mmlu_high_school_computer_science":        (20.0, 95.0),
-    "mmlu_high_school_european_history":        (20.0, 95.0),
-    "mmlu_high_school_geography":               (20.0, 95.0),
+    "mmlu_abstract_algebra":                    (20.0, 100.0),
+    "mmlu_anatomy":                             (20.0, 100.0),
+    "mmlu_astronomy":                           (20.0, 100.0),
+    "mmlu_business_ethics":                     (20.0, 100.0),
+    "mmlu_clinical_knowledge":                  (20.0, 100.0),
+    "mmlu_college_biology":                     (20.0, 100.0),
+    "mmlu_college_chemistry":                   (20.0, 100.0),
+    "mmlu_college_computer_science":            (20.0, 100.0),
+    "mmlu_college_mathematics":                 (20.0, 100.0),
+    "mmlu_college_medicine":                    (20.0, 100.0),
+    "mmlu_college_physics":                     (20.0, 100.0),
+    "mmlu_computer_security":                   (20.0, 100.0),
+    "mmlu_conceptual_physics":                  (20.0, 100.0),
+    "mmlu_econometrics":                        (20.0, 100.0),
+    "mmlu_electrical_engineering":              (20.0, 100.0),
+    "mmlu_elementary_mathematics":              (20.0, 100.0),
+    "mmlu_formal_logic":                        (20.0, 100.0),
+    "mmlu_global_facts":                        (20.0, 100.0),
+    "mmlu_high_school_biology":                 (20.0, 100.0),
+    "mmlu_high_school_chemistry":               (20.0, 100.0),
+    "mmlu_high_school_computer_science":        (20.0, 100.0),
+    "mmlu_high_school_european_history":        (20.0, 100.0),
+    "mmlu_high_school_geography":               (20.0, 100.0),
     "mmlu_high_school_government_and_politics": (20.0, 100.0),
-    "mmlu_high_school_macroeconomics":          (20.0, 95.0),
-    "mmlu_high_school_mathematics":             (20.0, 80.0),
-    "mmlu_high_school_microeconomics":          (20.0, 95.0),
-    "mmlu_high_school_physics":                 (20.0, 85.0),
-    "mmlu_high_school_psychology":              (20.0, 98.0),
-    "mmlu_high_school_statistics":              (20.0, 90.0),
-    "mmlu_high_school_us_history":              (20.0, 95.0),
-    "mmlu_high_school_world_history":           (20.0, 95.0),
-    "mmlu_human_aging":                         (20.0, 90.0),
-    "mmlu_human_sexuality":                     (20.0, 95.0),
-    "mmlu_international_law":                   (20.0, 95.0),
-    "mmlu_jurisprudence":                       (20.0, 90.0),
-    "mmlu_logical_fallacies":                   (20.0, 95.0),
-    "mmlu_machine_learning":                    (20.0, 85.0),
-    "mmlu_management":                          (20.0, 95.0),
-    "mmlu_marketing":                           (20.0, 95.0),
-    "mmlu_medical_genetics":                    (20.0, 95.0),
-    "mmlu_miscellaneous":                       (20.0, 95.0),
-    "mmlu_moral_disputes":                      (20.0, 90.0),
-    "mmlu_moral_scenarios":                     (20.0, 85.0),
-    "mmlu_nutrition":                           (20.0, 95.0),
-    "mmlu_philosophy":                          (20.0, 90.0),
-    "mmlu_prehistory":                          (20.0, 95.0),
-    "mmlu_professional_accounting":             (20.0, 85.0),
-    "mmlu_professional_law":                    (20.0, 90.0),
-    "mmlu_professional_medicine":               (20.0, 95.0),
-    "mmlu_professional_psychology":             (20.0, 95.0),
-    "mmlu_public_relations":                    (20.0, 90.0),
-    "mmlu_security_studies":                    (20.0, 90.0),
-    "mmlu_sociology":                           (20.0, 95.0),
-    "mmlu_us_foreign_policy":                   (20.0, 95.0),
-    "mmlu_virology":                            (20.0, 80.0),
-    "mmlu_world_religions":                     (20.0, 95.0),
+    "mmlu_high_school_macroeconomics":          (20.0, 100.0),
+    "mmlu_high_school_mathematics":             (20.0, 100.0),
+    "mmlu_high_school_microeconomics":          (20.0, 100.0),
+    "mmlu_high_school_physics":                 (20.0, 100.0),
+    "mmlu_high_school_psychology":              (20.0, 100.0),
+    "mmlu_high_school_statistics":              (20.0, 100.0),
+    "mmlu_high_school_us_history":              (20.0, 100.0),
+    "mmlu_high_school_world_history":           (20.0, 100.0),
+    "mmlu_human_aging":                         (20.0, 100.0),
+    "mmlu_human_sexuality":                     (20.0, 100.0),
+    "mmlu_international_law":                   (20.0, 100.0),
+    "mmlu_jurisprudence":                       (20.0, 100.0),
+    "mmlu_logical_fallacies":                   (20.0, 100.0),
+    "mmlu_machine_learning":                    (20.0, 100.0),
+    "mmlu_management":                          (20.0, 100.0),
+    "mmlu_marketing":                           (20.0, 100.0),
+    "mmlu_medical_genetics":                    (20.0, 100.0),
+    "mmlu_miscellaneous":                       (20.0, 100.0),
+    "mmlu_moral_disputes":                      (20.0, 100.0),
+    "mmlu_moral_scenarios":                     (20.0, 100.0),
+    "mmlu_nutrition":                           (20.0, 100.0),
+    "mmlu_philosophy":                          (20.0, 100.0),
+    "mmlu_prehistory":                          (20.0, 100.0),
+    "mmlu_professional_accounting":             (20.0, 100.0),
+    "mmlu_professional_law":                    (20.0, 100.0),
+    "mmlu_professional_medicine":               (20.0, 100.0),
+    "mmlu_professional_psychology":             (20.0, 100.0),
+    "mmlu_public_relations":                    (20.0, 100.0),
+    "mmlu_security_studies":                    (20.0, 100.0),
+    "mmlu_sociology":                           (20.0, 100.0),
+    "mmlu_us_foreign_policy":                   (20.0, 100.0),
+    "mmlu_virology":                            (20.0, 100.0),
+    "mmlu_world_religions":                     (20.0, 100.0),
     # Legacy aliases (mapped to new names for backward compatibility)
-    "mmlu_chemistry":               (20.0, 95.0),
-    "mmlu_physics":                 (20.0, 95.0),
-    "mmlu_biology":                 (20.0, 95.0),
-    "mmlu_computer_science":        (20.0, 95.0),
+    "mmlu_chemistry":               (20.0, 100.0),
+    "mmlu_physics":                 (20.0, 100.0),
+    "mmlu_biology":                 (20.0, 100.0),
+    "mmlu_computer_science":        (20.0, 100.0),
     # Domain-specific extras
-    "pubmedqa":     (30.0, 90.0),
-    "medmcqa":      (20.0, 80.0),
+    "pubmedqa":     (30.0, 100.0),
+    "medmcqa":      (20.0, 100.0),
     "bioasq":       (20.0, 80.0),
     "finqa":        (20.0, 90.0),
     "convfinqa":    (20.0, 80.0),
     "fpb":          (20.0, 90.0),
     # Translation
-    "flores":       (10.0, 70.0),
-    "flores_en_zh": (10.0, 50.0),
-    "flores_en_de": (10.0, 50.0),
+    "flores":       (10.0, 100.0),
+    "flores_en_zh": (10.0, 100.0),
+    "flores_en_de": (10.0, 100.0),
     "flores_en_fr": (10.0, 50.0),
-    "flores_en_es": (10.0, 50.0),
-    "flores_en_ja": (10.0, 50.0),
+    "flores_en_es": (10.0, 100.0),
+    "flores_en_ja": (10.0, 100.0),
     "flores_en_ko": (10.0, 50.0),
 }
 
@@ -252,51 +261,119 @@ BENCHMARK_RANGES.update({
     "mos_tts": (1.0, 5.0),            # mean opinion score, 1-5 by definition
 })
 
+#: Ranges for the benchmarks MODEL-123 brought into the profiles. Each page
+#: states the unit; every percentage takes its natural (0, 100). Arena keys are
+#: absent on purpose: they are normalised within `ARENA_SNAPSHOT`, below.
+BENCHMARK_RANGES.update({
+    "terminal_bench_v4_0": (0.0, 100.0),
+    "frontiermath_tiers_1_3_v2": (0.0, 100.0),
+    "ifbench": (0.0, 100.0),
+    "simpleqa_verified": (0.0, 100.0),
+    "mmmu_pro": (0.0, 100.0),
+    "osworld_2": (0.0, 100.0),
+    "tau3_banking": (0.0, 100.0),
+    "healthbench_professional": (0.0, 100.0),
+    "deepswe_v1_1": (0.0, 100.0),
+    "cursorbench_4": (0.0, 100.0),
+    "frontiercode_v1_1": (0.0, 100.0),
+    "mteb_eng_v2": (0.0, 100.0),
+    "mteb_multilingual_v2": (0.0, 100.0),
+    "mteb_v2_retrieval": (0.0, 100.0),
+    "mteb_v2_classification": (0.0, 100.0),
+    # US dollars, not a percentage. The floor is the $500 starting balance, so
+    # a model that loses money scores 0. The board has no ceiling: its leader
+    # was $15,515 on 2026-09-24 and the trend is about +$800 a month, so this
+    # bound has roughly 18 months of headroom. `tests/test_profile_refresh.py`
+    # fails once a card's value comes within 10% of it.
+    "vending_bench_2": (500.0, 30000.0),
+})
+
+
+# ═══════════════════════════════════════════════════════════════
+# Use case profiles (MODEL-123, 2026-09-24)
+# ═══════════════════════════════════════════════════════════════
+#
+# The MODEL-108 audit (docs/audits/2026-09-staleness.md) found that the
+# profiles weighted benchmarks nobody runs on new models (HumanEval, MATH-500,
+# BBH, IFEval, MT-Bench, AlpacaEval, Aider, LiveCodeBench, Terminal-Bench 1.0),
+# so a model released after mid-2026 could clear the CLI floor in 1 of 51
+# profiles. Jamie approved the §8.1 sets for coding, reasoning, chat, agentic,
+# embedding and vision on 2026-09-23. The minor profiles inherit the same
+# substitutions:
+#
+# * the Arena style-control keys (`arena_elo_style_control`, `arena_sc_*`)
+#   replace the raw `arena_elo_*` keys, which were read in April and clipped;
+# * IFBench replaces IFEval and Terminal-Bench 4.0 replaces 1.0. The MMLU
+#   subjects and MultiPL-E stay only where no current source exists, at a
+#   reduced weight, and earn nothing toward the coverage guard;
+# * dead keys (`web_arena`, `finqa`, `flores`, `fid`, `clip_score`, ...) are
+#   retired, and a profile with no current source at all is suspended.
+#
+# chat's proposed `aa_omniscience` became SimpleQA Verified: both measure
+# short-form factual recall, and no profile weight may depend on Artificial
+# Analysis (MODEL-117).
+#
+# `status: suspended` means the profile is still computed (the API's use-case
+# enum does not shrink), never featured, and exempt from the coverage guard.
+# `suspended_reason` says why, in a sentence a reader can act on.
+
+#: Keys some profile weighted before MODEL-123 and none weights now. Their
+#: ranges stay, so an old snapshot still normalises; their card values stay,
+#: because a null beats a guess and a retired key is not a wrong one.
+RETIRED_FROM_PROFILES: frozenset[str] = frozenset({
+    "humaneval", "live_code_bench", "aider_polyglot", "terminal_bench", "math_500", "bbh",
+    "ifeval", "mt_bench", "alpaca_eval", "wildbench", "gsm8k", "hellaswag", "arc_challenge",
+    "truthfulqa", "tau_bench", "web_arena", "swe_bench_agent", "finqa", "flores", "miracl",
+    "beir", "mteb_overall", "mteb_retrieval", "mteb_classification", "mteb_clustering",
+    "helm_safety", "pubmedqa", "multipl_e", "fid", "clip_score",
+    "arena_elo_overall", "arena_elo_coding", "arena_elo_math", "arena_elo_hard_prompts",
+    "arena_elo_vision",
+})
+
 USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "coding": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "humaneval": 0.20, "swe_bench_verified": 0.20, "live_code_bench": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.15, "arena_elo_overall": 0.10,
-            "terminal_bench": 0.05,
+            "terminal_bench_v4_0": 0.30, "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_webdev": 0.15, "arena_elo_style_control": 0.15,
+            "swe_bench_verified": 0.10,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "reasoning": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "gpqa_diamond": 0.20, "math_500": 0.20, "aime_2025": 0.15,
-            "mmlu_pro": 0.15, "arena_elo_overall": 0.15, "bbh": 0.10,
-            "ifeval": 0.05,
+            "hle": 0.25, "frontiermath_tiers_1_3_v2": 0.15, "aime_2026": 0.15,
+            "arena_sc_hard_prompts": 0.15, "gpqa_diamond": 0.10, "mmlu_pro": 0.10,
+            "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.35, "coding": 0.15, "tool_use": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "chat": {
         "preferred_types": ["llm-chat", "vlm", "llm-reasoning"],
         "benchmark_weights": {
-            "arena_elo_overall": 0.30, "mt_bench": 0.15, "alpaca_eval": 0.15,
-            "ifeval": 0.15, "mmlu_pro": 0.10, "arena_elo_style_control": 0.10,
-            "wildbench": 0.05,
+            "arena_elo_style_control": 0.40, "arena_sc_hard_prompts": 0.15,
+            "ifbench": 0.15, "simpleqa_verified": 0.20, "mmlu_pro": 0.10,
         },
         "capability_weights": {
             "creative": 0.20, "language": 0.20, "reasoning": 0.15, "tool_use": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "embedding": {
         "preferred_types": ["embedding-text", "embedding-multimodal"],
         "benchmark_weights": {
-            "mteb_overall": 0.30, "mteb_retrieval": 0.25, "mteb_classification": 0.15,
-            "beir": 0.15, "miracl": 0.10, "mteb_clustering": 0.05,
+            "mteb_eng_v2": 0.35, "mteb_multilingual_v2": 0.25, "mteb_v2_retrieval": 0.25,
+            "mteb_v2_classification": 0.15,
         },
         "capability_weights": {},
         "cost_weight": 0.0,
@@ -305,21 +382,21 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "vision": {
         "preferred_types": ["vlm", "llm-chat"],
         "benchmark_weights": {
-            "mmmu": 0.25, "mathvista": 0.20, "docvqa": 0.15, "chartqa": 0.15,
-            "arena_elo_vision": 0.15, "arena_elo_overall": 0.10,
+            "arena_sc_vision": 0.35, "mmmu_pro": 0.25, "mmmu": 0.10, "mathvista": 0.10,
+            "arena_elo_style_control": 0.10, "docvqa": 0.05, "chartqa": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.15, "creative": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "agentic": {
         "preferred_types": ["llm-reasoning", "llm-code", "llm-chat"],
         "benchmark_weights": {
-            "swe_bench_agent": 0.20, "tau_bench": 0.15, "web_arena": 0.15,
-            "swe_bench_verified": 0.15, "arena_elo_overall": 0.15,
-            "terminal_bench": 0.10, "ifeval": 0.10,
+            "terminal_bench_v4_0": 0.25, "tau3_banking": 0.20, "osworld_2": 0.15,
+            "swe_bench_pro": 0.15, "vending_bench_2": 0.10, "browsecomp": 0.10,
+            "arena_elo_style_control": 0.05,
         },
         "capability_weights": {
             "tool_use": 0.25, "coding": 0.20, "reasoning": 0.20,
@@ -330,9 +407,11 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "rag": {
         "preferred_types": ["embedding-text", "reranker", "llm-chat"],
         "benchmark_weights": {
-            "mteb_retrieval": 0.25, "beir": 0.20, "mteb_overall": 0.15,
-            "arena_elo_overall": 0.15, "ifeval": 0.10, "mmlu_pro": 0.10,
-            "miracl": 0.05,
+            # MTEB carries 0.65 so an embedding model with all three clears the
+            # 0.50 floor even while the 0.20 of verified additions stands.
+            "mteb_v2_retrieval": 0.35, "mteb_multilingual_v2": 0.15, "mteb_eng_v2": 0.15,
+            "arena_elo_style_control": 0.15, "simpleqa_verified": 0.10, "ifbench": 0.05,
+            "mmlu_pro": 0.05,
         },
         "capability_weights": {
             "language": 0.15, "reasoning": 0.10,
@@ -341,10 +420,14 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
     "safety": {
+        "status": "suspended",
+        "suspended_reason": (
+            "No benchmark with a current source covers safety classifiers. HELM Safety "
+            "is saturated on its own page, and BBQ and ToxiGen are static 2022 sets."
+        ),
         "preferred_types": ["safety-classifier", "reward-model"],
         "benchmark_weights": {
-            "helm_safety": 0.30, "bbq": 0.25, "toxigen": 0.25,
-            "arena_elo_overall": 0.20,
+            "bbq": 0.50, "toxigen": 0.50,
         },
         "capability_weights": {},
         "cost_weight": 0.0,
@@ -353,117 +436,123 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "general": {
         "preferred_types": ["llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "arena_elo_overall": 0.25, "mmlu_pro": 0.15, "gpqa_diamond": 0.10,
-            "humaneval": 0.10, "math_500": 0.10, "ifeval": 0.10,
-            "mt_bench": 0.10, "swe_bench_verified": 0.10,
+            "arena_elo_style_control": 0.25, "mmlu_pro": 0.10, "gpqa_diamond": 0.10,
+            "hle": 0.10, "terminal_bench_v4_0": 0.10, "swe_bench_pro": 0.10,
+            "ifbench": 0.10, "simpleqa_verified": 0.10, "arena_sc_hard_prompts": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.15, "coding": 0.15, "tool_use": 0.10, "creative": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Coding by language ───────────────────────
+    # ─── Sub-domain: Coding by language ──────────────────────────
     "coding_python": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_python": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_verified": 0.30, "terminal_bench_v4_0": 0.20, "swe_bench_pro": 0.15,
+            "arena_sc_coding": 0.15, "arena_elo_style_control": 0.10,
+            "multipl_e_python": 0.10,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_rust": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_rust": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_rust": 0.10,
+            "swe_bench_verified": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_go": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_go": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_go": 0.10,
+            "swe_bench_verified": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_typescript": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_typescript": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_typescript": 0.10,
+            "arena_webdev": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_cpp": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_cpp": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_cpp": 0.10,
+            "swe_bench_verified": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_java": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_java": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_java": 0.10,
+            "swe_bench_verified": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "coding_javascript": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "multipl_e_javascript": 0.30, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.15, "arena_elo_coding": 0.10, "multipl_e": 0.10,
-            "arena_elo_overall": 0.05,
+            "swe_bench_multilingual": 0.25, "terminal_bench_v4_0": 0.20,
+            "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "arena_elo_style_control": 0.10, "multipl_e_javascript": 0.10,
+            "arena_webdev": 0.05,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.20, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Medical ──────────────────────────────────
+    # ─── Sub-domain: Medical ─────────────────────────────────────
     "medical": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "medqa": 0.30, "pubmedqa": 0.20, "medmcqa": 0.15,
-            "mmlu_clinical_knowledge": 0.15, "mmlu_pro": 0.10,
-            "arena_elo_overall": 0.10,
+            "arena_sc_medicine": 0.25, "healthbench_professional": 0.20, "medqa": 0.15,
+            "medmcqa": 0.10, "gpqa_diamond": 0.10, "arena_elo_style_control": 0.10,
+            "mmlu_clinical_knowledge": 0.05, "healthbench_hard": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.20, "language": 0.10,
@@ -474,8 +563,9 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "medical_clinical": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "medqa": 0.25, "mmlu_clinical_knowledge": 0.25, "pubmedqa": 0.15,
-            "medmcqa": 0.15, "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+            "arena_sc_medicine": 0.30, "healthbench_professional": 0.25, "medqa": 0.15,
+            "mmlu_clinical_knowledge": 0.10, "medmcqa": 0.10,
+            "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.20, "language": 0.10,
@@ -486,23 +576,23 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "medical_radiology": {
         "preferred_types": ["vlm", "llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "medqa": 0.20, "mmmu": 0.20, "mmlu_clinical_knowledge": 0.15,
-            "pubmedqa": 0.15, "arena_elo_vision": 0.15, "arena_elo_overall": 0.15,
+            "arena_sc_vision": 0.25, "arena_sc_medicine": 0.20, "mmmu_pro": 0.15,
+            "medqa": 0.15, "healthbench_professional": 0.10,
+            "arena_elo_style_control": 0.10, "mmmu": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "creative": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Legal ────────────────────────────────────
+    # ─── Sub-domain: Legal ───────────────────────────────────────
     "legal": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "legalbench": 0.35, "mmlu_professional_law": 0.20,
-            "mmlu_jurisprudence": 0.15, "ifeval": 0.10,
-            "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+            "arena_sc_legal": 0.40, "legalbench": 0.25, "arena_elo_style_control": 0.15,
+            "ifbench": 0.10, "mmlu_professional_law": 0.05, "mmlu_pro": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.15,
@@ -511,12 +601,12 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Financial ────────────────────────────────
+    # ─── Sub-domain: Financial ───────────────────────────────────
     "financial": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "finbench": 0.30, "finqa": 0.20, "mmlu_pro": 0.15,
-            "ifeval": 0.10, "math_500": 0.10, "arena_elo_overall": 0.15,
+            "arena_sc_business": 0.35, "finbench": 0.20, "mmlu_pro": 0.15, "ifbench": 0.10,
+            "arena_sc_math": 0.10, "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.10,
@@ -525,64 +615,63 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Science ──────────────────────────────────
+    # ─── Sub-domain: Science ─────────────────────────────────────
     "science": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "gpqa_diamond": 0.25, "mmlu_pro": 0.20, "math_500": 0.15,
-            "mmlu_chemistry": 0.10, "mmlu_physics": 0.10, "mmlu_biology": 0.10,
-            "arena_elo_overall": 0.10,
+            "gpqa_diamond": 0.25, "arena_sc_science": 0.20, "hle": 0.15, "mmlu_pro": 0.15,
+            "frontiermath_tiers_1_3_v2": 0.10, "arena_elo_style_control": 0.10, "aime_2026": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "science_chemistry": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_chemistry": 0.30, "gpqa_diamond": 0.20, "mmlu_pro": 0.15,
-            "math_500": 0.15, "arena_elo_overall": 0.10, "ifeval": 0.10,
+            "gpqa_diamond": 0.25, "mmlu_chemistry": 0.20, "arena_sc_science": 0.20,
+            "mmlu_pro": 0.15, "hle": 0.10, "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "science_physics": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_physics": 0.30, "gpqa_diamond": 0.20, "math_500": 0.15,
-            "mmlu_pro": 0.15, "arena_elo_overall": 0.10, "ifeval": 0.10,
+            "gpqa_diamond": 0.25, "mmlu_physics": 0.20, "arena_sc_science": 0.20,
+            "hle": 0.10, "mmlu_pro": 0.10, "arena_elo_style_control": 0.10,
+            "frontiermath_tiers_1_3_v2": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "science_biology": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_biology": 0.30, "gpqa_diamond": 0.20, "mmlu_pro": 0.15,
-            "mmlu_clinical_knowledge": 0.10, "arena_elo_overall": 0.15,
-            "ifeval": 0.10,
+            "gpqa_diamond": 0.25, "mmlu_biology": 0.20, "arena_sc_science": 0.20,
+            "mmlu_pro": 0.15, "hle": 0.10, "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Translation ──────────────────────────────
+    # ─── Sub-domain: Translation ─────────────────────────────────
     "translation": {
         "preferred_types": ["llm-chat", "vlm"],
         "benchmark_weights": {
-            "flores": 0.30, "mgsm": 0.20, "miracl": 0.20,
-            "mmlu_pro": 0.10, "arena_elo_overall": 0.10, "ifeval": 0.10,
+            "arena_sc_non_english": 0.40, "mmmlu": 0.20, "arena_elo_style_control": 0.15,
+            "mgsm": 0.10, "ifbench": 0.10, "mmlu_pro": 0.05,
         },
         "capability_weights": {
             "language": 0.30, "creative": 0.15, "reasoning": 0.10,
@@ -591,25 +680,25 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Creative Writing ─────────────────────────
+    # ─── Sub-domain: Creative Writing ────────────────────────────
     "writing_creative": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "alpaca_eval": 0.25, "wildbench": 0.20, "mt_bench": 0.20,
-            "arena_elo_style_control": 0.15, "arena_elo_overall": 0.10,
-            "ifeval": 0.10,
+            "arena_sc_creative_writing": 0.45, "arena_elo_style_control": 0.25,
+            "arena_sc_multi_turn": 0.10, "arena_sc_writing": 0.10, "ifbench": 0.10,
         },
         "capability_weights": {
             "creative": 0.30, "language": 0.20, "reasoning": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "writing_technical": {
         "preferred_types": ["llm-chat", "llm-reasoning", "llm-code"],
         "benchmark_weights": {
-            "mt_bench": 0.20, "ifeval": 0.20, "alpaca_eval": 0.15,
-            "mmlu_pro": 0.15, "arena_elo_overall": 0.15, "wildbench": 0.15,
+            "arena_sc_writing": 0.30, "arena_elo_style_control": 0.20, "ifbench": 0.20,
+            "mmlu_pro": 0.10, "arena_sc_instruction_following": 0.10,
+            "arena_sc_expert": 0.10,
         },
         "capability_weights": {
             "creative": 0.25, "reasoning": 0.20, "language": 0.15,
@@ -620,22 +709,23 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "summarization": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "mt_bench": 0.20, "alpaca_eval": 0.20, "arena_elo_overall": 0.15,
-            "ifeval": 0.15, "wildbench": 0.15, "arena_elo_style_control": 0.15,
+            "arena_sc_writing": 0.25, "arena_elo_style_control": 0.20,
+            "arena_sc_longer_query": 0.15, "arena_sc_instruction_following": 0.15,
+            "ifbench": 0.15, "simpleqa_verified": 0.10,
         },
         "capability_weights": {
             "creative": 0.25, "language": 0.20, "reasoning": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.20,
+        "context_weight": 0.2,
     },
 
-    # ─── Sub-domain: Math (competitive / advanced) ────────
+    # ─── Sub-domain: Math (competitive / advanced) ───────────────
     "math_competition": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "aime_2025": 0.30, "math_500": 0.25, "aime_2026": 0.15,
-            "gpqa_diamond": 0.10, "arena_elo_math": 0.10, "gsm8k": 0.10,
+            "aime_2026": 0.30, "frontiermath_tiers_1_3_v2": 0.25, "arena_sc_math": 0.15,
+            "aime_2025": 0.10, "hle": 0.10, "gpqa_diamond": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.35, "coding": 0.10,
@@ -644,54 +734,54 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.05,
     },
 
-    # ─── Sub-domain: Education ────────────────────────────
+    # ─── Sub-domain: Education ───────────────────────────────────
     "education": {
         "preferred_types": ["llm-chat", "llm-reasoning", "vlm"],
         "benchmark_weights": {
-            "mmlu_pro": 0.25, "arc_challenge": 0.15, "hellaswag": 0.10,
-            "mt_bench": 0.15, "ifeval": 0.10, "arena_elo_overall": 0.15,
-            "truthfulqa": 0.10,
+            "arena_elo_style_control": 0.25, "mmlu_pro": 0.20, "arena_sc_multi_turn": 0.15,
+            "simpleqa_verified": 0.15, "gpqa_diamond": 0.15, "ifbench": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.20, "language": 0.20, "creative": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "education_stem": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_pro": 0.15, "mmlu_physics": 0.15, "mmlu_chemistry": 0.15,
-            "mmlu_biology": 0.10, "math_500": 0.15, "gpqa_diamond": 0.15,
-            "arena_elo_overall": 0.15,
+            "gpqa_diamond": 0.20, "mmlu_pro": 0.15, "arena_sc_math": 0.15,
+            "arena_sc_science": 0.15, "arena_elo_style_control": 0.15,
+            "mmlu_physics": 0.05, "mmlu_chemistry": 0.05, "mmlu_biology": 0.05,
+            "frontiermath_tiers_1_3_v2": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
     "education_humanities": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "mmlu_pro": 0.15, "mmlu_professional_law": 0.10,
-            "mmlu_business_ethics": 0.10, "truthfulqa": 0.15,
-            "alpaca_eval": 0.15, "mt_bench": 0.15, "arena_elo_overall": 0.20,
+            "arena_elo_style_control": 0.25, "arena_sc_writing": 0.20,
+            "arena_sc_multi_turn": 0.15, "mmlu_pro": 0.15, "simpleqa_verified": 0.15,
+            "mmlu_professional_law": 0.05, "mmlu_business_ethics": 0.05,
         },
         "capability_weights": {
             "language": 0.25, "creative": 0.20, "reasoning": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Data Science / Analytics ─────────────
+    # ─── Sub-domain: Data Science / Analytics ────────────────────
     "data_science": {
         "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "multipl_e_python": 0.20, "humaneval": 0.15, "math_500": 0.15,
-            "mmlu_pro": 0.10, "aider_polyglot": 0.10, "arena_elo_coding": 0.15,
-            "gpqa_diamond": 0.10, "arena_elo_overall": 0.05,
+            "swe_bench_verified": 0.20, "arena_sc_coding": 0.20, "arena_sc_math": 0.15,
+            "terminal_bench_v4_0": 0.15, "mmlu_pro": 0.10, "gpqa_diamond": 0.10,
+            "multipl_e_python": 0.05, "arena_elo_style_control": 0.05,
         },
         "capability_weights": {
             "coding": 0.25, "reasoning": 0.25, "tool_use": 0.15,
@@ -700,27 +790,31 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Customer Support / Chatbot ───────────
+    # ─── Sub-domain: Customer Support / Chatbot ──────────────────
     "customer_support": {
         "preferred_types": ["llm-chat", "vlm"],
         "benchmark_weights": {
-            "arena_elo_overall": 0.20, "mt_bench": 0.20, "ifeval": 0.20,
-            "alpaca_eval": 0.15, "arena_elo_style_control": 0.15,
-            "truthfulqa": 0.10,
+            "arena_elo_style_control": 0.30, "arena_sc_multi_turn": 0.20, "ifbench": 0.20,
+            "arena_sc_instruction_following": 0.10, "tau3_banking": 0.10,
+            "simpleqa_verified": 0.10,
         },
         "capability_weights": {
             "language": 0.25, "tool_use": 0.20, "creative": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Content Moderation ───────────────────
+    # ─── Sub-domain: Content Moderation ──────────────────────────
     "content_moderation": {
+        "status": "suspended",
+        "suspended_reason": (
+            "Moderation rests on ToxiGen and BBQ, static 2022 sets with no current "
+            "source; HELM Safety is saturated on its own page."
+        ),
         "preferred_types": ["safety-classifier", "llm-chat", "reward-model"],
         "benchmark_weights": {
-            "helm_safety": 0.30, "toxigen": 0.25, "bbq": 0.20,
-            "ifeval": 0.10, "arena_elo_overall": 0.15,
+            "toxigen": 0.40, "bbq": 0.35, "ifbench": 0.10, "arena_elo_style_control": 0.15,
         },
         "capability_weights": {
             "safety": 0.30, "language": 0.15,
@@ -729,28 +823,27 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.05,
     },
 
-    # ─── Sub-domain: Research Assistant ───────────────────
+    # ─── Sub-domain: Research Assistant ──────────────────────────
     "research_assistant": {
         "preferred_types": ["llm-reasoning", "llm-chat", "vlm"],
         "benchmark_weights": {
-            "gpqa_diamond": 0.20, "mmlu_pro": 0.15, "math_500": 0.10,
-            "arena_elo_overall": 0.15, "mt_bench": 0.10, "ifeval": 0.10,
-            "truthfulqa": 0.10, "arena_elo_hard_prompts": 0.10,
+            "hle": 0.20, "gpqa_diamond": 0.15, "simpleqa_verified": 0.15,
+            "arena_sc_expert": 0.15, "arena_sc_hard_prompts": 0.10, "mmlu_pro": 0.10,
+            "browsecomp": 0.10, "arena_elo_style_control": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.25, "language": 0.15, "tool_use": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.20,
+        "context_weight": 0.2,
     },
 
-    # ─── Sub-domain: Roleplay / Character ─────────────────
+    # ─── Sub-domain: Roleplay / Character ────────────────────────
     "roleplay": {
         "preferred_types": ["llm-chat"],
         "benchmark_weights": {
-            "arena_elo_style_control": 0.25, "alpaca_eval": 0.20,
-            "wildbench": 0.15, "mt_bench": 0.15, "arena_elo_overall": 0.15,
-            "ifeval": 0.10,
+            "arena_elo_style_control": 0.35, "arena_sc_creative_writing": 0.30,
+            "arena_sc_multi_turn": 0.25, "ifbench": 0.10,
         },
         "capability_weights": {
             "creative": 0.35, "language": 0.25,
@@ -759,12 +852,16 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Audio ────────────────────────────────
+    # ─── Sub-domain: Audio ───────────────────────────────────────
     "speech_to_text": {
+        "status": "suspended",
+        "suspended_reason": (
+            "No card holds a word error rate, and no current board is sourced yet. The "
+            "old Arena, MIRACL and MGSM weights ranked LLMs, not transcribers."
+        ),
         "preferred_types": ["audio-stt", "audio-multimodal"],
         "benchmark_weights": {
-            "wer_librispeech": 0.50, "arena_elo_overall": 0.20,
-            "miracl": 0.15, "mgsm": 0.15,
+            "wer_librispeech": 1.00,
         },
         "capability_weights": {
             "language": 0.20,
@@ -773,10 +870,14 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.05,
     },
     "text_to_speech": {
+        "status": "suspended",
+        "suspended_reason": (
+            "No card holds a TTS quality score. The old Arena and MT-Bench weights "
+            "ranked chat LLMs (claude-opus-4-6, gpt-4-1) as speech models."
+        ),
         "preferred_types": ["audio-tts", "audio-multimodal"],
         "benchmark_weights": {
-            "mos_tts": 0.50, "arena_elo_overall": 0.20,
-            "arena_elo_style_control": 0.15, "mt_bench": 0.15,
+            "mos_tts": 1.00,
         },
         "capability_weights": {
             "creative": 0.15, "language": 0.15,
@@ -785,12 +886,11 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.05,
     },
 
-    # ─── Sub-domain: Image Generation ─────────────────────
+    # ─── Sub-domain: Image Generation ────────────────────────────
     "image_generation": {
         "preferred_types": ["image-gen", "vlm"],
         "benchmark_weights": {
-            "fid": 0.30, "clip_score": 0.30,
-            "arena_elo_overall": 0.20, "arena_elo_vision": 0.20,
+            "arena_text_to_image": 0.70, "arena_image_edit": 0.30,
         },
         "capability_weights": {
             "creative": 0.30,
@@ -799,14 +899,13 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.05,
     },
 
-    # ─── Sub-domain: Cybersecurity ────────────────────────
+    # ─── Sub-domain: Cybersecurity ───────────────────────────────
     "cybersecurity": {
         "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "mmlu_computer_science": 0.15, "terminal_bench": 0.15,
-            "arena_elo_coding": 0.10, "gpqa_diamond": 0.10,
-            "arena_elo_overall": 0.10, "ifeval": 0.10,
+            "terminal_bench_v4_0": 0.25, "swe_bench_pro": 0.15, "arena_sc_coding": 0.15,
+            "swe_bench_verified": 0.10, "mmlu_computer_science": 0.10,
+            "gpqa_diamond": 0.10, "ifbench": 0.10, "arena_elo_style_control": 0.05,
         },
         "capability_weights": {
             "coding": 0.25, "reasoning": 0.25, "tool_use": 0.20,
@@ -815,27 +914,27 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: DevOps / Infrastructure ──────────────
+    # ─── Sub-domain: DevOps / Infrastructure ─────────────────────
     "devops": {
         "preferred_types": ["llm-code", "llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "terminal_bench": 0.25, "humaneval": 0.15, "swe_bench_verified": 0.15,
-            "aider_polyglot": 0.10, "arena_elo_coding": 0.15,
-            "ifeval": 0.10, "arena_elo_overall": 0.10,
+            "terminal_bench_v4_0": 0.35, "swe_bench_verified": 0.15,
+            "arena_sc_coding": 0.15, "swe_bench_pro": 0.10, "ifbench": 0.10,
+            "arena_elo_style_control": 0.10, "deepswe_v1_1": 0.05,
         },
         "capability_weights": {
             "coding": 0.25, "tool_use": 0.25, "reasoning": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Multilingual ─────────────────────────
+    # ─── Sub-domain: Multilingual ────────────────────────────────
     "multilingual": {
         "preferred_types": ["llm-chat", "vlm"],
         "benchmark_weights": {
-            "mgsm": 0.25, "miracl": 0.20, "flores": 0.20,
-            "mmlu_pro": 0.10, "arena_elo_overall": 0.15, "ifeval": 0.10,
+            "arena_sc_non_english": 0.40, "mmmlu": 0.25, "arena_elo_style_control": 0.15,
+            "mgsm": 0.10, "ifbench": 0.10,
         },
         "capability_weights": {
             "language": 0.35, "creative": 0.10, "reasoning": 0.10,
@@ -844,13 +943,13 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Financial (specialties) ──────────────
+    # ─── Sub-domain: Financial (specialties) ─────────────────────
     "financial_analysis": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "finbench": 0.25, "finqa": 0.25, "math_500": 0.15,
-            "mmlu_professional_accounting": 0.10, "mmlu_pro": 0.10,
-            "arena_elo_overall": 0.15,
+            "arena_sc_business": 0.30, "finbench": 0.20, "arena_sc_math": 0.15,
+            "arena_elo_style_control": 0.15, "mmlu_professional_accounting": 0.10,
+            "mmlu_pro": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
@@ -861,9 +960,8 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
     "financial_compliance": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "finbench": 0.20, "legalbench": 0.20, "mmlu_professional_law": 0.15,
-            "mmlu_professional_accounting": 0.15, "ifeval": 0.15,
-            "arena_elo_overall": 0.15,
+            "arena_sc_business": 0.25, "arena_sc_legal": 0.20, "finbench": 0.15,
+            "legalbench": 0.15, "arena_elo_style_control": 0.15, "ifbench": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.15,
@@ -872,42 +970,43 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Science (more specialties) ───────────
+    # ─── Sub-domain: Science (more specialties) ──────────────────
     "science_astronomy": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_astronomy": 0.30, "gpqa_diamond": 0.20, "mmlu_physics": 0.15,
-            "math_500": 0.15, "mmlu_pro": 0.10, "arena_elo_overall": 0.10,
+            "gpqa_diamond": 0.25, "mmlu_astronomy": 0.25, "arena_sc_science": 0.20,
+            "hle": 0.10, "mmlu_pro": 0.10, "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Legal (specialties) ──────────────────
+    # ─── Sub-domain: Legal (specialties) ─────────────────────────
     "legal_contract_review": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "legalbench": 0.30, "mmlu_professional_law": 0.20,
-            "ifeval": 0.15, "arena_elo_overall": 0.10,
-            "mt_bench": 0.10, "mmlu_pro": 0.15,
+            "arena_sc_legal": 0.35, "legalbench": 0.25, "arena_elo_style_control": 0.10,
+            "arena_sc_instruction_following": 0.10, "ifbench": 0.10,
+            "mmlu_professional_law": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.25, "language": 0.20, "domain": 0.15,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.20,
+        "context_weight": 0.2,
     },
 
-    # ─── Sub-domain: Biotech / Life Sciences ──────────────
+    # ─── Sub-domain: Biotech / Life Sciences ─────────────────────
     "biotech": {
         "preferred_types": ["llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "mmlu_biology": 0.20, "mmlu_chemistry": 0.15, "medqa": 0.15,
-            "pubmedqa": 0.15, "gpqa_diamond": 0.15, "mmlu_pro": 0.10,
-            "arena_elo_overall": 0.10,
+            "gpqa_diamond": 0.20, "arena_sc_science": 0.20, "arena_sc_medicine": 0.15,
+            "healthbench_professional": 0.10, "mmlu_biology": 0.10,
+            "arena_elo_style_control": 0.10, "mmlu_chemistry": 0.05, "medqa": 0.05,
+            "hle": 0.05,
         },
         "capability_weights": {
             "reasoning": 0.30, "domain": 0.20, "language": 0.10,
@@ -916,28 +1015,28 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
         "context_weight": 0.15,
     },
 
-    # ─── Sub-domain: Accounting ───────────────────────────
+    # ─── Sub-domain: Accounting ──────────────────────────────────
     "accounting": {
         "preferred_types": ["llm-chat", "llm-reasoning"],
         "benchmark_weights": {
-            "mmlu_professional_accounting": 0.30, "finbench": 0.20,
-            "finqa": 0.15, "math_500": 0.10, "ifeval": 0.10,
-            "arena_elo_overall": 0.15,
+            "arena_sc_business": 0.30, "mmlu_professional_accounting": 0.20,
+            "finbench": 0.15, "arena_sc_math": 0.15, "ifbench": 0.10,
+            "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "reasoning": 0.25, "domain": 0.15, "language": 0.10,
         },
         "cost_weight": 0.0,
-        "context_weight": 0.10,
+        "context_weight": 0.1,
     },
 
-    # ─── Sub-domain: Code Review ──────────────────────────
+    # ─── Sub-domain: Code Review ─────────────────────────────────
     "code_review": {
         "preferred_types": ["llm-code", "llm-reasoning", "llm-chat"],
         "benchmark_weights": {
-            "swe_bench_verified": 0.25, "humaneval": 0.15, "aider_polyglot": 0.15,
-            "arena_elo_coding": 0.15, "terminal_bench": 0.10,
-            "ifeval": 0.10, "arena_elo_overall": 0.10,
+            "swe_bench_pro": 0.20, "cursorbench_4": 0.15, "arena_sc_coding": 0.15,
+            "swe_bench_verified": 0.10, "deepswe_v1_1": 0.10, "frontiercode_v1_1": 0.10,
+            "terminal_bench_v4_0": 0.10, "arena_elo_style_control": 0.10,
         },
         "capability_weights": {
             "coding": 0.30, "reasoning": 0.25, "language": 0.10,
@@ -1021,6 +1120,195 @@ def _apply_verified_additions() -> None:
 
 
 _apply_verified_additions()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Current sources, the Arena snapshot and staleness (MODEL-123)
+# ═══════════════════════════════════════════════════════════════
+
+_ARENA_DATASET_URL = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+
+#: Where a current-generation model's score for each key comes from today,
+#: other than Artificial Analysis. `tests/test_profile_refresh.py` requires every
+#: active profile to put at least `MIN_BENCHMARK_COVERAGE` of its weight on keys
+#: listed here, so the CLI floor can rank a model released this year from
+#: current sources alone. A key missing from this table can still be weighted;
+#: it just earns nothing toward that guard. MMLU-Pro, IFBench, MMMLU and the
+#: MMLU subjects are absent: 2026 model cards rarely report them and no
+#: independent board runs them (checked 2026-09-24).
+CURRENT_SOURCES: dict[str, tuple[str, ...]] = {
+    "terminal_bench_v4_0": ("https://www.tbench.ai/leaderboard",),
+    "swe_bench_pro": ("https://labs.scale.com/leaderboard/swe_bench_pro_public",),
+    "swe_bench_verified": ("https://epoch.ai/benchmarks/swe-bench-verified",),
+    "hle": ("https://labs.scale.com/leaderboard/humanitys_last_exam",),
+    "frontiermath_tiers_1_3_v2": ("https://epoch.ai/frontiermath",),
+    # AIME 2025 and 2026 are absent: MathArena, their only board, lists its
+    # final-answer competitions as deprecated and has no row for GPT-6 Astra,
+    # Fable 5.1 or Opus 5 (read 2026-09-24).
+    "gpqa_diamond": ("https://epoch.ai/benchmarks/gpqa-diamond",),
+    "simpleqa_verified": ("https://epoch.ai/benchmarks/simpleqa-verified",),
+    "osworld_2": ("https://osworld-v2.xlang.ai/",),
+    "tau3_banking": ("https://taubench.com/",),
+    "vending_bench_2": ("https://andonlabs.com/evals/vending-bench-2",),
+    "deepswe_v1_1": ("https://deepswe.datacurve.ai/",),
+    "cursorbench_4": ("https://cursor.com/cursorbench",),
+    "frontiercode_v1_1": ("https://cognition.com/frontiercode",),
+    "mteb_eng_v2": ("https://huggingface.co/spaces/mteb/leaderboard",),
+    "mteb_multilingual_v2": ("https://huggingface.co/spaces/mteb/leaderboard",),
+    "mteb_v2_retrieval": ("https://huggingface.co/spaces/mteb/leaderboard",),
+    "mteb_v2_classification": ("https://huggingface.co/spaces/mteb/leaderboard",),
+    # Provider self-reports only, which MODEL-123 admits for a key no
+    # independent board carries (Jamie, 2026-09-23). Still reported for 2026
+    # models in system cards.
+    "browsecomp": ("https://openai.com/index/browsecomp/",),
+    "mmmu_pro": ("https://mmmu-benchmark.github.io/#leaderboard",),
+    "healthbench_professional": ("https://arxiv.org/abs/2604.27470",),
+    "healthbench_hard": ("https://arxiv.org/abs/2505.08775",),
+}
+
+#: Keys whose current source is a provider's own report. Every other key in
+#: `CURRENT_SOURCES` has an independent board, and on those a provider
+#: self-report never counts, even for a model the board has not reached yet:
+#: Jamie's rule (2026-09-23) is that a self-report fills a key "when no
+#: independent board carries it", and the audit read "it" as the benchmark
+#: (§8.3 names SWE-bench Verified, BrowseComp and MMMU). A provider's own
+#: harness is not the board's harness, so mixing the two on one key would
+#: compare different measurements. SWE-bench Verified is here because its
+#: official board stalled in February 2026 and Epoch AI's last run was in June.
+SELF_REPORTED_KEYS: frozenset[str] = frozenset({
+    "swe_bench_verified", "browsecomp", "mmmu_pro", "healthbench_professional",
+    "healthbench_hard",
+})
+
+#: Weighted keys whose own page marks them saturated, kept because Jamie
+#: approved them by name. The guard fails on any other saturated or superseded
+#: weighted key, and fails here too once a page stops saying saturated.
+APPROVED_DESPITE_SATURATION: dict[str, str] = {
+    "gpqa_diamond": "MODEL-123 §8.1 (Jamie, 2026-09-23): reasoning 0.10, with a 100 ceiling.",
+    "mmmu_pro": "MODEL-123 §8.1 (Jamie, 2026-09-23): vision 0.25, the harder successor to MMMU.",
+    "docvqa": "MODEL-123 §8.1 (Jamie, 2026-09-23): vision 0.05, shrunk for saturation.",
+    "aime_2026": ("MODEL-123 §8.1 (Jamie, 2026-09-23): reasoning 0.15. Its page was marked "
+                  "saturated after the approval (MathArena top 100%, competition deprecated); "
+                  "replacing it is Jamie's call."),
+}
+
+#: A live reading older than this many days is flagged in every row's
+#: `stale_benchmarks`. It still counts (Jamie, 2026-09-23): a dated standing is
+#: evidence, and the flag lets a caller decide how much to trust it.
+STALE_AFTER_DAYS = 45
+
+#: The one Arena snapshot every ranking reads. Jamie, 2026-09-23: "Arena is
+#: normalised within one snapshot instead of fixed Elo bounds, and every Arena
+#: value in a ranking must share one observation date."
+#:
+#: Source: LMArena's `lmarena-ai/leaderboard-dataset` on Hugging Face, CC BY 4.0,
+#: pinned to one revision, `latest` split. Never lmarena.ai itself. Each board
+#: carries the date Arena states for it (`leaderboard_publish_date`). The text
+#: and vision boards share 2026-09-13. Arena published no WebDev board that day
+#: (its nearest are 09-11 and 09-22/23), and the newest date all three share is
+#: 2026-08-21, which predates Fable 5.1 and Opus 5.5. So the rule is enforced
+#: per board: every value of one Arena key must carry that board's pinned date,
+#: or it does not count. Every board comes from the one dataset revision.
+#:
+#: `leader` is the top rating on that board at that date, over every row,
+#: including models with no card. It is the reference point for normalisation.
+ARENA_SNAPSHOT: dict[str, Any] = {
+    "dataset": "lmarena-ai/leaderboard-dataset",
+    "url": _ARENA_DATASET_URL,
+    "license": "CC BY 4.0",
+    "attribution": ("LMArena, Arena leaderboard dataset "
+                    "(lmarena-ai/leaderboard-dataset), CC BY 4.0"),
+    "revision": "1880dbebff5ba3e2dd3865ecf6fc43539c2099db",
+    "read_on": "2026-09-24",
+    "split": "latest",
+    "boards": {
+        "arena_elo_style_control": {"subset": "text_style_control", "category": "overall",
+                                    "published": "2026-09-13", "leader": 1505.68},
+        "arena_sc_coding": {"subset": "text_style_control", "category": "coding",
+                            "published": "2026-09-13", "leader": 1552.39},
+        "arena_sc_hard_prompts": {"subset": "text_style_control", "category": "hard_prompts",
+                                  "published": "2026-09-13", "leader": 1533.13},
+        "arena_sc_math": {"subset": "text_style_control", "category": "math",
+                          "published": "2026-09-13", "leader": 1526.28},
+        "arena_sc_creative_writing": {"subset": "text_style_control",
+                                      "category": "creative_writing",
+                                      "published": "2026-09-13", "leader": 1504.13},
+        "arena_sc_instruction_following": {"subset": "text_style_control",
+                                           "category": "instruction_following",
+                                           "published": "2026-09-13", "leader": 1513.49},
+        "arena_sc_multi_turn": {"subset": "text_style_control", "category": "multi_turn",
+                                "published": "2026-09-13", "leader": 1520.14},
+        "arena_sc_expert": {"subset": "text_style_control", "category": "expert",
+                            "published": "2026-09-13", "leader": 1548.48},
+        "arena_sc_longer_query": {"subset": "text_style_control", "category": "longer_query",
+                                  "published": "2026-09-13", "leader": 1524.11},
+        "arena_sc_non_english": {"subset": "text_style_control", "category": "non_english",
+                                 "published": "2026-09-13", "leader": 1495.98},
+        "arena_sc_medicine": {"subset": "text_style_control",
+                              "category": "industry_medicine_and_healthcare",
+                              "published": "2026-09-13", "leader": 1530.34},
+        "arena_sc_legal": {"subset": "text_style_control",
+                           "category": "industry_legal_and_government",
+                           "published": "2026-09-13", "leader": 1541.39},
+        "arena_sc_business": {
+            "subset": "text_style_control",
+            "category": "industry_business_and_management_and_financial_operations",
+            "published": "2026-09-13", "leader": 1517.03},
+        "arena_sc_science": {"subset": "text_style_control",
+                             "category": "industry_life_and_physical_and_social_science",
+                             "published": "2026-09-13", "leader": 1528.15},
+        "arena_sc_writing": {"subset": "text_style_control",
+                             "category": "industry_writing_and_literature_and_language",
+                             "published": "2026-09-13", "leader": 1511.45},
+        "arena_sc_vision": {"subset": "vision_style_control", "category": "overall",
+                            "published": "2026-09-13", "leader": 1309.50},
+        "arena_webdev": {"subset": "webdev", "category": "overall",
+                         "published": "2026-09-23", "leader": 1818.41},
+        "arena_text_to_image": {"subset": "text_to_image", "category": "overall",
+                                "published": "2026-09-22", "leader": 1423.16},
+        "arena_image_edit": {"subset": "image_edit", "category": "overall",
+                             "published": "2026-09-22", "leader": 1525.98},
+    },
+}
+
+for _key in ARENA_SNAPSHOT["boards"]:
+    CURRENT_SOURCES[_key] = (_ARENA_DATASET_URL,)
+
+#: Keys an independent board carries. `pipeline.ranking.select_evidence` never
+#: lets a provider self-report fill one of these.
+INDEPENDENT_BOARD_KEYS: frozenset[str] = frozenset(CURRENT_SOURCES) - SELF_REPORTED_KEYS
+
+
+def _normalize_arena(bench_id: str, rating: float) -> float:
+    """An Arena rating as twice its expected win rate against the snapshot leader.
+
+    Arena fits a Bradley-Terry model on the Elo scale: a gap of `d` points means
+    the lower model is expected to win `1 / (1 + 10 ** (d / 400))` of its votes
+    against the higher one. Only gaps are meaningful. The absolute level drifts
+    between snapshots and differs between boards, which is why a fixed
+    (1000, 1400) bound put 76 of 147 style-control readings at the ceiling.
+    Doubling puts the leader at exactly 100: a model 100 points behind scores
+    72, 200 behind scores 48, 400 behind scores 18. The order within a board is
+    the board's own; only the spacing is ours.
+    """
+    leader = ARENA_SNAPSHOT["boards"][bench_id]["leader"]
+    win = 1.0 / (1.0 + 10.0 ** ((leader - rating) / 400.0))
+    return max(0.0, min(100.0, 200.0 * win))
+
+
+def arena_snapshot_policy() -> dict[str, Any]:
+    """The snapshot, as the ranking policy publishes it."""
+    return {
+        "dataset": ARENA_SNAPSHOT["dataset"],
+        "url": ARENA_SNAPSHOT["url"],
+        "license": ARENA_SNAPSHOT["license"],
+        "attribution": ARENA_SNAPSHOT["attribution"],
+        "revision": ARENA_SNAPSHOT["revision"],
+        "normalisation": "win_probability_vs_snapshot_leader",
+        "boards": {k: {"published": b["published"], "leader": b["leader"]}
+                   for k, b in ARENA_SNAPSHOT["boards"].items()},
+    }
+
 
 # Product defaults, not statistical confidence thresholds. The benchmark set
 # stays fixed, including when a candidate or an evaluator has sparse coverage.
@@ -1148,6 +1436,11 @@ def ranking_policy(*, min_benchmark_coverage: float | None = None) -> dict[str, 
         # Additive under the contract's own rule (docs/cli-contract.md: "New
         # fields may be added to any object"). No existing field widens.
         "neutrality": neutrality_commitment(),
+        # MODEL-123, additive the same way: the staleness window behind each
+        # row's `stale_benchmarks`, and the one Arena snapshot every Arena
+        # value in this ranking was normalised against.
+        "stale_after_days": STALE_AFTER_DAYS,
+        "arena_snapshot": arena_snapshot_policy(),
     }
 
 
@@ -1179,21 +1472,45 @@ class IncompleteEvidenceError(ValueError):
         )
 
 
+def _on_arena_snapshot(bench_id: str, evidence_dates: dict[str, str] | None) -> bool:
+    """True unless `bench_id` is an Arena board and this value is not from its pinned date.
+
+    An Arena value with no date (a flat April score, or a caller that passes no
+    dates) is off the snapshot by definition: nothing says which board state it
+    was read from, so it cannot be put on that board's scale.
+    """
+    board = ARENA_SNAPSHOT["boards"].get(bench_id)
+    if board is None:
+        return True
+    return (evidence_dates or {}).get(bench_id) == board["published"]
+
+
 def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any],
-                       min_coverage: float | None = None) -> dict[str, Any]:
+                       min_coverage: float | None = None,
+                       evidence_dates: dict[str, str] | None = None) -> dict[str, Any]:
     """Bound the fixed profile without guessing unmeasured benchmark values.
 
     All normalized benchmarks lie in [0, 100]. Missing weight therefore spans
     [0, weight * 100], rather than being a measurement of zero. Other composite
     components are held fixed; these are not bounds on real-world ability.
+
+    `evidence_dates` maps a benchmark to the date of the reading in `scores`.
+    An Arena value counts only when that date is its board's pinned snapshot
+    date (MODEL-123); otherwise it is treated as missing and named in
+    `off_snapshot_benchmarks`, so a caller can see why a present score did not
+    count.
     """
     weights = profile.get("benchmark_weights", {})
     if any(not math.isfinite(w) or w < 0 for w in weights.values()):
         raise ValueError("Benchmark weights must be finite and nonnegative")
     weights = {b: w for b, w in weights.items() if w > 0}
+    # Lists in weight order, never sets: rows are compared byte for byte across
+    # processes (tests/test_rank_worker.py), and set order depends on the hash seed.
+    measured = [b for b in weights
+                if scores.get(b) is not None and math.isfinite(scores[b])]
+    off_snapshot = sorted(b for b in measured if not _on_arena_snapshot(b, evidence_dates))
     present = {
-        b: _normalize_benchmark(b, scores[b]) for b in weights
-        if scores.get(b) is not None and math.isfinite(scores[b])
+        b: _normalize_benchmark(b, scores[b]) for b in measured if b not in off_snapshot
     }
     total_weight = sum(weights.values())
     present_weight = sum(weights[b] for b in present)
@@ -1216,6 +1533,7 @@ def _benchmark_evidence(scores: dict[str, float], profile: dict[str, Any],
         "benchmark_lower_bound": lower,
         "benchmark_upper_bound": lower + missing_weight * 40.0,
         "benchmark_contributions": {b: round(present[b] * weights[b], 2) for b in present},
+        "off_snapshot_benchmarks": off_snapshot,
     }
 
 
@@ -1273,6 +1591,10 @@ class ModelData:
     vision_input: bool = False
     # Populated from graph edges
     benchmark_scores: dict[str, float] = field(default_factory=dict)
+    #: Benchmark -> date of the reading (MODEL-123). The graph's SCORED_ON edges
+    #: carry only the flat block, so this is empty on the graph path and no Arena
+    #: value counts there; the static export path fills it from evidence.
+    evidence_dates: dict[str, str] = field(default_factory=dict)
     capability_tiers: dict[str, str] = field(default_factory=dict)
     available_platforms: set[str] = field(default_factory=set)
     estimated_tps: float | None = None  # Estimated tok/s on target hardware
@@ -1323,6 +1645,7 @@ class ScoredModel:
     benchmark_upper_bound: float = 0.0
     score_lower_bound: float = 0.0
     score_upper_bound: float = 0.0
+    off_snapshot_benchmarks: list[str] = field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1685,7 +2008,8 @@ class RankingEngine:
         """Compute weighted composite score for a model against a profile."""
 
         # --- Benchmark scoring (up to 40 points) ---
-        evidence = _benchmark_evidence(model.benchmark_scores, profile)
+        evidence = _benchmark_evidence(model.benchmark_scores, profile,
+                                       evidence_dates=model.evidence_dates)
         bench_score_scaled = evidence["benchmark_lower_bound"]
 
         # --- Capability scoring (up to 20 points) ---
@@ -1899,6 +2223,8 @@ def _normalize_benchmark(bench_id: str, raw_value: float) -> float:
     word error rate is inverted here, so that the rest of the pipeline can treat
     every normalised score the same way.
     """
+    if bench_id in ARENA_SNAPSHOT["boards"]:
+        return _normalize_arena(bench_id, raw_value)
     range_info = BENCHMARK_RANGES.get(bench_id)
     if range_info is None:
         # Unknown benchmark: assume a 0-100 scale. This is a guess, and it is

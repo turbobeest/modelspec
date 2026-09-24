@@ -232,6 +232,17 @@ DESCRIPTIONS: dict[str, str] = {
         "Share of the profile's weighted benchmarks this model has a score for."
     ),
     "RankedModel.missing_benchmarks": "Benchmarks the profile weighs that this model lacks.",
+    "RankedModel.stale_benchmarks": (
+        "Live-board readings behind this row older than policy.stale_after_days. Flagged, "
+        "still counted. Always present; empty when nothing is stale."
+    ),
+    "RankedModel.oldest_live_reading": (
+        "The date of the oldest live-board reading that contributed, or null when none did."
+    ),
+    "RankedModel.off_snapshot_benchmarks": (
+        "Arena scores this model has that did not count because they were not read on "
+        "policy.arena_snapshot's date for that board. Always present."
+    ),
     "RankedModel.cost_input": "USD per million input tokens, or null when unpublished.",
     "NoMatchError.eliminated_by": "The first filter whose survivor count reached zero.",
     "NoMatchError.elimination_trace": "Every filter, in the order the scorer applies them.",
@@ -369,6 +380,8 @@ def _export(use_case: str = "coding", *, only_unrated: bool = False) -> dict[str
                 "verified_benchmarks": sorted(c.verified_benchmarks),
                 "rehost_of": c.rehost_of,
                 "release_date": c.release_date,
+                "evidence_dates": dict(c.evidence_dates),
+                "live_benchmarks": sorted(c.live_benchmarks),
             }
             for c in pool
         ],
@@ -808,6 +821,16 @@ def _merge(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
             out["required"] = required
     if type_ == "array":
         out["items"] = _merge(left.get("items", {}), right.get("items", {}))
+    return out
+
+
+def _as_map(schema: dict[str, Any]) -> dict[str, Any]:
+    """An inferred object whose keys are data, re-described as a map of its values."""
+    value: dict[str, Any] = {}
+    for child in (schema.get("properties") or {}).values():
+        value = _merge(value, child)
+    out = {k: v for k, v in schema.items() if k not in ("properties", "required")}
+    out["additionalProperties"] = value or {}
     return out
 
 
@@ -1654,6 +1677,12 @@ def build_spec() -> dict[str, Any]:
                          _infer(empty_shortlist)), "RankResponse", used))
     row_schema = response_schema["properties"]["result"]["items"]
     response_schema["properties"]["result"]["items"] = _describe(row_schema, "RankedModel", used)
+    # Keyed by benchmark id, which depends on the use case and the catalogue,
+    # not on the contract: a map, not a fixed set of properties (MODEL-123).
+    rows = response_schema["properties"]["result"]["items"]["properties"]
+    rows["benchmark_contributions"] = _as_map(rows["benchmark_contributions"])
+    snapshot = response_schema["properties"]["policy"]["properties"]["arena_snapshot"]
+    snapshot["properties"]["boards"] = _as_map(snapshot["properties"]["boards"])
 
     no_match_schema = _apply_vocabularies(_describe(
         _merge(_infer(errors["no_match"][1]), _infer(errors["insufficient_evidence"][1]))

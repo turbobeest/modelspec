@@ -1902,6 +1902,41 @@ components:
           description: The evidence floors this answer was ordered under.
           type: object
           properties:
+            arena_snapshot:
+              type: object
+              properties:
+                attribution:
+                  type: string
+                boards:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      leader:
+                        type: number
+                      published:
+                        type: string
+                    required:
+                    - leader
+                    - published
+                dataset:
+                  type: string
+                license:
+                  type: string
+                normalisation:
+                  type: string
+                revision:
+                  type: string
+                url:
+                  type: string
+              required:
+              - attribution
+              - boards
+              - dataset
+              - license
+              - normalisation
+              - revision
+              - url
             cli_min_benchmark_coverage:
               type: number
             limit_applies_to:
@@ -1984,6 +2019,8 @@ components:
               - version
             ordering:
               type: string
+            stale_after_days:
+              type: integer
             uncertainty:
               type: string
             version:
@@ -1991,12 +2028,14 @@ components:
             wizard_min_benchmark_coverage:
               type: number
           required:
+          - arena_snapshot
           - cli_min_benchmark_coverage
           - limit_applies_to
           - min_benchmark_count
           - min_benchmark_coverage
           - neutrality
           - ordering
+          - stale_after_days
           - uncertainty
           - version
           - wizard_min_benchmark_coverage
@@ -2067,30 +2106,8 @@ components:
             properties:
               benchmark_contributions:
                 type: object
-                properties:
-                  aider_polyglot:
-                    type: number
-                  arena_elo_coding:
-                    type: number
-                  arena_elo_overall:
-                    type: number
-                  humaneval:
-                    type: number
-                  live_code_bench:
-                    type: number
-                  scicode:
-                    type: number
-                  swe_bench_verified:
-                    type: number
-                  terminal_bench:
-                    type: number
-                required:
-                - aider_polyglot
-                - arena_elo_coding
-                - arena_elo_overall
-                - humaneval
-                - live_code_bench
-                - swe_bench_verified
+                additionalProperties:
+                  type: number
               benchmark_count:
                 type: integer
               benchmark_coverage:
@@ -2134,6 +2151,15 @@ components:
                   type: string
               model_id:
                 type: string
+              off_snapshot_benchmarks:
+                description: Arena scores this model has that did not count because they were not read
+                  on policy.arena_snapshot's date for that board. Always present.
+                type: array
+                items: {}
+              oldest_live_reading:
+                description: The date of the oldest live-board reading that contributed, or null when
+                  none did.
+                nullable: true
               open_weights:
                 type: boolean
               provider:
@@ -2158,6 +2184,11 @@ components:
                 type: number
               scores_as_of:
                 type: string
+              stale_benchmarks:
+                description: Live-board readings behind this row older than policy.stale_after_days. Flagged,
+                  still counted. Always present; empty when nothing is stale.
+                type: array
+                items: {}
               type_bonus:
                 type: number
               unranked_reason:
@@ -2183,6 +2214,8 @@ components:
             - evidence_basis
             - missing_benchmarks
             - model_id
+            - off_snapshot_benchmarks
+            - oldest_live_reading
             - open_weights
             - provider
             - rank
@@ -2193,6 +2226,7 @@ components:
             - score_lower_bound
             - score_upper_bound
             - scores_as_of
+            - stale_benchmarks
             - type_bonus
             - unranked_reason
             - verified_benchmark_coverage

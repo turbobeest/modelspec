@@ -368,14 +368,16 @@ def test_sandbox_rows_carry_exactly_the_fields_the_scorer_produces():
     assertion at once, which is the property that keeps the sandbox a usable
     integration target.
     """
+    from api.ranking.engine import ARENA_SNAPSHOT
+    snapshot = ARENA_SNAPSHOT["boards"]["arena_elo_style_control"]["published"]
     real = rank_report(
         [Candidate(model_id="acme/real", display_name="Real", provider="Acme",
                    model_type="llm-chat",
                    benchmark_scores={"mmlu_pro": 70.0, "gpqa_diamond": 50.0,
-                                     "arena_elo_overall": 1300.0, "ifeval": 80.0,
-                                     "math_500": 70.0, "humaneval": 80.0,
-                                     "mt_bench": 8.0, "swe_bench_verified": 50.0,
-                                     "gdpval_aa": 40.0},
+                                     "arena_elo_style_control": 1450.0, "hle": 30.0,
+                                     "terminal_bench_v4_0": 40.0, "swe_bench_pro": 40.0,
+                                     "ifbench": 60.0, "simpleqa_verified": 40.0},
+                   evidence_dates={"arena_elo_style_control": snapshot},
                    context_window=128_000, cost_input=1.0)],
         "general", limit=5)
     _, body = sandbox.rank_response(sandbox.request_from_payload({"use_case": "general"}),

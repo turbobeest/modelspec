@@ -99,8 +99,11 @@ def test_ranking_ledger_exists_and_loads():
 
 
 def test_ranking_ledger_keys_are_in_the_ranked_set():
+    """A ledger key is weighted today, or MODEL-123 retired it on purpose."""
+    from api.ranking.engine import RETIRED_FROM_PROFILES
+
     ranked = ranked_benchmarks()
-    unknown = sorted({bid for bid, _ in ranking_accepted()} - ranked)
+    unknown = sorted({bid for bid, _ in ranking_accepted()} - ranked - RETIRED_FROM_PROFILES)
     assert unknown == []
 
 

@@ -47,7 +47,10 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
 8. **Evidence dating.** A static result needs a stated day; a retrieval time is
    not a publication date. A *live leaderboard* row is dated by the observation
    (`date_type: evaluated`) — see `BENCHMARK_WRITE_RULE` in
-   `scripts/build_manifest.py`.
+   `scripts/build_manifest.py`. Two more since MODEL-123: the **max-effort**
+   row is the product row, and a **provider self-report** counts only on a
+   benchmark no independent board carries (`SELF_REPORTED_KEYS` in
+   `api/ranking/engine.py`). The ranker enforces both.
 9. **Widening a contract range bumps its major** (MODEL-59): nullable, a new enum
    value, or may-be-absent. See the versioning rule in [`../cli-contract.md`](../cli-contract.md).
 

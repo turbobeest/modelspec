@@ -55,8 +55,8 @@ means "not stated". At most 16384 bytes.
 curl -sS -X POST https://api.modelspec.dev/v1/rank \
   -H 'content-type: application/json' \
   -d '{"use_case":"coding",
-       "environment":{"hosting":"local","runtime":"ollama"},
-       "constraints":{"max_cost_per_million_input_tokens":2.0,"price_sensitivity":0.25},
+       "environment":{"hosting":"managed_api"},
+       "constraints":{"price_sensitivity":0.25},
        "limit":1}'
 ```
 
@@ -74,23 +74,33 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
   "export_origin": "https://modelspec.dev",
   "request": {
     "use_case": "coding",
-    "environment": {"hardware": null, "hosting": "local", "runtime": "ollama"},
+    "environment": {
+      "hardware": null,
+      "hosting": "managed_api",
+      "runtime": null
+    },
     "constraints": {
-      "open_weights": true,
-      "max_cost_per_million_input_tokens": 2.0,
+      "open_weights": false,
+      "max_cost_per_million_input_tokens": null,
       "price_sensitivity": 0.25,
       "include_rehosts": false
     },
     "limit": 1
   },
   "applied": {
-    "open_weights_only": true,
-    "open_weights_required_by": "environment.hosting",
+    "open_weights_only": false,
+    "open_weights_required_by": null,
     "hardware_id": null,
-    "max_cost_per_million_input_tokens": 2.0,
+    "max_cost_per_million_input_tokens": null,
     "cost_weight": 0.25,
     "include_rehosts": false,
-    "unbound": []
+    "unbound": [
+      {
+        "field": "environment.hosting",
+        "value": "managed_api",
+        "why": "a managed API imposes no weights requirement, so this narrows nothing"
+      }
+    ]
   },
   "policy": {
     "version": "incomplete-evidence-v1",
@@ -116,102 +126,370 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
         "conceals_purchases_from_catalogued_vendors": false,
         "lets_supplier_models_write_supplier_cards": false
       },
-      "source_neutral_at": ["ranking", "tie_breaks", "hosting_suggestions", "route_advice"],
+      "source_neutral_at": [
+        "ranking",
+        "tie_breaks",
+        "hosting_suggestions",
+        "route_advice"
+      ],
       "charges": "the consumer of a recommendation, never its subjects",
       "vendor_purchases": "We may be a paying customer of a vendor whose models we catalogue. When we are, the card says so, and no field on that vendor's card is ever set by that vendor's own model.",
       "method_source": "https://github.com/turbobeest/modelspec/blob/main/api/ranking/engine.py",
       "terms_url": "https://modelspec.dev/legal/terms/",
       "neutrality_url": "https://modelspec.dev/legal/neutrality/",
       "privacy_url": "https://modelspec.dev/legal/privacy/"
+    },
+    "stale_after_days": 45,
+    "arena_snapshot": {
+      "dataset": "lmarena-ai/leaderboard-dataset",
+      "url": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+      "license": "CC BY 4.0",
+      "attribution": "LMArena, Arena leaderboard dataset (lmarena-ai/leaderboard-dataset), CC BY 4.0",
+      "revision": "1880dbebff5ba3e2dd3865ecf6fc43539c2099db",
+      "normalisation": "win_probability_vs_snapshot_leader",
+      "boards": {
+        "arena_elo_style_control": {
+          "published": "2026-09-13",
+          "leader": 1505.68
+        },
+        "arena_sc_coding": {
+          "published": "2026-09-13",
+          "leader": 1552.39
+        },
+        "arena_sc_hard_prompts": {
+          "published": "2026-09-13",
+          "leader": 1533.13
+        },
+        "arena_sc_math": {
+          "published": "2026-09-13",
+          "leader": 1526.28
+        },
+        "arena_sc_creative_writing": {
+          "published": "2026-09-13",
+          "leader": 1504.13
+        },
+        "arena_sc_instruction_following": {
+          "published": "2026-09-13",
+          "leader": 1513.49
+        },
+        "arena_sc_multi_turn": {
+          "published": "2026-09-13",
+          "leader": 1520.14
+        },
+        "arena_sc_expert": {
+          "published": "2026-09-13",
+          "leader": 1548.48
+        },
+        "arena_sc_longer_query": {
+          "published": "2026-09-13",
+          "leader": 1524.11
+        },
+        "arena_sc_non_english": {
+          "published": "2026-09-13",
+          "leader": 1495.98
+        },
+        "arena_sc_medicine": {
+          "published": "2026-09-13",
+          "leader": 1530.34
+        },
+        "arena_sc_legal": {
+          "published": "2026-09-13",
+          "leader": 1541.39
+        },
+        "arena_sc_business": {
+          "published": "2026-09-13",
+          "leader": 1517.03
+        },
+        "arena_sc_science": {
+          "published": "2026-09-13",
+          "leader": 1528.15
+        },
+        "arena_sc_writing": {
+          "published": "2026-09-13",
+          "leader": 1511.45
+        },
+        "arena_sc_vision": {
+          "published": "2026-09-13",
+          "leader": 1309.5
+        },
+        "arena_webdev": {
+          "published": "2026-09-23",
+          "leader": 1818.41
+        },
+        "arena_text_to_image": {
+          "published": "2026-09-22",
+          "leader": 1423.16
+        },
+        "arena_image_edit": {
+          "published": "2026-09-22",
+          "leader": 1525.98
+        }
+      }
     }
   },
   "profile": "coding",
   "ranking_status": "partial",
-  "ranked_count": 30,
-  "unranked_count": 280,
+  "ranked_count": 48,
+  "unranked_count": 1283,
   "unranked_candidates": {
-    "count": 204,
+    "count": 925,
     "cap": 10,
     "models": [
-      {"model_id": "deepseek/deepseek-flash", "display_name": "DeepSeek V4.1 Flash",
-       "release_date": "2026-09-10", "reason": "no_scores",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "zhipu/glm-5-3-flash", "display_name": "GLM-5.3-Flash",
-       "release_date": "2026-08-26", "reason": "below_count_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "cerebras/qwen-3-8-27b", "display_name": "Qwen3.8 27B",
-       "release_date": "2026-08-14", "reason": "below_count_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "zhipu/glm-5-3", "display_name": "GLM-5.3",
-       "release_date": "2026-08-14", "reason": "below_count_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "zhipu/zai-glm-5-3", "display_name": "GLM-5.3",
-       "release_date": "2026-08-14", "reason": "no_scores",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "deepseek/deepseek-v4-pro", "display_name": "DeepSeek V4 Pro",
-       "release_date": "2026-08-12", "reason": "below_coverage_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "terminal_bench"]},
-      {"model_id": "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b", "display_name": "NVIDIA Nemotron 3.5 Lightning 30B A3B",
-       "release_date": "2026-08-11", "reason": "below_count_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "meta/muse-glimmer-30b", "display_name": "Muse Glimmer 30B",
-       "release_date": "2026-08-10", "reason": "no_scores",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "scicode", "swe_bench_verified", "terminal_bench"]},
-      {"model_id": "deepseek/deepseek-v4-flash", "display_name": "DeepSeek V4 Flash",
-       "release_date": "2026-07-31", "reason": "below_coverage_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "terminal_bench"]},
-      {"model_id": "qwen/deepseek-v4-flash-0731", "display_name": "DeepSeek V4 Flash 0731",
-       "release_date": "2026-07-31", "reason": "below_count_floor",
-       "missing_benchmarks": ["aider_polyglot", "arena_elo_coding", "arena_elo_overall", "humaneval", "live_code_bench", "swe_bench_verified", "terminal_bench"]}
+      {
+        "model_id": "anthropic/claude-opus-5-5",
+        "display_name": "Claude Opus 5.5",
+        "release_date": "2026-09-22",
+        "reason": "below_count_floor",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "openai/gpt-6-luna",
+        "display_name": "GPT-6 Luna",
+        "release_date": "2026-09-22",
+        "reason": "no_scores",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "openai/gpt-6-sol",
+        "display_name": "GPT-6 Sol",
+        "release_date": "2026-09-22",
+        "reason": "below_count_floor",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "xai/grok-4-7",
+        "display_name": "Grok 4.7",
+        "release_date": "2026-09-21",
+        "reason": "below_coverage_floor",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified"
+        ]
+      },
+      {
+        "model_id": "stepfun/step-5-preview",
+        "display_name": "Step 5 Preview",
+        "release_date": "2026-09-16",
+        "reason": "no_scores",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "deepseek/deepseek-flash",
+        "display_name": "DeepSeek V4.1 Flash",
+        "release_date": "2026-09-10",
+        "reason": "no_scores",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "inception/mercury-2-5",
+        "display_name": "Mercury 2.5",
+        "release_date": "2026-09-08",
+        "reason": "no_scores",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "openbmb/minicpm5-2b",
+        "display_name": "MiniCPM5-2B",
+        "release_date": "2026-09-06",
+        "reason": "below_count_floor",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "inclusionai/ling-3-0-flash-vl",
+        "display_name": "Ling-3.0-flash-VL",
+        "release_date": "2026-09-04",
+        "reason": "below_count_floor",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      },
+      {
+        "model_id": "anthropic/claude-mythos-5-1",
+        "display_name": "Claude Mythos 5.1",
+        "release_date": "2026-09-01",
+        "reason": "no_scores",
+        "missing_benchmarks": [
+          "arena_elo_style_control",
+          "arena_sc_coding",
+          "arena_webdev",
+          "scicode",
+          "swe_bench_pro",
+          "swe_bench_verified",
+          "terminal_bench_v4_0"
+        ]
+      }
     ]
   },
-  "candidates_considered": 1339,
+  "candidates_considered": 1345,
   "authoring_guide": {
-    "state": "absent",
-    "model_id": "deepseek/deepseek-v3-2",
-    "why": "no_guide",
-    "guide": null
+    "state": "current",
+    "model_id": "google/gemini-2-5-pro",
+    "why": null,
+    "guide": {
+      "applies_to": {
+        "model_id": "google/gemini-2-5-pro",
+        "version": "gemini-2.5-pro"
+      },
+      "as_of": "2026-09-18",
+      "status": "current",
+      "sections": {
+        "prompt_shape": [
+          {
+            "text": "Google shows 2.5 Pro producing substantial programs from a single-line prompt; still state constraints when you need a bounded artefact rather than an expansive one.",
+            "sources": [
+              {
+                "url": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/",
+                "title": "Gemini 2.5: Our most intelligent AI model",
+                "accessed": "2026-09-18",
+                "kind": "release-notes"
+              }
+            ]
+          }
+        ],
+        "system_message": [],
+        "reasoning_and_tools": [
+          {
+            "text": "Gemini 2.5 Pro is a thinking model: it reasons through the problem before answering, which Google reports as the source of its coding and reasoning gains.",
+            "sources": [
+              {
+                "url": "https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/",
+                "title": "Gemini 2.5: Our most intelligent AI model",
+                "accessed": "2026-09-18",
+                "kind": "release-notes"
+              },
+              {
+                "url": "https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/",
+                "title": "Gemini 2.5 Pro and Flash generally available",
+                "accessed": "2026-09-18",
+                "kind": "provider-guidance"
+              }
+            ]
+          },
+          {
+            "text": "2.5 models expose a thinking budget so you can trade reasoning tokens for latency and cost; Google made the 06-05 snapshot the stable gemini-2.5-pro id.",
+            "sources": [
+              {
+                "url": "https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/",
+                "title": "Gemini 2.5 Pro and Flash generally available",
+                "accessed": "2026-09-18",
+                "kind": "provider-guidance"
+              }
+            ]
+          }
+        ],
+        "formatting": [],
+        "failure_modes": [],
+        "retry_advice": []
+      }
+    }
   },
   "result": [
     {
-      "model_id": "deepseek/deepseek-v3-2",
-      "display_name": "DeepSeek V3.2",
-      "provider": "DeepSeek",
-      "score": 84.78,
+      "model_id": "google/gemini-2-5-pro",
+      "display_name": "Gemini 2.5 Pro",
+      "provider": "Google DeepMind",
+      "score": 73.02,
       "rank": 1,
-      "score_lower_bound": 84.78,
-      "score_upper_bound": 92.78,
+      "score_lower_bound": 73.02,
+      "score_upper_bound": 87.42,
       "score_kind": "conservative_lower_bound",
-      "benchmark_score": 25.01,
-      "capability_score": 18.15,
-      "cost_score": 21.77,
-      "context_score": 4.85,
+      "benchmark_score": 13.45,
+      "capability_score": 20.0,
+      "cost_score": 17.02,
+      "context_score": 7.56,
       "type_bonus": 15.0,
       "rank_status": "ranked",
       "unranked_reason": null,
-      "benchmark_coverage": 0.8,
-      "benchmark_count": 7,
+      "benchmark_coverage": 0.64,
+      "benchmark_count": 5,
       "required_benchmark_count": 2,
-      "missing_benchmarks": ["scicode"],
-      "benchmark_estimate": 78.14355158730159,
-      "benchmark_lower_bound": 25.00593650793651,
-      "benchmark_upper_bound": 33.00593650793651,
+      "missing_benchmarks": [
+        "swe_bench_pro",
+        "terminal_bench_v4_0"
+      ],
+      "benchmark_estimate": 52.525972983349966,
+      "benchmark_lower_bound": 13.446649083737592,
+      "benchmark_upper_bound": 27.84664908373759,
       "benchmark_contributions": {
-        "humaneval": 13.96,
-        "swe_bench_verified": 9.71,
-        "live_code_bench": 11.86,
-        "aider_polyglot": 7.8,
-        "arena_elo_coding": 10.5,
-        "arena_elo_overall": 6.8,
-        "terminal_bench": 1.89
+        "arena_sc_coding": 9.04,
+        "arena_webdev": 0.77,
+        "arena_elo_style_control": 9.94,
+        "swe_bench_verified": 4.6,
+        "scicode": 9.26
       },
-      "context_window": 131072,
-      "cost_input": 0.14,
-      "open_weights": true,
-      "evidence_basis": "unverified-legacy",
-      "verified_contributions": 0,
-      "verified_benchmark_coverage": 0.0,
-      "scores_as_of": "2026-04"
+      "off_snapshot_benchmarks": [],
+      "context_window": 1048576,
+      "cost_input": 1.25,
+      "open_weights": false,
+      "evidence_basis": "partial-verified",
+      "verified_contributions": 5,
+      "verified_benchmark_coverage": 0.64,
+      "scores_as_of": "2026-04",
+      "stale_benchmarks": [
+        "swe_bench_verified"
+      ],
+      "oldest_live_reading": "2026-02-13"
     }
   ]
 }

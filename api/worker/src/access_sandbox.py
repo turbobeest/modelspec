@@ -23,7 +23,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from api.ranking.engine import BENCHMARK_RANGES, USE_CASE_PROFILES, ranking_policy
+from api.ranking.engine import (
+    ARENA_SNAPSHOT,
+    BENCHMARK_RANGES,
+    USE_CASE_PROFILES,
+    ranking_policy,
+)
 from pipeline.ranking import Candidate, rank_report
 
 #: Marked on every sandbox response. A caller that ignores it and ships these
@@ -71,9 +76,22 @@ _PROVIDER = "ModelSpec Sandbox"
 
 
 def _benchmark_value(benchmark: str, quality: float) -> float:
-    """A plausible score for a benchmark, `quality` of the way up its range."""
+    """A plausible score for a benchmark, `quality` of the way up its range.
+
+    An Arena board has no range, only a leader on the pinned snapshot
+    (MODEL-123): the value sits `(1 - quality) * 400` points behind it.
+    """
+    board = ARENA_SNAPSHOT["boards"].get(benchmark)
+    if board is not None:
+        return round(board["leader"] - 400.0 * (1.0 - quality), 1)
     low, high = BENCHMARK_RANGES.get(benchmark, (0.0, 100.0))
     return round(low + (high - low) * quality, 1)
+
+
+def _snapshot_dates(benchmarks: list[str]) -> dict[str, str]:
+    """Arena values are dated to their board's pinned snapshot, or they do not count."""
+    return {b: ARENA_SNAPSHOT["boards"][b]["published"]
+            for b in benchmarks if b in ARENA_SNAPSHOT["boards"]}
 
 
 def _candidates(use_case: str) -> list[Candidate]:
@@ -106,6 +124,7 @@ def _candidates(use_case: str) -> list[Candidate]:
             fits={},
             verified_benchmarks=set(covered) if spec["verified"] else set(),
             release_date=spec.get("release_date"),
+            evidence_dates=_snapshot_dates(covered),
         ))
     return out
 

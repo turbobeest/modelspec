@@ -1,5 +1,5 @@
 {
- "about": "A frozen slice of the built export and, per vector, the sha256 of the pre-MODEL-110 rank_report in canonical form (floats to 10 significant digits, keys sorted). See tests/test_unranked_candidates.py.",
+ "about": "A frozen slice of the built export and, per vector, the sha256 of rank_report without unranked_candidates, in canonical form (floats to 10 significant digits, keys sorted). Captured before MODEL-110 to prove that ticket moved nothing else; re-captured at MODEL-123 (2026-09-24), which changed the profiles, the bounds and Arena normalisation on purpose. See tests/test_unranked_candidates.py.",
  "candidates": [
   {
    "benchmark_scores": {
@@ -4522,32 +4522,32 @@
  "device": "apple_m3_ultra",
  "golden": {
   "agentic_price": {
-   "canonical_sha256": "ca6eb92d3b3f1ae57c641d585bdabf245857c7485a3eb68cb3209d3a5d05eb7a",
-   "ranked_count": 26
+   "canonical_sha256": "6c384737ba82cd4cbaad792835491133ee9c3450b9491fd461207a10d4e703e7",
+   "ranked_count": 0
   },
   "coding": {
-   "canonical_sha256": "415dbabc0084342c4894d32a6e378f8c13da4932f851a8cb624be733451a0b79",
-   "ranked_count": 37
+   "canonical_sha256": "7d7e1ca38274c9cd6855875092da0504d90899a3d816b536f15001147d8a23aa",
+   "ranked_count": 0
   },
   "embedding_rehosts": {
-   "canonical_sha256": "3eb08cded57d4f13e79d77abcadaf4880700f81fb42eff3f99002687db731d6e",
-   "ranked_count": 11
+   "canonical_sha256": "fe0ee6cd8c5063f41fa519d0b8c97ea685a6902228976fe1468f78a921cff7b0",
+   "ranked_count": 0
   },
   "general_wizard_floor": {
-   "canonical_sha256": "22bf87781dec4d2c1da501b33fdae5dd603137ccf8d173ab3191f6e1a78bd152",
-   "ranked_count": 48
+   "canonical_sha256": "76c94d0ac372537ed2a9e8584dddcc5c98ec8386eade5bc94250a1d96f1a8500",
+   "ranked_count": 22
   },
   "rag_open_weights": {
-   "canonical_sha256": "c004d6572f2b40a73b209612359e95d0639a081dc3d98fa355048dab837fcdd6",
-   "ranked_count": 10
+   "canonical_sha256": "13a3ca96063c37554e6e86730d1b7a66ece18d39ded403f8505673e007574fe2",
+   "ranked_count": 0
   },
   "reasoning_on_device": {
-   "canonical_sha256": "8452dfc0e076eccd87d06e70a0962a767fc936aad362571b8a8bedd9fe5065ed",
-   "ranked_count": 10
+   "canonical_sha256": "ec23f0f4e9879a8b30b2497a96da5c209c1932adf8501e36312b1bab0a45b82e",
+   "ranked_count": 0
   },
   "vision_limit_zero": {
-   "canonical_sha256": "6dd3748d51a3ca0d8b8aa94600695a91d3c4519a0ca1c815bed04b5801357517",
-   "ranked_count": 16
+   "canonical_sha256": "07eb9adcd9076dcb1135afc8de518eefef39b65cd554c51f78e364b9598c2f58",
+   "ranked_count": 0
   }
  },
  "vectors": {

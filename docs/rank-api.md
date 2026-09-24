@@ -217,6 +217,13 @@ envelope stays `"1.0"`, `result` rows are unchanged, and the new
 down anywhere in `api/worker/`; `tests/test_rank_worker.py` fails the build if
 they ever are. Changing one is Jamie's call.
 
+**MODEL-123.** `policy` also carries `stale_after_days` and `arena_snapshot`,
+and every `result` row carries `stale_benchmarks`, `oldest_live_reading` and
+`off_snapshot_benchmarks`, all from `rank_report`. The Worker reads
+`evidence_dates` and `live_benchmarks` from `candidates.json` and measures
+staleness from the day of the request (UTC). New fields only: the envelope
+stays `"1.0"`. Semantics: [`cli-contract.md`](cli-contract.md).
+
 ### Status codes
 
 | Code | Meaning | CLI equivalent |

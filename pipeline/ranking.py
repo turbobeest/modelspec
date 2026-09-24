@@ -17,12 +17,15 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
 from api.ranking.engine import (
     BENCHMARK_RANGES,
-    USE_CASE_PROFILES,
+    INDEPENDENT_BOARD_KEYS,
     RANKING_POLICY,
+    STALE_AFTER_DAYS,
+    USE_CASE_PROFILES,
     WIZARD_BENCHMARK_COVERAGE,
     _benchmark_evidence,
     _ranking_status,
@@ -42,13 +45,15 @@ if TYPE_CHECKING:  # pragma: no cover - annotations only
     from schema.graph import CollectingSink
 
 #: Profiles offered in the wizard. All 51 are exported for the API, but a
-#: dropdown of 51 is a worse experience than a short list. speech_to_text
-#: currently ranks nothing (MODEL-30); offered-and-empty is worse than hiding
-#: it. image_generation stays out until clip_score's range is sourced.
+#: dropdown of 51 is a worse experience than a short list. A suspended profile
+#: (`status: suspended` in the engine) is never featured: speech_to_text ranks
+#: nothing (MODEL-30), and text_to_speech ranked chat LLMs until MODEL-123
+#: suspended it. image_generation was re-sourced onto the Arena image boards in
+#: MODEL-123; featuring it is a product call, so it stays out for now.
 FEATURED_PROFILES = (
     "general", "coding", "reasoning", "chat", "agentic", "rag",
     "vision", "multilingual", "math_competition", "writing_technical",
-    "summarization", "embedding", "text_to_speech",
+    "summarization", "embedding",
 )
 
 
@@ -84,6 +89,14 @@ class Candidate:
     #: `unranked_candidates` disclosure (MODEL-110); never scored. Additive to
     #: candidates.json: an export without it reads as None everywhere.
     release_date: str | None = None
+    #: Benchmark -> `evidence_date` of the reviewed record behind its score
+    #: (MODEL-123). An Arena score counts only when this is its board's pinned
+    #: snapshot date. Flat-block scores have no entry. Additive to
+    #: candidates.json: an export without it leaves every Arena key uncounted.
+    evidence_dates: dict[str, str] = field(default_factory=dict)
+    #: Benchmarks whose record is a reading of a live board rather than a
+    #: static publication. Only these can be `stale_benchmarks` in a row.
+    live_benchmarks: set[str] = field(default_factory=set)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -99,7 +112,91 @@ class Candidate:
             "total_parameters": self.total_parameters,
             "active_parameters": self.active_parameters,
             "release_date": self.release_date,
+            "evidence_dates": self.evidence_dates,
+            "live_benchmarks": sorted(self.live_benchmarks),
         }
+
+
+#: Where a live board's readings come from. A record whose `source_url` starts
+#: with one of these is a reading of a continuously updated board, dated by its
+#: stated snapshot or by the observation (`scripts/build_manifest.py`,
+#: BENCHMARK_WRITE_RULE). Everything else — a paper, a model card, a system
+#: card — is a static publication, which does not go stale the same way: its
+#: number was true of that model on that day and stays so.
+LIVE_BOARD_PREFIXES = (
+    "https://huggingface.co/datasets/lmarena-ai/",
+    "https://lmarena.ai/", "https://arena.ai/",
+    "https://www.tbench.ai/", "https://tbench.ai/",
+    "https://epoch.ai/",
+    "https://labs.scale.com/leaderboard/", "https://scale.com/leaderboard/",
+    "https://matharena.ai/",
+    "https://mteb-leaderboard-backend.hf.space/", "https://huggingface.co/spaces/mteb/",
+    "https://taubench.com/", "https://sierra-tau-bench-public.s3.",
+    "https://andonlabs.com/", "https://osworld-v2.xlang.ai/",
+    "https://deepswe.datacurve.ai/", "https://cursor.com/cursorbench",
+    "https://cognition.com/frontiercode", "https://metr.org/",
+)
+
+
+def is_live_reading(record: Any) -> bool:
+    """Whether an evidence record reads a live board (see LIVE_BOARD_PREFIXES)."""
+    url = str(getattr(record, "source_url", "") or "")
+    return url.startswith(LIVE_BOARD_PREFIXES)
+
+
+#: Reasoning-effort labels in the order MODEL-123 ranks them: the max-effort
+#: result is the product row (Jamie, 2026-09-23). An unlabelled row is the
+#: provider's default, which sits above an explicitly reduced effort.
+_EFFORT_ORDER = {"max": 6, "xhigh": 5, "x-high": 5, "high": 4, "medium": 3,
+                 "low": 1, "minimal": 0, "none": 0}
+_EFFORT_LABEL = re.compile(
+    r"(?:[\s_(\-]|^)(max|xhigh|x-high|high|medium|low|minimal|none)\)?\s*$", re.I)
+_UNLABELLED_EFFORT = 2
+
+
+def effort_rank(label: str) -> int:
+    """Rank a row by the reasoning effort its evaluated-model label names.
+
+    Reads only a trailing effort token — `claude-opus-5-max`, `GPT-6 Astra
+    (max)`, `model_xhigh` — so a word like "high" inside a name does not count.
+    """
+    match = _EFFORT_LABEL.search(str(label or "").strip())
+    return _EFFORT_ORDER[match.group(1).lower()] if match else _UNLABELLED_EFFORT
+
+
+def _record_precedence(record: Any) -> tuple[int, int, str]:
+    """Which of several records for one benchmark is the card's score.
+
+    1. An independent reading (a benchmark author's or an independent
+       evaluator's board) beats a provider self-report: a self-report fills a
+       key only where no independent board carries it (Jamie, 2026-09-23).
+    2. Among records of the same kind, the highest reasoning effort wins: the
+       max-effort result is the product row.
+    3. Then the newest `evidence_date`. File order breaks any remaining tie,
+       last one winning, which is what the ranker did before.
+    """
+    independent = int(getattr(record, "source_kind", "") != "provider_self_report")
+    return (independent, effort_rank(getattr(record, "model_id_as_evaluated", "")),
+            str(getattr(record, "evidence_date", "") or ""))
+
+
+def select_evidence(records: list[Any]) -> dict[str, Any]:
+    """The one record per benchmark that a card's score comes from.
+
+    A provider self-report on a key an independent board carries
+    (`INDEPENDENT_BOARD_KEYS`) is left out entirely, even when it is the only
+    record: the provider's harness is not the board's, and one key must hold
+    one kind of measurement.
+    """
+    chosen: dict[str, Any] = {}
+    for record in records:
+        if (getattr(record, "source_kind", "") == "provider_self_report"
+                and record.benchmark_id in INDEPENDENT_BOARD_KEYS):
+            continue
+        current = chosen.get(record.benchmark_id)
+        if current is None or _record_precedence(record) >= _record_precedence(current):
+            chosen[record.benchmark_id] = record
+    return chosen
 
 
 def rehost_of(card: Any) -> str | None:
@@ -140,13 +237,19 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
     for card in cards:
         ident = card.identity
         # Reviewed evidence takes precedence over the flat block for the same
-        # benchmark: it is the same measurement, checked.
+        # benchmark: it is the same measurement, checked. Among several records
+        # for one benchmark, `select_evidence` applies the MODEL-123 rules.
         scores = {k: float(v) for k, v in card.benchmarks.scores.items()
                   if isinstance(v, (int, float))}
         verified: set[str] = set()
-        for record in card.benchmarks.evidence:
-            scores[record.benchmark_id] = float(record.score)
-            verified.add(record.benchmark_id)
+        dates: dict[str, str] = {}
+        live: set[str] = set()
+        for bench, record in select_evidence(card.benchmarks.evidence).items():
+            scores[bench] = float(record.score)
+            verified.add(bench)
+            dates[bench] = str(record.evidence_date)
+            if is_live_reading(record):
+                live.add(bench)
         out.append(Candidate(
             model_id=ident.model_id,
             display_name=ident.display_name or ident.model_id,
@@ -165,22 +268,52 @@ def build_candidates(cards: list[Any], sink: CollectingSink) -> list[Candidate]:
             total_parameters=card.architecture.total_parameters,
             active_parameters=card.architecture.active_parameters,
             release_date=str(ident.release_date or "").strip() or None,
+            evidence_dates=dates,
+            live_benchmarks=live,
         ))
     return out
 
 
+def _today() -> date:
+    return datetime.now(UTC).date()
+
+
+def _staleness(candidate: Candidate, contributing: dict[str, Any],
+               as_of: date) -> tuple[list[str], str | None]:
+    """Live readings behind this row older than STALE_AFTER_DAYS, and the oldest one."""
+    stale, oldest = [], None
+    for bench in contributing:
+        if bench not in candidate.live_benchmarks:
+            continue
+        raw = candidate.evidence_dates.get(bench)
+        try:
+            read = date.fromisoformat(str(raw))
+        except ValueError:
+            continue
+        oldest = raw if oldest is None or raw < oldest else oldest
+        if (as_of - read).days > STALE_AFTER_DAYS:
+            stale.append(bench)
+    return sorted(stale), oldest
+
+
 def score(candidate: Candidate, profile: dict[str, Any],
           cost_weight: float | None = None,
-          min_coverage: float | None = None) -> dict[str, Any]:
+          min_coverage: float | None = None,
+          as_of: date | None = None) -> dict[str, Any]:
     """Score one candidate. Mirrors RankingEngine._score.
 
     `cost_weight` overrides the profile's own. Every shipped profile carries
     0.0, so price contributes nothing unless a caller asks for it — and how much
     quality someone will trade for price is a property of the person, not of the
     use case, so it belongs in the query rather than in the table. See MODEL-30.
+
+    `as_of` is the day staleness is measured from (default: today, UTC).
     """
     evidence = _benchmark_evidence(candidate.benchmark_scores, profile,
-                                  min_coverage=min_coverage)
+                                  min_coverage=min_coverage,
+                                  evidence_dates=candidate.evidence_dates)
+    stale, oldest_live = _staleness(candidate, evidence["benchmark_contributions"],
+                                    as_of or _today())
     contributions = evidence["benchmark_contributions"]
     contributing_verified = len(contributions.keys() & candidate.verified_benchmarks)
     weights = profile.get("benchmark_weights", {})
@@ -262,6 +395,11 @@ def score(candidate: Candidate, profile: dict[str, Any],
         "verified_contributions": contributing_verified,
         "verified_benchmark_coverage": verified_weight / total_weight if total_weight else 0.0,
         "scores_as_of": candidate.scores_as_of,
+        # MODEL-123. Live readings behind this row older than STALE_AFTER_DAYS:
+        # flagged, still counted. Always a list, empty when nothing is stale.
+        "stale_benchmarks": stale,
+        # The oldest live reading that contributed, or null when none did.
+        "oldest_live_reading": oldest_live,
     }
 
 
@@ -296,7 +434,8 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
                 open_weights_only: bool = False, hardware_id: str | None = None,
                 cost_weight: float | None = None,
                 min_benchmark_coverage: float | None = None,
-                include_rehosts: bool = False) -> dict[str, Any]:
+                include_rehosts: bool = False,
+                as_of: date | None = None) -> dict[str, Any]:
     """Rank sufficiently covered models and retain all others as unranked.
 
     `limit` caps the ranked shortlist only. Unranked entries are alphabetical,
@@ -304,7 +443,8 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
     `unranked_candidates` names, newest first and capped, the unranked models
     whose type the profile prefers — the disclosure every rank surface carries
     (MODEL-110); see `unranked_candidates()`. Default coverage floor is the CLI floor (0.50). Pass
-    `WIZARD_BENCHMARK_COVERAGE` for the browser surface.
+    `WIZARD_BENCHMARK_COVERAGE` for the browser surface. `as_of` is the day
+    `stale_benchmarks` is measured from; default today, UTC.
     """
     if limit < 0:
         raise ValueError("limit must be nonnegative")
@@ -316,7 +456,8 @@ def rank_report(candidates: list[Candidate], profile_key: str, limit: int = 25,
         pool = [c for c in pool if c.open_weights]
     if hardware_id:
         pool = [c for c in pool if hardware_id in c.fits]
-    scored = [score(c, profile, cost_weight, min_benchmark_coverage) for c in pool]
+    as_of = as_of or _today()
+    scored = [score(c, profile, cost_weight, min_benchmark_coverage, as_of) for c in pool]
     disclosure = unranked_candidates(pool, scored, profile)
     ranked = [r for r in scored if r["rank_status"] == "ranked"]
     unranked = [r for r in scored if r["rank_status"] == "unranked"]
@@ -527,6 +668,7 @@ def main() -> None:
     import argparse
     import json
     from pathlib import Path
+
     from schema.card import ModelCard
     from schema.graph import derive_graph
 

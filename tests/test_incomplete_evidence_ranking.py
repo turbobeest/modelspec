@@ -8,7 +8,7 @@ import pytest
 
 from pipeline.ranking import Candidate, score, rank, rank_report, format_report, build_candidates
 from api.ranking.engine import (
-    USE_CASE_PROFILES, IncompleteEvidenceError, ModelData, RankingEngine,
+    ARENA_SNAPSHOT, USE_CASE_PROFILES, IncompleteEvidenceError, ModelData, RankingEngine,
     MIN_BENCHMARK_COVERAGE, WIZARD_BENCHMARK_COVERAGE, _benchmark_evidence,
     ranking_policy,
 )
@@ -17,7 +17,10 @@ from schema.graph import CollectingSink
 
 
 def candidate(name, scores):
-    return Candidate(name, name, 'Test', None, benchmark_scores=scores)
+    """Arena values are dated to their board's pinned snapshot (MODEL-123)."""
+    dates = {b: ARENA_SNAPSHOT['boards'][b]['published']
+             for b in scores if b in ARENA_SNAPSHOT['boards']}
+    return Candidate(name, name, 'Test', None, benchmark_scores=scores, evidence_dates=dates)
 
 
 def measured(name='measured', value=50.0):
@@ -36,23 +39,23 @@ def test_single_verified_high_score_is_unranked():
     assert result['evidence_basis'] != 'verified'
 
 
-@pytest.mark.parametrize('profile,benchmark', [
-    ('coding', 'scicode'), ('reasoning', 'critpt'),
-])
-def test_real_astra_is_visible_unranked_instead_of_ranked_low(profile, benchmark):
+@pytest.mark.parametrize('profile', ['coding', 'reasoning'])
+def test_a_sparse_real_card_is_visible_unranked_instead_of_ranked_low(profile):
     """Sparse real-card evidence is visible and unranked, never a low numeric rank.
 
-    GPT-6 Astra is the fixture. Coverage will rise as evidence is attached; when
-    it reaches MIN_BENCHMARK_COVERAGE this test should fail and the fixture
-    should be replaced, not the assertion weakened to let a rankable model pass.
+    Claude 3 Opus is the fixture since MODEL-123: its Arena snapshot rows give it
+    some coding and reasoning coverage, well under the floor. (GPT-6 Astra was
+    the fixture until the refreshed profiles ranked it.) When coverage reaches
+    MIN_BENCHMARK_COVERAGE this test should fail and the fixture should be
+    replaced, not the assertion weakened to let a rankable model pass.
     """
-    path = Path(__file__).resolve().parents[1] / 'models/openai/gpt-6-astra.md'
-    astra = build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
-    report = rank_report([astra], profile, limit=10)
+    path = Path(__file__).resolve().parents[1] / 'models/anthropic/claude-3-opus-20240229.md'
+    sparse = build_candidates([ModelCard.from_yaml_file(path)], CollectingSink())[0]
+    report = rank_report([sparse], profile, limit=10)
     assert report['ranking_status'] == 'unavailable'
     assert report['ranked'] == []
     row, = report['unranked']
-    assert row['model_id'] == 'openai/gpt-6-astra'
+    assert row['model_id'] == 'anthropic/claude-3-opus-20240229'
     assert row['rank'] is row['score'] is None
     assert row['unranked_reason'] == 'insufficient_benchmark_evidence'
     assert 0 < row['benchmark_coverage'] < MIN_BENCHMARK_COVERAGE
@@ -60,9 +63,9 @@ def test_real_astra_is_visible_unranked_instead_of_ranked_low(profile, benchmark
     assert row['benchmark_estimate'] is not None
     assert row['score_upper_bound'] > row['score_lower_bound']
     assert row['evidence_basis'] != 'verified'
-    assert benchmark in row['benchmark_contributions']
+    assert 'arena_elo_style_control' in row['benchmark_contributions']
     text = format_report(report)
-    assert 'UNRANKED  GPT-6 Astra' in text
+    assert 'UNRANKED  Claude Opus 3' in text
     assert 'not ranked low' in text
 
 
@@ -160,11 +163,11 @@ def test_verified_requires_complete_profile_inputs_and_weighted_coverage():
     full = measured()
     full.verified_benchmarks = set(full.benchmark_scores)
     assert score(full, USE_CASE_PROFILES['coding'])['evidence_basis'] == 'verified'
-    del full.benchmark_scores['terminal_bench']
+    del full.benchmark_scores['swe_bench_verified']
     row = score(full, USE_CASE_PROFILES['coding'])
     assert row['rank_status'] == 'ranked'
     assert row['evidence_basis'] == 'partial-verified'
-    deleted = USE_CASE_PROFILES['coding']['benchmark_weights']['terminal_bench']
+    deleted = USE_CASE_PROFILES['coding']['benchmark_weights']['swe_bench_verified']
     assert row['verified_benchmark_coverage'] == pytest.approx(1.0 - deleted)
 
 
@@ -203,7 +206,8 @@ def test_empty_unavailable_and_truncated_are_distinct():
 def test_engine_and_offline_scoring_share_evidence_semantics():
     sparse = candidate('sparse', {'scicode': 100})
     for c in [sparse, measured()]:
-        model = ModelData(c.model_id, c.display_name, benchmark_scores=c.benchmark_scores)
+        model = ModelData(c.model_id, c.display_name, benchmark_scores=c.benchmark_scores,
+                          evidence_dates=c.evidence_dates)
         engine_row = asdict(RankingEngine(None)._score(model, USE_CASE_PROFILES['coding']))
         offline_row = score(c, USE_CASE_PROFILES['coding'])
         for key in ['rank_status', 'score', 'benchmark_estimate', 'benchmark_coverage',
