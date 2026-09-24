@@ -1175,6 +1175,58 @@ def test_phase2a_system_card_pdfs_use_the_manifest_digest():
         assert fixtures[slug]["document_sha256"] == manifest[name]
 
 
+def _resolved(score: float, readings: list[tuple[str, object]], score_text: str | None = None) -> dict:
+    text = score_text if score_text is not None else str(score)
+    return _bar(
+        score=score,
+        score_text=text,
+        resolution={
+            "rule": "two_of_three",
+            "readings": [{"reader": reader, "value": value} for reader, value in readings],
+        },
+    )
+
+
+def test_resolved_bar_needs_two_readings_within_printed_precision():
+    # 85.64 is inside the printed step of 85.6. 85.7 is the next printed tenth.
+    close = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 85.64), ("claude-sonnet", 10.0)], "85.6")
+    page = _page([close])
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    apart = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 80.0)], "85.6")
+    page = _page([apart])
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and all("agree" in line for line in errors)
+    report = classify_fixtures([page], [_model("openai/gpt-6-astra", [_row(85.6)])])
+    assert report["charts_detail"][0]["bars"][0]["status"] == "disputed"
+
+
+def test_third_reading_that_agrees_with_neither_stays_disputed():
+    bar = _resolved(96.0, [("a", 96.0), ("b", 91.0), ("c", 80.0)], "96.0")
+    page = _page([bar])
+    page["read_on"] = "2026-09-24"
+    model = _model("openai/gpt-6-astra", [_row(96.0)])
+    assert classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]["status"] == "disputed"
+
+
+def test_resolved_score_must_be_the_agreed_value():
+    # Two readers agree on 85.6. The score 83.4 matches the card and still fails.
+    wrong = _resolved(83.4, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 85.6)], "83.4")
+    page = _page([wrong])
+    page["read_on"] = "2026-09-24"
+    model = _model("openai/gpt-6-astra", [_row(83.4)])
+    errors = fixture_errors([page], [])
+    assert len(errors) == 1 and "agreed" in errors[0]
+    assert classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]["status"] == "matched"
+    settled = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 85.6)], "85.6")
+    page = _page([settled])
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    bar = classify_fixtures([page], [_model("openai/gpt-6-astra", [_row(85.6)])])["charts_detail"][0]["bars"][0]
+    assert bar["status"] == "matched"
+
+
 def test_disputed_bar_is_not_a_match():
     page = _page(
         [_bar(disputed=[{"reader": "a", "value": 96.0}, {"reader": "b", "value": 91.0}])],

@@ -18,7 +18,7 @@ charts:
         score: 56.4
         unit: "percent"
         printed: true
-        configuration: ""
+        configuration: "BF16"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
         model_id: "minimax/minimax-m2-7"
@@ -2035,6 +2035,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3-Ultra BF16"
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
@@ -2047,16 +2049,20 @@ charts:
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: terminal_bench_v2_1
-        score: 63.9
+        score: 53.9
         unit: "percent"
         printed: true
         configuration: "NVFP4"
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 63.9
-          - reader: claude-opus
-            value: 53.9
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 63.9
+            - reader: claude-opus
+              value: 53.9
+            - reader: claude-sonnet
+              value: 53.9
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1

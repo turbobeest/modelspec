@@ -2,16 +2,18 @@ page_url: "https://huggingface.co/tencent/Hy3"
 publisher: "Tencent"
 read_on: "2026-09-24"
 charts:
-  - title: "Benchmark appendix, own testing"
+  - title: "Benchmark appendix, cited from elsewhere"
     kind: image
     image_url: "https://huggingface.co/tencent/Hy3/resolve/main/assets/benchmark-appendix.png"
     image_sha256: "c2b5092a0dd1207a6b356fed2047956bbce13e8441943c19b266ef9bbca3d174"
-    footnotes: "A star is a number taken from that model's own testing. Unstarred numbers are Tencent's own testing at the highest reasoning effort. Terminal-Bench 2.1 uses Terminus-2, json parser, 4h, 16 cores, 32 GB, 500 episodes. SWE-bench series use the SWE-agent scaffold except GPT-5.5, which uses Codex. DeepSWE uses mini-swe-agent in a sandbox. NL2Repo uses Claude Code. Claw Eval uses an internal harness dated 20260325 with Gemini-3.5-flash as judge. HLE with tools is the text-only subset."
-    competitor_numbers: vendor_run
+    footnotes: "A starred cell is Tencent's own testing of that model. An unstarred cell is cited from elsewhere. The reasoning effort was set to the highest tier for all models. Terminal-Bench 2.1 uses Terminus-2, json parser, 4h, 16 cores, 32 GB, 500 episodes. SWE-bench series use the SWE-agent scaffold except GPT-5.5, which uses Codex. DeepSWE uses mini-swe-agent in a sandbox. NL2Repo uses Claude Code. Claw Eval uses an internal harness dated 20260325 with Gemini-3.5-flash as judge. HLE with tools is the text-only subset."
+    competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Hy3 preview"
@@ -20,7 +22,7 @@ charts:
         score: 68.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -28,7 +30,7 @@ charts:
         score: 75.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -36,7 +38,7 @@ charts:
         score: 73.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -44,7 +46,7 @@ charts:
         score: 73.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -52,7 +54,7 @@ charts:
         score: 76.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -60,7 +62,7 @@ charts:
         score: 78.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -68,7 +70,7 @@ charts:
         score: 84.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Multilingual"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -76,7 +78,7 @@ charts:
         score: 74.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -84,7 +86,7 @@ charts:
         score: 78.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: subject
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -92,7 +94,7 @@ charts:
         score: 79.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -100,7 +102,7 @@ charts:
         score: 80.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -108,7 +110,7 @@ charts:
         score: 80.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -116,7 +118,7 @@ charts:
         score: 80.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -124,7 +126,7 @@ charts:
         score: 88.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Verified"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -132,7 +134,7 @@ charts:
         score: 46.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -140,7 +142,7 @@ charts:
         score: 57.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -148,7 +150,7 @@ charts:
         score: 58.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -156,7 +158,7 @@ charts:
         score: 62.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -164,7 +166,7 @@ charts:
         score: 52.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -172,7 +174,7 @@ charts:
         score: 55.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -180,7 +182,7 @@ charts:
         score: 60.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -188,7 +190,7 @@ charts:
         score: 54.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -196,7 +198,7 @@ charts:
         score: 69.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -204,7 +206,7 @@ charts:
         score: 58.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SWE-bench Pro"
+        configuration: "Unstarred. Cited from elsewhere. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -212,7 +214,7 @@ charts:
         score: 58.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Terminal-Bench 2.1"
+        configuration: "Unstarred. Cited from elsewhere. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -220,7 +222,7 @@ charts:
         score: 71.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Terminal-Bench 2.1"
+        configuration: "Unstarred. Cited from elsewhere. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -228,7 +230,7 @@ charts:
         score: 71.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Terminal-Bench 2.1"
+        configuration: "Unstarred. Cited from elsewhere. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -236,7 +238,7 @@ charts:
         score: 74.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Terminal-Bench 2.1"
+        configuration: "Unstarred. Cited from elsewhere. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -245,7 +247,7 @@ charts:
         score: 35.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -254,7 +256,7 @@ charts:
         score: 45.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -263,7 +265,7 @@ charts:
         score: 42.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -272,7 +274,7 @@ charts:
         score: 48.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -281,7 +283,7 @@ charts:
         score: 47.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -290,7 +292,7 @@ charts:
         score: 47.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -299,7 +301,7 @@ charts:
         score: 33.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -308,7 +310,7 @@ charts:
         score: 69.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -317,7 +319,7 @@ charts:
         score: 50.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. NL2repo"
+        configuration: "Unstarred. Cited from elsewhere. NL2repo"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -326,7 +328,7 @@ charts:
         score: 0.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSWE"
+        configuration: "Unstarred. Cited from elsewhere. DeepSWE"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -335,7 +337,7 @@ charts:
         score: 28.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSWE"
+        configuration: "Unstarred. Cited from elsewhere. DeepSWE"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -344,7 +346,7 @@ charts:
         score: 18.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSWE"
+        configuration: "Unstarred. Cited from elsewhere. DeepSWE"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -353,7 +355,7 @@ charts:
         score: 12.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Backend 2.0 (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Backend 2.0 (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -362,7 +364,7 @@ charts:
         score: 25.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Backend 2.0 (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Backend 2.0 (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -371,7 +373,7 @@ charts:
         score: 30.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-SWE Max (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-SWE Max (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -380,7 +382,7 @@ charts:
         score: 49.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-SWE Max (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-SWE Max (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -389,7 +391,7 @@ charts:
         score: 8.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-CompanyBench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-CompanyBench (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -398,7 +400,7 @@ charts:
         score: 41.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-CompanyBench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-CompanyBench (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -406,7 +408,7 @@ charts:
         score: 67.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -414,7 +416,7 @@ charts:
         score: 84.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -422,7 +424,7 @@ charts:
         score: 79.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -430,7 +432,7 @@ charts:
         score: 73.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -438,7 +440,7 @@ charts:
         score: 83.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -446,7 +448,7 @@ charts:
         score: 86.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -454,7 +456,7 @@ charts:
         score: 85.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -462,7 +464,7 @@ charts:
         score: 84.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -470,7 +472,7 @@ charts:
         score: 84.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. BrowseComp"
+        configuration: "Unstarred. Cited from elsewhere. BrowseComp"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -479,7 +481,7 @@ charts:
         score: 67.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. WideSearch"
+        configuration: "Unstarred. Cited from elsewhere. WideSearch"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -488,7 +490,7 @@ charts:
         score: 76.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. WideSearch"
+        configuration: "Unstarred. Cited from elsewhere. WideSearch"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -496,7 +498,7 @@ charts:
         score: 82.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSearchQA"
+        configuration: "Unstarred. Cited from elsewhere. DeepSearchQA"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -504,7 +506,7 @@ charts:
         score: 91.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSearchQA"
+        configuration: "Unstarred. Cited from elsewhere. DeepSearchQA"
         role: subject
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -512,7 +514,7 @@ charts:
         score: 93.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. DeepSearchQA"
+        configuration: "Unstarred. Cited from elsewhere. DeepSearchQA"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -521,7 +523,7 @@ charts:
         score: 66.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MCP atlas (public)"
+        configuration: "Unstarred. Cited from elsewhere. MCP atlas (public)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -530,7 +532,7 @@ charts:
         score: 79.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MCP atlas (public)"
+        configuration: "Unstarred. Cited from elsewhere. MCP atlas (public)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -539,7 +541,7 @@ charts:
         score: 32.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Toolathlon"
+        configuration: "Unstarred. Cited from elsewhere. Toolathlon"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -548,7 +550,7 @@ charts:
         score: 48.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Toolathlon"
+        configuration: "Unstarred. Cited from elsewhere. Toolathlon"
         role: subject
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -557,7 +559,7 @@ charts:
         score: 48.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Toolathlon"
+        configuration: "Unstarred. Cited from elsewhere. Toolathlon"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -566,7 +568,7 @@ charts:
         score: 59.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Toolathlon"
+        configuration: "Unstarred. Cited from elsewhere. Toolathlon"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -575,7 +577,7 @@ charts:
         score: 55.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Toolathlon"
+        configuration: "Unstarred. Cited from elsewhere. Toolathlon"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -584,7 +586,7 @@ charts:
         score: 12.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Apex-Agent (pass@1)"
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -593,7 +595,7 @@ charts:
         score: 25.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Apex-Agent (pass@1)"
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
         role: subject
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -602,7 +604,7 @@ charts:
         score: 33.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Apex-Agent (pass@1)"
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -611,7 +613,7 @@ charts:
         score: 42.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Apex-Agent (pass@1)"
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -620,7 +622,7 @@ charts:
         score: 38.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Apex-Agent (pass@1)"
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -629,7 +631,7 @@ charts:
         score: 55.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ClawEval (pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ClawEval (pass^3)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -638,7 +640,7 @@ charts:
         score: 68.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ClawEval (pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ClawEval (pass^3)"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -647,7 +649,7 @@ charts:
         score: 62.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ClawEval (pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -656,7 +658,7 @@ charts:
         score: 65.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ClawEval (pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -665,7 +667,7 @@ charts:
         score: 45.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. WildClawBench (35, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. WildClawBench (35, text-only)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -674,7 +676,7 @@ charts:
         score: 53.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. WildClawBench (35, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. WildClawBench (35, text-only)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -682,7 +684,7 @@ charts:
         score: 29.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SkillsBench (79, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. SkillsBench (79, text-only)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -690,7 +692,7 @@ charts:
         score: 55.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SkillsBench (79, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. SkillsBench (79, text-only)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -699,7 +701,7 @@ charts:
         score: 10.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. e-bench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. e-bench (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -708,7 +710,7 @@ charts:
         score: 50.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. e-bench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. e-bench (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -717,7 +719,7 @@ charts:
         score: 26.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-FinModelBench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-FinModelBench (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -726,7 +728,7 @@ charts:
         score: 69.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-FinModelBench (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-FinModelBench (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -735,7 +737,7 @@ charts:
         score: 10.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ProdBench (internal, Pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ProdBench (internal, Pass^3)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -744,7 +746,7 @@ charts:
         score: 23.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ProdBench (internal, Pass^3)"
+        configuration: "Unstarred. Cited from elsewhere. ProdBench (internal, Pass^3)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -753,7 +755,7 @@ charts:
         score: 26.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-SkillsWorld (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-SkillsWorld (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -762,7 +764,7 @@ charts:
         score: 45.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-SkillsWorld (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-SkillsWorld (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -770,7 +772,7 @@ charts:
         score: 35.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -778,7 +780,7 @@ charts:
         score: 53.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -786,7 +788,7 @@ charts:
         score: 52.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -794,7 +796,7 @@ charts:
         score: 54.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -802,7 +804,7 @@ charts:
         score: 45.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -810,7 +812,7 @@ charts:
         score: 48.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -818,7 +820,7 @@ charts:
         score: 55.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -826,7 +828,7 @@ charts:
         score: 53.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -834,7 +836,7 @@ charts:
         score: 51.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -842,7 +844,7 @@ charts:
         score: 57.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -850,7 +852,7 @@ charts:
         score: 52.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (with tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (with tools, text-only)"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -859,7 +861,7 @@ charts:
         score: 2.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Euler pro (with tools, internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Euler pro (with tools, internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -868,7 +870,7 @@ charts:
         score: 24.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Euler pro (with tools, internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Euler pro (with tools, internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -876,7 +878,7 @@ charts:
         score: 87.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -884,7 +886,7 @@ charts:
         score: 90.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -892,7 +894,7 @@ charts:
         score: 86.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -900,7 +902,7 @@ charts:
         score: 91.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -908,7 +910,7 @@ charts:
         score: 88.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -916,7 +918,7 @@ charts:
         score: 90.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -924,7 +926,7 @@ charts:
         score: 92.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -932,7 +934,7 @@ charts:
         score: 94.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -940,7 +942,7 @@ charts:
         score: 93.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -948,7 +950,7 @@ charts:
         score: 93.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. GPQA Diamond"
+        configuration: "Unstarred. Cited from elsewhere. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -956,7 +958,7 @@ charts:
         score: 30.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -964,7 +966,7 @@ charts:
         score: 37.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -972,7 +974,7 @@ charts:
         score: 31.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -980,7 +982,7 @@ charts:
         score: 40.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -988,7 +990,7 @@ charts:
         score: 34.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -996,7 +998,7 @@ charts:
         score: 37.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1004,7 +1006,7 @@ charts:
         score: 41.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1012,7 +1014,7 @@ charts:
         score: 45.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1020,7 +1022,7 @@ charts:
         score: 49.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HLE (no tools, text-only)"
+        configuration: "Unstarred. Cited from elsewhere. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1028,7 +1030,7 @@ charts:
         score: 19.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Research"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Research"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1036,7 +1038,7 @@ charts:
         score: 21.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Research"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Research"
         role: subject
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1044,7 +1046,7 @@ charts:
         score: 16.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Research"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1052,7 +1054,7 @@ charts:
         score: 33.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Research"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1061,7 +1063,7 @@ charts:
         score: 70.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Olympiad"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Olympiad"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1070,7 +1072,7 @@ charts:
         score: 74.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Olympiad"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Olympiad"
         role: subject
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1079,7 +1081,7 @@ charts:
         score: 79.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. FrontierScience-Olympiad"
+        configuration: "Unstarred. Cited from elsewhere. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1087,7 +1089,7 @@ charts:
         score: 37.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. USAMO 2026"
+        configuration: "Unstarred. Cited from elsewhere. USAMO 2026"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1095,7 +1097,7 @@ charts:
         score: 72.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. USAMO 2026"
+        configuration: "Unstarred. Cited from elsewhere. USAMO 2026"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1104,7 +1106,7 @@ charts:
         score: 12.6
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1113,7 +1115,7 @@ charts:
         score: 38.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1122,7 +1124,7 @@ charts:
         score: 11.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1131,7 +1133,7 @@ charts:
         score: 33.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1140,7 +1142,7 @@ charts:
         score: 38.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1149,7 +1151,7 @@ charts:
         score: 31.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1158,7 +1160,7 @@ charts:
         score: 44.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1167,7 +1169,7 @@ charts:
         score: 60.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. MathArena Apex"
+        configuration: "Unstarred. Cited from elsewhere. MathArena Apex"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1176,7 +1178,7 @@ charts:
         score: 46.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ArxivMath"
+        configuration: "Unstarred. Cited from elsewhere. ArxivMath"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1185,7 +1187,7 @@ charts:
         score: 52.2
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ArxivMath"
+        configuration: "Unstarred. Cited from elsewhere. ArxivMath"
         role: subject
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1194,7 +1196,7 @@ charts:
         score: 64.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ArxivMath"
+        configuration: "Unstarred. Cited from elsewhere. ArxivMath"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1203,7 +1205,7 @@ charts:
         score: 71.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ArxivMath"
+        configuration: "Unstarred. Cited from elsewhere. ArxivMath"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1212,7 +1214,7 @@ charts:
         score: 71.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. ArxivMath"
+        configuration: "Unstarred. Cited from elsewhere. ArxivMath"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1221,7 +1223,7 @@ charts:
         score: 1.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HorizonMath (pass@12)"
+        configuration: "Unstarred. Cited from elsewhere. HorizonMath (pass@12)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1230,7 +1232,7 @@ charts:
         score: 7.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. HorizonMath (pass@12)"
+        configuration: "Unstarred. Cited from elsewhere. HorizonMath (pass@12)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1239,7 +1241,7 @@ charts:
         score: 26.1
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Math (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Math (internal)"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1248,7 +1250,7 @@ charts:
         score: 60.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. Hy-Math (internal)"
+        configuration: "Unstarred. Cited from elsewhere. Hy-Math (internal)"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1256,7 +1258,7 @@ charts:
         score: 71.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. PHYBench"
+        configuration: "Unstarred. Cited from elsewhere. PHYBench"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1264,7 +1266,7 @@ charts:
         score: 77.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. PHYBench"
+        configuration: "Unstarred. Cited from elsewhere. PHYBench"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1273,7 +1275,7 @@ charts:
         score: 19.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CMT-Benchmark"
+        configuration: "Unstarred. Cited from elsewhere. CMT-Benchmark"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1282,7 +1284,7 @@ charts:
         score: 37.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CMT-Benchmark"
+        configuration: "Unstarred. Cited from elsewhere. CMT-Benchmark"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1291,7 +1293,7 @@ charts:
         score: 84.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1300,7 +1302,7 @@ charts:
         score: 90.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: subject
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1309,7 +1311,7 @@ charts:
         score: 83.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1318,7 +1320,7 @@ charts:
         score: 91.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1327,7 +1329,7 @@ charts:
         score: 88.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1336,7 +1338,7 @@ charts:
         score: 89.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1345,7 +1347,7 @@ charts:
         score: 90.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1354,7 +1356,7 @@ charts:
         score: 81.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1363,7 +1365,7 @@ charts:
         score: 83.5
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. IMOAnswerBench"
+        configuration: "Unstarred. Cited from elsewhere. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1372,7 +1374,7 @@ charts:
         score: 47.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SuperChem"
+        configuration: "Unstarred. Cited from elsewhere. SuperChem"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1381,7 +1383,7 @@ charts:
         score: 54.9
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SuperChem"
+        configuration: "Unstarred. Cited from elsewhere. SuperChem"
         role: subject
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1390,7 +1392,7 @@ charts:
         score: 59.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. SuperChem"
+        configuration: "Unstarred. Cited from elsewhere. SuperChem"
         role: competitor
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1399,7 +1401,7 @@ charts:
         score: 22.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CL-bench"
+        configuration: "Unstarred. Cited from elsewhere. CL-bench"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1408,7 +1410,7 @@ charts:
         score: 23.8
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CL-bench"
+        configuration: "Unstarred. Cited from elsewhere. CL-bench"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1416,7 +1418,7 @@ charts:
         score: 15.7
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CL-bench life"
+        configuration: "Unstarred. Cited from elsewhere. CL-bench life"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1424,7 +1426,7 @@ charts:
         score: 17.0
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. CL-bench life"
+        configuration: "Unstarred. Cited from elsewhere. CL-bench life"
         role: subject
       - model_as_labelled: "Hy3 preview"
         model_id: null
@@ -1432,7 +1434,7 @@ charts:
         score: 66.3
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. AA-LCR"
+        configuration: "Unstarred. Cited from elsewhere. AA-LCR"
         role: subject
       - model_as_labelled: "Hy3"
         model_id: "tencent/hy3"
@@ -1440,18 +1442,38 @@ charts:
         score: 73.4
         unit: "percent"
         printed: true
-        configuration: "Unstarred. Tencent's own testing. AA-LCR"
+        configuration: "Unstarred. Cited from elsewhere. AA-LCR"
         role: subject
-  - title: "Benchmark appendix, cited from the other model"
+      - model_as_labelled: "Seed-2.1 pro"
+        model_id: null
+        benchmark_id: null
+        benchmark_as_labelled: "Apex-Agent (pass@1)"
+        score: 33.8
+        unit: "percent"
+        printed: true
+        configuration: "Unstarred. Cited from elsewhere. Apex-Agent (pass@1)"
+        role: competitor
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 32.8
+            - reader: claude-opus
+              value: 33.8
+            - reader: claude-sonnet
+              value: 33.8
+  - title: "Benchmark appendix, Tencent's own testing"
     kind: image
     image_url: "https://huggingface.co/tencent/Hy3/resolve/main/assets/benchmark-appendix.png"
     image_sha256: "c2b5092a0dd1207a6b356fed2047956bbce13e8441943c19b266ef9bbca3d174"
-    footnotes: "A star is a number taken from that model's own testing. Unstarred numbers are Tencent's own testing at the highest reasoning effort. Terminal-Bench 2.1 uses Terminus-2, json parser, 4h, 16 cores, 32 GB, 500 episodes. SWE-bench series use the SWE-agent scaffold except GPT-5.5, which uses Codex. DeepSWE uses mini-swe-agent in a sandbox. NL2Repo uses Claude Code. Claw Eval uses an internal harness dated 20260325 with Gemini-3.5-flash as judge. HLE with tools is the text-only subset."
-    competitor_numbers: official_reports
+    footnotes: "A starred cell is Tencent's own testing of that model. An unstarred cell is cited from elsewhere. The reasoning effort was set to the highest tier for all models. Terminal-Bench 2.1 uses Terminus-2, json parser, 4h, 16 cores, 32 GB, 500 episodes. SWE-bench series use the SWE-agent scaffold except GPT-5.5, which uses Codex. DeepSWE uses mini-swe-agent in a sandbox. NL2Repo uses Claude Code. Claw Eval uses an internal harness dated 20260325 with Gemini-3.5-flash as judge. HLE with tools is the text-only subset."
+    competitor_numbers: vendor_run
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GLM-5.2"
@@ -1460,7 +1482,7 @@ charts:
         score: 83.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Multilingual Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1468,7 +1490,7 @@ charts:
         score: 75.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Multilingual Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1476,7 +1498,7 @@ charts:
         score: 77.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Multilingual Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1484,7 +1506,7 @@ charts:
         score: 75.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Verified Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1492,7 +1514,7 @@ charts:
         score: 84.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Verified Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1500,7 +1522,7 @@ charts:
         score: 76.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Verified Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1508,7 +1530,7 @@ charts:
         score: 84.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Verified Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1516,7 +1538,7 @@ charts:
         score: 57.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Pro Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Pro. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1524,7 +1546,7 @@ charts:
         score: 51.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SWE-bench Pro Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. SWE-bench Pro. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1532,7 +1554,7 @@ charts:
         score: 63.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1540,7 +1562,7 @@ charts:
         score: 60.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1548,7 +1570,7 @@ charts:
         score: 81
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1556,7 +1578,7 @@ charts:
         score: 77.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1564,7 +1586,7 @@ charts:
         score: 52.58
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1572,7 +1594,7 @@ charts:
         score: 64
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1580,7 +1602,7 @@ charts:
         score: 60.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1588,7 +1610,7 @@ charts:
         score: 75
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1596,7 +1618,7 @@ charts:
         score: 71.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1604,7 +1626,7 @@ charts:
         score: 85
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1612,7 +1634,7 @@ charts:
         score: 85.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1620,7 +1642,7 @@ charts:
         score: 84
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1628,7 +1650,7 @@ charts:
         score: 79.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Terminal-Bench 2.1 Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1637,7 +1659,7 @@ charts:
         score: 39.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. NL2repo Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. NL2repo"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1646,7 +1668,7 @@ charts:
         score: 41.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. NL2repo Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. NL2repo"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1655,7 +1677,7 @@ charts:
         score: 46.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1664,7 +1686,7 @@ charts:
         score: 42.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1673,7 +1695,7 @@ charts:
         score: 7.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1682,7 +1704,7 @@ charts:
         score: 8.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1691,7 +1713,7 @@ charts:
         score: 7.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1700,7 +1722,7 @@ charts:
         score: 32.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1709,7 +1731,7 @@ charts:
         score: 15.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1718,7 +1740,7 @@ charts:
         score: 18.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1727,7 +1749,7 @@ charts:
         score: 14.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1736,7 +1758,7 @@ charts:
         score: 10.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -1745,7 +1767,7 @@ charts:
         score: 0.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1754,7 +1776,7 @@ charts:
         score: 58.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1763,7 +1785,7 @@ charts:
         score: 62.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1772,7 +1794,7 @@ charts:
         score: 70.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1781,7 +1803,7 @@ charts:
         score: 70.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSWE Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1790,7 +1812,7 @@ charts:
         score: 24.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1799,7 +1821,7 @@ charts:
         score: 30.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1808,7 +1830,7 @@ charts:
         score: 16.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1817,7 +1839,7 @@ charts:
         score: 17.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1826,7 +1848,7 @@ charts:
         score: 23.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1835,7 +1857,7 @@ charts:
         score: 24.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1844,7 +1866,7 @@ charts:
         score: 38.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1853,7 +1875,7 @@ charts:
         score: 38.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Backend 2.0 (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Backend 2.0 (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1862,7 +1884,7 @@ charts:
         score: 46.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1871,7 +1893,7 @@ charts:
         score: 63.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1880,7 +1902,7 @@ charts:
         score: 40.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1889,7 +1911,7 @@ charts:
         score: 43.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1898,7 +1920,7 @@ charts:
         score: 55.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1907,7 +1929,7 @@ charts:
         score: 48.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1916,7 +1938,7 @@ charts:
         score: 63.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1925,7 +1947,7 @@ charts:
         score: 65.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SWE Max (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SWE Max (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -1934,7 +1956,7 @@ charts:
         score: 28.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -1943,7 +1965,7 @@ charts:
         score: 55.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -1952,7 +1974,7 @@ charts:
         score: 28.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -1961,7 +1983,7 @@ charts:
         score: 18.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -1970,7 +1992,7 @@ charts:
         score: 20.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -1979,7 +2001,7 @@ charts:
         score: 43.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -1988,7 +2010,7 @@ charts:
         score: 65.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -1997,7 +2019,7 @@ charts:
         score: 51.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-CompanyBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-CompanyBench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2006,7 +2028,7 @@ charts:
         score: 76.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2015,7 +2037,7 @@ charts:
         score: 74.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2024,22 +2046,26 @@ charts:
         score: 75.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "WideSearch"
-        score: 76.8
+        score: 76.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 76.8
-          - reader: claude-opus
-            value: "76.4*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 76.8
+            - reader: claude-opus
+              value: "76.4*"
+            - reader: claude-sonnet
+              value: "76.4*"
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
         benchmark_id: null
@@ -2047,7 +2073,7 @@ charts:
         score: 72.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2056,7 +2082,7 @@ charts:
         score: 71.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2065,7 +2091,7 @@ charts:
         score: 72.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2074,7 +2100,7 @@ charts:
         score: 80.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WideSearch Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WideSearch"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2082,7 +2108,7 @@ charts:
         score: 89.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2090,7 +2116,7 @@ charts:
         score: 87.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2098,28 +2124,32 @@ charts:
         score: 90.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: deepsearchqa
-        score: 90.4
+        score: 90.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 90.4
-          - reader: claude-opus
-            value: "90.8*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 90.4
+            - reader: claude-opus
+              value: "90.8*"
+            - reader: claude-sonnet
+              value: "90.8*"
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
         benchmark_id: deepsearchqa
         score: 88.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2127,21 +2157,25 @@ charts:
         score: 90.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
         benchmark_id: deepsearchqa
-        score: 85.5
+        score: 95.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. DeepSearchQA Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. DeepSearchQA"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 85.5
-          - reader: claude-opus
-            value: "95.5*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 85.5
+            - reader: claude-opus
+              value: "95.5*"
+            - reader: claude-sonnet
+              value: "95.5*"
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
@@ -2149,7 +2183,7 @@ charts:
         score: 71.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2158,7 +2192,7 @@ charts:
         score: 77.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2167,7 +2201,7 @@ charts:
         score: 76.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2176,7 +2210,7 @@ charts:
         score: 82.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2185,7 +2219,7 @@ charts:
         score: 69
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2194,7 +2228,7 @@ charts:
         score: 77.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2203,7 +2237,7 @@ charts:
         score: 73.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2212,7 +2246,7 @@ charts:
         score: 79.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2221,7 +2255,7 @@ charts:
         score: 83.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2230,7 +2264,7 @@ charts:
         score: 80.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2239,7 +2273,7 @@ charts:
         score: 76.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2248,7 +2282,7 @@ charts:
         score: 79.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2257,7 +2291,7 @@ charts:
         score: 78.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2266,7 +2300,7 @@ charts:
         score: 82.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2275,7 +2309,7 @@ charts:
         score: 82.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2284,7 +2318,7 @@ charts:
         score: 84.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2293,7 +2327,7 @@ charts:
         score: 81.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2302,7 +2336,7 @@ charts:
         score: 82.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MCP atlas (public) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2311,7 +2345,7 @@ charts:
         score: 40.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2320,7 +2354,7 @@ charts:
         score: 41.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2329,7 +2363,7 @@ charts:
         score: 48.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2338,7 +2372,7 @@ charts:
         score: 46.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2347,7 +2381,7 @@ charts:
         score: 47.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2356,7 +2390,7 @@ charts:
         score: 43.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2365,7 +2399,7 @@ charts:
         score: 51.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2374,7 +2408,7 @@ charts:
         score: 45.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2383,7 +2417,7 @@ charts:
         score: 50.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2392,7 +2426,7 @@ charts:
         score: 44.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2401,7 +2435,7 @@ charts:
         score: 45.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Toolathlon Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Toolathlon"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2410,7 +2444,7 @@ charts:
         score: 24.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2419,7 +2453,7 @@ charts:
         score: 29.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2428,7 +2462,7 @@ charts:
         score: 18.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2437,22 +2471,8 @@ charts:
         score: 20.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Apex-Agent (pass@1)"
         role: competitor
-      - model_as_labelled: "Seed-2.1 pro"
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "Apex-Agent (pass@1)"
-        score: 32.8
-        unit: "percent"
-        printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
-        role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 32.8
-          - reader: claude-opus
-            value: 33.8
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
         benchmark_id: null
@@ -2460,7 +2480,7 @@ charts:
         score: 22.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Apex-Agent (pass@1) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Apex-Agent (pass@1)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2469,7 +2489,7 @@ charts:
         score: 62.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2478,7 +2498,7 @@ charts:
         score: 61.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2487,7 +2507,7 @@ charts:
         score: 58.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2496,22 +2516,26 @@ charts:
         score: 62.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ClawEval (pass^3)"
-        score: 63.1
+        score: 62.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 63.1
-          - reader: claude-opus
-            value: "62.1*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 63.1
+            - reader: claude-opus
+              value: "62.1*"
+            - reader: claude-sonnet
+              value: "62.1*"
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
         benchmark_id: null
@@ -2519,7 +2543,7 @@ charts:
         score: 50.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2528,7 +2552,7 @@ charts:
         score: 72.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2537,7 +2561,7 @@ charts:
         score: 67.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ClawEval (pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2546,7 +2570,7 @@ charts:
         score: 48.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2555,7 +2579,7 @@ charts:
         score: 59.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2564,7 +2588,7 @@ charts:
         score: 43.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2573,7 +2597,7 @@ charts:
         score: 50.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2582,7 +2606,7 @@ charts:
         score: 61
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2591,7 +2615,7 @@ charts:
         score: 47.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2600,7 +2624,7 @@ charts:
         score: 41.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2609,7 +2633,7 @@ charts:
         score: 46.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2618,7 +2642,7 @@ charts:
         score: 58.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2627,7 +2651,7 @@ charts:
         score: 63.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. WildClawBench (35, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2635,7 +2659,7 @@ charts:
         score: 43.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2643,7 +2667,7 @@ charts:
         score: 51.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2651,7 +2675,7 @@ charts:
         score: 35.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2659,7 +2683,7 @@ charts:
         score: 40.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2667,7 +2691,7 @@ charts:
         score: 53.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2675,7 +2699,7 @@ charts:
         score: 59.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2683,7 +2707,7 @@ charts:
         score: 46.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2691,7 +2715,7 @@ charts:
         score: 64.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2699,7 +2723,7 @@ charts:
         score: 61.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SkillsBench (79, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2708,7 +2732,7 @@ charts:
         score: 41.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2717,7 +2741,7 @@ charts:
         score: 52.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2726,36 +2750,44 @@ charts:
         score: 31.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "e-bench (internal)"
-        score: 37.6
+        score: 34.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 37.6
-          - reader: claude-opus
-            value: "34.5*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 37.6
+            - reader: claude-opus
+              value: "34.5*"
+            - reader: claude-sonnet
+              value: "34.5*"
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "e-bench (internal)"
-        score: 42.9
+        score: 47.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 42.9
-          - reader: claude-opus
-            value: "47.9*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 42.9
+            - reader: claude-opus
+              value: "47.9*"
+            - reader: claude-sonnet
+              value: "47.9*"
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
         benchmark_id: null
@@ -2763,7 +2795,7 @@ charts:
         score: 50.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -2772,7 +2804,7 @@ charts:
         score: 42.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2781,7 +2813,7 @@ charts:
         score: 68.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2790,7 +2822,7 @@ charts:
         score: 72.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. e-bench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. e-bench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2799,7 +2831,7 @@ charts:
         score: 56.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2808,7 +2840,7 @@ charts:
         score: 77.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2817,36 +2849,44 @@ charts:
         score: 54.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Hy-FinModelBench (internal)"
-        score: 54.5
+        score: 57.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 54.5
-          - reader: claude-opus
-            value: "57.6*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 54.5
+            - reader: claude-opus
+              value: "57.6*"
+            - reader: claude-sonnet
+              value: "57.6*"
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Hy-FinModelBench (internal)"
-        score: 57.2
+        score: 52.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 57.2
-          - reader: claude-opus
-            value: "52.2*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 57.2
+            - reader: claude-opus
+              value: "52.2*"
+            - reader: claude-sonnet
+              value: "52.2*"
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
         benchmark_id: null
@@ -2854,22 +2894,26 @@ charts:
         score: 57.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Hy-FinModelBench (internal)"
-        score: 54.8
+        score: 54.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 54.8
-          - reader: claude-opus
-            value: "54.6*"
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 54.8
+            - reader: claude-opus
+              value: "54.6*"
+            - reader: claude-sonnet
+              value: "54.6*"
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
@@ -2877,7 +2921,7 @@ charts:
         score: 74.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2886,7 +2930,7 @@ charts:
         score: 85.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-FinModelBench (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-FinModelBench (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2895,7 +2939,7 @@ charts:
         score: 17.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2904,7 +2948,7 @@ charts:
         score: 21.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2913,7 +2957,7 @@ charts:
         score: 10.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2922,7 +2966,7 @@ charts:
         score: 15.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -2931,7 +2975,7 @@ charts:
         score: 18.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -2940,7 +2984,7 @@ charts:
         score: 15.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -2949,7 +2993,7 @@ charts:
         score: 27.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -2958,7 +3002,7 @@ charts:
         score: 21.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ProdBench (internal, Pass^3) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ProdBench (internal, Pass^3)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -2967,7 +3011,7 @@ charts:
         score: 37.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -2976,7 +3020,7 @@ charts:
         score: 56.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -2985,7 +3029,7 @@ charts:
         score: 38.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -2994,7 +3038,7 @@ charts:
         score: 41.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3003,7 +3047,7 @@ charts:
         score: 48.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3012,7 +3056,7 @@ charts:
         score: 42.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3021,7 +3065,7 @@ charts:
         score: 59.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3030,7 +3074,7 @@ charts:
         score: 56.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-SkillsWorld (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-SkillsWorld (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3039,7 +3083,7 @@ charts:
         score: 15.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3048,7 +3092,7 @@ charts:
         score: 42.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3057,7 +3101,7 @@ charts:
         score: 9.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3066,7 +3110,7 @@ charts:
         score: 25.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3075,7 +3119,7 @@ charts:
         score: 15.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3084,7 +3128,7 @@ charts:
         score: 50.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3093,7 +3137,7 @@ charts:
         score: 54.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3102,7 +3146,7 @@ charts:
         score: 64.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3111,7 +3155,7 @@ charts:
         score: 77.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Euler pro (with tools, internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Euler pro (with tools, internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3119,7 +3163,7 @@ charts:
         score: 89.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. GPQA Diamond Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. GPQA Diamond"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3127,7 +3171,7 @@ charts:
         score: 35.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HLE (no tools, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3135,7 +3179,7 @@ charts:
         score: 46.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HLE (no tools, text-only) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HLE (no tools, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3143,7 +3187,7 @@ charts:
         score: 13.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3151,7 +3195,7 @@ charts:
         score: 19.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3159,7 +3203,7 @@ charts:
         score: 16.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3167,7 +3211,7 @@ charts:
         score: 21.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3175,7 +3219,7 @@ charts:
         score: 28.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3183,7 +3227,7 @@ charts:
         score: 25.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3191,7 +3235,7 @@ charts:
         score: 24.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3199,7 +3243,7 @@ charts:
         score: 32.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Research Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3208,7 +3252,7 @@ charts:
         score: 65.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3217,7 +3261,7 @@ charts:
         score: 72.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3226,7 +3270,7 @@ charts:
         score: 73.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3235,7 +3279,7 @@ charts:
         score: 70.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3244,7 +3288,7 @@ charts:
         score: 75
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report. Left-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3253,7 +3297,7 @@ charts:
         score: 70.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report. Right-hand printed figure."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3262,7 +3306,7 @@ charts:
         score: 74.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3271,7 +3315,7 @@ charts:
         score: 74.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3280,7 +3324,7 @@ charts:
         score: 73.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. FrontierScience-Olympiad Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3288,7 +3332,7 @@ charts:
         score: 37.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3296,7 +3340,7 @@ charts:
         score: 41.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3304,7 +3348,7 @@ charts:
         score: 57.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3312,7 +3356,7 @@ charts:
         score: 59.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3320,7 +3364,7 @@ charts:
         score: 60.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3328,7 +3372,7 @@ charts:
         score: 57.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3336,7 +3380,7 @@ charts:
         score: 61.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3344,7 +3388,7 @@ charts:
         score: 92.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3352,7 +3396,7 @@ charts:
         score: 98.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. USAMO 2026 Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. USAMO 2026"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3361,7 +3405,7 @@ charts:
         score: 16.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MathArena Apex Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. MathArena Apex"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3370,7 +3414,7 @@ charts:
         score: 85.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. MathArena Apex Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. MathArena Apex"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3379,7 +3423,7 @@ charts:
         score: 44.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ArxivMath Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ArxivMath"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3388,7 +3432,7 @@ charts:
         score: 52.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ArxivMath Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ArxivMath"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3397,7 +3441,7 @@ charts:
         score: 56.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ArxivMath Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ArxivMath"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3406,7 +3450,7 @@ charts:
         score: 53.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ArxivMath Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ArxivMath"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3415,7 +3459,7 @@ charts:
         score: 56.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. ArxivMath Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. ArxivMath"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3424,7 +3468,7 @@ charts:
         score: 7.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3433,7 +3477,7 @@ charts:
         score: 4.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3442,7 +3486,7 @@ charts:
         score: 5.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3451,7 +3495,7 @@ charts:
         score: 6.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3460,7 +3504,7 @@ charts:
         score: 6.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3469,7 +3513,7 @@ charts:
         score: 7.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3478,7 +3522,7 @@ charts:
         score: 11.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. HorizonMath (pass@12) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. HorizonMath (pass@12)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3487,7 +3531,7 @@ charts:
         score: 6.7
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3496,7 +3540,7 @@ charts:
         score: 16.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3505,7 +3549,7 @@ charts:
         score: 66.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3514,7 +3558,7 @@ charts:
         score: 63.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3523,7 +3567,7 @@ charts:
         score: 65.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3532,7 +3576,7 @@ charts:
         score: 66.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3541,7 +3585,7 @@ charts:
         score: 63.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3550,7 +3594,7 @@ charts:
         score: 91.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. Hy-Math (internal) Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. Hy-Math (internal)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3558,7 +3602,7 @@ charts:
         score: 70.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3566,7 +3610,7 @@ charts:
         score: 71.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3574,7 +3618,7 @@ charts:
         score: 76.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3582,7 +3626,7 @@ charts:
         score: 75.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3590,7 +3634,7 @@ charts:
         score: 77.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3598,7 +3642,7 @@ charts:
         score: 76.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3606,7 +3650,7 @@ charts:
         score: 82.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3614,7 +3658,7 @@ charts:
         score: 79.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3622,7 +3666,7 @@ charts:
         score: 77.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. PHYBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. PHYBench"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3631,7 +3675,7 @@ charts:
         score: 25.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3640,7 +3684,7 @@ charts:
         score: 34.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3649,7 +3693,7 @@ charts:
         score: 26.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3658,7 +3702,7 @@ charts:
         score: 35.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3667,7 +3711,7 @@ charts:
         score: 31.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3676,7 +3720,7 @@ charts:
         score: 40.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3685,7 +3729,7 @@ charts:
         score: 47.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3694,7 +3738,7 @@ charts:
         score: 43.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3703,7 +3747,7 @@ charts:
         score: 43.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CMT-Benchmark Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CMT-Benchmark"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3712,7 +3756,7 @@ charts:
         score: 88.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. IMOAnswerBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3721,7 +3765,7 @@ charts:
         score: 92.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. IMOAnswerBench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. IMOAnswerBench"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3730,7 +3774,7 @@ charts:
         score: 51.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3739,7 +3783,7 @@ charts:
         score: 60.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3748,7 +3792,7 @@ charts:
         score: 51.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3757,7 +3801,7 @@ charts:
         score: 61.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3766,7 +3810,7 @@ charts:
         score: 60.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3775,7 +3819,7 @@ charts:
         score: 69.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3784,7 +3828,7 @@ charts:
         score: 66.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3793,7 +3837,7 @@ charts:
         score: 66.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. SuperChem Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. SuperChem"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3802,7 +3846,7 @@ charts:
         score: 21.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3811,7 +3855,7 @@ charts:
         score: 23.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3820,7 +3864,7 @@ charts:
         score: 16.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3829,7 +3873,7 @@ charts:
         score: 18.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3838,7 +3882,7 @@ charts:
         score: 23.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3847,7 +3891,7 @@ charts:
         score: 18.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3856,7 +3900,7 @@ charts:
         score: 21.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3865,7 +3909,7 @@ charts:
         score: 24.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3874,7 +3918,7 @@ charts:
         score: 27.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3882,7 +3926,7 @@ charts:
         score: 14.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3890,7 +3934,7 @@ charts:
         score: 21.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3898,7 +3942,7 @@ charts:
         score: 11.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3906,7 +3950,7 @@ charts:
         score: 14.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3914,7 +3958,7 @@ charts:
         score: 13.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3922,7 +3966,7 @@ charts:
         score: 13.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -3930,7 +3974,7 @@ charts:
         score: 16.5
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -3938,7 +3982,7 @@ charts:
         score: 16.9
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -3946,7 +3990,7 @@ charts:
         score: 21.1
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. CL-bench life Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. CL-bench life"
         role: competitor
       - model_as_labelled: "GLM-5.1"
         model_id: "zhipu/glm-5-1"
@@ -3954,7 +3998,7 @@ charts:
         score: 71.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "GLM-5.2"
         model_id: "zhipu/glm-5-2"
@@ -3962,7 +4006,7 @@ charts:
         score: 73.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
         model_id: "deepseek/deepseek-v4-flash"
@@ -3970,7 +4014,7 @@ charts:
         score: 64.8
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
         model_id: "deepseek/deepseek-v4-pro"
@@ -3978,7 +4022,7 @@ charts:
         score: 71.3
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
         model_id: null
@@ -3986,7 +4030,7 @@ charts:
         score: 70.0
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
         model_id: null
@@ -3994,7 +4038,7 @@ charts:
         score: 70.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
         model_id: null
@@ -4002,7 +4046,7 @@ charts:
         score: 74.6
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
         model_id: "anthropic/claude-opus-4-8"
@@ -4010,7 +4054,7 @@ charts:
         score: 72.2
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
       - model_as_labelled: "GPT-5.5"
         model_id: "openai/gpt-5-5"
@@ -4018,7 +4062,7 @@ charts:
         score: 76.4
         unit: "percent"
         printed: true
-        configuration: "Starred. Cited from that model's own testing. AA-LCR Starred: cited from that model's own report."
+        configuration: "Starred. Tencent's own testing of that model. AA-LCR"
         role: competitor
   - title: "Benchmark overview"
     kind: image

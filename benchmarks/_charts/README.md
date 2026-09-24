@@ -37,6 +37,10 @@ Each bar:
   the card and is waiting on its own fix. Remove it once the bar is not a
   mismatch.
 - `disputed` — optional list of `{reader, value}` when two readings disagree.
+- `resolution` — optional, in place of `disputed`. `rule: two_of_three` and
+  `readings` (`reader`, `value`). A value counts only when two independent
+  readers agree within the printed precision. The bar's `score` is that value.
+  A third reading that agrees with neither leaves the bar `disputed`.
 
 `score` is written on its own line so the printed precision survives YAML
 (`78.2` is ±0.05, `78` is ±0.5).
@@ -55,7 +59,10 @@ configurations. When a same-source row equals one of them, that bar is
 `matched` and the others are `other_configuration`. When it equals none of
 them, all of them are `mismatched`. A different unit is `unit_differs`. An
 unprinted bar is low confidence, never a match. Two readings that disagree
-are disputed. One reading is `single_read`, which does not fail the check.
+are disputed. A third reading settles the bar when it agrees with one of
+them within the printed precision, and the score is that agreed value. A
+third reading that agrees with neither leaves the bar disputed. One reading
+is `single_read`, which does not fail the check.
 
 `python scripts/chart_check.py reconcile --reader-b <dir> --out <dir>`
 compares a second reading. `--write-fixtures` records that reader and marks

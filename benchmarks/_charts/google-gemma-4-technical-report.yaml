@@ -916,6 +916,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma 4 31B"
         model_id: google/gemma-4-31b-it
@@ -974,11 +976,15 @@ charts:
         printed: true
         configuration: "Max resolution, 1120 vision tokens. Thinking."
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 85.6
-          - reader: claude-opus
-            value: 83.4
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 85.6
+            - reader: claude-opus
+              value: 83.4
+            - reader: claude-sonnet
+              value: 85.6
       - model_as_labelled: "Gemma 4 26B-A4B"
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: null
@@ -988,11 +994,15 @@ charts:
         printed: true
         configuration: "Max resolution, 1120 vision tokens. Thinking."
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 82.4
-          - reader: claude-opus
-            value: 80.3
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 82.4
+            - reader: claude-opus
+              value: 80.3
+            - reader: claude-sonnet
+              value: 82.4
       - model_as_labelled: "Gemma 4 12B"
         model_id: google/gemma-4-12b-it
         benchmark_id: null
@@ -1002,11 +1012,15 @@ charts:
         printed: true
         configuration: "Max resolution, 1120 vision tokens. Thinking."
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 79.7
-          - reader: claude-opus
-            value: 76.7
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 79.7
+            - reader: claude-opus
+              value: 76.7
+            - reader: claude-sonnet
+              value: 79.7
       - model_as_labelled: "Gemma 4 E4B"
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
@@ -1016,11 +1030,15 @@ charts:
         printed: true
         configuration: "Max resolution, 1120 vision tokens. Thinking."
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 59.5
-          - reader: claude-opus
-            value: 59.2
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 59.5
+            - reader: claude-opus
+              value: 59.2
+            - reader: claude-sonnet
+              value: 59.5
       - model_as_labelled: "Gemma 4 E2B"
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
@@ -1030,11 +1048,15 @@ charts:
         printed: true
         configuration: "Max resolution, 1120 vision tokens. Thinking."
         role: subject
-        disputed:
-          - reader: grok-build-4.7
-            value: 52.4
-          - reader: claude-opus
-            value: 53.0
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 52.4
+            - reader: claude-opus
+              value: 53.0
+            - reader: claude-sonnet
+              value: 52.4
       - model_as_labelled: "Gemma 3 27B"
         model_id: google/gemma-3-27b-it
         benchmark_id: null

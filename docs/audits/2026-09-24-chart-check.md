@@ -946,3 +946,52 @@ Double-read. 45.9 is on `https://huggingface.co/openbmb/MiniCPM5-2B`, configurat
 ### Gemini image Elo
 
 The three image cards each store side-by-side human Elo for that card: `https://deepmind.google/models/model-cards/gemini-3-1-flash-image/`, `gemini-3-1-flash-lite-image`, and `gemini-3-pro-image` (the PDF `41109d8b6467be8aeb42df84132894a321d64145a4152ac2153211e2d018dea1`). Bar settings name thinking, no thinking, search, or the column without the search suffix, and the table's plus-minus. A number on one card is a different setting from a number on another card.
+
+## Third reading (phase 2b)
+
+Reader C is claude-sonnet, 2026-09-24. Reader A is grok-build-4.7. Reader B is claude-opus. Each of the 43 disputed bars now keeps all three readings under `resolution.rule: two_of_three`. The bar's `score` is the value two of those readings share. The check then treats the bar like any other bar.
+
+A value counts only when two independent readers agree within the printed precision. A third reading that agrees with neither leaves the bar `disputed`. Every one of these 43 agreed with either A or B.
+
+7 bars resolved to reader A. 36 resolved to reader B.
+
+| Source | To A | To B |
+| --- | ---: | ---: |
+| `https://arxiv.org/abs/2607.02770` | 5 | 0 |
+| `https://www.liquid.ai/blog/lfm2-5-8b-a1b` | 0 | 18 |
+| `https://huggingface.co/MiniMaxAI/MiniMax-M3` | 0 | 7 |
+| `https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16` | 0 | 1 |
+| `https://huggingface.co/tencent/Hy3` | 0 | 10 |
+| `https://thinkingmachines.ai/news/introducing-inkling/` | 2 | 0 |
+
+### Hy3 star
+
+The appendix footnote says a starred cell is Tencent's own testing of that model, and an unstarred cell is cited from elsewhere. The fixture had those two meanings reversed. The footnote and every configuration line now follow the footnote. The unstarred chart is `official_reports`. The starred chart is `vendor_run`.
+
+`competitor_numbers` is one value for a whole chart. The two charts are how the fixture separates the two provenances. Seed-2.1 pro on Apex-Agent (pass@1) prints 33.8 with no star, so that bar is on the unstarred chart. A cell that prints two figures, such as a left-hand number and a right-hand number, is already two bars, and both of those bars stay on the starred chart. A star that applies to only one half of such a cell shares the starred chart's provenance.
+
+### MiniMax-M3 YC-Bench
+
+YC-Bench is final assets in millions of US dollars, printed as `$2.1M` and the same shape for the other columns. The unit is `USD millions`. The score is the millions count: MiniMax M3 2.1, MiniMax M2.7 0.0, Claude Opus 4.7 2.2, GPT 5.5 1.3, Gemini 3.1 Pro 1.1, Claude Sonnet 4.6 0.1, DeepSeek V4 Pro 0.5. The six resolved bars keep the printed suffix on the readings, for example `2.1M`. MiniMax M2.7 had been stored as 0.04 with unit `score`. That cell was outside the 43. The chart prints `0.0M`. GLM 5.1 Thinking and Kimi K2.6 Thinking are dashes on that row and have no bar.
+
+### Nemotron 3 Ultra, Terminal-Bench 2.1
+
+The resolved 53.9 is the NVFP4 bar on the accuracy figure, configuration `NVFP4`. The BF16 bar on that figure is 56.4, configuration `BF16`. The README table's N-3-Ultra 550B-A55B cell is also 56.4, and its configuration is `BF16`. The two numbers are separate bars with separate configurations.
+
+### Check
+
+`scripts/chart_check.py --out /Users/terbeest/dev/worktrees/.chart-check/2b-resolve-check` exited 0. 100 fixtures, 758 charts, 11533 bars.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 63 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| unit_differs | 4 |
+| other_metric | 171 |
+| no_benchmark_page | 5510 |
+| not_held | 5349 |
+| competitor_gap | 68 |
+| competitor_unresolved | 359 |
+| disputed | 0 |
+

@@ -11,6 +11,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling effort=0.99"
         model_id: "thinkingmachines/inkling"
@@ -468,11 +470,15 @@ charts:
         printed: true
         configuration: "Best harness."
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 51.3
-          - reader: claude-opus
-            value: 49.5
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 51.3
+            - reader: claude-opus
+              value: 49.5
+            - reader: claude-sonnet
+              value: "51.3%"
       - model_as_labelled: "Kimi K2.6"
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: terminal_bench_v2_1
@@ -481,11 +487,15 @@ charts:
         printed: true
         configuration: "Best harness."
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 71.3
-          - reader: claude-opus
-            value: 70.2
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 71.3
+            - reader: claude-opus
+              value: 70.2
+            - reader: claude-sonnet
+              value: "71.3%"
       - model_as_labelled: "GLM 5.2"
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1

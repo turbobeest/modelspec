@@ -15,6 +15,10 @@ metric is ``other_metric``. A bar with no catalogue page is
 is compared only with the rival card's ``provider_self_report`` rows for the
 benchmark. A row from another source is context on a ``not_held`` bar.
 ``vendor_run`` stays a gap. ``unstated`` stays unresolved.
+
+A third reading settles a bar when two readers agree within the printed
+precision. The score is that value. A third reading that agrees with neither
+leaves the bar disputed.
 """
 
 from __future__ import annotations
@@ -351,6 +355,126 @@ def _explicit_dispute(bar: dict[str, Any]) -> bool:
     return len(values) >= 2 and max(values) - min(values) > 1e-9
 
 
+def _resolution_block(bar: dict[str, Any]) -> dict[str, Any] | None:
+    block = bar.get("resolution")
+    if isinstance(block, dict):
+        return block
+    return None
+
+
+def _point_tolerance(parsed: ParsedScore) -> float:
+    if parsed.tolerance is not None:
+        return parsed.tolerance
+    return 0.5
+
+
+def _scale_of(parsed: ParsedScore) -> float:
+    match = _SCORE_VALUE.match(parsed.text)
+    if match is None:
+        return 1.0
+    return _SUFFIX_SCALE.get((match.group("suf") or "").casefold(), 1.0)
+
+
+def _resolution_points(block: dict[str, Any]) -> list[ParsedScore] | None:
+    """Parsed readings. ``None`` when a reading has no reader name."""
+    found: list[ParsedScore] = []
+    for item in block.get("readings") or []:
+        if not isinstance(item, dict) or not str(item.get("reader") or "").strip():
+            return None
+        parsed = parse_score(item.get("value"))
+        if parsed.kind != "number" or parsed.value is None:
+            return None
+        found.append(parsed)
+    return found
+
+
+def _close_points(left: ParsedScore, right: ParsedScore) -> bool:
+    limit = max(_point_tolerance(left), _point_tolerance(right))
+    return abs(float(left.value) - float(right.value)) <= limit + 1e-9
+
+
+def _agreement(points: list[ParsedScore]) -> list[ParsedScore] | None:
+    """The readings that agree, when at least two do and only one cluster does."""
+    groups: list[list[ParsedScore]] = []
+    count = len(points)
+    for mask in range(1, 1 << count):
+        chosen = [points[index] for index in range(count) if mask & (1 << index)]
+        if len(chosen) < 2:
+            continue
+        if all(
+            _close_points(chosen[i], chosen[j])
+            for i in range(len(chosen))
+            for j in range(i + 1, len(chosen))
+        ):
+            groups.append(chosen)
+    if not groups:
+        return None
+    size = max(len(group) for group in groups)
+    winners = [group for group in groups if len(group) == size]
+    anchor = winners[0][0]
+    if any(not _close_points(anchor, point) for group in winners for point in group):
+        return None
+    return winners[0]
+
+
+def _score_is_agreed(bar: dict[str, Any], cluster: list[ParsedScore]) -> bool:
+    """The score is the agreed value.
+
+    A reading of ``2.1M`` is 2.1 when the bar's unit already says millions.
+    """
+    score_text = str(bar.get("score_text") or _infer_score_text(bar.get("score")))
+    try:
+        score = float(bar["score"])
+    except (TypeError, ValueError):
+        return False
+    score_tol = tolerance_for(score_text)
+    scales = [_scale_of(point) for point in cluster]
+    scale = scales[0]
+    unit = norm_unit(bar.get("unit"))
+    named = scale != 1.0 and len(set(scales)) == 1 and (
+        (scale == 1_000_000.0 and "million" in unit) or (scale == 1_000.0 and "thousand" in unit)
+    )
+    for point in cluster:
+        if named:
+            target = float(point.value) / scale
+            limit = max(score_tol, _point_tolerance(point) / scale)
+        else:
+            target = float(point.value)
+            limit = max(score_tol, _point_tolerance(point))
+        if abs(score - target) > limit + 1e-9:
+            return False
+    return True
+
+
+def _resolution_problems(bar: dict[str, Any]) -> list[str]:
+    block = _resolution_block(bar)
+    if block is None:
+        return []
+    if block.get("rule") != "two_of_three":
+        return ["resolution needs two readings that agree"]
+    points = _resolution_points(block)
+    if points is None:
+        return ["resolution needs two readings that agree"]
+    cluster = _agreement(points)
+    if cluster is None:
+        return ["resolution needs two readings that agree"]
+    if not _score_is_agreed(bar, cluster):
+        return ["score is not the agreed value"]
+    return []
+
+
+def _unresolved_bar(bar: dict[str, Any]) -> bool:
+    block = _resolution_block(bar)
+    if block is not None:
+        if block.get("rule") != "two_of_three":
+            return True
+        points = _resolution_points(block)
+        if points is None:
+            return True
+        return _agreement(points) is None
+    return _explicit_dispute(bar)
+
+
 def _base_result(bar: dict[str, Any]) -> dict[str, Any]:
     score_text = str(bar.get("score_text") or _infer_score_text(bar["score"]))
     benchmark_id = bar.get("benchmark_id") or None
@@ -513,7 +637,8 @@ def _classify_chart(
     for index, bar in enumerate(bars):
         result = _base_result(bar)
         label_key = (str(bar.get("model_as_labelled") or ""), str(bar.get("benchmark_id") or ""))
-        if _explicit_dispute(bar) or label_key in disputed_keys:
+        settled = _resolution_block(bar) is not None and not _unresolved_bar(bar)
+        if _unresolved_bar(bar) or (not settled and label_key in disputed_keys):
             result["status"] = "disputed"
             results[index] = result
             continue
@@ -894,6 +1019,11 @@ def fixture_errors(fixtures: list[dict[str, Any]], models: list[Model]) -> list[
             digest = chart.get("image_sha256")
             if digest and not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
                 errors.append(f"{where}: image_sha256 is not 64 hex digits")
+            for bar in chart.get("bars") or []:
+                label = bar.get("model_as_labelled") or "?"
+                bench = bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?"
+                for problem in _resolution_problems(bar):
+                    errors.append(f"{where}: {label} {bench} {problem}")
         document = fixture.get("document_sha256")
         if document and not re.fullmatch(r"[0-9a-f]{64}", str(document)):
             errors.append(f"{name}: document_sha256 is not 64 hex digits")
