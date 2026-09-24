@@ -669,7 +669,129 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: arena_elo_overall
+    model_id_as_evaluated: gemini-3.8-flash-high
+    score: 1494.67
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1494.67 (95% CI 1486.14-1503.21), 5076 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_coding
+    model_id_as_evaluated: gemini-3.8-flash-high
+    score: 1513.97
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena coding category, raw (not style-controlled)
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
+      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
+      is the stated date. Rating 1513.97 (95% CI 1498.03-1529.91), 1434 votes. The live
+      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gemini-3.8-flash-high
+    score: 1493.01
+    unit: elo
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Text Arena overall, style-controlled
+    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
+      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
+      1493.01 (95% CI 1484.42-1501.59), 5076 votes. The live arena.ai board read 2026-09-24
+      still shows this snapshot (same vote counts).
+    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
+      above clip.
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: gemini-3.8-flash_high
+    score: 95.39
+    unit: percent
+    source_url: https://epoch.ai/data/benchmark_data.zip
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-02'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: 'Epoch AI Benchmarking Hub, gpqa_diamond.csv (Epoch''s own run, not
+      an _external copy), row gemini-3.8-flash_high: mean_score 0.9539, stderr 0.0140,
+      run started 2026-09-02T17:15:36.000Z. CC BY. Thinking level high, the model''s
+      highest. Downloaded 2026-09-24.'
+    limitations: ''
+  - benchmark_id: terminal_bench_v2_1
+    model_id_as_evaluated: Gemini 3.8 Flash
+    score: 89.4
+    unit: percent
+    source_url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-02'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 2.1
+    configuration: Gemini 3.8 Flash model card (published 2 September 2026), results
+      table, Gemini 3.8 Flash column only; competitor columns not taken. Run via the
+      Gemini API, model id gemini-3.8-flash, default sampling. Self-computed with the
+      default Terminus 2 harness (evaluation methodology PDF).
+    limitations: ''
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: Gemini 3.8 Flash (high)
+    score: 19.09
+    unit: percent
+    source_url: https://www.tbench.ai/leaderboard
+    source_kind: benchmark_author
+    evidence_date: '2026-09-02'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: Official Terminal-Bench 4.0 leaderboard (tbench.ai; /leaderboard
+      now serves from the site root), row 'Gemini 3.8 Flash', reasoning effort high,
+      agent mini-SWE-agent, 330 trials. The row's own date (Sep 2, 2026) is used. Read
+      2026-09-24. Google's model card quotes this row as 19.1%.
+    limitations: ''
+  - benchmark_id: hle
+    model_id_as_evaluated: Gemini 3.8 Flash
+    score: 44.52
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-09'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam (Scale Labs board)
+    configuration: Scale Labs HLE leaderboard entry 'Gemini 3.8 Flash' (no effort label),
+      score 44.52, entry createdAt 2026-09-09 used as the date. Read 2026-09-24.
+    limitations: 'Scale flags potential contamination: evaluated after HLE''s public
+      release.'
+  - benchmark_id: charxiv_reasoning
+    model_id_as_evaluated: Gemini 3.8 Flash
+    score: 86.2
+    unit: percent
+    source_url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+    source_kind: provider_self_report
+    evidence_date: '2026-09-02'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: CharXiv Reasoning (no tools)
+    configuration: Gemini 3.8 Flash model card (published 2 September 2026), results
+      table, Gemini 3.8 Flash column only; competitor columns not taken. Run via the
+      Gemini API, model id gemini-3.8-flash, default sampling. No-tools row.
+    limitations: ''
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
