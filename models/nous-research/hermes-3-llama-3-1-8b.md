@@ -668,17 +668,71 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    artificial_analysis_quality_index: 62.0
-    artificial_analysis_speed_index: 92.0
     ifeval: 61.7
     bbh: 51.8
     math_500: 4.8
     gpqa_diamond: 29.8
     musr: 43.7
     mmlu_pro: 31.4
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 51.77
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 BBH
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "BBH Raw" x100
+      (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: ifeval
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 61.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 IFEval
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "IFEval Raw" x100
+      (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 31.39
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MMLU-Pro
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "MMLU-PRO Raw"
+      x100 (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: musr
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 43.69
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-23'
+    benchmark_version: Open LLM Leaderboard v2 MuSR
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "MUSR Raw" x100
+      (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
+    LLM Leaderboard v2 "GPQA Raw" value for NousResearch/Hermes-3-Llama-3.1-8B; math_500 holds the Open LLM Leaderboard
+    v2 "MATH Lvl 5 Raw" value for NousResearch/Hermes-3-Llama-3.1-8B. Each value is confirmed for this exact model
+    but is not the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true
@@ -836,7 +890,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-23'
 ---
 
 
