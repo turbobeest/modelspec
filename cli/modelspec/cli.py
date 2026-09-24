@@ -53,6 +53,11 @@ from . import snapshot_build_cmd as _snapshot_build_cmd  # noqa: E402
 
 _offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_build_cmd.build)
 
+# Two-key verification (MODEL-140): re-reads queued values from their sources.
+from . import verify_cmd as _verify_cmd  # noqa: E402
+
+app.command("verify")(_verify_cmd.verify)
+
 console = Console()
 
 # ───────────────────────────────────────────────────────────────
