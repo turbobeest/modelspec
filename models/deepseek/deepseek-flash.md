@@ -667,7 +667,134 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 90.9
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Pass@1)
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model).
+    limitations: ''
+  - benchmark_id: hle
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 36.8
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam (full set, no tools)
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). Full-set value; the text-only-subset
+      value (39.1) was not taken.
+    limitations: ''
+  - benchmark_id: hle_tools
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 63.9
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam (with tools)
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model).
+    limitations: ''
+  - benchmark_id: terminal_bench_v2_1
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 90.6
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 2.1
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). DeepSeek Harness, Minimal
+      mode, 1M context.
+    limitations: ''
+  - benchmark_id: terminal_bench_3_0
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 30.0
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 3.0
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). DeepSeek Harness, Minimal
+      mode, 1M context.
+    limitations: ''
+  - benchmark_id: terminal_bench_v4_0
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 31.2
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: Terminal-Bench 4.0
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). DeepSeek Harness, Minimal
+      mode, 1M context.
+    limitations: ''
+  - benchmark_id: cybergym
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 88.1
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: CyberGym (Pass@1)
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). DeepSeek does not say which
+      CyberGym metric Pass@1 denotes (reproduction vs new-vulnerability rate).
+    limitations: ''
+  - benchmark_id: automationbench
+    model_id_as_evaluated: DeepSeek-V4.1-Flash
+    score: 54.8
+    unit: percent
+    source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+    source_kind: provider_self_report
+    evidence_date: '2026-09-10'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: AutomationBench (official scaffold)
+    configuration: DeepSeek-V4.1-Flash model card on Hugging Face (repo created and
+      README committed 2026-09-10), 'Comparison with frontier models' table, DS-V4.1-Flash
+      column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
+      The Base-model table was not used (different model). Official AutomationBench
+      scaffold.
+    limitations: Provider run; Zapier's leaderboard scores a private held-out set, so
+      this is not comparable with leaderboard rows.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
