@@ -668,20 +668,9 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    aider_polyglot: 61.7
-    arena_elo_coding: 1320.0
     arena_elo_hard_prompts: 1396.1
-    arena_elo_math: 1360.0
-    arena_elo_overall: 1330.0
     arena_elo_style_control: 1387.6
-    gpqa_diamond: 73.3
-    humaneval: 88.5
-    ifeval: 86.0
-    live_code_bench: 67.9
-    math_500: 92.5
     mgsm: 90.8
-    mmlu_pro: 78.0
-    swe_bench_verified: 41.3
   benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -894,7 +883,7 @@ sources:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 ---
 
 
