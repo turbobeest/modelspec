@@ -728,7 +728,7 @@ benchmarks:
     limitations: ''
   - benchmark_id: gdp_pdf_aa
     model_id_as_evaluated: GPT-6 Astra (max)
-    score: 33.0
+    score: 33.2
     unit: percent
     source_url: https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2
     source_kind: independent_evaluator

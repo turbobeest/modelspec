@@ -6,9 +6,9 @@ Same-source evidence is compared first, for every role. Artificial Analysis bars
 
 | Class | Bars |
 | --- | ---: |
-| matched | 24 |
+| matched | 26 |
 | other_configuration | 7 |
-| mismatched | 2 |
+| mismatched | 0 |
 | unit_differs | 2 |
 | other_metric | 4 |
 | no_benchmark_page | 298 |
@@ -62,12 +62,7 @@ DeepSeek-V3.2-Exp matches Terminal-bench 37.7, the only row the card cites from 
 
 ## Mismatched bars
 
-Both are GDP.pdf all-pass on the v4.2 article, same URL on the chart and the card. Each is marked `known_mismatch`, ticket MODEL-131.
-
-| Model | Chart | Card |
-| --- | ---: | ---: |
-| GPT-6 Astra (max) | 33.2 | 33.0 |
-| GLM-5.3 (max) | 11.8 | 12.0 |
+None. GDP.pdf all-pass on the v4.2 article matches the card rows from that URL. GPT-6 Astra (max) is 33.2. GLM-5.3 (max) is 11.8.
 
 ## Competitor gaps above 2 points
 
