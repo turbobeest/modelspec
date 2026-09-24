@@ -677,53 +677,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    aider_polyglot: 54.8
-    arena_elo_coding: 1300.0
-    arena_elo_math: 1280.0
-    arena_elo_overall: 1290.0
-    artificial_analysis_quality_index: 73.0
-    artificial_analysis_speed_index: 84.0
-    bbh: 62.3
-    chartqa: 78.5
-    docvqa: 86.8
-    gpqa_diamond: 67.8
-    humaneval: 84.1
-    ifeval: 83.0
-    math_500: 87.3
-    mathvista: 54.5
-    mmlu_astronomy: 73.5
-    mmlu_biology: 81.5
-    mmlu_business_ethics: 74.2
-    mmlu_chemistry: 74.5
-    mmlu_clinical_knowledge: 80.2
-    mmlu_computer_science: 82.5
-    mmlu_jurisprudence: 71.5
-    mmlu_physics: 78.8
-    mmlu_pro: 74.1
-    mmlu_professional_accounting: 65.2
-    mmlu_professional_law: 70.2
-    mmmu: 60.2
-    multipl_e: 77.3
-    multipl_e_cpp: 76.5
-    multipl_e_go: 73.2
-    multipl_e_java: 81.2
-    multipl_e_javascript: 79.5
-    multipl_e_python: 84.1
-    multipl_e_rust: 67.5
-    multipl_e_typescript: 78.8
-    musr: 30.4
-    swe_bench_verified: 30.2
-    multipl_e_csharp: 74.2
-    multipl_e_php: 71.5
-    multipl_e_ruby: 57.8
-    multipl_e_swift: 57.8
-    multipl_e_r: 50.5
-    multipl_e_julia: 54.2
-    multipl_e_perl: 42.5
-    multipl_e_lua: 47.5
-    multipl_e_scala: 52.5
-    multipl_e_kotlin: 65.2
+  scores: {}
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -924,7 +878,7 @@ sources:
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-23'
 authoring_guide:
   applies_to:
     model_id: google/gemma-4-31b-it
