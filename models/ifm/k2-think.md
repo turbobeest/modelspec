@@ -848,4 +848,4 @@ card_updated: '2026-09-10'
 
 # K2 Think
 
-Carded from Hugging Face Hub [IFM/K2-Think](https://huggingface.co/IFM/K2-Think) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 32,763,876,352. No benchmark evidence attached.
+Carded from Hugging Face Hub [IFM/K2-Think](https://huggingface.co/IFM/K2-Think) because a live leaderboard row had no catalogue card. Hub safetensors total 32,763,876,352. No benchmark evidence attached.

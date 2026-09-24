@@ -667,46 +667,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: MiniMax M1 80k
-    score: 57.67
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: MiniMax M1 80k
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: MiniMax M1 80k
-    score: 69.7
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+  evidence: []
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -872,4 +833,4 @@ card_updated: '2026-09-10'
 
 # MiniMax M1 80k
 
-Carded from Hugging Face Hub [MiniMaxAI/MiniMax-M1-80k](https://huggingface.co/MiniMaxAI/MiniMax-M1-80k) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 456,089,655,296. No benchmark evidence attached.
+Carded from Hugging Face Hub [MiniMaxAI/MiniMax-M1-80k](https://huggingface.co/MiniMaxAI/MiniMax-M1-80k) because a live leaderboard row had no catalogue card. Hub safetensors total 456,089,655,296. No benchmark evidence attached.

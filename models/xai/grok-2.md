@@ -671,24 +671,9 @@ benchmarks:
   scores:
     arena_elo_hard_prompts: 1325.7
     arena_elo_style_control: 1334.8
-    artificial_analysis_quality_index: 76
-    artificial_analysis_speed_index: 70
   benchmark_source: lmarena.ai, provider-reports, multimodal-evals
   benchmark_as_of: 2026-04
   evidence:
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Grok 2
-    score: 51.01
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: grok-2-2024-08-13
     score: 1335.53
@@ -1042,7 +1027,6 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 75.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

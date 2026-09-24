@@ -680,19 +680,6 @@ benchmarks:
   benchmark_notes: ''
   evidence:
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Llama 2 Chat 70B
-    score: 32.73
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
     model_id_as_evaluated: Llama-2-70b-chat-hf
     score: 26.33
     unit: percent

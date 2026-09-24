@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""Harvest ranked-benchmark scores from AA and LM Arena live leaderboards.
+"""Harvest ranked-benchmark scores from the LM Arena live leaderboard.
 
-The two highest-value census targets:
-
-    https://artificialanalysis.ai/leaderboards/models
     https://lmarena.ai/leaderboard
 
-Default fetch is a plain HTTP GET of those pages (0 Firecrawl credits). The
+Default fetch is a plain HTTP GET of that page (0 Firecrawl credits). The
 HTML already carries the Next.js flight payloads with per-model scores.
 Firecrawl markdown is available via --firecrawl but is not required; JSON /
 query / highlight formats are refused by the fetch path.
@@ -49,34 +46,7 @@ RANKING_LEDGER = PROJECT_ROOT / "benchmarks/_census/ranking_evidence/accepted.js
 REFUSALS_PATH = PROJECT_ROOT / "benchmarks/_census/ranking_evidence/leaderboard_refusals.json"
 PROPOSED_MAP_PATH = PROJECT_ROOT / "benchmarks/_census/ranking_evidence/ledger_to_card_proposed.json"
 
-AA_URL = "https://artificialanalysis.ai/leaderboards/models"
 ARENA_URL = "https://lmarena.ai/leaderboard"
-
-# Live-board columns that ARE ranked keys. Identity must be exact.
-# AA `gpqa` is GPQA Diamond per artificialanalysis.ai/methodology/intelligence-benchmarking.
-AA_FIELD_TO_RANKED: dict[str, tuple[str, str, str]] = {
-    "gpqa": ("gpqa_diamond", "percent", "GPQA Diamond"),
-    "scicode": ("scicode", "percent", "SciCode"),
-    "lcr": ("aa_lcr", "percent", "AA-LCR v1.1"),
-    "gdpvalNormalized": ("gdpval_aa", "percent", "GDPval-AA v2 normalized Elo percent"),
-    "critpt": ("critpt", "percent", "CritPt"),
-}
-
-AA_REFUSED_FIELDS: dict[str, str] = {
-    "intelligenceIndex": "AA Intelligence Index is a composite, not a ranked raw benchmark",
-    "mmmuPro": "MMMU-Pro is not the ranked key mmmu",
-    "terminalbenchV21": "Terminal-Bench 2.1 is not terminal_bench (v1.0)",
-    "terminalbenchV40": "Terminal-Bench 4.0 is not terminal_bench (v1.0)",
-    "terminalbenchHard": "Terminal-Bench Hard is not terminal_bench (v1.0)",
-    "tau2": "τ2-bench is not the ranked key tau_bench",
-    "tauBanking": "τ-bench banking split is not the ranked key tau_bench",
-    "hle": "Humanity's Last Exam is not in the ranked key set",
-    "ifbench": "IFBench is not the ranked key ifeval",
-    "omniscience": "AA-Omniscience is not a ranked key",
-    "analystAgent": "Analyst-Agent is not a ranked key",
-    "apexAgents": "APEX-Agents is not a ranked key",
-    "itbenchSre": "ITBench-SRE is not a ranked key",
-}
 
 # Snapshot id on the Arena overview page → ranked key. Style-control overall
 # is the only snapshot on /leaderboard whose identity matches a ranked key.
@@ -104,7 +74,7 @@ ARENA_REFUSED_SNAPSHOTS: dict[str, str] = {
 }
 
 # Effort / serving tokens that mean "this row is not the base product card".
-# `max` is handled separately: AA and Arena use it as the canonical product row.
+# `max` is handled separately: Arena uses it as the canonical product row.
 EFFORT_TOKENS = frozenset(
     {
         "high",
@@ -186,15 +156,6 @@ def extract_json_after(text: str, needle: str) -> Any | None:
     return value
 
 
-def parse_aa_models(html: str) -> list[dict[str, Any]]:
-    for body in iter_next_f_strings(html):
-        models = extract_json_after(body, '"models":')
-        if isinstance(models, list) and models and isinstance(models[0], dict):
-            if "intelligenceIndex" in models[0] or "shortName" in models[0]:
-                return models
-    return []
-
-
 def parse_arena_snapshots(html: str) -> dict[str, list[dict[str, Any]]]:
     found: dict[str, list[dict[str, Any]]] = {}
     decoder = json.JSONDecoder()
@@ -262,87 +223,6 @@ class Refusal:
     detail: str
     name: str = ""
     extra: str = ""
-
-
-def _aa_score_as_percent(value: Any) -> float | None:
-    if value is None or value == "$undefined":
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    if number != number:  # NaN
-        return None
-    # AA stores accuracies as 0-1 fractions. An already-percent 0-100 value
-    # would be > 1 for every real result on these benches.
-    if 0.0 <= number <= 1.0:
-        return round(number * 100.0, 2)
-    if 1.0 < number <= 100.0:
-        return round(number, 2)
-    return None
-
-
-def extract_aa(
-    page: CachedPage, ranked: set[str]
-) -> tuple[list[ExtractedScore], list[Refusal]]:
-    models = parse_aa_models(page.text)
-    refusals: list[Refusal] = [
-        Refusal(cause="aa_field_not_ranked", detail=reason, extra=field)
-        for field, reason in AA_REFUSED_FIELDS.items()
-    ]
-    if not models:
-        refusals.append(Refusal(cause="parse_empty", detail="no AA models array in page HTML"))
-        return [], refusals
-
-    stated = parse_stated_date(page.text)
-    if stated:
-        evidence_date, date_type, date_source = stated, "evaluated", "stated_on_page"
-    else:
-        evidence_date, date_type, date_source = (
-            page.observation_date,
-            "evaluated",
-            "observation_fetch_date",
-        )
-
-    scores: list[ExtractedScore] = []
-    for model in models:
-        name = str(model.get("shortName") or model.get("slug") or "").strip()
-        if not name:
-            refusals.append(Refusal(cause="missing_name", detail="AA row with no shortName"))
-            continue
-        for field, (benchmark_id, unit, version) in AA_FIELD_TO_RANKED.items():
-            if benchmark_id not in ranked:
-                refusals.append(
-                    Refusal(
-                        cause="ranked_key_missing",
-                        detail=f"{benchmark_id} is not in USE_CASE_PROFILES",
-                        extra=field,
-                    )
-                )
-                continue
-            raw = model.get(field)
-            percent = _aa_score_as_percent(raw)
-            if percent is None:
-                continue
-            scores.append(
-                ExtractedScore(
-                    evaluator_name=name,
-                    benchmark_id=benchmark_id,
-                    score=percent,
-                    unit=unit,
-                    source_url=AA_URL,
-                    evidence_date=evidence_date,
-                    date_type=date_type,
-                    date_source=date_source,
-                    benchmark_version=version,
-                    configuration=(
-                        f"Artificial Analysis live LLM leaderboard. "
-                        f"Column {field} = {version}. "
-                        f"evidence_date {date_source}={evidence_date}."
-                    ),
-                )
-            )
-    return scores, refusals
 
 
 def extract_arena(
@@ -719,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pages: dict[str, CachedPage] = {}
     page_errors: list[str] = []
-    for url, suffix in ((AA_URL, ".html"), (ARENA_URL, ".html")):
+    for url, suffix in ((ARENA_URL, ".html"),):
         try:
             pages[url] = load_or_get(url, cache_dir, fetch=not args.no_fetch, suffix=suffix)
         except Exception as exc:
@@ -736,7 +616,7 @@ def main(argv: list[str] | None = None) -> int:
         credits["opening"] = opening
         print(f"credits opening={opening} budget={args.budget}")
         try:
-            for url in (AA_URL, ARENA_URL):
+            for url in (ARENA_URL,):
                 scrape(
                     url,
                     formats=["markdown"],
@@ -764,14 +644,6 @@ def main(argv: list[str] | None = None) -> int:
 
     all_scores: list[ExtractedScore] = []
     all_refusals: list[Refusal] = []
-    if AA_URL in pages:
-        scores, refusals = extract_aa(pages[AA_URL], ranked)
-        all_scores.extend(scores)
-        all_refusals.extend(refusals)
-        print(
-            f"  AA {pages[AA_URL].path.name} fetched_at={pages[AA_URL].observation_date} "
-            f"from_cache={pages[AA_URL].from_cache} scores={len(scores)}"
-        )
     if ARENA_URL in pages:
         scores, refusals = extract_arena(pages[ARENA_URL], ranked)
         all_scores.extend(scores)
@@ -812,7 +684,7 @@ def main(argv: list[str] | None = None) -> int:
             existing = {"as_of": verified_at, "note": "", "rows": []}
         note = existing.get("note") or ""
         live_note = (
-            " Live leaderboard readings (AA, LM Arena) use date_type=evaluated "
+            " Live leaderboard readings (LM Arena) use date_type=evaluated "
             "and evidence_date=observation (fetch) date unless the page states an as-of."
         )
         if "Live leaderboard readings" not in note:

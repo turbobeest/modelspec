@@ -32,8 +32,8 @@ Only the first sum is model-attributable. A result must report both sums separat
 
 - Every result carries MODEL-26 keys: `host_id` and `hardware_id` for the tool
   execution environment. Self-hosted models also carry them for the inference server.
-- API-served models: record provider, endpoint, region and client location, as
-  Artificial Analysis does. The provider's hardware stays null unless published.
+- API-served models: record provider, endpoint, region and client location. The
+  provider's hardware stays null unless published.
 - Runtime and version (for example vLLM, llama.cpp) and quantization for self-hosted runs.
 - Concurrency during the run is stated.
 
@@ -65,7 +65,7 @@ Only the first sum is model-attributable. A result must report both sums separat
 1. **Build or wait?** Recommendation: wait. Do not build a runner now. Revisit
    when a third-party leaderboard publishes per-task wall-clock with a harness version.
 2. **Interim proxy.** Recommendation: allow `steps to completion` (SWE-bench already
-   publishes step-limit and step-distribution views) and Artificial Analysis
+   publishes step-limit and step-distribution views) and a published API
    end-to-end response time as two separate, clearly named benchmarks. Never sum
    them into a "loop latency".
 3. **If building later.** Recommendation: extend one existing open harness with

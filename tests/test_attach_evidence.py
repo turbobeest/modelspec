@@ -33,25 +33,11 @@ def test_ledger_to_card_is_explicit_dict():
     assert "Qwen3.8-Max" not in LEDGER_TO_CARD
     assert "Claude Opus 5 (high)" not in LEDGER_TO_CARD
     assert "GPT-6 Astra (high)" not in LEDGER_TO_CARD
-    assert LEDGER_TO_CARD["Command A+"] == "cohere/command-a-plus-05-2026"
-    assert LEDGER_TO_CARD["GLM-5.3 (max)"] == "zhipu/glm-5-3"
-    assert LEDGER_TO_CARD["GLM-5.2 (max)"] == "zhipu/glm-5-2"
     assert LEDGER_TO_CARD["glm-5.2-max"] == "zhipu/glm-5-2"
     assert "GLM-5.2 (Non-reasoning)" not in LEDGER_TO_CARD
-    assert LEDGER_TO_CARD["Inkling"] == "thinkingmachines/inkling"
     assert LEDGER_TO_CARD["inkling"] == "thinkingmachines/inkling"
-    assert LEDGER_TO_CARD["Nemotron 3.5 Lightning"] == (
-        "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-    )
-    assert LEDGER_TO_CARD["Nemotron 3 Ultra"] == "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
-    assert LEDGER_TO_CARD["Cogito v2.1"] == "deepcogito/cogito-671b-v2-1"
     assert LEDGER_TO_CARD["muse-glimmer"] == "meta/muse-glimmer-30b"
-    assert LEDGER_TO_CARD["Claude 3 Haiku"] == "anthropic/claude-3-haiku-20240307"
-    assert LEDGER_TO_CARD["Llama 4 Maverick"] == "meta/llama-4-maverick-17b-128e-instruct"
     assert LEDGER_TO_CARD["qwen3.8-max"] == "qwen/qwen3-8-max"
-    assert LEDGER_TO_CARD["Gemini 2.5 Flash (Apr)"] == (
-        "google/gemini-2-5-flash-preview-04-17"
-    )
 
 
 def test_model13_traps_are_not_mapped():
@@ -74,12 +60,6 @@ def test_model13_traps_are_not_mapped():
     for name in forbidden:
         assert name not in LEDGER_TO_CARD, name
     # Own cards, never the similarly-named sibling.
-    assert LEDGER_TO_CARD["Llama Nemotron Ultra"] == (
-        "nvidia/llama-3-1-nemotron-ultra-253b-v1"
-    )
-    assert LEDGER_TO_CARD["Llama Nemotron Ultra"] != (
-        "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
-    )
     assert LEDGER_TO_CARD["Inkling Small"] == "thinkingmachines/inkling-small"
     assert LEDGER_TO_CARD["Inkling Small"] != "thinkingmachines/inkling"
 
@@ -154,12 +134,9 @@ def test_leaderboard_ledger_rows_are_mapped_ranked_and_dated():
     assert unmapped == []
     unknown = sorted({bid for bid, _ in rows} - ranked)
     assert unknown == []
-    live_urls = {
-        "https://artificialanalysis.ai/leaderboards/models",
-        "https://lmarena.ai/leaderboard",
-    }
+    live_urls = {"https://lmarena.ai/leaderboard"}
     live = [(bid, raw) for bid, raw in rows if raw.get("source_url") in live_urls]
-    assert live, "ledger must include AA/LM Arena live-board rows"
+    assert live, "ledger must include LM Arena live-board rows"
     for bid, raw in live:
         record = to_evidence(bid, raw, "2026-09-10")
         assert record.date_type == "evaluated"
@@ -189,20 +166,9 @@ def _evidence(model_id: str) -> list[dict]:
     return list((front.get("benchmarks") or {}).get("evidence") or [])
 
 
-def test_glm52_live_aa_arena_rows_are_on_the_product_card():
-    """AA (max) and Arena glm-5.2-max attach to zhipu/glm-5-2; Non-reasoning does not."""
+def test_glm52_arena_row_is_on_the_product_card():
+    """Arena glm-5.2-max attaches to zhipu/glm-5-2."""
     rows = _evidence("zhipu/glm-5-2")
-    names = {e.get("model_id_as_evaluated") for e in rows}
-    assert "GLM-5.2 (max)" in names
-    assert "glm-5.2-max" in names
-    assert "GLM-5.2 (Non-reasoning)" not in names
-    by_id = {e["benchmark_id"]: e for e in rows
-             if e.get("model_id_as_evaluated") == "GLM-5.2 (max)"}
-    assert by_id["gpqa_diamond"]["score"] == 89.49
-    assert by_id["scicode"]["score"] == 51.16
-    assert by_id["aa_lcr"]["score"] == 78.33
-    assert by_id["gdpval_aa"]["score"] == 45.88
-    assert by_id["critpt"]["score"] == 20.86
     arena = [
         e for e in rows
         if e.get("benchmark_id") == "arena_elo_style_control"
@@ -213,32 +179,8 @@ def test_glm52_live_aa_arena_rows_are_on_the_product_card():
     assert arena and arena[0]["score"] == 1472.1
     assert arena[0]["evidence_date"] == "2026-09-13"
     assert all(e.get("source_url", "").startswith("https://") for e in rows)
-    scraped = [e for e in rows if e.get("source_url", "").startswith(
-        ("https://artificialanalysis.ai", "https://lmarena.ai"))]
+    scraped = [e for e in rows if e.get("source_url", "").startswith("https://lmarena.ai")]
     assert all(e.get("date_type") == "evaluated" for e in scraped)
-
-
-def test_glm53_published_scicode_is_the_chart_correction():
-    rows = [
-        e for e in _evidence("zhipu/glm-5-3")
-        if e.get("benchmark_id") == "scicode" and e.get("date_type") == "published"
-    ]
-    assert rows, "GLM-5.3 must carry the dated AA v4.2 SciCode score"
-    assert rows[0]["score"] == 59.0
-    assert "reasoning_effort=max" in (rows[0].get("configuration") or "")
-
-
-def test_glm53_flash_has_no_published_eligibility_gdpval():
-    rows = [
-        e for e in _evidence("zhipu/glm-5-3-flash")
-        if e.get("benchmark_id") == "gdpval_aa" and e.get("date_type") == "published"
-    ]
-    assert rows == []
-    live = [
-        e for e in _evidence("zhipu/glm-5-3-flash")
-        if e.get("benchmark_id") == "gdpval_aa" and e.get("score") == 59.0
-    ]
-    assert live == [], "stale cache copied 59 onto Flash; do not attach it"
 
 
 def test_rnj1_instruct_has_no_dataset_evidence():
@@ -255,17 +197,6 @@ def test_muse_glimmer_high_is_not_on_the_card():
 
 def test_model13_rescued_live_rows_are_on_the_new_cards():
     inkling = {e["benchmark_id"] for e in _evidence("thinkingmachines/inkling")}
-    assert {"aa_lcr", "gpqa_diamond", "scicode", "gdpval_aa", "critpt",
-            "arena_elo_style_control"} <= inkling
-    lightning = {e["benchmark_id"] for e in _evidence(
-        "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
-    )}
-    assert {"aa_lcr", "gpqa_diamond", "scicode", "gdpval_aa", "critpt"} <= lightning
-    ultra = {e["benchmark_id"] for e in _evidence(
-        "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
-    )}
-    assert {"aa_lcr", "gpqa_diamond", "scicode", "gdpval_aa", "critpt"} <= ultra
-    cogito = {e["benchmark_id"] for e in _evidence("deepcogito/cogito-671b-v2-1")}
-    assert {"aa_lcr", "gpqa_diamond", "critpt"} <= cogito
+    assert "arena_elo_style_control" in inkling
     glimmer = {e["benchmark_id"] for e in _evidence("meta/muse-glimmer-30b")}
     assert "arena_elo_style_control" in glimmer

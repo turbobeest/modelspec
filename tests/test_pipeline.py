@@ -177,20 +177,20 @@ def _published(tmp_path: Path, models: list[Model],
 
 
 def test_a_benchmark_reported_only_in_evidence_records_has_coverage(tmp_path: Path) -> None:
-    """benchgraph.dev/b/automationbench/ listed no model although a card reported it."""
+    """A benchmark page listed no model although a card reported it in an evidence record."""
     card = _card("demo/astra", "Astra", evidence=(_evidence(
-        "automationbench", 41.4, model_id_as_evaluated="Astra",
+        "demo_bench", 41.4, model_id_as_evaluated="Astra",
         source_url="https://src.example/astra", source_kind="provider_self_report",
         evidence_date="2026-09-03", date_type="published", verified_at="2026-09-11",
-        benchmark_version="AutomationBench", configuration="launch table"),))
-    rows = _published(tmp_path, [card], [_page("automationbench")])["automationbench"]
+        benchmark_version="DemoBench", configuration="launch table"),))
+    rows = _published(tmp_path, [card], [_page("demo_bench")])["demo_bench"]
     assert rows == [{
         "model_id": "demo/astra", "display_name": "Astra",
         "provider": "demo", "provider_display": "Demo Lab",
         "score": 41.4, "unit": "percent",
         "as_of": "2026-09-03", "date_type": "published",
         "source": "https://src.example/astra", "source_kind": "provider_self_report",
-        "model_id_as_evaluated": "Astra", "benchmark_version": "AutomationBench",
+        "model_id_as_evaluated": "Astra", "benchmark_version": "DemoBench",
         "configuration": "launch table", "verified_at": "2026-09-11",
         "attribution": "verified",
     }]
@@ -259,8 +259,8 @@ def test_every_card_evidence_record_reaches_its_benchmark_page(tmp_path: Path) -
 
 
 def test_benchgraph_headline_counts_evidence_only_scores() -> None:
-    card = _card("demo/astra", evidence=(_evidence("automationbench", 41.4),))
-    stats = builder.benchgraph_headline_stats([card], [_page("automationbench")])
+    card = _card("demo/astra", evidence=(_evidence("demo_bench", 41.4),))
+    stats = builder.benchgraph_headline_stats([card], [_page("demo_bench")])
     assert stats == {"pages": 1, "scored_benchmarks": 1, "scored_models": 1, "scores": 1}
 
 

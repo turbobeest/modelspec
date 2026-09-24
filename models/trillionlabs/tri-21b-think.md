@@ -667,46 +667,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Tri-21B-Think
-    score: 15.67
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Tri-21B-Think
-    score: 0.29
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Tri-21B-Think
-    score: 60.1
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+  evidence: []
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -872,4 +833,4 @@ card_updated: '2026-09-10'
 
 # Tri-21B-Think
 
-Carded from Hugging Face Hub [trillionlabs/Tri-21B-Think](https://huggingface.co/trillionlabs/Tri-21B-Think) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 20,725,519,360. No benchmark evidence attached.
+Carded from Hugging Face Hub [trillionlabs/Tri-21B-Think](https://huggingface.co/trillionlabs/Tri-21B-Think) because a live leaderboard row had no catalogue card. Hub safetensors total 20,725,519,360. No benchmark evidence attached.

@@ -674,8 +674,6 @@ benchmarks:
     arena_elo_math: 1220.0
     arena_elo_overall: 1230.0
     arena_elo_style_control: 1341.4
-    artificial_analysis_quality_index: 65.0
-    artificial_analysis_speed_index: 88.0
     bbh: 48.7
     gpqa_diamond: 45.5
     gsm8k: 94.4
@@ -695,71 +693,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Gemma 3 12B
-    score: 8.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Gemma 3 12B
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Gemma 3 12B
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemma 3 12B
-    score: 34.95
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: scicode
-    model_id_as_evaluated: Gemma 3 12B
-    score: 16.44
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: SciCode
-    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemma-3-12b-it
     score: 1341.68
@@ -1127,7 +1060,6 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 140.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

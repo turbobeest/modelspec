@@ -57,8 +57,8 @@ Of ~604 unrankable cards:
 
 * **~96 can never be ranked** under current profiles — image, video, audio, OCR,
   base models, serving quants. No profile weights a benchmark they could score on.
-* **~388 are LLMs not present on Artificial Analysis or LM Arena.** More crawling
-  will never find them.
+* **~388 are LLMs not present on the live leaderboards.** More crawling will
+  never find them.
 * **246 cards have no parameter count because the weights are closed.**
 
 And the trap: **carding a missing model raises the unrankable count** until its

@@ -76,8 +76,8 @@ MODEL-5 is not a loop item while daily-research PRs are opened with
 * **Reduce the 129 open-weight cards with no sourced `total_parameters`** —
   gated repos, pytorch-only, no published figure. The 246 closed-weight ones are
   a floor and are not work.
-* **Chase the ~75 unrankable cards that *are* present on Artificial Analysis or
-  LM Arena.** These are reachable by better matching. The ~388 that are on no
+* **Chase the unrankable cards that *are* present on LM Arena.** These are
+  reachable by better matching. The ~388 that are on no
   board are not, and recrawling will not find them.
 * **431,992 pytest warnings per run**, almost all Pydantic deprecations at
   `schema/card.py:804` (`obj.model_fields` on an instance). The output is

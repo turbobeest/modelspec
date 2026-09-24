@@ -668,58 +668,6 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Claude Opus 4.7 (max)
-    score: 78.67
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Claude Opus 4.7 (max)
-    score: 12.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Claude Opus 4.7 (max)
-    score: 44.79
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Claude Opus 4.7 (max)
-    score: 91.41
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1501.75

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Enrich ModelSpec cards with cost, performance, and availability data.
+"""Enrich ModelSpec cards with cost and availability data.
 
-Adds inference cost estimates for open-weight models, Artificial Analysis
-quality/speed indices, and platform availability mappings. Only fills
-None/empty fields -- never overwrites existing data.
+Adds inference cost estimates for open-weight models and platform
+availability mappings. Only fills None/empty fields -- never overwrites
+existing data.
 
 Usage:
     source .venv/bin/activate && python scripts/enrich_costs.py
@@ -166,76 +166,7 @@ INFERENCE_COSTS: dict[str, tuple[float, float]] = {
 
 
 # ═══════════════════════════════════════════════════════════════
-# 2. Artificial Analysis quality/speed indices (curated)
-#    quality_index: overall quality score (0-100)
-#    speed_index: overall speed score (0-100)
-#    api_tps_output: typical API output tokens per second
-# ═══════════════════════════════════════════════════════════════
-
-AA_DATA: dict[str, dict[str, float]] = {
-    # ── Anthropic ──
-    "claude-opus-4-6": {"quality_index": 88, "speed_index": 62, "api_tps_output": 45},
-    "claude-sonnet-4-5": {"quality_index": 86, "speed_index": 71, "api_tps_output": 72},
-    "claude-sonnet-4": {"quality_index": 85, "speed_index": 73, "api_tps_output": 78},
-    "claude-haiku-3-5": {"quality_index": 75, "speed_index": 88, "api_tps_output": 130},
-    # ── OpenAI ──
-    "gpt-4o": {"quality_index": 82, "speed_index": 78, "api_tps_output": 95},
-    "gpt-4o-mini": {"quality_index": 72, "speed_index": 90, "api_tps_output": 150},
-    "gpt-4-1": {"quality_index": 84, "speed_index": 76, "api_tps_output": 90},
-    "gpt-4-1-mini": {"quality_index": 74, "speed_index": 89, "api_tps_output": 145},
-    "gpt-4-1-nano": {"quality_index": 65, "speed_index": 94, "api_tps_output": 200},
-    "gpt-5-1": {"quality_index": 88, "speed_index": 70, "api_tps_output": 65},
-    "gpt-4-turbo": {"quality_index": 79, "speed_index": 65, "api_tps_output": 50},
-    "gpt-3-5-turbo": {"quality_index": 60, "speed_index": 92, "api_tps_output": 160},
-    # ── Google ──
-    "gemini-2-5-pro": {"quality_index": 85, "speed_index": 71, "api_tps_output": 72},
-    "gemini-2-5-flash": {"quality_index": 80, "speed_index": 87, "api_tps_output": 130},
-    "gemini-2-0-flash": {"quality_index": 77, "speed_index": 89, "api_tps_output": 140},
-    "gemini-2-0-flash-lite": {"quality_index": 68, "speed_index": 93, "api_tps_output": 190},
-    "gemini-1-5-pro": {"quality_index": 78, "speed_index": 68, "api_tps_output": 55},
-    "gemini-1-5-flash": {"quality_index": 71, "speed_index": 86, "api_tps_output": 120},
-    # ── Meta Llama ──
-    "llama-3-1-405b": {"quality_index": 80, "speed_index": 45, "api_tps_output": 35},
-    "llama-3-1-70b": {"quality_index": 75, "speed_index": 72, "api_tps_output": 80},
-    "llama-3-3-70b": {"quality_index": 76, "speed_index": 73, "api_tps_output": 82},
-    "llama-3-1-8b": {"quality_index": 62, "speed_index": 92, "api_tps_output": 200},
-    # ── Qwen ──
-    "qwen3-235b-a22b": {"quality_index": 82, "speed_index": 55, "api_tps_output": 40},
-    "qwen3-30b-a3b": {"quality_index": 74, "speed_index": 88, "api_tps_output": 150},
-    "qwen3-32b": {"quality_index": 76, "speed_index": 70, "api_tps_output": 75},
-    "qwen3-14b": {"quality_index": 70, "speed_index": 80, "api_tps_output": 100},
-    "qwen3-8b": {"quality_index": 66, "speed_index": 88, "api_tps_output": 160},
-    # ── DeepSeek ──
-    "deepseek-r1": {"quality_index": 84, "speed_index": 40, "api_tps_output": 25},
-    "deepseek-v3": {"quality_index": 80, "speed_index": 70, "api_tps_output": 70},
-    "deepseek-chat": {"quality_index": 80, "speed_index": 70, "api_tps_output": 70},
-    # ── Mistral ──
-    "mistral-large": {"quality_index": 78, "speed_index": 60, "api_tps_output": 48},
-    "mistral-small": {"quality_index": 68, "speed_index": 82, "api_tps_output": 110},
-    "mistral-nemo": {"quality_index": 65, "speed_index": 85, "api_tps_output": 130},
-    # ── xAI ──
-    "grok-3": {"quality_index": 82, "speed_index": 65, "api_tps_output": 55},
-    "grok-3-mini": {"quality_index": 72, "speed_index": 82, "api_tps_output": 110},
-    "grok-2": {"quality_index": 76, "speed_index": 70, "api_tps_output": 75},
-    # ── Google Gemma (open) ──
-    "gemma-4-27b": {"quality_index": 72, "speed_index": 85, "api_tps_output": 110},
-    "gemma-4-31b": {"quality_index": 73, "speed_index": 84, "api_tps_output": 105},
-    "gemma-3-27b": {"quality_index": 70, "speed_index": 82, "api_tps_output": 100},
-    "gemma-3-12b": {"quality_index": 65, "speed_index": 88, "api_tps_output": 140},
-    "gemma-2-27b": {"quality_index": 68, "speed_index": 80, "api_tps_output": 95},
-    "gemma-2-9b": {"quality_index": 60, "speed_index": 90, "api_tps_output": 170},
-    # ── Microsoft Phi ──
-    "phi-4": {"quality_index": 68, "speed_index": 88, "api_tps_output": 150},
-    "phi-3-5-mini": {"quality_index": 58, "speed_index": 92, "api_tps_output": 200},
-    # ── Cohere ──
-    "command-r-plus": {"quality_index": 73, "speed_index": 55, "api_tps_output": 42},
-    "command-r": {"quality_index": 64, "speed_index": 78, "api_tps_output": 90},
-    "command-a": {"quality_index": 78, "speed_index": 58, "api_tps_output": 48},
-}
-
-
-# ═══════════════════════════════════════════════════════════════
-# 3. Platform availability data
+# 2. Platform availability data
 #    Model slug pattern -> list of platform field names
 #    Each entry can include model_id on that platform
 # ═══════════════════════════════════════════════════════════════
@@ -571,39 +502,6 @@ def enrich_cost(card: ModelCard) -> bool:
     return True
 
 
-def enrich_performance(card: ModelCard) -> bool:
-    """Fill in AA quality/speed indices and api_tps_output.
-
-    Only fills None fields. Returns True if card was modified.
-    """
-    key = match_against_mapping(card.identity.model_id, AA_DATA)
-    if key is None:
-        return False
-
-    data = AA_DATA[key]
-    changed = False
-
-    # Quality index
-    if ("artificial_analysis_quality_index" not in card.benchmarks.scores
-            and "quality_index" in data):
-        card.benchmarks.scores["artificial_analysis_quality_index"] = data["quality_index"]
-        changed = True
-
-    # Speed index
-    if ("artificial_analysis_speed_index" not in card.benchmarks.scores
-            and "speed_index" in data):
-        card.benchmarks.scores["artificial_analysis_speed_index"] = data["speed_index"]
-        changed = True
-
-    # Output TPS -> inference_performance.api_tps_output
-    if (card.inference_performance.api_tps_output is None
-            and "api_tps_output" in data):
-        card.inference_performance.api_tps_output = data["api_tps_output"]
-        changed = True
-
-    return changed
-
-
 def enrich_availability(card: ModelCard) -> bool:
     """Fill in platform availability for models where all platforms are empty.
 
@@ -698,7 +596,7 @@ def write_card_yaml(card: ModelCard, filepath: Path) -> None:
 
 def main() -> None:
     print("=" * 60)
-    print("  ModelSpec Cost / Performance / Availability Enrichment")
+    print("  ModelSpec Cost / Availability Enrichment")
     print("=" * 60)
 
     files = sorted(glob.glob(str(MODELS_DIR / "**" / "*.md"), recursive=True))
@@ -711,7 +609,6 @@ def main() -> None:
 
     # Stats
     cost_enriched = 0
-    perf_enriched = 0
     avail_enriched = 0
     cards_modified = 0
     errors = 0
@@ -719,7 +616,6 @@ def main() -> None:
 
     # Track which mapping keys were matched
     cost_matches: dict[str, int] = {}
-    perf_matches: dict[str, int] = {}
     avail_matches: dict[str, int] = {}
 
     t0 = time.monotonic()
@@ -737,15 +633,7 @@ def main() -> None:
                 if key:
                     cost_matches[key] = cost_matches.get(key, 0) + 1
 
-            # 2. Performance / AA indices
-            if enrich_performance(card):
-                perf_enriched += 1
-                modified = True
-                key = match_against_mapping(card.identity.model_id, AA_DATA)
-                if key:
-                    perf_matches[key] = perf_matches.get(key, 0) + 1
-
-            # 3. Platform availability
+            # 2. Platform availability
             if enrich_availability(card):
                 avail_enriched += 1
                 modified = True
@@ -777,7 +665,6 @@ def main() -> None:
     print(f"  Total cards scanned:       {total}")
     print(f"  Cards modified:            {cards_modified}")
     print(f"  Cost enriched:             {cost_enriched}")
-    print(f"  Performance enriched:      {perf_enriched}")
     print(f"  Availability enriched:     {avail_enriched}")
     print(f"  Errors:                    {errors}")
     print(f"  Time:                      {elapsed:.1f}s")
@@ -787,12 +674,6 @@ def main() -> None:
         for key, count in sorted(cost_matches.items(), key=lambda x: -x[1]):
             c_in, c_out = INFERENCE_COSTS[key]
             print(f"    {key:<35s} ${c_in:.3f}/${c_out:.3f}  ({count} cards)")
-
-    if perf_matches:
-        print(f"\n-- Performance matches ({perf_enriched} total) --")
-        for key, count in sorted(perf_matches.items(), key=lambda x: -x[1]):
-            d = AA_DATA[key]
-            print(f"    {key:<35s} Q={d['quality_index']:.0f} S={d['speed_index']:.0f}  ({count} cards)")
 
     if avail_matches:
         print(f"\n-- Availability matches ({avail_enriched} total) --")

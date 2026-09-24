@@ -37,7 +37,7 @@ def test_single_verified_high_score_is_unranked():
 
 
 @pytest.mark.parametrize('profile,benchmark', [
-    ('coding', 'scicode'), ('reasoning', 'critpt'),
+    ('coding', 'arena_elo_coding'), ('reasoning', 'gpqa_diamond'),
 ])
 def test_real_astra_is_visible_unranked_instead_of_ranked_low(profile, benchmark):
     """Sparse real-card evidence is visible and unranked, never a low numeric rank.

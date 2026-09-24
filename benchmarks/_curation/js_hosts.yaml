@@ -3,7 +3,6 @@
 # --firecrawl-credit-cap > 0 and the host is on _census/sources.yaml scrape_allow.
 hosts:
   - lmarena.ai
-  - artificialanalysis.ai
   - llm-stats.com
   - vals.ai
   - scale.com

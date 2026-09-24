@@ -46,12 +46,13 @@ benchmarks/<id>.md ──sources──▶ scripts/curation/watch.py ── plain
 `status: active` and an http(s) `leaderboard_url`, sorted by id, first 25 (63 qualified on
 2026-09-15). It is deterministic, and a test asserts the recorded file matches the rule.
 
-aa_briefcase, aa_lcr, aclue, adv_glue, agent_bench, agentdojo, agieval, aider_polyglot,
-aime, aime_2025, aime_2026, air_bench, alghafa, alpaca_eval, alrage, anima,
-anthropic_red_team, arabic_exams, arc_agi_2, arena_elo, arena_elo_coding,
-arena_elo_hard_prompts, arena_elo_math, arena_elo_overall, arena_elo_style_control.
+aclue, adv_glue, agent_bench, agentdojo, agieval, aider_polyglot, aime, aime_2025,
+aime_2026, air_bench, alghafa, alpaca_eval, alrage, anima, anthropic_red_team,
+arabic_exams, arc_agi_2, arena_elo, arena_elo_coding, arena_elo_hard_prompts,
+arena_elo_math, arena_elo_overall, arena_elo_style_control, arena_elo_vision,
+arxivrollbench.
 
-The list leans alphabetically toward AA, AIME and Arena pages. That is accepted for a pilot
+The list leans alphabetically toward AIME and Arena pages. That is accepted for a pilot
 because it is reproducible. Widen it with `--pages all` after the 7-day run.
 
 ## Change kinds and heuristics

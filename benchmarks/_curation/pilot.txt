@@ -1,6 +1,4 @@
 # MODEL-10 pilot: status active + leaderboard_url, first 25 by id
-aa_briefcase
-aa_lcr
 aclue
 adv_glue
 agent_bench
@@ -24,3 +22,5 @@ arena_elo_hard_prompts
 arena_elo_math
 arena_elo_overall
 arena_elo_style_control
+arena_elo_vision
+arena_image_edit

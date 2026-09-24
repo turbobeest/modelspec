@@ -95,12 +95,6 @@ def test_real_swe_bench_steps_page_shows_step_caveat() -> None:
     assert "Baseline note" in html
 
 
-def test_real_aa_response_time_page_shows_window() -> None:
-    html = _real("artificial_analysis_end_to_end_response_time")
-    assert "72 hours" in html and "14-day" in html
-    assert "blob/main/docs/agentic-latency-benchmark.md" in html
-
-
 def test_real_page_has_single_what_it_measures_heading() -> None:
     html = _real("swe_bench_steps_to_completion")
     assert html.count("What it measures</h2>") == 1

@@ -108,7 +108,7 @@ network time. It does not reflect your hardware or your harness.
 
 Fewer steps to a resolved task suggests a model reaches a fix with fewer model calls. That is a
 proxy for loop latency, not a measurement of it: one step can take a second or a minute. Never add
-this to an Artificial Analysis response time, or combine the two, to build a "loop latency" number.
+this to an API response time, or combine the two, to build a "loop latency" number.
 The two metrics measure different things under different conditions. Read resolved rate alongside
 it, since a model can stop early and fail. No per-model scores are recorded in ModelSpec yet. This
 page is descriptive until a measured benchmark meeting the

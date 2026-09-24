@@ -446,6 +446,33 @@ freezes that kind to exactly those eight cards.
 `schema_version` stays `"1.0"`; `rank` and `fit` are unchanged. The
 `policy-check` endpoint is MODEL-80.
 
+### Two sources' data removed, without a bump (MODEL-117)
+
+On 2026-09-24 every value from two sources whose terms do not permit this
+project's use was removed from the catalogue, with the benchmarks they own.
+`build.export_schema_version` stays **3.0**, `rankings.json` stays `"2.0"` and
+the CLI envelope stays `"1.0"`, because no contract field's range widened:
+
+* **Every removed value lived in a collection that was already variable.**
+  Per-card `benchmarks.scores` maps and `benchmarks.evidence` lists,
+  `benchmark_scores` and `verified_benchmarks` in `candidates.json`, the
+  profile `benchmark_weights` and `benchmark_ranges` maps in `profiles.json`,
+  `/api/benchmarks/<id>.json` files, `catalogue.json`'s `active_ids` and its
+  `counts` map (keyed by the statuses present; `historical` was already
+  absent), and the eligibility report's accepted results. A consumer that
+  handled an empty or shorter collection before handles this one.
+* **No field that was always present is now absent.** The card slot
+  `sources.<name>_url` for the removed source stays, as `""`, the value every
+  other card already had. Removing the slot itself would be a removal under the
+  promise above and would need a bump; that is Jamie's call.
+* **Nothing became nullable that was not.** `inference_performance.api_tps_output`
+  (now `null` on the 139 cards whose value came from the removed source) and a
+  benchmark page's `saturation.top_score` were already `null` on most cards and
+  pages.
+* **No enum gained a value.** The catalogue can now hold **zero** active
+  benchmarks. `active` is still a disposition, and an empty active set is a
+  state the eligibility gate always allowed: it fails closed.
+
 ### Deprecated: CLIs older than MODEL-53
 
 CLIs older than #56 (MODEL-53, merge `1d8dd53`) are unsupported. They raise

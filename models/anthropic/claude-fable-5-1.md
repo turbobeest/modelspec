@@ -760,22 +760,6 @@ benchmarks:
       5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
       copied to either card. Adaptive thinking, max effort. Max effort.
     limitations: ''
-  - benchmark_id: automationbench
-    model_id_as_evaluated: Claude Fable 5.1 (with Opus 5 Fallback)
-    score: 31.4
-    unit: percent
-    source_url: https://zapier.com/benchmarks
-    source_kind: benchmark_author
-    evidence_date: '2026-09-24'
-    date_type: evaluated
-    verified_at: '2026-09-24'
-    benchmark_version: AutomationBench 1.0.6 (strict pass rate, private held-out set)
-    configuration: Zapier's own AutomationBench leaderboard, dataset 1.0.6, row 'Claude
-      Fable 5.1 (with Opus 5 Fallback)'. Opus 5 completed steps Fable 5.1's safety classifier
-      refused, on ~40% of tasks (260 of 657), and those count toward the score, so the
-      row is not Fable 5.1 alone. The page states no as-of date; evidence_date is the
-      observation, fetched 2026-09-24.
-    limitations: ''
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1507.58

@@ -685,8 +685,6 @@ benchmarks:
     arena_elo_overall: 1410.0
     arena_elo_style_control: 1502.8
     arena_elo_vision: 1295.0
-    artificial_analysis_quality_index: 88.0
-    artificial_analysis_speed_index: 62.0
     bbq: 88.2
     browsecomp: 83.7
     chartqa: 86.8
@@ -782,45 +780,6 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [27.026521, 170.437873] minutes. METR states measurements above 16 hours are unreliable on this suite.
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Claude Opus 4.6 (max)
-    score: 78.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Claude Opus 4.6 (max)
-    score: 12.57
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Claude Opus 4.6 (max)
-    score: 89.6
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: claude-opus-4-6
     score: 1497.54
@@ -1384,7 +1343,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 45.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

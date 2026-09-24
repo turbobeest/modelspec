@@ -12,7 +12,7 @@ Use this existing checkout: much of the new work is still untracked or modified 
 
 1. Read applicable repository instructions, this handoff, [the active-catalogue policy](../specs/2026-09-08-benchgraph-active-catalogue.md), and [eligibility operating notes](../../../benchmarks/_census/eligibility/README.md). This checkout is CodeGraph-indexed: use `codegraph explore` before locating code and `codegraph sync .` after edits. Root `CLAUDE.md` describes an older FalkorDB/FastAPI/React implementation; later decisions below govern the target architecture.
 2. Inspect Git status and the operational hold files below. Reconfirm process identities before acting on a PID. Preserve legacy holds; start no competing census controller. Refresh PR and Linear state read-only before planning changes; their statuses below are historical snapshots.
-3. Recompute today's eligibility, verify the seven article hashes against the durable review bundle, and inspect the reconciled review decisions. Integrate this reviewed work with selective commits and truthful provenance. Review the whole existing PR before choosing how to merge or replace its older census content.
+3. Recompute today's eligibility and inspect the reconciled review decisions. Integrate this reviewed work with selective commits and truthful provenance. Review the whole existing PR before choosing how to merge or replace its older census content.
 4. Independently review research batches 003 and 004 before adding evidence records or assigning more pages. Expand source coverage through bounded research, using current model references by domain. Continue authoring or repairing only eligible, explicitly assigned profiles with a separate source reviewer.
 5. Advance exports and site rendering alongside curation. Serving a useful reviewed catalogue does not depend on exhausting every census lead. Follow the MODEL delivery queue below; keep DPF implementation in its own session.
 
@@ -20,23 +20,19 @@ Local implementation, reversible preparation, scoped commits and pushes were aut
 
 ## What is complete, and what is not
 
-**Seven profiles have reviewed articles ready for integration:** `aa_briefcase`, `aa_lcr`, `automationbench_aa`, `critpt`, `gdp_pdf_aa`, `gdpval_aa`, `scicode`. They are not yet committed as the curated batch, published, or proof that the sites are complete. Three are new pages; the other four repair or replace existing drafts/pages.
+**Seven profiles had reviewed articles ready for integration.** Five of those pages, and the source readings behind the other two (`critpt`, `scicode`), were removed on 2026-09-24 (MODEL-117) because their source's terms do not permit this project's use.
 
-The current mechanical report, assessed September 9, contains **7 active, 1 alias and 7 unverified records**. This is a small reviewed evidence set, not a census-wide acceptance rate. The reference set is a limited seed covering GPT-6 Astra (max) and GLM-5.3 (max) in relevant domains; it is not a comprehensive frontier-model registry.
+The mechanical report assessed September 9 contained **7 active, 1 alias and 7 unverified records**. After MODEL-117 it contains no active records, and the reference set is empty.
 
 | Artifact | Meaning |
 | --- | --- |
-| [Durable review bundle](../../../benchmarks/_census/eligibility/handoff/2026-09-09/review-bundle.json) | Seven article SHA-256 values, reconciled coordinator status, and ten original/correction review records copied out of ignored cache. |
 | `benchmarks/_census/cache/eligible-20260908/coordinator-status.json` | Reconciled `curated-batch-reviewed` status; all seven ready for integration, `published: false`. |
 | `benchmarks/_census/cache/eligible-20260908/run-001/` | Original writer/reviewer logs and immutable earlier status. Its `needs-attention` state predates corrections; do not blindly retry it. |
-| `benchmarks/_census/cache/eligible-20260908/corrections-001/` | Subsequent independent reviews resolving three rejections and the AA-LCR reviewer startup failure. |
-| [Chart erratum](../../../benchmarks/_census/eligibility/2026-09-09-chart-correction.md) | SciCode GLM-5.3 value corrected from 56% to 59% in the evidence and article. |
-| [Batch 003 ledger](../../../benchmarks/_census/eligibility/batch-003-research.md) | Completed research proposing HLE and AA-Omniscience pairs; **not independently approved or admitted**. Reopen primary sources and inspect chart labels and identity/methodology claims. |
+| `benchmarks/_census/cache/eligible-20260908/corrections-001/` | Subsequent independent reviews resolving three rejections and one reviewer startup failure. |
 | [Batch 004 ledger](../../../benchmarks/_census/eligibility/batch-004-research.md) | Completed research on LiveBench and SWE-bench Pro; both proposed `unverified` because attributable recent result dates were not established. This is not proof they are stale or invalid. |
 
-Original Grok reviews approved three pages immediately and rejected three subsequently corrected. AA-LCR's reviewer produced no events during a prolonged MCP startup stall; that specific process was terminated and a full independent Luna source review replaced it. The other Luna reviews covered focused corrections. Preserve these distinctions in attribution; do not label every page personally checked by the coordinator or every correction a new full review. Front-matter attribution still needs integration. Any content or metadata change alters the reviewed hash; record the delta and obtain appropriate review.
+Original Grok reviews approved three pages immediately and rejected three subsequently corrected. One reviewer produced no events during a prolonged MCP startup stall; that specific process was terminated and a full independent Luna source review replaced it. The other Luna reviews covered focused corrections. Preserve these distinctions in attribution; do not label every page personally checked by the coordinator or every correction a new full review. Front-matter attribution still needs integration. Any content or metadata change alters the reviewed hash; record the delta and obtain appropriate review.
 
-The current seven use AA's dated September 4 v4.2 component chart and September 7 v4.3 AutomationBench results. Result publication dates are established; execution dates are undisclosed. AA-Briefcase and GDPval-AA values are rounded normalized Elo percentages, not raw Elo. GDP.pdf is AA's specific implementation. An aggregate index update cannot qualify every component without actual component results. Never copy later live scores into an older dated snapshot.
 
 ## The accepted eligibility policy
 
@@ -76,8 +72,7 @@ cd /Users/terbeest/dev/modelspec
   tests/test_benchmark_eligibility.py tests/test_eligible_batch.py \
   tests/test_eligible_runner.py -q
 /opt/homebrew/bin/python3.11 scripts/benchmarks/validate.py \
-  benchmarks/aa_briefcase.md benchmarks/aa_lcr.md benchmarks/automationbench_aa.md \
-  benchmarks/critpt.md benchmarks/gdp_pdf_aa.md benchmarks/gdpval_aa.md benchmarks/scicode.md
+  benchmarks/critpt.md benchmarks/scicode.md
 ```
 
 For a new run, inspect `run_eligible.py --help`, explicitly choose independently admitted IDs, and supply a **new, nonexistent** run directory under the current date's cache directory. The seven reviewed IDs do not need another authoring run. The runner uses `/Users/terbeest/.local/bin/grok`, bounded turns, unique job caches and `benchmarks/_census/cache/eligible-run.lock`. The legacy quality-pause marker must remain present. A soft signal to the verified new supervisor PID lets current work finish without assigning further work; do not signal an entire process group casually. Reconcile every assigned ID and review before a selective checkpoint. Serving admission and coordinator checkpoint integration are still unfinished.

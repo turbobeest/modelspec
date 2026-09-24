@@ -428,7 +428,7 @@ def build_card(spec: tuple, hf: dict, config: dict[str, Any] | None) -> ModelCar
         prose_body=(
             f"# {display}\n\n"
             f"Carded from Hugging Face Hub [{hf_id}](https://huggingface.co/{hf_id}) "
-            f"because a live AA/LM Arena row had no catalogue card. "
+            f"because a live leaderboard row had no catalogue card. "
             f"{'Hub safetensors total {:,}. '.format(params) if params else 'Hub safetensors total not published; total_parameters left null. '}"
             "No benchmark evidence attached."
         ),

@@ -41,7 +41,7 @@ paper:
   arxiv: "2305.20050"
   url: "https://arxiv.org/abs/2305.20050"
   year: 2023
-leaderboard_url: "https://artificialanalysis.ai/evaluations/math-500"
+leaderboard_url: ""
 repo_url: "https://github.com/openai/prm800k"
 released: "2023-05"
 last_updated: ""
@@ -51,10 +51,10 @@ lineage:
   successors: []
   variants: []
 saturation:
-  status: saturated
-  top_score: 99.4
-  as_of: "2026-09"
-  note: "Artificial Analysis's independently run leaderboard has GPT-5 (high) at 99.4%, with o3, Grok 3 mini Reasoning (high), GPT-5 (medium) and Claude 4 Sonnet all at 99.1-99.2%; top models are separated by tenths of a point."
+  status: unknown
+  top_score: null
+  as_of: ""
+  note: "No current top score is recorded here from a source this catalogue can cite."
 contamination:
   risk: high
   note: "Answers and solutions are distributed in the open dataset. The source MATH corpus has circulated since 2021 and was the subject of a January 2025 DMCA takedown by Art of Problem Solving alleging over 10,000 of its 12,500 problems were copied from AoPS's Alcumus platform. Wu et al. 2025 (arXiv 2507.10532) report memorization-consistent behaviour by Qwen2.5-series models specifically on MATH-500."
@@ -93,9 +93,6 @@ sources:
     accessed: "2026-09-07"
   - url: "https://github.com/openai/simple-evals/blob/main/README.md"
     title: "openai/simple-evals README"
-    accessed: "2026-09-07"
-  - url: "https://artificialanalysis.ai/evaluations/math-500"
-    title: "MATH-500 Benchmark Leaderboard | Artificial Analysis"
     accessed: "2026-09-07"
   - url: "https://arxiv.org/abs/2507.10532"
     title: "Reasoning or Memorization? Unreliable Results of Reinforcement Learning Due to Data Contamination (Wu et al., 2025)"
@@ -151,8 +148,8 @@ Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever and Karl Cobbe 
 Verify Step by Step" (arXiv 2305.20050, posted May 2023, published at ICLR 2024). It builds on the
 MATH dataset published by Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart,
 Eric Tang, Dawn Song and Jacob Steinhardt at NeurIPS 2021. OpenAI's own simple-evals repository uses
-MATH-500 as its default math evaluation for o1-class models onward, and independent trackers such as
-Artificial Analysis run their own copy of the eval and publish current scores.
+MATH-500 as its default math evaluation for o1-class models onward, and independent trackers run
+their own copy of the eval and publish current scores.
 
 ## Lineage
 
@@ -164,14 +161,11 @@ MATH-500 cannot take, since its 500 problems and reference answers have been pub
 
 ## Saturation and contamination
 
-MATH-500 is saturated for frontier models. On Artificial Analysis's independently run leaderboard
-(accessed September 2026), GPT-5 (high) scores 99.4%, with o3, Grok 3 mini Reasoning (high), GPT-5
-(medium) and Claude 4 Sonnet all at 99.1-99.2%; the top of the leaderboard is separated by tenths of
-a point. Contamination risk is high: the answers are distributed in the open dataset, the source
+No current top score is recorded here from a source this catalogue can cite. Contamination risk is high: the answers are distributed in the open dataset, the source
 MATH corpus has circulated since 2021, and Wu et al. (arXiv 2507.10532, 2025) report
 memorization-consistent behaviour by Qwen2.5-series models specifically on MATH-500, which casts
-doubt on reinforcement-learning gains measured against it. A high score today separates strong
-models from each other by very little, and says nothing about whether that separation is genuine.
+doubt on reinforcement-learning gains measured against it. A high score says nothing about whether
+the separation between two models is genuine.
 
 ## How to run it
 

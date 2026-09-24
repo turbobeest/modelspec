@@ -671,71 +671,17 @@ availability:
 benchmarks:
   scores:
     arc_agi_2: 42.5
-    artificial_analysis_quality_index: 52.0
     charxiv_reasoning: 86.4
     deepsearchqa: 74.8
     healthbench_hard: 42.8
-    hle: 50.2
     ipho_2025_theory: 82.6
     frontierscience_research: 38.3
     medxpertqa_multimodal: 78.4
     terminal_bench_2: 59.0
     zerobench: 33.0
-  benchmark_source: meta-blog, officechai, artificial-analysis
+  benchmark_source: meta-blog, officechai
   benchmark_as_of: 2026-04
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Muse Spark
-    score: 78.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Muse Spark
-    score: 11.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Muse Spark
-    score: 28.82
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Muse Spark
-    score: 88.38
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: muse-spark
     score: 1488.05

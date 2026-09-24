@@ -6,12 +6,9 @@ import json
 
 from scripts.benchmarks.fetch import CachedPage
 from scripts.fetch_ranking_leaderboards import (
-    AA_URL,
     ARENA_URL,
     CardRef,
-    extract_aa,
     extract_arena,
-    parse_aa_models,
     parse_arena_snapshots,
     parse_stated_date,
     propose_explicit_maps,
@@ -51,43 +48,26 @@ def test_next_f_decoder_does_not_skip_later_payloads() -> None:
     assert any("models" in body for body in bodies)
 
 
-def test_aa_extracts_ranked_components_not_the_index() -> None:
-    html = _next_f(
-        {
-            "models": [
-                {
-                    "shortName": "GPT-6 Astra (max)",
-                    "slug": "gpt-6-astra",
-                    "intelligenceIndex": 52.8,
-                    "gpqa": 0.9606,
-                    "scicode": 0.5648,
-                    "lcr": 0.8067,
-                    "gdpvalNormalized": 0.5401,
-                    "critpt": 0.3171,
-                    "mmmuPro": 0.86,
-                    "terminalbenchV40": 0.59,
-                }
-            ]
-        }
+def _arena_html(rating: float = 1507.164) -> str:
+    """One style-control overall snapshot, in the flight-payload shape the parser reads."""
+    return (
+        "<script>self.__next_f.push("
+        + json.dumps(
+            [
+                1,
+                '15:["$","main",null,{"leaderboard":{"id":'
+                '"leaderboard-sets/public/leaderboards/text-overall-style_control/'
+                'leaderboard-snapshots/latest","entries":'
+                + json.dumps(
+                    [{"modelDisplayName": "claude-fable-5", "rating": rating, "votes": 1}],
+                    separators=(",", ":"),
+                )
+                + "}}]",
+            ],
+            separators=(",", ":"),
+        )
+        + ")</script>"
     )
-    models = parse_aa_models(html)
-    assert len(models) == 1
-    scores, refusals = extract_aa(_page(AA_URL, html, "2026-09-08"), ranked_benchmarks())
-    by_bench = {s.benchmark_id: s for s in scores}
-    assert by_bench["gpqa_diamond"].score == 96.06
-    assert by_bench["scicode"].unit == "percent"
-    assert by_bench["aa_lcr"].score == 80.67
-    assert by_bench["gdpval_aa"].score == 54.01
-    assert by_bench["critpt"].evidence_date == "2026-09-08"
-    assert by_bench["critpt"].date_type == "evaluated"
-    assert by_bench["critpt"].date_source == "observation_fetch_date"
-    ids = {s.benchmark_id for s in scores}
-    assert "mmmu" not in ids
-    assert "terminal_bench" not in ids
-    causes = {r.extra: r.cause for r in refusals}
-    assert causes["intelligenceIndex"] == "aa_field_not_ranked"
-    assert causes["mmmuPro"] == "aa_field_not_ranked"
-    assert causes["terminalbenchV40"] == "aa_field_not_ranked"
 
 
 def test_arena_maps_style_control_overall_only() -> None:
@@ -159,22 +139,9 @@ def test_arena_maps_style_control_overall_only() -> None:
 
 
 def test_stated_date_is_preferred_over_observation() -> None:
-    html = "Last updated 2026-09-01\n" + _next_f(
-        {
-            "models": [
-                {
-                    "shortName": "Gemma 4 31B IT",
-                    "gpqa": 0.843,
-                    "scicode": None,
-                    "lcr": None,
-                    "gdpvalNormalized": None,
-                    "critpt": None,
-                }
-            ]
-        }
-    )
+    html = "Last updated 2026-09-01\n" + _arena_html()
     assert parse_stated_date(html) == "2026-09-01"
-    scores, _ = extract_aa(_page(AA_URL, html, "2026-09-10"), ranked_benchmarks())
+    scores, _ = extract_arena(_page(ARENA_URL, html, "2026-09-10"), ranked_benchmarks())
     assert scores[0].evidence_date == "2026-09-01"
     assert scores[0].date_source == "stated_on_page"
 
@@ -242,19 +209,5 @@ def test_propose_maps_exact_display_and_canonical_max_only() -> None:
 
 
 def test_cache_observation_date_is_not_today_when_meta_says_otherwise() -> None:
-    html = _next_f(
-        {
-            "models": [
-                {
-                    "shortName": "X",
-                    "gpqa": 0.5,
-                    "scicode": None,
-                    "lcr": None,
-                    "gdpvalNormalized": None,
-                    "critpt": None,
-                }
-            ]
-        }
-    )
-    scores, _ = extract_aa(_page(AA_URL, html, "2026-08-01"), ranked_benchmarks())
+    scores, _ = extract_arena(_page(ARENA_URL, _arena_html(), "2026-08-01"), ranked_benchmarks())
     assert scores[0].evidence_date == "2026-08-01"

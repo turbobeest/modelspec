@@ -15,8 +15,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from scripts.curation import draft, propose, watch  # noqa: E402
 from scripts.curation.classify import classify  # noqa: E402
 
-PAGE_ID = "aa_lcr"
-LB = "https://artificialanalysis.ai/evaluations/artificial-analysis-long-context-reasoning"
+PAGE_ID = "arena_elo"
+LB = "https://lmarena.ai/leaderboard"
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def test_volatile_tokens_are_not_noise():
 def test_changed_source_detected_and_classified(bench, tmp_path):
     state = tmp_path / "state"
     run(bench, state, fake_fetcher({}))
-    changed = {LB: watch.FetchResult(url=LB, status=200, text=f"<p>stable {LB}</p><p>AA-LCR v2.0 released</p>")}
+    changed = {LB: watch.FetchResult(url=LB, status=200, text=f"<p>stable {LB}</p><p>Arena v2.0 released</p>")}
     rep = run(bench, state, fake_fetcher(changed))
     assert len(rep["changes"]) == 1
     c = rep["changes"][0]
@@ -120,9 +120,9 @@ def test_firecrawl_cap_zero_blocks_firecrawl(bench, tmp_path, monkeypatch):
         raise AssertionError("Firecrawl must not be called with cap 0")
     monkeypatch.setattr(fc, "scrape", boom)
     monkeypatch.setattr(fc, "resolve_key", boom)
-    budget = watch.FirecrawlBudget(cap=0, allow={"artificialanalysis.ai"})
+    budget = watch.FirecrawlBudget(cap=0, allow={"lmarena.ai"})
     rep = watch.watch([PAGE_ID], tmp_path / "s", bench_dir=bench, fetcher=fake_fetcher({}),
-                      firecrawl=budget, js_hosts={"artificialanalysis.ai"}, max_workers=2)
+                      firecrawl=budget, js_hosts={"lmarena.ai"}, max_workers=2)
     assert rep["firecrawl"]["calls"] == 0
     assert LB in rep["needs_js_not_rendered"]
 
@@ -337,7 +337,7 @@ def test_empty_firecrawl_key_never_calls_firecrawl(monkeypatch, tmp_path, bench)
     monkeypatch.setattr(fc, "scrape", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no firecrawl")))
     monkeypatch.delenv("FIRECRAWL_API_KEY", raising=False)
     monkeypatch.setattr(watch, "http_fetch", fake_fetcher({}))
-    monkeypatch.setattr(watch, "load_scrape_allow", lambda: {"artificialanalysis.ai"})
+    monkeypatch.setattr(watch, "load_scrape_allow", lambda: {"lmarena.ai"})
     rep = tmp_path / "rep"
     assert watch.main(["--pages", PAGE_ID, "--state-dir", str(tmp_path / "s"), "--report-dir", str(rep),
                        "--firecrawl-credit-cap", "10", "--firecrawl-key-from-env"]) == 0
