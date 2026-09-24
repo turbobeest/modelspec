@@ -3,19 +3,21 @@
     python -m pipeline.holding build --src dist --out dist-holding
     python -m pipeline.holding mode        # prints `live` or `holding`
 
-`pipeline.build` always builds the real site. This module derives the holding
-trees from it, and `.github/workflows/deploy-sites.yml` decides which of the two
-goes to production:
+`pipeline.build` always builds the real site. This module derives the modelspec
+holding tree from it, and copies `dist/benchgraph` unchanged.
+`.github/workflows/deploy-sites.yml` decides which tree goes to production:
 
 * `SITE_MODE` holding (unset, empty, or anything but the exact string `live`):
-  the real site goes to the Pages preview branch `internal`, for testing, and
-  the holding trees go to `main`, which serves modelspec.dev and benchgraph.dev.
-* `SITE_MODE=live`: the real site goes to both.
+  the real modelspec site goes to the Pages preview branch `internal`, for
+  testing, and the modelspec holding tree goes to `main`, which serves
+  modelspec.dev. benchgraph.dev gets the same `_redirects` file either way.
+* `SITE_MODE=live`: the real modelspec site goes to production as well.
+  benchgraph.dev still gets that same `_redirects` file.
 
 A missing variable therefore fails closed: no merge can bring the old site back
 by accident.
 
-What a holding tree is, and why:
+What the modelspec holding tree is, and why:
 
 * **Copied, not rebuilt.** `/api/**`, `/legal/**` and `openapi.yaml` are copied
   byte for byte from the real build, so what the CLI (`modelspec snapshot
@@ -28,14 +30,21 @@ What a holding tree is, and why:
 * **A 404, not a redirect.** Every other path (model and benchmark pages, the
   wizard, the explorer, /pricing, llms.txt, the Markdown twins, .well-known)
   is absent, and Pages answers a missing path with `404.html`, which is the
-  holding page. A `_redirects` splat would also catch `/api/*`, because Pages
-  applies redirects before it looks for a file.
+  holding page. A `_redirects` splat on this host would also catch `/api/*`,
+  because Pages applies redirects before it looks for a file.
 * **No Pages Function.** No `_worker.js`, `functions/` or `_routes.json`, so no
   code runs in front of the files and nothing negotiates Markdown.
 * **noindex, still crawlable.** `X-Robots-Tag: noindex` on every response and a
   robots meta tag on the page, with no `Link` header advertising llms.txt or a
   sitemap. robots.txt allows everything, since a crawler barred from a page
   never reads its noindex, and names no sitemap.
+
+benchgraph.dev (MODEL-126) is not a holding tree. `pipeline.build` publishes
+one `_redirects` file there, and this module copies those bytes into
+`dist-holding/benchgraph`. A holding page on that host would publish no
+`/api/`, so `benchgraph.dev/api/*` would stop answering. The redirect sends
+pages to modelspec.dev's holding 404, and `/api/*` to the `/api/**` this
+module copies onto modelspec.dev.
 """
 
 from __future__ import annotations
@@ -50,10 +59,11 @@ MODE_ENV = "SITE_MODE"
 LIVE = "live"
 HOLDING = "holding"
 
-SITES = {"modelspec": "ModelSpec", "benchgraph": "benchgraph"}
+SITES = {"modelspec": "ModelSpec"}
 
 #: What is copied from the real build, byte for byte. Directories whole.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts"), "benchgraph": ("api",)}
+#: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts")}
 KEEP_FILES = ("openapi.yaml", "favicon.ico", "favicon-64.png", "apple-touch-icon.png",
               "icon-512.png", "icon.svg")
 #: What this module writes itself.
@@ -114,8 +124,27 @@ def page(site: str) -> str:
     )
 
 
+def require_benchgraph_redirect(real: Path) -> None:
+    """Fail unless `real` is the one `_redirects` file with the two rules.
+
+    benchgraph.dev has no pages and no `/api/` of its own. Anything else in
+    this directory means the build and the redirect contract have drifted.
+    """
+    if not real.is_dir():
+        raise FileNotFoundError(f"{real} is missing; run pipeline.build first")
+    entries = sorted(path.relative_to(real).as_posix() for path in real.rglob("*"))
+    redirect = real / "_redirects"
+    if entries != ["_redirects"] or not redirect.is_file():
+        raise ValueError(f"{real} must be exactly _redirects, found {entries}")
+    from pipeline.build import BENCHGRAPH_REDIRECTS
+    text = redirect.read_text(encoding="utf-8")
+    if text != BENCHGRAPH_REDIRECTS:
+        raise ValueError(f"{redirect} is not the two benchgraph redirect rules")
+
+
 def build(src: Path, out: Path) -> dict[str, list[str]]:
-    """Write the holding trees for both sites under `out`, from the real build at `src`."""
+    """Write the modelspec holding tree under `out`, and copy the benchgraph redirect."""
+    require_benchgraph_redirect(src / "benchgraph")
     if out.exists():
         shutil.rmtree(out)
     kept: dict[str, list[str]] = {}
@@ -139,6 +168,7 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
         (tree / "404.html").write_text(html, encoding="utf-8")
         (tree / "_headers").write_text(HEADERS, encoding="utf-8")
         (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
+    shutil.copytree(src / "benchgraph", out / "benchgraph")
     return kept
 
 
@@ -197,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     for name, items in kept.items():
         print(f"{name}: kept {', '.join(items)}; wrote {', '.join(WRITTEN)}")
+    print("benchgraph: copied _redirects")
     return 0
 
 
