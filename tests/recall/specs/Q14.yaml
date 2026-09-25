@@ -7,6 +7,6 @@ where:
   - model.class = text-generator
   - model.input_modalities in {image}
   - model.weights_openness = closed_weights
-optimize: {max: arena_elo_vision @independent @max_effort}
+optimize: {max: arena_elo_vision @independent}
 explain: full
 limit: 3
