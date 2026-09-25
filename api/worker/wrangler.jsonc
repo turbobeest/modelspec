@@ -5,8 +5,8 @@
 // that: CPython and V8 already disagree by one ULP on `log10` for values in this
 // catalogue, and the composite is rounded to two decimals after those terms are
 // summed. So the Worker runs the repository's own `pipeline/ranking.py`, copied
-// into `python_modules/` verbatim by `api/worker/vendor.py` at build time and
-// never committed. See docs/rank-api.md.
+// beside this entry point by `api/worker/vendor.py` at build time and never
+// committed. See docs/rank-api.md.
 //
 // Deployed by .github/workflows/rank-api.yml (job `deploy`) on push to main
 // only. No hand deploys: the smoke test is what proves a deploy landed.
@@ -16,6 +16,12 @@
   "main": "src/entry.py",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["python_workers", "disable_python_external_sdk"],
+  // Registry files are runtime data read by decision/registry.py. Python files
+  // under src/ are discovered automatically; non-Python files need a module
+  // rule or Wrangler leaves them out of the upload.
+  "rules": [
+    { "type": "Data", "globs": ["registry/*.yaml"], "fallthrough": true }
+  ],
   "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,
   // A Workers route, not a Custom Domain: the CI token

@@ -113,9 +113,12 @@ EXAMPLE_DECIDE_REQUEST: dict[str, Any] = {
 
 def _load(name: str):
     """Import a Worker module from its path; it is not an installed package."""
-    for path in (str(REPO_ROOT), str(SRC)):
-        if path not in sys.path:
-            sys.path.insert(0, path)
+    # insert(0) reverses this order. Keep the complete repository packages
+    # ahead of the generated Worker subset while this build-time tool runs.
+    for path in (str(SRC), str(REPO_ROOT)):
+        while path in sys.path:
+            sys.path.remove(path)
+        sys.path.insert(0, path)
     spec = importlib.util.spec_from_file_location(f"modelspec_worker_{name}", SRC / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

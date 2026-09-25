@@ -221,6 +221,7 @@ def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -
     bundle = vendor.build(tmp_path / "python_modules")
 
     required = {
+        Path("api/classes.py"),
         Path("decision/contract.py"),
         Path("decision/engine.py"),
         Path("decision/snapshot.py"),
