@@ -360,7 +360,7 @@ def test_numeric_list_fact_values_are_measurements_not_counts(tmp_path):
             )
         ],
     )
-    origins = list(number_origins(decision, index))
+    origins = [o for o in number_origins(decision, index) if o.path.startswith("/top/")]
     assert [o.basis for o in origins] == ["snapshot measurement", "snapshot measurement"]
     assert all(o.records == ["lab/a#sizes"] for o in origins)
 

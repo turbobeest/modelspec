@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.1**
+Contract version: **1.2**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -141,7 +141,10 @@ not(licence.commercial_use = prohibited)
 - **Windows:** `facet in [low, high]`, both ends inclusive. The ends are both
   numbers or both dates, and `low <= high`.
 - **Sets:** `facet in {a, b}` and `facet not in {a, b}`. The engine sorts set
-  values and removes duplicates.
+  values and removes duplicates. On a facet whose value is itself a set, such
+  as `model.input_modalities` or `origin.lab_jurisdiction`, `in` passes when
+  the model's set holds at least one listed value, and `not in` passes only
+  when it holds none of them.
 - **Existence:** `known(facet)` passes when the value is known. It is never
   unknown itself, so it takes no unknown policy.
 - **Relative:** `facet op model(<model ID>)` compares against another model's
@@ -200,7 +203,7 @@ facet.
 | `@max_effort` | `effort: max` | Evidence run at the model's maximum effort. |
 | `@effort(x)` | `effort: x` | Evidence run at effort `x`. |
 | `@harness(x)` | `harness: x` | Evidence run inside harness `x`, a `name@major.minor` ID. |
-| `@direct` | `direct: true` | Direct evidence only; proxies are excluded. |
+| `@direct` | `direct: true` | Direct evidence only; proxies are excluded. Directness is relative to the spec's `capabilities`: the benchmark must be tagged `direct` for one of them. With no `capabilities`, a `direct` tag for any domain is enough. |
 | `measured_after <date>` | `measured_after` | Evidence dated after the given date. |
 
 Two qualifiers that set the same thing differently, such as `@independent
@@ -294,7 +297,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.1",
+  "contract_version": "1.2",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -344,25 +347,27 @@ same canonical representation it had in 1.0.
      "dimension": "-offering.price.output", "threshold": 0.35, "new_top": "openai/gpt-6-sol"}
   ],
   "relax": [],
-  "warnings": []
+  "warnings": [],
+  "out_of_lineup": 1334
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.1"`. |
+| `contract_version` | `"1.2"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
-| `may_qualify` | Models not ranked because a condition could not be evaluated. Each lists the facets it is `unknown` on, and an `offering` when the unknown is offering-level. |
+| `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
 | `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. The per-model `models` list, each with the `model`, the `condition` it failed and the `value` it had. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. |
 | `warnings` | Codes about the decision as a whole. |
+| `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 
 **`status`:**
 
@@ -370,8 +375,16 @@ same canonical representation it had in 1.0.
 - `partial`: results were returned, but part of the spec could not be
   addressed, for example a requested capability with no evidence for any
   result. `warnings` says which part.
-- `no_feasible`: no candidate satisfies the hard conditions. `results` is empty
-  and `relax` names the fewest conditions to relax.
+- `no_feasible`: no candidate satisfies the hard conditions, or none that does
+  has a value for the objective. `results` is empty and `relax` names the
+  fewest conditions to relax, or the reason no result could be ranked.
+
+**The lineup.** A decision ranges over the snapshot's lineup. A snapshot built
+from a premier list (slice 1: `premier/slice-1.yaml`) holds only the premier
+models and their offerings, plus the live archive of retired models. Retired
+models enter a decision only when a condition asks for lifecycle `retired`.
+Every other catalogue model is left out and counted in `out_of_lineup`; it is
+never listed as a candidate or in `may_qualify`.
 
 ### A result
 
@@ -391,14 +404,20 @@ same canonical representation it had in 1.0.
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
 `unit`, `n` (a count, for outcome rates), `measured_by`, `effort`, `harness`,
-`date`, `date_type`, `source` (the URL it was read from), `source_snapshot`
-(the content hash of the retained copy) and `directness`.
+`harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
+from), `source_snapshot` (the content hash of the retained copy) and
+`directness`.
 
 - `measured_by` is one of `benchmark_author`, `independent`,
   `provider_self_report`, `modelspec`, `outcome_protocol`.
 - `date_type` is `observed` (a live leaderboard, dated by when it was read) or
   `published` (a paper or launch post, dated by publication).
 - `directness` is `direct` or `proxy`, relative to the requested domain.
+- `harness` is a registered `name@major.minor` ID or null. When the evidence
+  names a harness the registry does not know, `harness` is null and
+  `harness_unregistered` is `true` (the registry reports such a harness as
+  `unregistered`, never as free text). Otherwise `harness_unregistered` is
+  `false`.
 
 Only verified evidence reaches a decision; quarantined values never do.
 
@@ -513,6 +532,15 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **1.2 — MODEL-157:** Additive. A decision adds `out_of_lineup`, the count of
+  active catalogue models outside the snapshot's premier lineup. An evidence
+  item adds `harness_unregistered`; `harness` keeps its range, so a 1.1 client
+  never sees a value it cannot parse. Behaviour, not shape: a feasible model
+  without an objective value moves to `may_qualify` instead of being ranked
+  last, `@direct` is read against the spec's `capabilities`, and `in` and
+  `not in` on a set-valued facet test for a shared value (before, `in` failed
+  every known set and `not in` passed every one).
 
 - **1.1 — MODEL-148:** Objective terms accept evidence qualifiers. This is an
   additive input change; unqualified spec hashes retain their 1.0 canonical

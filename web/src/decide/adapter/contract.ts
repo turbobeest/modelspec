@@ -33,6 +33,7 @@ export const evidenceItemSchema = z
     ]),
     effort: nullableString,
     harness: nullableString,
+    harness_unregistered: z.boolean().optional().default(false),
     date: z.iso.date(),
     date_type: z.enum(["published", "observed"]),
     source: z.url(),
@@ -144,7 +145,7 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.literal("1.1"),
+    contract_version: z.enum(["1.1", "1.2"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
@@ -210,6 +211,7 @@ export const decisionSchema = z
     ),
     relax: z.array(z.string()),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)),
+    out_of_lineup: z.number().int().nonnegative().optional().default(0),
   })
   .strict();
 

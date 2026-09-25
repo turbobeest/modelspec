@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decision.contract import Contribution, DomainEvidence, EvidenceItem
+from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
 
 
@@ -51,6 +52,7 @@ def evidence_item(snapshot, row, domain):
         raise ExplanationError(f"{row.record_id}: evidence differs from retained record")
     measured = {"independent_evaluator": "independent"}.get(row.measured_by, row.measured_by)
     date_type = {"evaluated": "observed"}.get(row.date_type, row.date_type)
+    unregistered = row.harness == UNREGISTERED
     return EvidenceItem(
         requested_domain=domain,
         record_id=row.record_id,
@@ -61,7 +63,8 @@ def evidence_item(snapshot, row, domain):
         unit=row.unit,
         measured_by=measured,
         effort=row.effort,
-        harness=row.harness,
+        harness=None if unregistered else row.harness,
+        harness_unregistered=unregistered,
         date=row.date,
         date_type=date_type,
         source=snapshot.source_url(row.source_ids[0]),
@@ -300,11 +303,6 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                     model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators)
                 )
             )
-        for cid in ordered.missing:
-            ref = offering_ref(snapshot, cid)
-            decision.eliminated.models.append(
-                ModelElimination(model=ref.model, offering=ref, condition="missing objective value")
-            )
         for row in ordered.results[len(decision.results) :]:
             ref = offering_ref(snapshot, row.candidate_id)
             decision.eliminated.models.append(
@@ -464,6 +462,8 @@ def number_origins(decision, snapshot):
             basis = "feasible-set min-max normalisation of snapshot measurements"
         elif key == "n":
             basis = "sample count from snapshot evidence"
+        elif path == "/out_of_lineup":
+            basis = "count of active models the snapshot build left outside the premier lineup"
         else:
             basis = "count or ordinal from snapshot candidates after filtering and optimisation"
         records = sorted(set(records) or all_records)

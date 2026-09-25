@@ -43,6 +43,7 @@ def build(
     lineup = len(built.content["lineup"]["candidates"])
     typer.echo(f"{built.snapshot_id} {built.content_hash}")
     typer.echo(f"{lineup} candidates in the lineup, "
-               f"{len(built.content['archive']['candidates'])} in the archive; "
+               f"{len(built.content['archive']['candidates'])} in the archive, "
+               f"{built.content['out_of_lineup']} models outside the premier lineup; "
                f"{'signed' if signed else f'unsigned ({snap.KEY_ENV} not set)'}")
     typer.echo(f"written to {out}")

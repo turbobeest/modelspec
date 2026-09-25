@@ -5,7 +5,8 @@ import type { HostedDecisionEngine } from "../adapter/hosted";
 import type { Question } from "../engine/reference";
 
 const decision = (count: number): Decision => ({
-  contract_version: "1.1",
+  contract_version: "1.2",
+  out_of_lineup: 0,
   decision_id: `dec_${String(count).padStart(8, "0")}`,
   snapshot: "snap_question_test",
   spec_hash: `sha256:${"a".repeat(64)}`,

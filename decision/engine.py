@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
+from dataclasses import replace
 from itertools import combinations
 
 from decision.contract import (
@@ -32,6 +33,19 @@ def offering_ref(snapshot, cid: str) -> OfferingRef:
             for key in ("provider", "region", "tier")
         },
     )
+
+
+def split_missing(ordered):
+    """Rank only complete rows; a missing objective value is a capability unknown.
+
+    Principle 1 of the design: unknown means may qualify, never ranked last
+    and never dropped. Returns the ranked stage result and, per candidate
+    without a value, the objective facets it is unknown on.
+    """
+    missing = set(ordered.missing)
+    ranked = tuple(row for row in ordered.results if row.candidate_id not in missing)
+    return replace(ordered, results=ranked), {
+        cid: list(ordered.unknown.get(cid, ())) for cid in ordered.missing}
 
 
 def run_optimise(snapshot, filtered, spec, selectors, domains):
@@ -64,6 +78,7 @@ def decide(
         snapshot.require_explanation_records()
     resolved = resolve(spec, facets=facets, profiles=profiles)
     domains = frozenset(snapshot.domain_ids())
+    requested = frozenset(spec.capabilities or {})
     selectors = dict(evidence_selectors or {})
     objective = spec.optimize
     names = (
@@ -81,11 +96,13 @@ def decide(
             selectors.setdefault(
                 name,
                 EvidenceSelector.from_qualifiers(
-                    name, resolved.objective_qualifiers.get(name)
+                    name, resolved.objective_qualifiers.get(name), domains=requested
                 ),
             )
     filtered = apply(resolved, snapshot)
-    ordered = run_optimise(snapshot, filtered, spec, selectors, domains)
+    ordered, objective_unknown = split_missing(
+        run_optimise(snapshot, filtered, spec, selectors, domains)
+    )
     digest = spec_hash(spec)
     results = [
         Result(
@@ -100,8 +117,6 @@ def decide(
     relax = []
     if ordered.status == "no_feasible":
         # Search condition groups in increasing cardinality; preserve soft penalties.
-        from dataclasses import replace
-
         from decision.contract import render_condition
 
         hard = [i for i, c in enumerate(resolved.conditions) if c.soft is None]
@@ -134,12 +149,16 @@ def decide(
         relax=relax,
         may_qualify=[
             MayQualify(
-                model=snapshot.model_of(m.candidate),
-                offering=offering_ref(snapshot, m.candidate),
-                unknown=list(m.unknown),
+                model=snapshot.model_of(cid),
+                offering=offering_ref(snapshot, cid),
+                unknown=unknown,
             )
-            for m in filtered.may_qualify
+            for cid, unknown in sorted(
+                [(m.candidate, list(m.unknown)) for m in filtered.may_qualify]
+                + list(objective_unknown.items())
+            )
         ],
+        out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
     if spec.explain != "none":
         from decision.explain import explain

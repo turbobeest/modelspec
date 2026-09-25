@@ -30,10 +30,13 @@ class EvidenceSelector:
     harness: str | None = None
     after: date | None = None
     direct: bool = False
+    #: The capabilities asked about; ``direct`` is relative to them.
+    domains: frozenset[str] = frozenset()
 
     @classmethod
     def from_qualifiers(
-        cls, benchmark_id: str, qualifiers: EvidenceQualifiers | None
+        cls, benchmark_id: str, qualifiers: EvidenceQualifiers | None,
+        domains: frozenset[str] = frozenset(),
     ) -> EvidenceSelector:
         qualifiers = qualifiers or EvidenceQualifiers()
         measured = {
@@ -55,6 +58,7 @@ class EvidenceSelector:
             harness=qualifiers.harness,
             after=qualifiers.measured_after,
             direct=qualifiers.direct,
+            domains=frozenset(domains),
         )
 
 
@@ -116,6 +120,8 @@ class Optimisation:
     dominance: dict[str, tuple[str, ...]] = field(default_factory=dict)
     missing: tuple[str, ...] = ()
     tipping_points: tuple[WeightTippingPoint, ...] = ()
+    #: Each missing candidate's objective facets without a value, unsigned.
+    unknown: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 def _number(value: object) -> float | None:
@@ -196,14 +202,15 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
         fact = snapshot.fact(cid, facet)
         value = _number(fact.value) if fact.state == "known" else None
         return value, fact.sources, ()
+    if selector.direct and not snapshot.direct_for(selector.benchmark_id, selector.domains):
+        return None, (), ()
     evidence = snapshot.evidence(
         cid, selector.benchmark_id,
         measured_by=set(selector.measured_by) if selector.measured_by is not None else None,
         effort=selector.effort, harness=selector.harness, after=selector.after)
     matches = [e for e in evidence if e.verified and _number(e.value) is not None
                and (selector.version is None or e.version == selector.version)
-               and e.subcategory == selector.subcategory
-               and (not selector.direct or e.directness == "direct")]
+               and e.subcategory == selector.subcategory]
     # Multiple measurements need a resolver decision, not an implicit max or average.
     if len(matches) != 1:
         return None, (), ()
@@ -264,8 +271,12 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                               ("missing_objective_value",) if unknown else ())
         (missing if unknown else complete).append(row)
     missing_ids = tuple(row.candidate_id for row in missing)
+    unknown = {row.candidate_id: tuple(c.dimension.removeprefix("-")
+                                       for c in row.contributions if c.value is None)
+               for row in missing}
     if not complete:
-        return Optimisation("no_feasible", (), "no complete objective values", missing=missing_ids)
+        return Optimisation("no_feasible", (), "no complete objective values", missing=missing_ids,
+                            unknown=unknown)
     dominance = {}
     if objective.pareto is not None:
         for row in complete:
@@ -285,4 +296,5 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
     points = _tipping_points([row for row in ordered if row.score is not None]) \
         if objective.weights is not None else ()
     return Optimisation("partial" if missing else "answered", tuple(ordered),
-                        dominance=dominance, missing=missing_ids, tipping_points=points)
+                        dominance=dominance, missing=missing_ids, tipping_points=points,
+                        unknown=unknown)

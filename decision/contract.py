@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.1"
+CONTRACT_VERSION = "1.2"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1010,11 +1010,20 @@ class EvidenceItem(_Strict):
     measured_by: MeasuredBy
     effort: Effort | None = None
     harness: HarnessId | None = None
+    #: The evidence names a harness the registry does not know (MODEL-133's
+    #: ``unregistered``). ``harness`` is then null. Added in 1.2.
+    harness_unregistered: bool = False
     date: date
     date_type: DateType
     source: Url
     source_snapshot: str | None = None
     directness: Directness
+
+    @model_validator(mode="after")
+    def _one_harness(self) -> EvidenceItem:
+        if self.harness_unregistered and self.harness is not None:
+            raise ValueError("an unregistered harness has no harness ID")
+        return self
 
 
 class DomainEvidence(_Strict):
@@ -1137,7 +1146,7 @@ class Decision(_Strict):
     top: list[CandidateValues] = Field(default_factory=list)
     chart: str | None = None
     number_origins: list[NumberOrigin] = Field(default_factory=list)
-    contract_version: Literal["1.1"] = CONTRACT_VERSION
+    contract_version: Literal["1.2"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1150,6 +1159,8 @@ class Decision(_Strict):
     tipping_points: list[TippingPoint] = Field(default_factory=list)
     relax: list[str] = Field(default_factory=list)
     warnings: list[Code] = Field(default_factory=list)
+    #: Active models the snapshot leaves out of the lineup. Added in 1.2.
+    out_of_lineup: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
