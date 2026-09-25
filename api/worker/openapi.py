@@ -3,16 +3,17 @@
 The spec is **not** written by hand. Everything a caller could build a wrong
 request from — the accepted fields, the enums, the limits, the status codes, the
 error codes, the shape of a ranked row or a policy verdict — is read out of the
-implementation. It covers both endpoints the Worker serves: `POST /v1/rank`
-(MODEL-68) and `POST /v1/policy-check` (MODEL-80).
+implementation. It covers `POST /v1/rank` (MODEL-68), `POST /v1/decide`
+(MODEL-151), and `POST /v1/policy-check` (MODEL-80).
 
-* the request vocabulary comes from `rank_service`, `policy_service` and
+* the request vocabulary comes from `rank_service`, `decision.contract`,
+  `policy_service` and
   `api.ranking.engine` (`USE_CASE_PROFILES`, `HOSTING_MODES`, `KNOWN_RUNTIMES`,
   `MAX_LIMIT`, `MAX_BODY_BYTES`, the `HTTP_*` constants, and the field sets
   `policy_service._reject_unknown` is called with, read from its syntax tree);
-* every response schema is **inferred from a real response**: this module builds
-  small synthetic exports, calls `rank_service.rank`, `policy_service.check` and
-  both `error_response`s, and describes the bodies that come back. The ranked
+* every response schema comes from executable code: this module builds small
+  synthetic exports, calls `rank_service.rank`, `policy_service.check` and
+  both `error_response`s, and reads the decision models' generated schema. The ranked
   rows are `pipeline.ranking.rank_report` rows and the policy catalogue is
   built by `pipeline.policy_export` from real `ModelCard`s, so a field added to
   either appears in the spec on the next generation with nobody editing YAML;
@@ -23,8 +24,9 @@ implementation. It covers both endpoints the Worker serves: `POST /v1/rank`
   siblings' keys, so a spec-driven client cannot read an `undetermined` check
   as a pass;
 * the error codes are cross-checked against the source. `source_error_codes`
-  walks the syntax tree of `rank_service.py`, `policy_service.py` and
-  `entry.py` for every code any of them can emit, and generation **fails** if
+  walks the syntax tree of `rank_service.py`, `decide_service.py`,
+  `policy_service.py` and `entry.py` for every code any of them can emit, and
+  generation **fails** if
   one is not exercised here. A new refusal cannot be added to the Worker
   without appearing in the spec.
 
@@ -62,6 +64,7 @@ import ast
 import copy
 import importlib.util
 import json
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -99,6 +102,14 @@ EXAMPLE_REQUEST: dict[str, Any] = {
     "limit": 3,
 }
 
+EXAMPLE_DECIDE_REQUEST: dict[str, Any] = {
+    "spec_version": 1,
+    "capabilities": {"software_engineering": "required"},
+    "optimize": {"max": "software_engineering"},
+    "explain": "none",
+    "limit": 3,
+}
+
 
 def _load(name: str):
     """Import a Worker module from its path; it is not an installed package."""
@@ -112,6 +123,7 @@ def _load(name: str):
 
 
 service = _load("rank_service")
+decide_service = _load("decide_service")
 policy = _load("policy_service")
 sandbox = _load("access_sandbox")
 #: Imported by its own name, not `_load`ed: its dataclasses and its sibling
@@ -551,9 +563,13 @@ _POLICY_ERROR_PROBES: dict[str, tuple[dict[str, Any], bool]] = {
 #: Codes raised by the transport in `entry.py`, which cannot be driven from
 #: CPython (it imports the Workers runtime). Their statuses are read out of its
 #: syntax tree by `entry_error_codes`, not asserted here.
-_ENTRY_ONLY = {"not_found", "method_not_allowed", "payload_too_large", "export_unavailable",
-              "payment_required", "payment_failed", "invalid_payment", "x402_not_configured",
-              "credits_store_not_configured", "missing_holder"}
+_ENTRY_ONLY = {
+    "not_found", "method_not_allowed", "payload_too_large", "export_unavailable",
+    "payment_required", "payment_failed", "invalid_payment", "x402_not_configured",
+    "credits_store_not_configured", "missing_holder", "origin_not_allowed",
+    "snapshot_refused", "snapshot_unavailable",
+}
+_DECIDE_ONLY = {"invalid_spec", "no_snapshot", "snapshot_not_loaded"}
 
 
 def source_error_codes() -> set[str]:
@@ -563,7 +579,12 @@ def source_error_codes() -> set[str]:
     adding a refusal to the Worker and forgetting the docs is a failed build.
     """
     codes: set[str] = set()
-    for path in (SRC / "rank_service.py", SRC / "policy_service.py", SRC / "entry.py"):
+    for path in (
+        SRC / "rank_service.py",
+        SRC / "decide_service.py",
+        SRC / "policy_service.py",
+        SRC / "entry.py",
+    ):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             # RequestError("code", "message", ...)
@@ -571,10 +592,13 @@ def source_error_codes() -> set[str]:
                 name = node.func.id if isinstance(node.func, ast.Name) else None
                 if name == "RequestError" and node.args and isinstance(node.args[0], ast.Constant):
                     codes.add(str(node.args[0].value))
+                if (name == "error_response" and node.args
+                        and isinstance(node.args[0], ast.Constant)):
+                    codes.add(str(node.args[0].value))
             # {"code": "...", ...}
             if isinstance(node, ast.Dict):
                 for key, value in zip(node.keys, node.values):
-                    if (isinstance(key, ast.Constant) and key.value == "code"
+                    if (isinstance(key, ast.Constant) and key.value in {"code", "error"}
                             and isinstance(value, ast.Constant) and isinstance(value.value, str)):
                         codes.add(value.value)
     return codes
@@ -740,7 +764,8 @@ def _probe_policy_errors() -> dict[str, tuple[int, dict[str, Any]]]:
 
 def _check_every_code_is_probed(rank_errors: dict[str, Any],
                                 policy_errors: dict[str, Any]) -> None:
-    missing = source_error_codes() - set(rank_errors) - set(policy_errors) - _ENTRY_ONLY
+    missing = (source_error_codes() - set(rank_errors) - set(policy_errors)
+               - _ENTRY_ONLY - _DECIDE_ONLY)
     if missing:
         raise SystemExit(
             "the Worker can return error code(s) the spec would not document: "
@@ -1648,6 +1673,81 @@ def _policy_schemas(used: set[str]) -> dict[str, Any]:
     }
 
 
+def _decision_schemas() -> dict[str, Any]:
+    """Convert the generated decision-contract definitions to component refs."""
+    definitions = copy.deepcopy(decide_service.contract.json_schema()["$defs"])
+    names = {
+        name: "DecisionSpec" if name == "Spec" else
+        "DecisionResponse" if name == "Decision" else
+        "Decision" + name
+        for name in definitions
+    }
+
+    def rewrite(value):
+        if isinstance(value, dict):
+            return {
+                key: (
+                    "#/components/schemas/" + names[item.removeprefix("#/$defs/")]
+                    if key == "$ref" and isinstance(item, str) and item.startswith("#/$defs/")
+                    else rewrite(item)
+                )
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [rewrite(item) for item in value]
+        if isinstance(value, str):
+            return re.sub(
+                r"model\([a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*\)",
+                "model(lab/example-model)",
+                value,
+            )
+        return value
+
+    schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    schemas["DecisionRequestRefused"] = {
+        "type": "object",
+        "required": ["contract_version", "endpoint", "snapshot", "error"],
+        "properties": {
+            "contract_version": {
+                "type": "string",
+                "enum": [decide_service.contract.CONTRACT_VERSION],
+            },
+            "endpoint": {"type": "string", "enum": ["decide"]},
+            "snapshot": {"anyOf": [
+                {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                {"type": "null"},
+            ]},
+            "error": {
+                "type": "object",
+                "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string", "enum": sorted(
+                        _DECIDE_ONLY | {"payload_too_large", "snapshot_refused",
+                                        "snapshot_unavailable", "origin_not_allowed"}
+                    )},
+                    "message": {"type": "string"},
+                    "issues": {"type": "array", "items": {"type": "object"}},
+                },
+            },
+        },
+    }
+    schemas["DecisionSnapshotUnavailable"] = {
+        "type": "object",
+        "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+        "properties": {
+            "contract_version": {
+                "type": "string",
+                "enum": [decide_service.contract.CONTRACT_VERSION],
+            },
+            "endpoint": {"type": "string", "enum": ["decide"]},
+            "snapshot": {"type": "null"},
+            "error": {"type": "string", "enum": ["no_snapshot"]},
+            "message": {"type": "string"},
+        },
+    }
+    return schemas
+
+
 def build_spec() -> dict[str, Any]:
     # Two real answers, merged: the example request (whose `managed_api` hosting
     # populates `applied.unbound`) and a fully constrained one (which binds every
@@ -1693,6 +1793,7 @@ def build_spec() -> dict[str, Any]:
     for sample in _health_samples():
         health_schema = _merge(health_schema, _infer(sample))
     policy_schemas = _policy_schemas(used)
+    decision_schemas = _decision_schemas()
 
     access_errors = _access_refusals()
     access_error: dict[str, Any] = {}
@@ -1754,6 +1855,21 @@ def build_spec() -> dict[str, Any]:
                 "(access_not_configured)."),
         }
 
+    decision_unavailable = refused_by_access(
+        "The snapshot is not published, it cannot be verified, or a live key cannot "
+        "reach the access store. A no_snapshot response includes Retry-After.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/DecisionSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+        ]},
+    )
+    decision_unavailable["headers"] = {
+        "Retry-After": {
+            "description": "Seconds before retrying a no_snapshot response.",
+            "schema": {"type": "integer", "minimum": 1},
+        }
+    }
+
     security_schemes = {
         "bearer": {"type": "http", "scheme": "bearer",
                    "description": "Authorization: Bearer <key>. Takes precedence."},
@@ -1807,6 +1923,7 @@ def build_spec() -> dict[str, Any]:
             "x-transport-error-statuses": {code: entry_codes[code]
                                            for code in sorted(entry_codes)},
             "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
+                                    "/v1/decide": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
@@ -1903,6 +2020,51 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            "/v1/decide": {
+                "post": {
+                    "operationId": "decide",
+                    "summary": "Return a decision from the signed published snapshot.",
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/DecisionSpec"},
+                            "example": EXAMPLE_DECIDE_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": _json_body(
+                            "A decision pinned to the snapshot that produced it.",
+                            {"$ref": "#/components/schemas/DecisionResponse"},
+                        ),
+                        str(decide_service.HTTP_BAD_REQUEST): _json_body(
+                            "The body is not a contract-v1 spec.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_CONFLICT): _json_body(
+                            "The requested snapshot is not the snapshot loaded by this isolate.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/decide takes POST."
+                        )[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
+                            f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_BAD_GATEWAY): _json_body(
+                            "The published snapshot could not be fetched.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required when X402_ENABLED is on.",
+                            {"$ref": "#/components/schemas/PaymentRequired"},
+                        ),
+                        **access_responses(),
+                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
+                    },
+                },
+            },
             "/v1/policy-check": {
                 "post": {
                     "operationId": "policyCheck",
@@ -1963,6 +2125,7 @@ def build_spec() -> dict[str, Any]:
                 "Health": health_schema,
                 "NoMatch": error_envelope(no_match_schema),
                 "RequestRefused": error_envelope(refused_schema),
+                **decision_schemas,
                 **policy_schemas,
                 "PaymentRequired": error_envelope(_infer(
                     x402.payment_required_body(
@@ -2235,7 +2398,12 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
             if str(status) not in operation["responses"]:
                 failures.append(f"{path}: HTTP {status} is not in the spec")
                 continue
-            if data is not None and status != 200:
+            temporary_decision = (
+                path == "/v1/decide"
+                and status == decide_service.HTTP_SERVICE_UNAVAILABLE
+                and payload.get("error") == "no_snapshot"
+            )
+            if data is not None and status != 200 and not temporary_decision:
                 failures.append(f"{path}: the spec's own example returned HTTP {status}, "
                                 "not 200")
             schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]

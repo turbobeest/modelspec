@@ -29,10 +29,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # Pinned. 4.94.0 (the version graph-service uses) ships a workerd that refuses
-  # this Worker's compatibility_date, and a Python Worker is far more sensitive
-  # to the runtime it is bundled against than a JavaScript one.
-  WRANGLER: wrangler@4.134.0
+  # Pinned. Python dependencies are resolved by pywrangler, which delegates the
+  # final bundle to this local Wrangler installation.
+  WRANGLER_VERSION: 4.139.0
   RANK_HOST: api.modelspec.dev
 
 jobs:
@@ -44,8 +43,13 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           cache: pip
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.19'
+          enable-cache: true
 
       - uses: actions/setup-node@v4
         with:
@@ -69,6 +73,11 @@ jobs:
         # deploy time; this turns that into a failure on the pull request.
         run: python api/worker/vendor.py --check
 
+      - name: Resolve the Worker's Python dependencies
+        run: |
+          uv sync --project api/worker --frozen
+          npm install --prefix api/worker --no-save "wrangler@${WRANGLER_VERSION}"
+
       - name: Byte-identity against `modelspec offline rank --json`
         run: python -m pytest -q tests/test_rank_worker.py
 
@@ -91,7 +100,7 @@ jobs:
         working-directory: api/worker
         # --dry-run needs no credential, so the bundle is proven to build on
         # every pull request rather than first on main with a token in scope.
-        run: npx --yes "$WRANGLER" deploy --dry-run --outdir ../../dist/rank-worker
+        run: uv run --project . pywrangler deploy --dry-run --outdir ../../dist/rank-worker
 
       - name: Summarise
         run: |
@@ -121,12 +130,18 @@ jobs:
       # are different credentials and are not used here.
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.19'
+          enable-cache: true
 
       - uses: actions/setup-node@v4
         with:
@@ -135,10 +150,25 @@ jobs:
       - name: Vendor the scorer into the Worker bundle
         run: python api/worker/vendor.py
 
+      - name: Resolve the Worker's Python dependencies
+        run: |
+          uv sync --project api/worker --frozen
+          npm install --prefix api/worker --no-save "wrangler@${WRANGLER_VERSION}"
+
       - name: PyYAML, for the post-deploy spec probe
         # The only dependency `api/worker/openapi.py --probe` has. Everything
         # else it touches is the standard library, by design.
         run: python -m pip install "PyYAML==6.0.3"
+
+      - name: Sync the decision snapshot verification key
+        working-directory: api/worker
+        run: |
+          if [ -z "$MODELSPEC_SNAPSHOT_KEY" ]; then
+            echo "::warning::MODELSPEC_SNAPSHOT_KEY is not configured; skipping Worker secret sync"
+          else
+            printf '%s' "$MODELSPEC_SNAPSHOT_KEY" \
+              | uv run --project . pywrangler secret put MODELSPEC_SNAPSHOT_KEY
+          fi
 
       - name: Deploy
         working-directory: api/worker
@@ -150,7 +180,7 @@ jobs:
         # filesystem to read. Without it a presented key is refused
         # `access_not_configured` rather than metered against invented limits;
         # anonymous requests do not need it.
-        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}" --var "TIER_POLICY:$(jq -c . tiers.json)"
+        run: uv run --project . pywrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}" --var "TIER_POLICY:$(jq -c . tiers.json)"
 
       - name: Smoke-test api.modelspec.dev
         run: |
@@ -186,6 +216,15 @@ jobs:
           fail() {
             echo "::error::$1 — $(digest)"
             exit 1
+          }
+
+          fail_rank() {
+            echo "::warning::POST /v1/rank smoke failed; rolling back the Worker"
+            if ! (cd api/worker && npx --no-install wrangler rollback --message \
+              "Automatic rollback after /v1/rank smoke failure on ${GITHUB_SHA}"); then
+              echo "::error::the automatic Worker rollback failed"
+            fi
+            fail "$1"
           }
 
           # One top-level field of the last response, empty when the body is not
@@ -236,26 +275,30 @@ jobs:
           probe /v1/rank -X POST \
             -H 'content-type: application/json' \
             -d '{"use_case":"coding","environment":{"hosting":"managed_api"},"limit":3}'
-          if [ "$status" != 200 ]; then fail "POST /v1/rank returned HTTP ${status}, not 200"; fi
-          python3 "$checker" ranked body.json "$probe_path" "$status" || exit 1
+          if [ "$status" != 200 ]; then fail_rank "POST /v1/rank returned HTTP ${status}, not 200"; fi
+          if ! python3 "$checker" ranked body.json "$probe_path" "$status"; then
+            fail_rank "POST /v1/rank returned an invalid ranking"
+          fi
 
           # 4. A no-match names the constraint instead of returning an empty list.
           probe /v1/rank -X POST \
             -H 'content-type: application/json' \
             -d '{"use_case":"coding","environment":{"hosting":"local"},"constraints":{"max_cost_per_million_input_tokens":0.0}}'
-          if [ "$status" != 422 ]; then fail "a no-match request returned HTTP ${status}, not the documented 422"; fi
-          python3 "$checker" no-match body.json "$probe_path" "$status" || exit 1
+          if [ "$status" != 422 ]; then fail_rank "a no-match request returned HTTP ${status}, not the documented 422"; fi
+          if ! python3 "$checker" no-match body.json "$probe_path" "$status"; then
+            fail_rank "POST /v1/rank returned an invalid no-match refusal"
+          fi
 
           # 5. A malformed request is refused, not ranked on a guess.
           probe /v1/rank -X POST \
             -H 'content-type: application/json' -d '{"use_case":"not_a_use_case"}'
-          if [ "$status" != 400 ]; then fail "an unknown use case returned HTTP ${status}, not 400"; fi
+          if [ "$status" != 400 ]; then fail_rank "an unknown use case returned HTTP ${status}, not 400"; fi
 
           # 6. A verb the endpoint does not take is refused, not ranked on an
           #    empty body. The route covers the whole host now, so every method
           #    reaches the Worker rather than stopping at a 522.
           probe /v1/rank -X DELETE
-          if [ "$status" != 405 ]; then fail "DELETE /v1/rank returned HTTP ${status}, not the documented 405"; fi
+          if [ "$status" != 405 ]; then fail_rank "DELETE /v1/rank returned HTTP ${status}, not the documented 405"; fi
           probe /v1/health -X DELETE
           if [ "$status" != 405 ]; then fail "DELETE /v1/health returned HTTP ${status}, not the documented 405"; fi
           probe /v1/policy-check -X DELETE
@@ -283,7 +326,22 @@ jobs:
             -H 'content-type: application/json' -d '{"policy":{}}'
           if [ "$status" != 400 ]; then fail "an empty policy returned HTTP ${status}, not 400"; fi
 
-          # 10. MODEL-72: the published spec has to be usable on its own. This
+          # 10. The decision route either answers from a complete signed snapshot
+          #     or reports the rollout's expected temporary state.
+          probe /v1/decide -X POST \
+            -H 'content-type: application/json' \
+            -d '{"spec_version":1,"snapshot":"latest","explain":"none","limit":1}'
+          snapshot=$(field snapshot)
+          error=$(field error)
+          if [ "$status" = 200 ] && [ -n "$snapshot" ]; then
+            echo "decision endpoint loaded ${snapshot}"
+          elif [ "$status" = 503 ] && [ "$error" = "no_snapshot" ]; then
+            echo "::warning::decision snapshot is not published yet"
+          else
+            fail "POST /v1/decide returned neither a decision nor no_snapshot"
+          fi
+
+          # 11. MODEL-72: the published spec has to be usable on its own. This
           #    builds requests from api/worker/openapi.yaml with no knowledge of
           #    the implementation, sends them, and validates each answer against
           #    the spec's own schemas. A spec that describes a service nobody can

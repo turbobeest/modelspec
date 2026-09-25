@@ -704,6 +704,50 @@ def test_the_site_build_step_is_off_by_default():
     assert args.decision_snapshot is False
 
 
+def test_optional_site_snapshot_skips_an_unsigned_build(tmp_path, monkeypatch, capsys):
+    from pipeline import build as site_build
+
+    monkeypatch.delenv(snap.KEY_ENV, raising=False)
+    target = tmp_path / "api" / "decision" / "snapshot.json.gz"
+
+    published = site_build.write_decision_snapshot_if_ready(
+        tmp_path, target, premier=tmp_path / "premier.yaml", as_of=AS_OF
+    )
+
+    assert published is False
+    assert not target.exists()
+    assert capsys.readouterr().err.strip() == (
+        "::warning::decision snapshot not published: "
+        "MODELSPEC_SNAPSHOT_KEY is not configured"
+    )
+
+
+def test_optional_site_snapshot_reports_only_the_first_twenty_gaps(
+    tmp_path, monkeypatch, capsys
+):
+    from pipeline import build as site_build
+
+    root = _mini_repo(tmp_path)
+    missing = [f"lab/ghost-{index:02d}" for index in range(21)]
+    premier = root / "premier" / "slice-1.yaml"
+    premier.write_text("".join(f"- {model_id}\n" for model_id in missing))
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
+    target = tmp_path / "site" / "api" / "decision" / "snapshot.json.gz"
+
+    published = site_build.write_decision_snapshot_if_ready(
+        root, target, premier=premier, as_of=AS_OF
+    )
+
+    warning = capsys.readouterr().err
+    assert published is False
+    assert not target.exists()
+    assert "::warning::decision snapshot not published: completeness gate found 21 gaps" in warning
+    for model_id in missing[:20]:
+        assert model_id in warning
+    assert missing[20] not in warning
+
+
 def test_writer_stores_the_canonical_content_bytes(tmp_path):
     built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
     raw = gzip.decompress(built.to_bytes(key=KEY))

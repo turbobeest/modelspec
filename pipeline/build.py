@@ -271,14 +271,74 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
+def write_decision_snapshot_if_ready(
+    root: Path,
+    target: Path,
+    *,
+    premier: Path,
+    as_of: date,
+) -> bool:
+    """Publish only a complete, signed snapshot; warn when it is not ready."""
+    from decision import snapshot as decision_snapshot
+
+    target.unlink(missing_ok=True)
+    key = decision_snapshot.env_key()
+    if key is None:
+        print(
+            f"::warning::decision snapshot not published: {decision_snapshot.KEY_ENV} "
+            "is not configured",
+            file=sys.stderr,
+        )
+        return False
+
+    try:
+        built = decision_snapshot.build_from_repo(root, premier=premier, as_of=as_of)
+    except decision_snapshot.CompletenessError as exc:
+        gaps = " | ".join(str(gap) for gap in exc.gaps[:20])
+        remainder = len(exc.gaps) - 20
+        suffix = f" | {remainder} more gap(s) omitted" if remainder > 0 else ""
+        print(
+            "::warning::decision snapshot not published: completeness gate found "
+            f"{len(exc.gaps)} gaps; first {min(20, len(exc.gaps))}: {gaps}{suffix}",
+            file=sys.stderr,
+        )
+        return False
+    except decision_snapshot.SnapshotError as exc:
+        print(f"::warning::decision snapshot not published: {exc}", file=sys.stderr)
+        return False
+    except Exception as exc:  # noqa: BLE001 - the site still ships without this optional file
+        print(
+            f"::warning::decision snapshot not published: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+
+    try:
+        built.write(target, key=key)
+    except Exception as exc:  # noqa: BLE001 - the site still ships without this optional file
+        target.unlink(missing_ok=True)
+        print(
+            f"::warning::decision snapshot not published: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="dist", help="output directory (default: dist)")
     parser.add_argument("--root", default=str(REPO_ROOT), help="repository root")
     # MODEL-138: off by default. Writes the decision snapshot beside the export,
     # linked from no page, and fails the build if the completeness gate fails.
-    parser.add_argument("--decision-snapshot", action="store_true",
-                        help="also write api/decision/snapshot.json.gz (off by default)")
+    snapshot = parser.add_mutually_exclusive_group()
+    snapshot.add_argument("--decision-snapshot", action="store_true",
+                          help="also write api/decision/snapshot.json.gz (off by default)")
+    snapshot.add_argument(
+        "--decision-snapshot-if-ready",
+        action="store_true",
+        help="write a complete signed decision snapshot, or warn and continue",
+    )
     parser.add_argument("--premier", default=None,
                         help="premier list for the snapshot gate (default premier/slice-1.yaml)")
     return parser.parse_args(argv)
@@ -321,6 +381,14 @@ def main(argv: list[str] | None = None) -> int:
         except decision_snapshot.SnapshotError as exc:
             print(f"error: decision snapshot: {exc}", file=sys.stderr)
             return 2
+    elif args.decision_snapshot_if_ready:
+        premier = Path(args.premier) if args.premier else root / "premier" / "slice-1.yaml"
+        write_decision_snapshot_if_ready(
+            root,
+            ms / "api" / "decision" / "snapshot.json.gz",
+            premier=premier,
+            as_of=today,
+        )
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # the published graph and the database cannot disagree about the cards.

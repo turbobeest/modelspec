@@ -45,14 +45,18 @@ info:
   - insufficient_evidence
   - invalid_api_key
   - invalid_request
+  - invalid_spec
   - key_revoked
   - method_not_allowed
   - missing_api_key
   - no_match
+  - no_snapshot
   - not_found
+  - origin_not_allowed
   - payload_too_large
   - rate_limited
   - sandbox_not_available
+  - snapshot_not_loaded
   - tier_not_configured
   - undetermined_present
   - unknown_hardware
@@ -65,9 +69,10 @@ info:
     export_unavailable: 502
     method_not_allowed: 405
     not_found: 404
-    payload_too_large: 413
+    origin_not_allowed: 404
   x-max-request-bytes:
     /v1/rank: 16384
+    /v1/decide: 65536
     /v1/policy-check: 262144
 x-modelspec-access:
   status: wired; enforcement off
@@ -313,6 +318,112 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
+  /v1/decide:
+    post:
+      operationId: decide
+      summary: Return a decision from the signed published snapshot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionSpec'
+            example:
+              spec_version: 1
+              capabilities:
+                software_engineering: required
+              optimize:
+                max: software_engineering
+              explain: none
+              limit: 3
+      responses:
+        '200':
+          description: A decision pinned to the snapshot that produced it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '400':
+          description: The body is not a contract-v1 spec.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '409':
+          description: The requested snapshot is not the snapshot loaded by this isolate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '404': *id001
+        '405':
+          description: /v1/decide takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '413':
+          description: The body is over 65536 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '502':
+          description: The published snapshot could not be fetched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '402':
+          description: Payment required when X402_ENABLED is on.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '503':
+          description: The snapshot is not published, it cannot be verified, or a live key cannot reach
+            the access store. A no_snapshot response includes Retry-After.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - oneOf:
+                  - $ref: '#/components/schemas/DecisionSnapshotUnavailable'
+                  - $ref: '#/components/schemas/DecisionRequestRefused'
+                - $ref: '#/components/schemas/AccessRefused'
+          headers:
+            Retry-After:
+              description: Seconds before retrying a no_snapshot response.
+              schema:
+                type: integer
+                minimum: 1
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -2475,6 +2586,1500 @@ components:
           type: array
           items: {}
           maxItems: 0
+    DecisionAllOf:
+      additionalProperties: false
+      properties:
+        all:
+          items:
+            anyOf:
+            - type: string
+            - $ref: '#/components/schemas/DecisionCompare'
+            - $ref: '#/components/schemas/DecisionWindow'
+            - $ref: '#/components/schemas/DecisionInSet'
+            - $ref: '#/components/schemas/DecisionKnown'
+            - $ref: '#/components/schemas/DecisionAnyOf'
+            - $ref: '#/components/schemas/DecisionAllOf'
+            - $ref: '#/components/schemas/DecisionNotOf'
+          title: All
+          type: array
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - all
+      title: AllOf
+      type: object
+    DecisionAnyOf:
+      additionalProperties: false
+      properties:
+        any:
+          items:
+            anyOf:
+            - type: string
+            - $ref: '#/components/schemas/DecisionCompare'
+            - $ref: '#/components/schemas/DecisionWindow'
+            - $ref: '#/components/schemas/DecisionInSet'
+            - $ref: '#/components/schemas/DecisionKnown'
+            - $ref: '#/components/schemas/DecisionAnyOf'
+            - $ref: '#/components/schemas/DecisionAllOf'
+            - $ref: '#/components/schemas/DecisionNotOf'
+          title: Any
+          type: array
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - any
+      title: AnyOf
+      type: object
+    DecisionBudget:
+      additionalProperties: false
+      properties:
+        max_cost_per_task_usd:
+          anyOf:
+          - exclusiveMinimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Max Cost Per Task Usd
+      title: Budget
+      type: object
+    DecisionCandidateValues:
+      additionalProperties: false
+      properties:
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        facts:
+          items:
+            $ref: '#/components/schemas/DecisionShownFact'
+          title: Facts
+          type: array
+        contributions:
+          items:
+            $ref: '#/components/schemas/DecisionContribution'
+          title: Contributions
+          type: array
+        evidence:
+          items:
+            $ref: '#/components/schemas/DecisionDomainEvidence'
+          title: Evidence
+          type: array
+      required:
+      - offering
+      title: CandidateValues
+      type: object
+    DecisionCompare:
+      additionalProperties: false
+      description: '``facet op value``; the value may be ``model(<id>)`` for a relative condition.'
+      properties:
+        facet:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Facet
+          type: string
+        op:
+          enum:
+          - '='
+          - '!='
+          - <
+          - <=
+          - '>'
+          - '>='
+          title: Op
+          type: string
+        value:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionModelRef'
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          title: Value
+        qualifiers:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionEvidenceQualifiers'
+          - type: 'null'
+          default: null
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - facet
+      - op
+      - value
+      title: Compare
+      type: object
+    DecisionConstraintCost:
+      additionalProperties: false
+      properties:
+        units:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: 'null'
+          title: Units
+          type: object
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        condition:
+          title: Condition
+          type: string
+        admits:
+          minimum: 0
+          title: Admits
+          type: integer
+        gain:
+          patternProperties:
+            ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
+              type: number
+          title: Gain
+          type: object
+      required:
+      - condition
+      - admits
+      title: ConstraintCost
+      type: object
+    DecisionContribution:
+      additionalProperties: false
+      properties:
+        raw_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Raw Value
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        dimension:
+          pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Dimension
+          type: string
+        weight:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Weight
+        value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Value
+        normalisation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Normalisation
+        evidence:
+          items:
+            $ref: '#/components/schemas/DecisionEvidenceItem'
+          title: Evidence
+          type: array
+      required:
+      - dimension
+      title: Contribution
+      type: object
+    DecisionResponse:
+      additionalProperties: false
+      description: The engine's answer to one spec against one snapshot.
+      properties:
+        near_misses:
+          items:
+            $ref: '#/components/schemas/DecisionNearMiss'
+          title: Near Misses
+          type: array
+        top:
+          items:
+            $ref: '#/components/schemas/DecisionCandidateValues'
+          title: Top
+          type: array
+        chart:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Chart
+        number_origins:
+          items:
+            $ref: '#/components/schemas/DecisionNumberOrigin'
+          title: Number Origins
+          type: array
+        contract_version:
+          const: '1.1'
+          default: '1.1'
+          title: Contract Version
+          type: string
+        decision_id:
+          pattern: ^dec_[0-9A-Za-z]{8,}$
+          title: Decision Id
+          type: string
+        snapshot:
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+          title: Snapshot
+          type: string
+        spec_hash:
+          pattern: ^sha256:[0-9a-f]{64}$
+          title: Spec Hash
+          type: string
+        explain:
+          enum:
+          - none
+          - summary
+          - full
+          title: Explain
+          type: string
+        status:
+          enum:
+          - answered
+          - partial
+          - no_feasible
+          title: Status
+          type: string
+        results:
+          items:
+            $ref: '#/components/schemas/DecisionResult'
+          title: Results
+          type: array
+        may_qualify:
+          items:
+            $ref: '#/components/schemas/DecisionMayQualify'
+          title: May Qualify
+          type: array
+        eliminated:
+          $ref: '#/components/schemas/DecisionEliminated'
+        constraint_costs:
+          items:
+            $ref: '#/components/schemas/DecisionConstraintCost'
+          title: Constraint Costs
+          type: array
+        tipping_points:
+          items:
+            $ref: '#/components/schemas/DecisionTippingPoint'
+          title: Tipping Points
+          type: array
+        relax:
+          items:
+            type: string
+          title: Relax
+          type: array
+        warnings:
+          items:
+            pattern: ^[a-z0-9_]+$
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - decision_id
+      - snapshot
+      - spec_hash
+      - explain
+      - status
+      title: Decision
+      type: object
+    DecisionDomainEvidence:
+      additionalProperties: false
+      properties:
+        domain:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Domain
+          type: string
+        items:
+          items:
+            $ref: '#/components/schemas/DecisionEvidenceItem'
+          title: Items
+          type: array
+      required:
+      - domain
+      - items
+      title: DomainEvidence
+      type: object
+    DecisionEliminated:
+      additionalProperties: false
+      properties:
+        funnel:
+          items:
+            $ref: '#/components/schemas/DecisionFunnelStep'
+          title: Funnel
+          type: array
+        models:
+          items:
+            $ref: '#/components/schemas/DecisionModelElimination'
+          title: Models
+          type: array
+      title: Eliminated
+      type: object
+    DecisionEstimate:
+      additionalProperties: false
+      properties:
+        domain:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Domain
+          type: string
+        value:
+          title: Value
+          type: number
+        interval:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Interval
+          type: array
+        harness:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Harness
+        effort:
+          anyOf:
+          - pattern: ^[a-z0-9_-]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Effort
+      required:
+      - domain
+      - value
+      - interval
+      title: Estimate
+      type: object
+    DecisionEvidenceItem:
+      additionalProperties: false
+      properties:
+        requested_domain:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Requested Domain
+        record_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Record Id
+        benchmark:
+          title: Benchmark
+          type: string
+        version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Version
+        sub_category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Sub Category
+        value:
+          title: Value
+          type: number
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        n:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: N
+        measured_by:
+          enum:
+          - benchmark_author
+          - independent
+          - provider_self_report
+          - modelspec
+          - outcome_protocol
+          title: Measured By
+          type: string
+        effort:
+          anyOf:
+          - pattern: ^[a-z0-9_-]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Effort
+        harness:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Harness
+        date:
+          format: date
+          title: Date
+          type: string
+        date_type:
+          enum:
+          - observed
+          - published
+          title: Date Type
+          type: string
+        source:
+          pattern: ^https?://\S+$
+          title: Source
+          type: string
+        source_snapshot:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Source Snapshot
+        directness:
+          enum:
+          - direct
+          - proxy
+          title: Directness
+          type: string
+      required:
+      - benchmark
+      - value
+      - measured_by
+      - date
+      - date_type
+      - source
+      - directness
+      title: EvidenceItem
+      type: object
+    DecisionEvidenceQualifiers:
+      additionalProperties: false
+      description: Which evidence may satisfy a condition on an evidence facet.
+      properties:
+        measured_by:
+          anyOf:
+          - enum:
+            - independent
+            - provider_self_report
+            - any
+            type: string
+          - type: 'null'
+          default: null
+          title: Measured By
+        effort:
+          anyOf:
+          - pattern: ^[a-z0-9_-]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Effort
+        harness:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Harness
+        measured_after:
+          anyOf:
+          - format: date
+            type: string
+          - type: 'null'
+          default: null
+          title: Measured After
+        direct:
+          default: false
+          title: Direct
+          type: boolean
+      title: EvidenceQualifiers
+      type: object
+    DecisionFunnelStep:
+      additionalProperties: false
+      properties:
+        condition:
+          title: Condition
+          type: string
+        before:
+          minimum: 0
+          title: Before
+          type: integer
+        after:
+          minimum: 0
+          title: After
+          type: integer
+        may_qualify:
+          default: 0
+          minimum: 0
+          title: May Qualify
+          type: integer
+      required:
+      - condition
+      - before
+      - after
+      title: FunnelStep
+      type: object
+    DecisionHardware:
+      additionalProperties: false
+      properties:
+        class:
+          title: Class
+          type: string
+        count:
+          default: 1
+          minimum: 1
+          title: Count
+          type: integer
+        memory_gb:
+          anyOf:
+          - exclusiveMinimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Memory Gb
+      required:
+      - class
+      title: Hardware
+      type: object
+    DecisionInSet:
+      additionalProperties: false
+      description: '``facet in {a, b}`` or ``facet not in {a, b}``. Values are kept sorted and unique.'
+      properties:
+        facet:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Facet
+          type: string
+        in:
+          anyOf:
+          - items:
+              anyOf:
+              - type: boolean
+              - type: integer
+              - type: number
+              - format: date
+                type: string
+              - type: string
+            type: array
+          - type: 'null'
+          default: null
+          title: In
+        not_in:
+          anyOf:
+          - items:
+              anyOf:
+              - type: boolean
+              - type: integer
+              - type: number
+              - format: date
+                type: string
+              - type: string
+            type: array
+          - type: 'null'
+          default: null
+          title: Not In
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - facet
+      title: InSet
+      type: object
+    DecisionInventoryProfile:
+      additionalProperties: false
+      properties:
+        profile_version:
+          const: 1
+          title: Profile Version
+          type: integer
+        id:
+          anyOf:
+          - pattern: ^profile:[a-z0-9][a-z0-9-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Id
+        offerings:
+          items:
+            $ref: '#/components/schemas/DecisionProfileOffering'
+          title: Offerings
+          type: array
+        local:
+          items:
+            $ref: '#/components/schemas/DecisionLocalModel'
+          title: Local
+          type: array
+        harnesses:
+          items:
+            pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
+            type: string
+          title: Harnesses
+          type: array
+        rules:
+          items:
+            anyOf:
+            - type: string
+            - $ref: '#/components/schemas/DecisionCompare'
+            - $ref: '#/components/schemas/DecisionWindow'
+            - $ref: '#/components/schemas/DecisionInSet'
+            - $ref: '#/components/schemas/DecisionKnown'
+            - $ref: '#/components/schemas/DecisionAnyOf'
+            - $ref: '#/components/schemas/DecisionAllOf'
+            - $ref: '#/components/schemas/DecisionNotOf'
+          title: Rules
+          type: array
+        budget:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionBudget'
+          - type: 'null'
+          default: null
+      required:
+      - profile_version
+      title: InventoryProfile
+      type: object
+    DecisionKnown:
+      additionalProperties: false
+      description: '``known(facet)``: passes when the facet is known. It is never unknown itself.'
+      properties:
+        known:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Known
+          type: string
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+      required:
+      - known
+      title: Known
+      type: object
+    DecisionLexStep:
+      additionalProperties: false
+      properties:
+        max:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Max
+        min:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Min
+        within:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionTolerance'
+          - type: 'null'
+          default: null
+      title: LexStep
+      type: object
+    DecisionLocalModel:
+      additionalProperties: false
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        hardware:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionHardware'
+          - type: 'null'
+          default: null
+        runtime:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Runtime
+      required:
+      - model
+      title: LocalModel
+      type: object
+    DecisionMayQualify:
+      additionalProperties: false
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        offering:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionOfferingRef'
+          - type: 'null'
+          default: null
+        unknown:
+          items:
+            pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          title: Unknown
+          type: array
+      required:
+      - model
+      - unknown
+      title: MayQualify
+      type: object
+    DecisionModelElimination:
+      additionalProperties: false
+      properties:
+        values:
+          items:
+            anyOf:
+            - type: boolean
+            - type: integer
+            - type: number
+            - format: date
+              type: string
+            - type: string
+          title: Values
+          type: array
+        offering:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionOfferingRef'
+          - type: 'null'
+          default: null
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        condition:
+          title: Condition
+          type: string
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - type: 'null'
+          default: null
+          title: Value
+      required:
+      - model
+      - condition
+      title: ModelElimination
+      type: object
+    DecisionModelRef:
+      additionalProperties: false
+      description: 'The right-hand side of a relative condition: ``coding >= model(lab/example-model)``.'
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+      required:
+      - model
+      title: ModelRef
+      type: object
+    DecisionNearMiss:
+      additionalProperties: false
+      properties:
+        values:
+          items:
+            anyOf:
+            - type: boolean
+            - type: integer
+            - type: number
+            - format: date
+              type: string
+            - type: string
+          title: Values
+          type: array
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        condition:
+          title: Condition
+          type: string
+        facet:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Facet
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - type: 'null'
+          default: null
+          title: Value
+        distance:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Distance
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+      required:
+      - offering
+      - condition
+      title: NearMiss
+      type: object
+    DecisionNotOf:
+      additionalProperties: false
+      properties:
+        not:
+          anyOf:
+          - type: string
+          - $ref: '#/components/schemas/DecisionCompare'
+          - $ref: '#/components/schemas/DecisionWindow'
+          - $ref: '#/components/schemas/DecisionInSet'
+          - $ref: '#/components/schemas/DecisionKnown'
+          - $ref: '#/components/schemas/DecisionAnyOf'
+          - $ref: '#/components/schemas/DecisionAllOf'
+          - $ref: '#/components/schemas/DecisionNotOf'
+          title: Not
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - not
+      title: NotOf
+      type: object
+    DecisionNumberOrigin:
+      additionalProperties: false
+      properties:
+        path:
+          title: Path
+          type: string
+        basis:
+          title: Basis
+          type: string
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        sources:
+          items:
+            pattern: ^https?://\S+$
+            type: string
+          title: Sources
+          type: array
+      required:
+      - path
+      - basis
+      title: NumberOrigin
+      type: object
+    DecisionObjective:
+      additionalProperties: false
+      description: Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``.
+      properties:
+        max:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Max
+        min:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Min
+        lexicographic:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DecisionLexStep'
+            type: array
+          - type: 'null'
+          default: null
+          title: Lexicographic
+        weights:
+          anyOf:
+          - patternProperties:
+              ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
+                type: number
+            type: object
+          - type: 'null'
+          default: null
+          title: Weights
+        pareto:
+          anyOf:
+          - items:
+              pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+              type: string
+            type: array
+          - type: 'null'
+          default: null
+          title: Pareto
+        qualifiers:
+          patternProperties:
+            ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
+              $ref: '#/components/schemas/DecisionEvidenceQualifiers'
+          title: Qualifiers
+          type: object
+      title: Objective
+      type: object
+    DecisionOfferingRef:
+      additionalProperties: false
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        provider:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Provider
+        region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Region
+        tier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Tier
+      required:
+      - model
+      title: OfferingRef
+      type: object
+    DecisionProfileOffering:
+      additionalProperties: false
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        provider:
+          title: Provider
+          type: string
+        region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Region
+        tier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Tier
+      required:
+      - model
+      - provider
+      title: ProfileOffering
+      type: object
+    DecisionResult:
+      additionalProperties: false
+      properties:
+        rank:
+          minimum: 1
+          title: Rank
+          type: integer
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        harness:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Harness
+        effort:
+          anyOf:
+          - pattern: ^[a-z0-9_-]+$
+            type: string
+          - type: 'null'
+          default: null
+          title: Effort
+        evidence:
+          items:
+            $ref: '#/components/schemas/DecisionDomainEvidence'
+          title: Evidence
+          type: array
+        estimates:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DecisionEstimate'
+            type: array
+          - type: 'null'
+          default: null
+          title: Estimates
+        p_best:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: P Best
+        top3_stability:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Top3 Stability
+        soft_penalty:
+          default: 0.0
+          minimum: 0
+          title: Soft Penalty
+          type: number
+        contributions:
+          items:
+            $ref: '#/components/schemas/DecisionContribution'
+          title: Contributions
+          type: array
+        warnings:
+          items:
+            pattern: ^[a-z0-9_]+$
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - rank
+      - offering
+      title: Result
+      type: object
+    DecisionShownFact:
+      additionalProperties: false
+      properties:
+        facet:
+          title: Facet
+          type: string
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - items:
+              anyOf:
+              - type: boolean
+              - type: integer
+              - type: number
+              - format: date
+                type: string
+              - type: string
+            type: array
+          - type: 'null'
+          default: null
+          title: Value
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        record_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Record Id
+      required:
+      - facet
+      title: ShownFact
+      type: object
+    DecisionSoft:
+      additionalProperties: false
+      description: 'A soft condition: violating it costs ``penalty`` of the objective instead of eliminating.'
+      properties:
+        penalty:
+          exclusiveMinimum: 0
+          maximum: 1
+          title: Penalty
+          type: number
+      required:
+      - penalty
+      title: Soft
+      type: object
+    DecisionSpec:
+      additionalProperties: false
+      description: A request for a decision.
+      properties:
+        spec_version:
+          const: 1
+          title: Spec Version
+          type: integer
+        snapshot:
+          anyOf:
+          - const: latest
+          - pattern: ^snap_[A-Za-z0-9:._-]+$
+            type: string
+          default: latest
+          title: Snapshot
+        profile:
+          anyOf:
+          - oneOf:
+            - pattern: ^profile:[a-z0-9][a-z0-9-]*$
+              type: string
+            - $ref: '#/components/schemas/DecisionInventoryProfile'
+          - type: 'null'
+          default: null
+          title: Profile
+        task:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Task
+        task_type:
+          anyOf:
+          - enum:
+            - new_feature
+            - bug_fix
+            - refactor
+            - test_writing
+            - docs
+            - migration
+            - performance
+            - security_fix
+            - review
+            - analysis
+            - data_transform
+            - config_infra
+            type: string
+          - type: 'null'
+          default: null
+          title: Task Type
+        capabilities:
+          anyOf:
+          - patternProperties:
+              ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
+                enum:
+                - required
+                - preferred
+                type: string
+            type: object
+          - type: 'null'
+          default: null
+          title: Capabilities
+        where:
+          items:
+            anyOf:
+            - type: string
+            - $ref: '#/components/schemas/DecisionCompare'
+            - $ref: '#/components/schemas/DecisionWindow'
+            - $ref: '#/components/schemas/DecisionInSet'
+            - $ref: '#/components/schemas/DecisionKnown'
+            - $ref: '#/components/schemas/DecisionAnyOf'
+            - $ref: '#/components/schemas/DecisionAllOf'
+            - $ref: '#/components/schemas/DecisionNotOf'
+          title: Where
+          type: array
+        optimize:
+          $ref: '#/components/schemas/DecisionObjective'
+        unknowns:
+          const: default
+          default: default
+          title: Unknowns
+          type: string
+        explain:
+          default: summary
+          enum:
+          - none
+          - summary
+          - full
+          title: Explain
+          type: string
+        limit:
+          default: 20
+          maximum: 500
+          minimum: 1
+          title: Limit
+          type: integer
+        save_as:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]{0,63}$
+            type: string
+          - type: 'null'
+          default: null
+          title: Save As
+      required:
+      - spec_version
+      - optimize
+      title: Spec
+      type: object
+    DecisionTippingPoint:
+      additionalProperties: false
+      properties:
+        description:
+          title: Description
+          type: string
+        dimension:
+          anyOf:
+          - pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Dimension
+        threshold:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Threshold
+        new_top:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: New Top
+      required:
+      - description
+      title: TippingPoint
+      type: object
+    DecisionTolerance:
+      additionalProperties: false
+      description: 'How far below the best a lexicographic step may be and still tie: ``5%`` or a number.'
+      properties:
+        relative:
+          anyOf:
+          - exclusiveMaximum: 1
+            exclusiveMinimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Relative
+        absolute:
+          anyOf:
+          - exclusiveMinimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Absolute
+      title: Tolerance
+      type: object
+    DecisionWindow:
+      additionalProperties: false
+      description: '``facet in [low, high]``, both ends inclusive.'
+      properties:
+        facet:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Facet
+          type: string
+        between:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - anyOf:
+            - type: boolean
+            - type: integer
+            - type: number
+            - format: date
+              type: string
+            - type: string
+          - anyOf:
+            - type: boolean
+            - type: integer
+            - type: number
+            - format: date
+              type: string
+            - type: string
+          title: Between
+          type: array
+        qualifiers:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionEvidenceQualifiers'
+          - type: 'null'
+          default: null
+        soft:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionSoft'
+          - type: 'null'
+          default: null
+        unknown:
+          anyOf:
+          - enum:
+            - list
+            - fail
+            - pass
+            type: string
+          - type: 'null'
+          default: null
+          title: Unknown
+      required:
+      - facet
+      - between
+      title: Window
+      type: object
+    DecisionRequestRefused:
+      type: object
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.1'
+        endpoint:
+          type: string
+          enum:
+          - decide
+        snapshot:
+          anyOf:
+          - type: string
+            pattern: ^snap_[A-Za-z0-9:._-]+$
+          - type: 'null'
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - invalid_spec
+              - no_snapshot
+              - origin_not_allowed
+              - payload_too_large
+              - snapshot_not_loaded
+              - snapshot_refused
+              - snapshot_unavailable
+            message:
+              type: string
+            issues:
+              type: array
+              items:
+                type: object
+    DecisionSnapshotUnavailable:
+      type: object
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      - message
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.1'
+        endpoint:
+          type: string
+          enum:
+          - decide
+        snapshot:
+          type: 'null'
+        error:
+          type: string
+          enum:
+          - no_snapshot
+        message:
+          type: string
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -4022,7 +5627,7 @@ components:
               - export_unavailable
               - method_not_allowed
               - not_found
-              - payload_too_large
+              - origin_not_allowed
             message:
               type: string
             accepted:

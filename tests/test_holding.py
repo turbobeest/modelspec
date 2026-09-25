@@ -195,10 +195,11 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     ms = trees["holding"] / "modelspec"
     entry = (ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
     worker = re.findall(r'^[A-Z_]+_PATH = "(/api/[^"]+)"', entry, re.M)
-    assert len(worker) == 3, worker
+    assert len(worker) == 4, worker
     mcp = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
     assert "/api/rank/profiles.json`" in mcp
-    paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *worker,
+    always_published = [path for path in worker if path != "/api/decision/snapshot.json.gz"]
+    paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *always_published,
              "/api/rank/profiles.json", "/api/rank/class-fit.json", "/api/build.json"]
     for path in paths:
         assert (ms / path.lstrip("/")).is_file(), path
@@ -232,6 +233,9 @@ def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_
     ms = src / "modelspec"
     for rel in ("api", "legal", "fonts"):
         (ms / rel).mkdir(parents=True)
+    decision = ms / "api" / "decision" / "snapshot.json.gz"
+    decision.parent.mkdir()
+    decision.write_bytes(b"signed snapshot fixture")
     (ms / "index.html").write_text("real", encoding="utf-8")
     bg = src / "benchgraph"
     bg.mkdir()
@@ -241,6 +245,9 @@ def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_
     assert (out / "benchgraph" / "_redirects").read_bytes() == (bg / "_redirects").read_bytes()
     assert list(_files(out / "benchgraph")) == ["_redirects"]
     assert holding.violations(out / "modelspec", "modelspec") == []
+    assert (out / "modelspec" / "api" / "decision" / "snapshot.json.gz").read_bytes() == (
+        decision.read_bytes()
+    )
     assert not (out / "modelspec" / "b").exists()
 
 

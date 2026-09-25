@@ -70,8 +70,14 @@ jobs:
 
       - name: Build
         id: build
+        env:
+          MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
         run: |
-          python -m pipeline.build --out dist | tee summary.json
+          snapshot_args=()
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            snapshot_args+=(--decision-snapshot-if-ready)
+          fi
+          python -m pipeline.build --out dist "${snapshot_args[@]}" | tee summary.json
           {
             echo '### Site build'
             echo
