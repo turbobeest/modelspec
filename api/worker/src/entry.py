@@ -165,9 +165,13 @@ def _snapshot_fetcher(url: str):
         try:  # pragma: no cover - isolate only
             from js import Object  # type: ignore[import-not-found]
             from pyodide.ffi import to_js  # type: ignore[import-not-found]
-            options = to_js({"headers": headers}, dict_converter=Object.fromEntries)
+            # no-store: the site serves the snapshot with max-age=14400, and a
+            # cached copy would hide a new snapshot for hours. The conditional
+            # header still makes an unchanged snapshot a cheap 304.
+            options = to_js({"headers": headers, "cache": "no-store"},
+                            dict_converter=Object.fromEntries)
         except ImportError:
-            options = {"headers": headers}
+            options = {"headers": headers, "cache": "no-store"}
         response = await fetch(url, options)
         status = int(response.status)
         # A missing header is JS null, which Pyodide does not turn into None.
