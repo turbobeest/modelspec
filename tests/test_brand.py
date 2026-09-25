@@ -41,8 +41,20 @@ def test_the_package_is_committed_as_delivered_with_its_provenance():
         "modelspec-mark.svg",
         *(f"png/modelspec-mark-{n}.png" for n in (1024, 16, 180, 192, 32, 48, 512, 64)),
     ]
+    # The transparent mark was re-exported on 2026-09-25 (the delivered file
+    # still carried the navy tile). A modified derivative must not carry the
+    # original's C2PA manifest; every file as delivered keeps its own.
+    rexported = {"modelspec-mark-transparent.svg"}
     for svg in PACKAGE.glob("*.svg"):
-        assert "<c2pa:manifest>" in svg.read_text(encoding="utf-8"), svg.name
+        text = svg.read_text(encoding="utf-8")
+        if svg.name in rexported:
+            assert "<c2pa:manifest>" not in text, svg.name
+        else:
+            assert "<c2pa:manifest>" in text, svg.name
+    transparent = (PACKAGE / "modelspec-mark-transparent.svg").read_text(encoding="utf-8")
+    assert 'id="tile"' not in transparent
+    for element_id in ("y-axis", "x-axis", "m", "dots"):
+        assert f'id="{element_id}"' in transparent
     for png in (PACKAGE / "png").glob("*.png"):
         assert b"caBX" in png.read_bytes(), png.name
     mark = (PACKAGE / "modelspec-mark.svg").read_text(encoding="utf-8")
