@@ -650,6 +650,31 @@ body {
 .weights input {
   width: 100%;
 }
+.rank-on {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink2);
+}
+.rank-on button {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line2);
+  border-radius: 2px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.rank-on button small {
+  color: var(--muted);
+}
+.rank-on button[aria-pressed="true"] {
+  background: var(--accentSoft);
+  border-color: var(--accent);
+}
 .chips {
   display: flex;
   flex-wrap: wrap;

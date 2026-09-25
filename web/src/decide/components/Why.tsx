@@ -253,7 +253,7 @@ export function Why({
             .map((b, i) => (
               <div className="evidence-row" key={i}>
                 <div>
-                  <strong>{b.b}</strong>
+                  <strong>{vocab.benchName(b.b)}</strong>
                   <span>
                     {fmtB(b.b, b.v)}{" "}
                     {b.ci === null ? "no interval" : fmtCI(b.b, b)}
@@ -265,7 +265,7 @@ export function Why({
                 </small>
                 <button
                   className={"provenance " + (b.by === "lab" ? "note" : "")}
-                  aria-label={`Provenance for ${b.b} ${fmtB(b.b, b.v)}`}
+                  aria-label={`Provenance for ${vocab.benchName(b.b)} ${fmtB(b.b, b.v)}`}
                   onClick={() => onProvenance(b)}
                 >
                   {b.by === "lab" ? "Lab-reported" : "Independent"} ↗
@@ -309,6 +309,7 @@ export function Why({
                   (m.type === null || decision.benchmarks[b].types.includes(m.type)) &&
                   !m.bench.some((x) => x.b === b && x.by === "lab"),
               )
+              .map(vocab.benchName)
               .join(", ") ||
               `${m.labName} reported on every benchmark returned for this decision.`}
           </p>
@@ -370,7 +371,7 @@ export function Why({
                 </div>
                 <small>
                   {c.pts && c.bestAlt
-                    ? `Without it, the best ${spec.bench} would be ${c.bestAlt.m.name} at ${fmtB(spec.bench, c.bestAlt.cap)}; ${c.unlocks} more would qualify`
+                    ? `Without it, the best ${vocab.benchName(spec.bench)} would be ${c.bestAlt.m.name} at ${fmtB(spec.bench, c.bestAlt.cap)}; ${c.unlocks} more would qualify`
                     : c.unlocks
                       ? `${c.unlocks} more would qualify without it`
                       : "Removing it changes nothing"}

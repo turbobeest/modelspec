@@ -8,6 +8,7 @@ import Ajv from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import { toDecisionSpec } from "../adapter/view-model";
+import { probeSpec } from "../adapter/questions";
 import type { DecisionSpec } from "../adapter";
 import type { Cond, FacetOp, Spec, TypeKey } from "../engine/types";
 import {
@@ -18,10 +19,12 @@ import {
   offeredWeights,
   parseRealTask,
   pickBenchmark,
+  rankChoices,
   realBaseSpec,
   realQuestions,
   realTemplates,
   sendable,
+  switchBenchmark,
 } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import { realVocabulary as v } from "./vocab-fixtures";
@@ -96,10 +99,28 @@ function everySpec(vocabulary: Vocabulary): { name: string; spec: DecisionSpec }
       },
     })),
   ];
-  return out.map(({ name, spec }) => ({
-    name,
-    spec: toDecisionSpec(sendable(vocabulary, spec), "full"),
-  }));
+  // The next-question probes, built exactly as the page sends them: each
+  // option appended to the spec on screen (the default task, each template).
+  const onScreen = [
+    { name: "default task", spec: parsedSpec(vocabulary, DEFAULT_TASK) },
+    ...realTemplates(vocabulary).map((t) => ({
+      name: `template ${t.id}`,
+      spec: { ...t.spec, task: t.task },
+    })),
+  ];
+  const probes = onScreen.flatMap(({ name, spec }) => {
+    const sent = toDecisionSpec(sendable(vocabulary, spec), "none");
+    return realQuestions(vocabulary, spec, []).flatMap((q) =>
+      q.opts.map((o) => ({ name: `probe ${name} ${q.id} ${o.label}`, spec: probeSpec(sent, o) })),
+    );
+  });
+  return [
+    ...out.map(({ name, spec }) => ({
+      name,
+      spec: toDecisionSpec(sendable(vocabulary, spec), "full"),
+    })),
+    ...probes,
+  ];
 }
 
 const schema = JSON.parse(readFileSync("../docs/decision-contract.schema.json", "utf8"));
@@ -151,6 +172,53 @@ describe("the real task parser", () => {
     expect(pickBenchmark(v, "maths")?.id).toBe("frontiermath_tiers_1_3_v2");
   });
 
+  const withPro: Vocabulary = {
+    ...v,
+    benchmarks: [
+      ...v.benchmarks,
+      {
+        id: "swe_bench_pro",
+        name: "SWE-bench Pro",
+        unit: "percent",
+        higher_is_better: true,
+        models: 5,
+        independent_models: 5,
+        range: { min: 40, max: 90 },
+        domains: [{ id: "software_engineering", directness: "direct" }],
+      },
+    ],
+  };
+
+  it("says in the trace which benchmark it chose, why, and what else was direct", () => {
+    const note = parseRealTask(withPro, DEFAULT_TASK).trace[0].note;
+    expect(note).toContain("rank on SWE-bench Verified");
+    expect(note).toContain("the direct benchmark with the most verified lineup models (6)");
+    expect(note).toContain("also direct: SWE-bench Pro (5)");
+  });
+
+  it("lists the domain's direct benchmarks with their coverage, chosen one first", () => {
+    expect(rankChoices(withPro, "software_engineering").map((b) => [b.id, b.models])).toEqual([
+      ["swe_bench_verified", 6],
+      ["swe_bench_pro", 5],
+    ]);
+    expect(rankChoices(withPro, null)).toEqual([]);
+  });
+
+  it("switches the ranking benchmark and moves the task's floor with it", () => {
+    const spec = parsedSpec(withPro, DEFAULT_TASK);
+    const next = switchBenchmark(withPro, spec, "swe_bench_pro");
+    expect(next.bench).toBe("swe_bench_pro");
+    const floors = next.conds.filter((c) => c.f === "bench");
+    expect(floors).toEqual([
+      { f: "bench", b: "swe_bench_pro", min: 53, indep: true, from: true },
+    ]);
+    expect(next.conds.length).toBe(spec.conds.length);
+    const own = { ...spec, conds: [...spec.conds, { f: "bench", b: "swe_bench_verified", min: 60 } as Cond] };
+    expect(switchBenchmark(withPro, own, "swe_bench_pro").conds).toContainEqual({
+      f: "bench", b: "swe_bench_verified", min: 60,
+    });
+  });
+
   it("says what it could not apply instead of sending a condition without data", () => {
     const parsed = parseRealTask(v, "fast EU chatbot");
     expect(parsed.conds.some((c) => c.f === "ttft")).toBe(false);
@@ -183,6 +251,19 @@ describe("what is offered", () => {
 describe("every spec the page can generate", () => {
   const generated = everySpec(v);
   const known = new Set([...v.facets.map((f) => f.id), ...v.benchmarks.map((b) => b.id)]);
+
+  it("includes a next-question probe for every option on the default task", () => {
+    const probes = generated.filter((g) => g.name.startsWith("probe default task "));
+    const options = realQuestions(v, parsedSpec(v, DEFAULT_TASK), []).flatMap((q) => q.opts);
+    expect(probes).toHaveLength(options.length);
+    expect(options.length).toBeGreaterThan(0);
+    for (const probe of probes) {
+      expect(probe.spec.explain).toBe("none");
+      expect(probe.spec.where).toEqual(
+        expect.arrayContaining(generated.find((g) => g.name === "default task")!.spec.where!),
+      );
+    }
+  });
 
   it("matches the golden file the Python registry test parses", () => {
     const text = JSON.stringify(generated, null, 2) + "\n";

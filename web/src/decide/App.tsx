@@ -145,7 +145,7 @@ function DesignedApp({
           axis: shownAxis,
           dismissed,
           questions: hostedQuestions,
-          ...(vocabulary ? { benchmarks: vocab.benchmarks } : {}),
+          ...(vocabulary ? { benchmarks: vocab.benchmarks, models: vocabulary.models } : {}),
         }),
         error: null,
       };

@@ -46,12 +46,10 @@ const slug = (value: string) =>
     .replaceAll(/[^a-z0-9]+/g, "_")
     .replaceAll(/^_+|_+$/g, "");
 
-const title = (value: string) =>
-  value
-    .split(/[._/-]+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+/** Display and lab names by model ID, from the published vocabulary. */
+export type ModelNames = Readonly<
+  Record<string, { display_name: string | null; lab: string; lab_name: string | null }>
+>;
 
 function classId(type: Extract<Cond, { f: "type" }>["v"]): string {
   switch (type) {
@@ -259,7 +257,7 @@ function testsFor(
     if (state === -1 && reason.includes(rendered))
       return { s: -1, why: renderContractCondition(reason) };
     if (state === 0 && unknown.some((item) => item === facet || rendered.includes(item)))
-      return { s: 0, why: `unknown: ${renderUnknownFacets(unknown)}` };
+      return { s: 0, why: `${renderUnknownFacets(unknown)} not known` };
     return {
       s: state === 1 ? 1 : 0,
       why: state === 0 ? renderContractCondition(reason) : undefined,
@@ -271,11 +269,13 @@ function modelAndOffering(
   decision: Decision,
   offeringRef: OfferingRef,
   sources: Map<string, string[]>,
+  names: ModelNames,
 ): { model: Model; offering: Offering; evidence: Evidence[] } {
   const values = decision.top.find((candidate) => sameOffering(candidate.offering, offeringRef));
   const facts = values?.facts ?? [];
   const modelId = offeringRef.model;
   const [lab, tail] = modelId.split("/", 2);
+  const named = names[modelId];
   const priceIn = numberFact(facts, "offering.price.input", sources);
   const priceOut = numberFact(facts, "offering.price.output", sources);
   const ttft = numberFact(facts, "offering.speed.time_to_first_token", sources);
@@ -301,9 +301,10 @@ function modelAndOffering(
   const open = openness === null ? null : openness === "open_weights";
   const model: Model = {
     id: tail ?? modelId,
-    name: title(tail ?? modelId),
+    // A name the card does not give is shown as the ID, never made from the slug.
+    name: named?.display_name ?? modelId,
     lab,
-    labName: title(lab),
+    labName: named?.lab_name ?? named?.lab ?? lab,
     origin: stringFact(facts, "origin.lab_jurisdiction", sources),
     type: className ? (CLASS_TO_TYPE[className] ?? null) : null,
     status: lifecycle === "active" || lifecycle === "retired" ? lifecycle : null,
@@ -375,11 +376,13 @@ function rankedRow(
   result: Decision["results"][number],
   spec: Spec,
   sources: Map<string, string[]>,
+  names: ModelNames,
 ): RankedRow {
   const { model, offering, evidence } = modelAndOffering(
     decision,
     result.offering,
     sources,
+    names,
   );
   const selected = evidence.find((item) => item.b === spec.bench) ?? null;
   if (selected === null)
@@ -451,11 +454,13 @@ function unrankedRow(
   state: 0 | -1,
   unknown: string[],
   why: string,
+  names: ModelNames,
 ): Row {
   const { model, offering, evidence } = modelAndOffering(
     decision,
     offeringRef,
     sources,
+    names,
   );
   const selected = evidence.find((item) => item.b === spec.bench) ?? null;
   const tests = testsFor(spec, state, unknown, why);
@@ -622,11 +627,14 @@ export function mapDecisionToViewModel(
     questions?: Question[];
     /** The benchmarks to offer, from the published vocabulary (real mode). */
     benchmarks?: Record<string, BenchDef>;
+    /** Display and lab names, from the published vocabulary (real mode). */
+    models?: ModelNames;
   },
 ): AdapterDecision {
   const sources = sourceRecords(decision);
+  const names = options.models ?? {};
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
-    row: rankedRow(decision, result, spec, sources),
+    row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,
   }));
   const rawMay: CandidateRow[] = decision.may_qualify.map((candidate) => {
@@ -644,7 +652,8 @@ export function mapDecisionToViewModel(
         sources,
         0,
         candidate.unknown,
-        `unknown: ${renderUnknownFacets(candidate.unknown)}`,
+        `${renderUnknownFacets(candidate.unknown)} not known`,
+        names,
       ),
       hasOffering: ref.provider !== null,
     };
@@ -676,6 +685,7 @@ export function mapDecisionToViewModel(
           -1,
           [],
           eliminated.condition,
+          names,
         ),
         hasOffering: ref.provider !== null,
       };

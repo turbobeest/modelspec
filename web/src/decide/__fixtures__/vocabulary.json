@@ -1767,5 +1767,167 @@
         "mteb_multilingual_v2"
       ]
     }
-  ]
+  ],
+  "models": {
+    "anthropic/claude-fable-5": {
+      "display_name": "Claude Fable 5",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "anthropic/claude-fable-5-1": {
+      "display_name": "Claude Fable 5.1",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "anthropic/claude-opus-4-6": {
+      "display_name": "Claude Opus 4.6",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "anthropic/claude-opus-4-7": {
+      "display_name": "Claude Opus 4.7",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "anthropic/claude-opus-5": {
+      "display_name": "Claude Opus 5",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "anthropic/claude-opus-5-5": {
+      "display_name": "Claude Opus 5.5",
+      "lab": "anthropic",
+      "lab_name": "Anthropic"
+    },
+    "deepseek/deepseek-v4-pro": {
+      "display_name": "DeepSeek V4 Pro",
+      "lab": "deepseek",
+      "lab_name": "DeepSeek"
+    },
+    "google/gemini-3-1-pro-preview": {
+      "display_name": "Gemini 3.1 Pro Preview",
+      "lab": "google",
+      "lab_name": "Google DeepMind"
+    },
+    "google/gemini-3-5-flash": {
+      "display_name": "Gemini 3.5 Flash",
+      "lab": "google",
+      "lab_name": "Google DeepMind"
+    },
+    "google/gemini-3-7-flash": {
+      "display_name": "Gemini 3.7 Flash",
+      "lab": "google",
+      "lab_name": "Google DeepMind"
+    },
+    "google/gemini-3-8-flash": {
+      "display_name": "Gemini 3.8 Flash",
+      "lab": "google",
+      "lab_name": "Google DeepMind"
+    },
+    "jcorners/ingot-8b-r3": {
+      "display_name": "Ingot 8B R3",
+      "lab": "jcorners",
+      "lab_name": "Voxell"
+    },
+    "kingsoft/qzhou-embedding": {
+      "display_name": "QZhou-Embedding",
+      "lab": "kingsoft",
+      "lab_name": "Kingsoft"
+    },
+    "meta/muse-spark": {
+      "display_name": "Muse Spark",
+      "lab": "meta",
+      "lab_name": "Meta"
+    },
+    "meta/muse-spark-1-1": {
+      "display_name": "Muse Spark 1.1",
+      "lab": "meta",
+      "lab_name": "Meta"
+    },
+    "meta/muse-spark-1-3": {
+      "display_name": "Muse Spark 1.3",
+      "lab": "meta",
+      "lab_name": "Meta"
+    },
+    "microsoft/harrier-oss-v1-27b": {
+      "display_name": "harrier-oss-v1-27b",
+      "lab": "microsoft",
+      "lab_name": "Microsoft"
+    },
+    "moonshot/kimi-k2-6": {
+      "display_name": "Kimi K2.6",
+      "lab": "moonshot",
+      "lab_name": "Moonshot AI"
+    },
+    "moonshot/kimi-k3": {
+      "display_name": "Kimi K3",
+      "lab": "moonshot",
+      "lab_name": "Moonshot AI"
+    },
+    "openai/gpt-5-4": {
+      "display_name": "GPT-5.4",
+      "lab": "openai",
+      "lab_name": "OpenAI"
+    },
+    "openai/gpt-5-6-sol": {
+      "display_name": "GPT-5.6 Sol",
+      "lab": "openai",
+      "lab_name": "OpenAI"
+    },
+    "openai/gpt-6-astra": {
+      "display_name": "GPT-6 Astra",
+      "lab": "openai",
+      "lab_name": "OpenAI"
+    },
+    "openai/gpt-6-sol": {
+      "display_name": "GPT-6 Sol",
+      "lab": "openai",
+      "lab_name": "OpenAI"
+    },
+    "querit/querit": {
+      "display_name": "Querit",
+      "lab": "querit",
+      "lab_name": "Querit"
+    },
+    "querit/querit-4b": {
+      "display_name": "Querit-4B",
+      "lab": "querit",
+      "lab_name": "Querit"
+    },
+    "qwen/qwen3-8-flash-next": {
+      "display_name": "Qwen3.8-Flash-Next",
+      "lab": "qwen",
+      "lab_name": "Alibaba Cloud"
+    },
+    "qwen/qwen3-8-max-0902": {
+      "display_name": "Qwen3.8 Max 0902",
+      "lab": "qwen",
+      "lab_name": "Alibaba / Qwen Team"
+    },
+    "tencent/kalm-embedding-gemma3-12b-2511": {
+      "display_name": "KaLM Embedding Gemma3 12B 2511",
+      "lab": "tencent",
+      "lab_name": "Tencent"
+    },
+    "typesafe/jev-1-13": {
+      "display_name": "Jev 1.13",
+      "lab": "typesafe",
+      "lab_name": "TypeSafe AI"
+    },
+    "xai/grok-4-7": {
+      "display_name": "Grok 4.7",
+      "lab": "xai",
+      "lab_name": "xAI"
+    },
+    "zhipu/glm-5-2": {
+      "display_name": "GLM-5.2",
+      "lab": "zhipu",
+      "lab_name": "Z.ai (Zhipu AI)"
+    },
+    "zhipu/glm-5-3": {
+      "display_name": "GLM-5.3",
+      "lab": "zhipu",
+      "lab_name": "Z.ai (Zhipu AI)"
+    }
+  }
 }

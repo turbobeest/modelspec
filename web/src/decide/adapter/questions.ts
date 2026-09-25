@@ -5,6 +5,16 @@ import { contractCondition } from "./view-model";
 
 type EvaluatedQuestion = Question;
 
+/** The spec that counts what one answer to a next question would leave. */
+export function probeSpec(spec: DecisionSpec, option: Question["opts"][number]): DecisionSpec {
+  return {
+    ...spec,
+    where: [...(spec.where ?? []), contractCondition(option.c)],
+    explain: "none",
+    limit: 500,
+  };
+}
+
 export async function evaluateQuestionOptions({
   engine,
   spec,
@@ -41,15 +51,7 @@ export async function evaluateQuestionOptions({
     while (next < jobs.length) {
       const job = jobs[next];
       next += 1;
-      const answer = await engine.decide(
-        {
-          ...spec,
-          where: [...(spec.where ?? []), contractCondition(job.option.c)],
-          explain: "none",
-          limit: 500,
-        },
-        { signal },
-      );
+      const answer = await engine.decide(probeSpec(spec, job.option), { signal });
       job.option.n = answer.results.length;
       job.option.may = answer.may_qualify.length;
       onUpdate?.(output);

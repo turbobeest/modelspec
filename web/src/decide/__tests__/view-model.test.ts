@@ -5,6 +5,7 @@ import {
   mapDecisionToViewModel,
   toDecisionSpec,
 } from "../adapter/view-model";
+import { reason } from "../adapter";
 import { parseTask } from "../engine/reference";
 import { baseSpec } from "../state/spec";
 
@@ -107,6 +108,55 @@ describe("the hosted Decision view-model mapper", () => {
     expect(fixture.near_misses).toHaveLength(4);
     expect(view.nearMisses).toEqual([]);
   });
+});
+
+describe("model names", () => {
+  const spec = { ...baseSpec, bench: "quality" };
+
+  it("uses each card's display name and lab name from the vocabulary", () => {
+    const view = mapDecisionToViewModel(fixture, spec, {
+      axis: "task$",
+      dismissed: [],
+      models: {
+        "lab/delta": { display_name: "Delta 4.7", lab: "lab", lab_name: "Lab Inc." },
+        "lab/beta": { display_name: "GLM-5.2", lab: "lab", lab_name: null },
+      },
+    });
+    const byId = new Map(view.explanation.rows.map((row) => [row.m.id, row.m]));
+    expect(byId.get("delta")).toMatchObject({ name: "Delta 4.7", labName: "Lab Inc." });
+    expect(byId.get("beta")).toMatchObject({ name: "GLM-5.2", labName: "lab" });
+  });
+
+  it("shows the model ID verbatim when a name is missing, never a title-cased slug", () => {
+    const view = mapDecisionToViewModel(fixture, spec, { axis: "task$", dismissed: [] });
+    const names = view.explanation.rows.map((row) => row.m.name);
+    expect(names).toContain("lab/gamma");
+    expect(names.some((name) => /^[A-Z]/.test(name))).toBe(false);
+  });
+});
+
+it("says what a may-qualify row does not know once, without a doubled prefix", () => {
+  const withMay = {
+    ...fixture,
+    results: fixture.results.filter((result) => result.offering.model !== "lab/alpha"),
+    may_qualify: [
+      {
+        model: "lab/alpha",
+        offering: fixture.results.find((result) => result.offering.model === "lab/alpha")!
+          .offering,
+        unknown: ["quality"],
+      },
+    ],
+  };
+  const view = mapDecisionToViewModel(
+    decisionSchema.parse(withMay),
+    { ...baseSpec, bench: "quality", conds: [{ f: "bench", b: "quality", min: 70 }] },
+    { axis: "task$", dismissed: [] },
+  );
+  const row = view.explanation.may.find((candidate) => candidate.m.id === "alpha")!;
+  expect(reason(row)).not.toMatch(/unknown/i);
+  expect(reason(row)).toBe("Quality not known");
+  expect(row.best.t.map((test) => test.why ?? "").join(" ")).not.toMatch(/unknown: /i);
 });
 
 it("turns the deterministic task parse into conditions and never sends free text", () => {

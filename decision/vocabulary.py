@@ -18,6 +18,9 @@ list of facets or benchmarks of its own:
   none is not listed.
 * ``domains``: every registered domain with a listed benchmark, its
   benchmarks ordered direct first, then by how many models they cover.
+* ``models``: every lineup and archive model, by ID, with the ``display_name``
+  and lab (``lab``, ``lab_name``) its card gives. A name the card does not
+  give is ``null``; a client shows the ID, never a name made from the slug.
 
 Operators are the compact condition forms: ``=``, ``!=``, ``<``, ``<=``,
 ``>``, ``>=``, ``between`` (``facet in [low, high]``), ``in`` and ``not in``
@@ -136,11 +139,27 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
     return rows
 
 
+def _model_rows(snapshot: Any, cards: Mapping[str, Mapping[str, Any]],
+                ) -> dict[str, dict[str, Any]]:
+    rows = {}
+    for mid in sorted({snapshot.model_of(cid) for cid in snapshot.candidates()}):
+        card = cards.get(mid) or {}
+        rows[mid] = {
+            "display_name": card.get("display_name") or None,
+            "lab": card.get("provider") or mid.split("/", 1)[0],
+            "lab_name": card.get("provider_display") or None,
+        }
+    return rows
+
+
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
-                     registry: Any = None) -> dict[str, Any]:
+                     registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
+                     ) -> dict[str, Any]:
     """The vocabulary of ``snapshot``. ``pages`` maps benchmark IDs to their page
-    front matter (for names and metric direction); ``registry`` defaults to the
-    repository's own."""
+    front matter (for names and metric direction); ``cards`` maps model IDs to
+    their card front matter (for display and lab names); ``registry`` defaults
+    to the repository's own. Load ``snapshot`` with its archive to name
+    archived models too."""
     if registry is None:
         from decision.registry import default
 
@@ -184,4 +203,5 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "facets": facets,
         "benchmarks": benchmarks,
         "domains": domains,
+        "models": _model_rows(snapshot, cards or {}),
     }

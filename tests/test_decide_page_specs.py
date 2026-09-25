@@ -2,7 +2,8 @@
 
 `web/src/decide/__tests__/vocabulary.test.ts` generates every spec the page
 can send from the vocabulary fixture (the default task, each template, every
-"+ add condition" option, every next question, every facet-editor operator)
+"+ add condition" option, every next question, every facet-editor operator,
+and every next-question probe on the default task and each template)
 and pins them in `web/src/decide/__fixtures__/ui-specs.json`. This test parses
 each one with the Python contract and the facet registry, which the TypeScript
 side cannot reach. Regenerate the golden file with
@@ -30,6 +31,7 @@ def test_the_golden_file_covers_the_default_task_and_every_template():
     assert {n for n in names if n.startswith("template ")} >= {
         "template budget-agent", "template private"}
     assert len(GOLDEN) > 60
+    assert any(n.startswith("probe default task ") for n in names)
 
 
 @pytest.mark.parametrize("row", GOLDEN, ids=[row["name"] for row in GOLDEN])

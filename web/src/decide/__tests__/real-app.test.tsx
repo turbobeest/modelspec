@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import App from "../App";
 import { decisionSchema } from "../adapter";
-import { json, routeFetch, sentSpecs } from "./vocab-fixtures";
+import { json, routeFetch, sentSpecs, smallVocabulary } from "./vocab-fixtures";
 
 const fixture = decisionSchema.parse(fixtureJson);
 
@@ -37,9 +37,15 @@ it("runs the designed App on a full hosted decision without fictional labels", a
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
   expect(screen.getByText("Shortlist")).toBeInTheDocument();
-  expect(
-    screen.getByRole("region", { name: "Why this model" }),
-  ).toHaveTextContent("Delta");
+  const why = screen.getByRole("region", { name: "Why this model" });
+  // Names come from the cards in the vocabulary, never from the slug.
+  expect(why).toHaveTextContent("Delta 4.7");
+  expect(why).toHaveTextContent("Lab Inc.");
+  expect(screen.getByRole("region", { name: "Trade-off canvas" })).toHaveTextContent(
+    "Gamma Max 0902",
+  );
+  expect(document.body).toHaveTextContent("lab/alpha");
+  expect(document.body).not.toHaveTextContent(/Gamma Max 902|\bAlpha\b/);
   expect(screen.queryByText(/fictional/i)).not.toBeInTheDocument();
 
   const sent = sentSpecs(fetch).find((body) => body.explain === "full");
@@ -62,6 +68,43 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).toHaveTextContent("https://api.modelspec.dev/v1/decide");
   expect(dialog).not.toHaveTextContent(/fictional/i);
   expect(dialog).not.toHaveTextContent('"task"');
+});
+
+it("switches the ranking benchmark in one click from the rank-by control", async () => {
+  const vocabulary = {
+    ...smallVocabulary,
+    benchmarks: [
+      ...smallVocabulary.benchmarks,
+      { ...smallVocabulary.benchmarks[0], id: "quality_pro", name: "Quality Pro", models: 3 },
+    ],
+  };
+  const fetch = routeFetch({ vocabulary: () => json(vocabulary), decide: () => json(fixture) });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.change(screen.getByLabelText("Describe your task"), {
+    target: { value: "Refactor a large Rust codebase, precision matters" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Find models/ }));
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+  expect(
+    screen.getByText(/rank on Quality Bench, the direct benchmark with the most verified lineup models \(4\); also direct: Quality Pro \(3\)/),
+  ).toBeInTheDocument();
+
+  const control = screen.getByRole("group", { name: "Benchmark to rank on" });
+  expect(within(control).getByRole("button", { name: /Quality Bench 4 models/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  fireEvent.click(within(control).getByRole("button", { name: /Quality Pro 3 models/ }));
+
+  await waitFor(() => {
+    const full = sentSpecs(fetch).filter((body) => body.explain === "full");
+    const last = full[full.length - 1];
+    expect(Object.keys(last.optimize.weights)).toContain("quality_pro");
+    expect(last.where).toContain("quality_pro >= 68 @independent");
+    expect(last.where.some((c: string) => c.startsWith("quality >="))).toBe(false);
+  });
 });
 
 it("shows no stale designed result after a hosted error", async () => {
