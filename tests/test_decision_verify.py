@@ -10,6 +10,7 @@ exercised with a fake completion.
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -140,6 +141,140 @@ def test_currency_with_mtok_header_is_a_per_million_token_price() -> None:
     assert (quantity.number, quantity.unit) == (4, "usd_per_1m_tokens")
 
 
+def _price_claim(field: str, value: float, *, name: str = "Claude Opus 4.6") -> verify.Claim:
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"offering#{field}"),
+        subject="provider/lab/model/global/standard",
+        names=(name,),
+        field=f"offering.price.{field}",
+        label=field.replace("_", " ").title(),
+        value=value,
+        unit="usd_per_1m_tokens",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="pricing", snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["prices"]),),
+    )
+
+
+def test_offering_price_reader_carries_models_across_continuation_rows() -> None:
+    text = """\
+Model | Type | Region | Price (/1M tokens) | Cached price (/1M tokens)
+Claude Opus 4.6 | Input | Global | $5.00 | $0.50
+| Output | Global | $25.00 | N/A
+| Batch Input | Global | $2.50 | N/A
+| Batch Output | Global | $12.50 | N/A
+"""
+    extractor = verify.OfferingPriceExtractor()
+    for field, value in (("input", 5), ("output", 25), ("cached_input", .5),
+                         ("batch_input", 2.5), ("batch_output", 12.5)):
+        assert verify.compare(_price_claim(field, value),
+                              extractor.extract(_price_claim(field, value), text)) == []
+
+
+def test_offering_price_reader_reads_labeled_prices_inside_one_cell() -> None:
+    text = """\
+Model | Pricing (1M Tokens) | Pricing with Batch API (1M Tokens)
+GPT-5.4 Global | Input: $2.50 Cached Input: $0.25 Output: $15 | Input: $1.25 Output: $7.50
+"""
+    extractor = verify.OfferingPriceExtractor()
+    for field, value in (("input", 2.5), ("output", 15), ("cached_input", .25),
+                         ("batch_input", 1.25), ("batch_output", 7.5)):
+        claim = _price_claim(field, value, name="GPT-5.4")
+        assert verify.compare(claim, extractor.extract(claim, text)) == []
+
+
+def test_model_page_price_reader_applies_explicit_batch_discount() -> None:
+    text = """\
+GPT-6 Astra
+Text tokens
+Per 1M tokens
+Input
+$10.00
+Cached input
+$1.00
+Output
+$50.00
+Batch and Flex are priced at 50% of Standard rates.
+"""
+    extractor = verify.ModelPageExtractor()
+    for field, value in (("input", 10), ("output", 50), ("cached_input", 1),
+                         ("batch_input", 5), ("batch_output", 25)):
+        claim = _price_claim(field, value, name="GPT-6 Astra")
+        assert verify.compare(claim, extractor.extract(claim, text)) == []
+
+
+def test_offering_price_reader_reads_named_standard_and_batch_sections() -> None:
+    text = """\
+Gemini 3.8 Flash
+gemini-3.8-flash
+Standard
+| Free Tier | Paid Tier, per 1M tokens in USD
+Input price | Free of charge | $0.75 through December 31, 2026.
+Output price (including thinking tokens) | Free of charge | $3.75 through December 31, 2026.
+Context caching price | Free of charge | $0.075 through December 31, 2026.
+Batch
+| Free Tier | Paid Tier, per 1M tokens in USD
+Input price | Not available | $0.375 through December 31, 2026.
+Output price (including thinking tokens) | Not available | $1.875 through December 31, 2026.
+Gemini 3.7 Flash
+"""
+    extractor = verify.OfferingPriceExtractor()
+    for field, value in (("input", .75), ("output", 3.75), ("cached_input", .075),
+                         ("batch_input", .375), ("batch_output", 1.875)):
+        claim = _price_claim(field, value, name="Gemini 3.8 Flash")
+        assert verify.compare(claim, extractor.extract(claim, text)) == []
+
+
+def test_scoped_provider_price_table_and_free_output_are_read() -> None:
+    meta = """Models: muse-spark-1.3, muse-spark-1.1.
+Usage | Price per 1M tokens
+Input | $1.25
+"""
+    claim = _price_claim("input", 1.25, name="Muse Spark 1.3")
+    assert verify.compare(claim, verify.OfferingPriceExtractor().extract(claim, meta)) == []
+
+    jev = """Jev 1.13\nPrice (per Btok / per Mtok) | $42 / $0.042\nOutput tokens are free.\n"""
+    for field, value in (("input", .042), ("output", 0)):
+        claim = _price_claim(field, value, name="Jev 1.13")
+        assert verify.compare(claim, verify.OfferingPriceExtractor().extract(claim, jev)) == []
+
+
+def test_governance_prose_reader_handles_provider_wide_statements() -> None:
+    extractor = verify.GovernanceProseExtractor()
+    cases = [
+        ("offering.data.trains_on_customer_data", False,
+         "For Paid Services, Google does not use your prompts or responses "
+         "to improve our products."),
+        ("offering.data.zero_retention", False,
+         "Customer data is typically retained for limited periods. "
+         "For guaranteed zero data retention, use Vertex AI."),
+        ("offering.data.retention", 30,
+         "By default, all API requests and responses are stored for 30 days."),
+        ("offering.data.zero_retention", True,
+         "ZDR ensures that API request inputs and outputs are never persisted to disk."),
+        ("offering.attestation.soc2", "type_2", "We are SOC 2 Type 2 compliant."),
+        ("offering.attestation.baa", True,
+         "Customers must review and accept Google's Business Associate Agreement (BAA)."),
+    ]
+    for facet, value, text in cases:
+        claim = verify.Claim(
+            target=TargetRef(kind="fact", id=f"offering#{facet}"),
+            subject="provider/lab/model/global/standard", names=("Provider API",),
+            field=facet, value=value,
+            unit="days" if facet == "offering.data.retention" else None,
+            collector=COLLECTOR,
+            sources=(SourceRef(source_id="provider", snapshot_ref="sha256:" + "0" * 64,
+                               cited_regions=["page"]),),
+        )
+        assert verify.compare(claim, extractor.extract(claim, text)) == []
+
+
+def test_markdown_escaped_currency_is_a_price() -> None:
+    quantity = verify.parse_quantity(r"\$0.26", "usd_per_1m_tokens")
+    assert quantity is not None
+    assert (quantity.number, quantity.unit) == (0.26, "usd_per_1m_tokens")
+
+
 def test_explicit_no_training_sentence_matches_false() -> None:
     claim = verify.Claim(
         target=verify.TargetRef(kind="fact", id="offering#training"),
@@ -266,11 +401,12 @@ def test_a_second_run_has_nothing_left_to_do(store, regions, log) -> None:
 
 
 class _FakeLLM:
-    def __init__(self, reply: str, *, family: str = "claude") -> None:
+    def __init__(self, reply: str, *, family: str = "claude",
+                 agent: str = "verify-llm") -> None:
         self.reply = reply
         self.calls: list[str] = []
         self.extractor = verify.LLMExtractor(
-            self, agent="verify-llm", model="claude-sonnet-5", model_family=family)
+            self, agent=agent, model="claude-sonnet-5", model_family=family)
 
     def __call__(self, prompt: str) -> str:
         self.calls.append(prompt)
@@ -284,13 +420,19 @@ def _prose_claim(store, collector=COLLECTOR) -> verify.Claim:
 
 
 def test_the_llm_extractor_verifies_prose_and_records_its_model(store, regions) -> None:
-    llm = _FakeLLM(json.dumps([{"subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens"}]))
+    llm = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol",
+        "value": "400,000",
+        "unit": "tokens",
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]))
     extractors = [*verify.deterministic_extractors(), llm.extractor]
     result = verify.verify(_prose_claim(store), regions, extractors, today=TODAY)
     assert result.outcome == "verified"
     assert result.verification.verifier == VerificationActor(
         agent="verify-llm", model_family="claude", method="llm-extract:claude-sonnet-5")
     assert "400,000 tokens of context" in llm.calls[0]
+    assert '"quoted_sentence"' in llm.calls[0]
 
 
 def test_deterministic_extractors_are_used_before_the_llm(store, regions) -> None:
@@ -310,6 +452,20 @@ def test_an_unparseable_llm_reply_is_not_evidence_of_absence(store, regions) -> 
     assert result.outcome == "skipped"
     assert result.verification is None
     assert "extractor_error" in result.reason
+
+
+def test_llm_reader_accepts_cli_markdown_fence_and_scoped_absence(store, regions) -> None:
+    prose = _prose_claim(store)
+    present = _FakeLLM("""```json
+[{"subject":"GPT-6 Sol","value":"400,000","unit":"tokens",
+  "quoted_sentence":"It accepts up to 400,000 tokens of context."}]
+```""")
+    assert verify.verify(prose, regions, [present.extractor], today=TODAY).outcome == "verified"
+
+    absent_claim = verify.Claim(**{**prose.__dict__, "value": None})
+    absent = _FakeLLM("[]")
+    result = verify.verify(absent_claim, regions, [absent.extractor], today=TODAY)
+    assert result.outcome == "verified"
 
 
 def test_a_scoped_key_value_region_can_verify_not_disclosed(store) -> None:
@@ -438,7 +594,10 @@ def test_structured_snapshot_rows_are_read_by_subject_and_label() -> None:
 def test_the_collector_never_verifies_its_own_value(store, regions) -> None:
     # The collector is the same agent and model family as the only extractor that accepts
     # prose: model validation refuses the pair, so nothing is verified.
-    llm = _FakeLLM(json.dumps([{"subject": "GPT-6 Sol", "value": "400000", "unit": "tokens"}]),
+    llm = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400000", "unit": "tokens",
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]),
                    family="grok")
     same = VerificationActor(agent="verify-llm", model_family="grok", method="anything")
     result = verify.verify(_prose_claim(store, same), regions,
@@ -449,7 +608,10 @@ def test_the_collector_never_verifies_its_own_value(store, regions) -> None:
 
 
 def test_same_agent_different_model_family_is_independent(store, regions) -> None:
-    llm = _FakeLLM(json.dumps([{"subject": "GPT-6 Sol", "value": "400000", "unit": "tokens"}]))
+    llm = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400000", "unit": "tokens",
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]))
     same_agent = VerificationActor(agent="verify-llm", model_family="grok", method="scrape")
     result = verify.verify(_prose_claim(store, same_agent), regions,
                            [*verify.deterministic_extractors(), llm.extractor], today=TODAY)
@@ -651,6 +813,91 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
     payload = json.loads(again.output)
     assert payload["changed_only"] is True
     assert payload["counts"] == {"verified": 0, "mismatch": 0, "unreachable": 0, "skipped": 0}
+
+
+def test_cli_claude_reader_uses_an_injected_extractor(tmp_path, store, monkeypatch) -> None:
+    from cli.modelspec import cli as cli_mod
+
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
+    root = _repo(tmp_path, store)
+    fake = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]), family="anthropic", agent="claude-cli")
+    monkeypatch.setattr(verify, "claude_extractor", lambda **kwargs: fake.extractor)
+
+    result = CliRunner().invoke(
+        cli_mod.app, ["verify", "--root", str(root), "--llm-reader", "claude", "--json"]
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    prose = next(row for row in payload["results"] if "sol-prose-no-extractor" in row["target"])
+    assert prose["outcome"] == "verified"
+    assert prose["verifier"] == {
+        "agent": "claude-cli",
+        "model_family": "anthropic",
+        "method": "llm-extract:claude-sonnet-5",
+    }
+    assert any("400,000 tokens of context" in prompt for prompt in fake.calls)
+
+
+def test_claude_reader_uses_the_requested_cli_and_unwraps_json(monkeypatch) -> None:
+    seen = []
+
+    def fake_run(command, **kwargs):
+        seen.append((command, kwargs))
+        answer = json.dumps([{
+            "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
+            "quoted_sentence": "GPT-6 Sol has 400,000 tokens of context.",
+        }])
+        return subprocess.CompletedProcess(command, 0, json.dumps({"result": answer}), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    complete = verify.ClaudeCLICompletion()
+    assert json.loads(complete("read this"))[0]["value"] == "400,000"
+    command, kwargs = seen[0]
+    assert command == [
+        "claude", "-p", "read this", "--model", "claude-sonnet-5", "--effort", "low",
+        "--output-format", "json",
+    ]
+    assert kwargs["stdin"] is subprocess.DEVNULL
+
+
+def test_llm_cache_key_is_copy_region_and_facet(tmp_path, store, regions) -> None:
+    reply = json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }])
+    llm = _FakeLLM(reply)
+    extractor = verify.LLMExtractor(
+        llm,
+        agent="claude-cli",
+        model="claude-sonnet-5",
+        model_family="anthropic",
+        cache=verify.LLMCache(tmp_path / "llm-cache"),
+    )
+    claim = _prose_claim(store)
+
+    first = verify.verify(claim, regions, [extractor], today=TODAY)
+    second = verify.verify(claim, regions, [extractor], today=TODAY)
+    other_facet = verify.Claim(**{**claim.__dict__, "field": "model.max_output_tokens"})
+    verify.verify(other_facet, regions, [extractor], today=TODAY)
+
+    assert first.outcome == second.outcome == "verified"
+    assert len(llm.calls) == 2
+
+
+def test_claude_reader_stops_before_call_401(monkeypatch) -> None:
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 0, '{"result":"[]"}', ""),
+    )
+    complete = verify.ClaudeCLICompletion(max_calls=1)
+    assert complete("first") == "[]"
+    with pytest.raises(verify.LLMCallBudgetExceededError, match="400-call budget|1-call budget"):
+        complete("second")
 
 
 def test_claims_build_from_model_evidence(store, regions) -> None:
