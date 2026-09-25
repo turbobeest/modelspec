@@ -33,6 +33,7 @@ import io
 import json
 import math
 import os
+from bisect import bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -165,6 +166,19 @@ class SnapshotIndex(Protocol):
     def evidence(self, cid: str, benchmark_id: str, *, measured_by: set[str] | None = None,
                  effort: str | None = None, harness: str | None = None,
                  after: date | None = None) -> Sequence[EvidenceValue]: ...
+
+    def evidence_where(
+        self,
+        benchmark_id: str,
+        op: str,
+        arg: Any,
+        *,
+        measured_by: set[str] | None = None,
+        effort: str | None = None,
+        harness: str | None = None,
+        after: date | None = None,
+        direct: bool = False,
+    ) -> Bitset3: ...
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
 
@@ -733,12 +747,14 @@ def _date(value: Any) -> date | None:
         return None
 
 
-def _key(value: Any) -> str:
+def _key(value: Any) -> tuple[str, Any]:
     if isinstance(value, str):
-        return "str:" + value
+        return "str", value
     if isinstance(value, bool):
-        return "true" if value else "false"
-    return json.dumps(value, sort_keys=True)
+        return "bool", value
+    if isinstance(value, int | float):
+        return "number", value
+    return "json", json.dumps(value, sort_keys=True)
 
 
 def _ordered(value: Any) -> Any:
@@ -781,6 +797,116 @@ def _holds(value: Any, op: str, arg: Any) -> bool:
         except TypeError as exc:
             raise SnapshotError(f"cannot compare {value!r} {op} {arg!r}") from exc
     raise SnapshotError(f"unknown operator {op!r}")
+
+
+def _equality_key(value: Any) -> tuple[str, Any]:
+    ordered = _ordered(value)
+    if isinstance(ordered, list):
+        return "list", tuple(sorted(_key(_ordered(member)) for member in ordered))
+    return "scalar", _key(ordered)
+
+
+class _FacetBitsets:
+    """Bitsets for one facet, built once from its known values."""
+
+    def __init__(self, rows: Iterable[tuple[int, Any]], *, alternatives: bool = False):
+        self.alternatives = alternatives
+        self.known = 0
+        self.collections = 0
+        self.exact: dict[tuple[str, Any], int] = {}
+        self.members: dict[tuple[str, Any], int] = {}
+        self.contains: dict[tuple[str, Any], int] = {}
+        ordered: dict[Any, int] = {}
+        self._ordered_usable = True
+        for row, raw in rows:
+            bit = 1 << row
+            self.known |= bit
+            values = raw if alternatives else (raw,)
+            for value in values:
+                key = _equality_key(value)
+                self.exact[key] = self.exact.get(key, 0) | bit
+                members = value if isinstance(value, list) and not alternatives else (value,)
+                if isinstance(value, list) and not alternatives:
+                    self.collections |= bit
+                for member in members:
+                    member_key = _key(_ordered(member))
+                    self.members[member_key] = self.members.get(member_key, 0) | bit
+                    if isinstance(value, list) and not alternatives:
+                        self.contains[member_key] = self.contains.get(member_key, 0) | bit
+                if value == NOT_OFFERED or isinstance(value, (list, bool)):
+                    continue
+                try:
+                    ordered_value = _ordered(value)
+                    ordered[ordered_value] = ordered.get(ordered_value, 0) | bit
+                except (TypeError, ValueError):
+                    self._ordered_usable = False
+        try:
+            self.ordered_values = tuple(sorted(ordered))
+        except TypeError:
+            self._ordered_usable = False
+            self.ordered_values = ()
+        prefixes = [0]
+        for value in self.ordered_values:
+            prefixes.append(prefixes[-1] | ordered[value])
+        self.prefixes = tuple(prefixes)
+
+    def _ordered(self, op: str, arg: Any) -> int | None:
+        if not self._ordered_usable:
+            return None
+        try:
+            if op == "between":
+                low, high = (_ordered(value) for value in arg)
+                left = bisect_left(self.ordered_values, low)
+                right = bisect_right(self.ordered_values, high)
+                return 0 if left > right else self.prefixes[right] & ~self.prefixes[left]
+            value = _ordered(arg)
+            if op == "<":
+                return self.prefixes[bisect_left(self.ordered_values, value)]
+            if op == "<=":
+                return self.prefixes[bisect_right(self.ordered_values, value)]
+            if op == ">":
+                return self.prefixes[-1] & ~self.prefixes[bisect_right(self.ordered_values, value)]
+            if op == ">=":
+                return self.prefixes[-1] & ~self.prefixes[bisect_left(self.ordered_values, value)]
+        except (TypeError, ValueError):
+            return None
+        return None
+
+    def passing(self, op: str, arg: Any) -> int | None:
+        if op in ("=", "=="):
+            return self.exact.get(_equality_key(arg), 0)
+        if op == "!=":
+            key = _equality_key(arg)
+            if self.alternatives:
+                passing = 0
+                for value_key, bits in self.exact.items():
+                    if value_key != key:
+                        passing |= bits
+                return passing
+            return self.known & ~self.exact.get(key, 0)
+        if op in ("in", "not_in"):
+            hit = 0
+            for value in arg:
+                hit |= self.members.get(_key(_ordered(value)), 0)
+            return self.known & (hit if op == "in" else ~hit)
+        if op == "contains":
+            return self.contains.get(_key(_ordered(arg)), 0)
+        if op in ("contains_all", "contains_any"):
+            values = tuple(arg)
+            if op == "contains_all":
+                if not values:
+                    return self.collections
+                passing = self.known
+                for value in values:
+                    passing &= self.contains.get(_key(_ordered(value)), 0)
+                return passing
+            passing = 0
+            for value in values:
+                passing |= self.contains.get(_key(_ordered(value)), 0)
+            return passing
+        if op in ("<", "<=", ">", ">=", "between"):
+            return self._ordered(op, arg)
+        return None
 
 
 class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
@@ -855,26 +981,16 @@ class LoadedSnapshot:
                         by_row[row] = by_row[model_row]
         self._facts = facts
 
-        # Three-valued bitsets per facet value: `known` per facet, and for each
-        # string or boolean value (or set member) the candidates holding it.
-        self._known: dict[str, int] = {}
-        self._value_bits: dict[str, dict[str, int]] = {}
-        for facet_id, by_row in facts.items():
-            known = 0
-            values: dict[str, int] = {}
-            for row, fv in by_row.items():
-                if fv.state != "known":
-                    continue
-                known |= 1 << row
-                for member in (fv.value if isinstance(fv.value, list) else [fv.value]):
-                    if isinstance(member, (str, bool)):
-                        k = _key(member)
-                        values[k] = values.get(k, 0) | 1 << row
-            self._known[facet_id] = known
-            self._value_bits[facet_id] = values
+        self._facet_bits = {
+            facet_id: _FacetBitsets(
+                (row, fv.value) for row, fv in by_row.items() if fv.state == "known"
+            )
+            for facet_id, by_row in facts.items()
+        }
 
         self._evidence = _Evidence({cid: rows for section in sections
                                     for cid, rows in section["evidence"].items()})
+        self._evidence_bits: dict[tuple[Any, ...], _FacetBitsets] = {}
         self._domains: dict[str, list[tuple[str, str]]] = {}
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
@@ -908,24 +1024,11 @@ class LoadedSnapshot:
         never unknown. ``unbounded`` exceeds every number; ``not_offered``
         fails every ordered comparison.
         """
-        known = self._known.get(facet_id, 0)
+        column = self._facet_bits.get(facet_id)
+        known = 0 if column is None else column.known
         if op == "known":
             return Bitset3(known, self._all & ~known, 0)
-        values = self._value_bits.get(facet_id, {})
-        passing: int | None = None
-        if op in ("=", "==", "!=") and isinstance(arg, (str, bool)):
-            passing = values.get(_key(arg), 0) & known
-            if any(isinstance(self._facts[facet_id][r].value, list) for r in self._rows(known)):
-                passing = None  # set equality is not membership
-            elif op == "!=":
-                passing = known & ~passing
-        elif op in ("in", "not_in") and all(isinstance(a, (str, bool)) for a in arg):
-            hit = 0
-            for a in arg:
-                hit |= values.get(_key(a), 0)
-            passing = known & (hit if op == "in" else ~hit)
-        elif op == "contains" and isinstance(arg, (str, bool)):
-            passing = values.get(_key(arg), 0) & known
+        passing = None if column is None else column.passing(op, arg)
         if passing is None:
             passing = 0
             by_row = self._facts.get(facet_id, {})
@@ -933,6 +1036,67 @@ class LoadedSnapshot:
                 if _holds(by_row[row].value, op, arg):
                     passing |= 1 << row
         return Bitset3(passing, known & ~passing, self._all & ~known)
+
+    def evidence_where(
+        self,
+        benchmark_id: str,
+        op: str,
+        arg: Any,
+        *,
+        measured_by: set[str] | None = None,
+        effort: str | None = None,
+        harness: str | None = None,
+        after: date | None = None,
+        direct: bool = False,
+    ) -> Bitset3:
+        """Three-valued evidence condition, indexed lazily per qualifier set."""
+        key = (
+            benchmark_id,
+            None if measured_by is None else frozenset(measured_by),
+            effort,
+            harness,
+            after,
+            direct,
+        )
+        column = self._evidence_bits.get(key)
+        if column is None:
+            admitted = []
+            for row, cid in enumerate(self._ids):
+                values = tuple(
+                    evidence.value
+                    for evidence in self.evidence(
+                        cid,
+                        benchmark_id,
+                        measured_by=measured_by,
+                        effort=effort,
+                        harness=harness,
+                        after=after,
+                    )
+                    if not direct or evidence.directness == "direct"
+                )
+                if values:
+                    admitted.append((row, values))
+            column = _FacetBitsets(admitted, alternatives=True)
+            self._evidence_bits[key] = column
+        passing = column.passing(op, arg)
+        if passing is None:
+            passing = 0
+            for row, cid in enumerate(self._ids):
+                values = (
+                    evidence
+                    for evidence in self.evidence(
+                        cid,
+                        benchmark_id,
+                        measured_by=measured_by,
+                        effort=effort,
+                        harness=harness,
+                        after=after,
+                    )
+                    if not direct or evidence.directness == "direct"
+                )
+                if any(_holds(value.value, op, arg) for value in values):
+                    passing |= 1 << row
+        return Bitset3(passing, column.known & ~passing, self._all & ~column.known)
 
     def evidence(self, cid: str, benchmark_id: str, *, measured_by: set[str] | None = None,
                  effort: str | None = None, harness: str | None = None,
