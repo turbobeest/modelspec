@@ -137,6 +137,43 @@ def test_the_bundle_is_proven_to_build_on_every_pull_request() -> None:
     assert "vendor.py --check" in workflow
 
 
+def test_the_worker_bundle_resolves_python_dependencies() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert "astral-sh/setup-uv@" in workflow
+    assert "uv sync --project api/worker --frozen" in workflow
+    assert "uv run --project . pywrangler deploy --dry-run" in workflow
+
+
+def test_deploy_syncs_the_snapshot_verification_secret() -> None:
+    import yaml
+
+    workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
+    bundle = workflow["jobs"]["bundle"]
+    deploy = workflow["jobs"]["deploy"]
+    assert "MODELSPEC_SNAPSHOT_KEY" not in yaml.safe_dump(bundle)
+    assert deploy["env"]["MODELSPEC_SNAPSHOT_KEY"] == \
+        "${{ secrets.MODELSPEC_SNAPSHOT_KEY }}"
+    deploy_text = yaml.safe_dump(deploy)
+    assert "pywrangler secret put MODELSPEC_SNAPSHOT_KEY" in deploy_text
+
+
+def test_deploy_waits_for_the_signed_snapshot_before_the_openapi_probe() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    decide = workflow.index("probe /v1/decide")
+    openapi = workflow.index("python3 api/worker/openapi.py --probe")
+    assert decide < openapi
+    between = workflow[decide:openapi]
+    assert 'snapshot=$(field snapshot)' in between
+    assert "signed decision snapshot was not ready" in between
+
+
+def test_site_build_publishes_a_signed_decision_snapshot_off_pull_requests() -> None:
+    workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
+    assert "github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY" in workflow
+    assert "--decision-snapshot" in workflow
+    assert 'if [ "$GITHUB_EVENT_NAME" != "pull_request" ]' in workflow
+
+
 def test_the_smoke_test_asserts_the_deployed_version_is_the_one_answering() -> None:
     """`build_commit` alone cannot catch a stale instance; `service_commit` can."""
     workflow = RANK_API.read_text(encoding="utf-8")
