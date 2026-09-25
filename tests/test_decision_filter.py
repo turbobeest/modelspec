@@ -771,6 +771,7 @@ def test_filter_is_deterministic() -> None:
     assert list(first.feasible) == ["lab/a"]
 
 
+@pytest.mark.perf
 @pytest.mark.xfail(
     strict=False,
     reason="MODEL-152: the snapshot index is still a linear scan, not per-value bitsets; "

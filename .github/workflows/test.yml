@@ -52,4 +52,10 @@ jobs:
         # workers there and uses the machine's cores locally. --dist loadfile
         # keeps each test module on one worker: several modules cache the
         # catalogue at import, and a few hold process-wide state.
-        run: python -m pytest -q -n auto --dist loadfile
+        run: python -m pytest -q -n auto --dist loadfile -m "not perf"
+
+      - name: Run timing tests serially
+        # Wall-clock bounds (the `perf` marker) run alone, without xdist: under
+        # four parallel workers a 6 ms load measured 211 ms. The bounds are
+        # ticket acceptance criteria and are not loosened for CI.
+        run: python -m pytest -q -p no:xdist -m perf

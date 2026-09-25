@@ -557,6 +557,7 @@ def test_evidence_for_a_domain_carries_directness(tmp_path):
 # ── scale ──────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.perf
 def test_a_thirty_model_snapshot_is_small_and_loads_fast(tmp_path):
     built = build_snapshot(thirty_models(), registry=REGISTRY, as_of=AS_OF)
     path = tmp_path / "thirty.json.gz"
