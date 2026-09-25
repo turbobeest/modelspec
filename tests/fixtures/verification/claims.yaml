@@ -1,0 +1,224 @@
+# Seeded verification fixture (MODEL-140).
+#
+# Every claim below was "collected" by the same agent. The correct ones must end
+# `verified`; every seeded error must end `mismatch` (with the diff fields named
+# in `expect_diff`) or `unreachable`, and so quarantined. `copy` names the fixture
+# file the claim's source snapshot retained; the test stores it and pins its hash.
+collector: {agent: grok-build, model_family: grok, method: firecrawl-scrape+llm-extract}
+
+claims:
+  # --- correct values --------------------------------------------------------
+  - id: sol-default
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 64.0
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: verified
+  - id: sol-max
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 71.2
+    unit: percent
+    conditions: {effort: max, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: verified
+  - id: astra-default-rounded
+    subject: openai/gpt-6-astra
+    names: [GPT-6 Astra]
+    field: seeded-coding
+    label: Score
+    value: 58
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: verified
+  - id: nimbus-max-fraction
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Score
+    value: 0.666
+    unit: fraction
+    conditions: {effort: max, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: verified
+  - id: sol-context
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: context_window
+    value: 400000
+    unit: tokens
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: verified
+  - id: sol-price
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: input_price
+    value: 2.5
+    unit: usd_per_1m_tokens
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: verified
+  - id: sol-tools
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: tool_calling
+    value: true
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: verified
+  - id: sol-modalities
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: modalities
+    value: [image, text]
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: verified
+
+  # --- seeded errors ---------------------------------------------------------
+  - id: sol-copied-from-sibling
+    error: a score copied from a sibling model
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 58.3
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [value, model]
+  - id: nimbus-default-copied-from-mini
+    error: a score copied from a sibling variant, the subject has no such row
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Score
+    value: 49.5
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [value, effort, model]
+  - id: sol-context-wrong-unit
+    error: a wrong unit (thousands filed as tokens)
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: context_window
+    value: 400
+    unit: tokens
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: mismatch
+    expect_diff: [unit]
+  - id: sol-score-wrong-unit
+    error: a wrong unit (a percentage filed as a fraction)
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 64.0
+    unit: fraction
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [unit]
+  - id: sol-max-filed-as-default
+    error: a max-effort value filed as default
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 71.2
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [effort]
+  - id: nimbus-max-filed-without-effort
+    error: a max-effort value (named in the model cell) filed with no effort
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Score
+    value: 66.6
+    unit: percent
+    conditions: {harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [effort]
+  - id: sol-stale-date
+    error: a stale date
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 64.0
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-03-02"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [date]
+  - id: sol-max-output-absent
+    error: a value absent from the source
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: max_output_tokens
+    value: 128000
+    unit: tokens
+    source: {id: seeded-model-page, copy: model-page.html, regions: [specs]}
+    expect: mismatch
+    expect_diff: [value]
+  - id: orion-absent
+    error: a value absent from the source (no row for the subject)
+    subject: acme/orion-2
+    names: [Orion 2]
+    field: seeded-coding
+    label: Score
+    value: 61.0
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [results]}
+    expect: mismatch
+    expect_diff: [model]
+  - id: sol-copy-missing
+    error: the retained copy is gone
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 64.0
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-missing, copy: null, regions: [results]}
+    expect: unreachable
+  - id: sol-region-missing
+    error: the cited region is not registered on the source
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: seeded-coding
+    label: Score
+    value: 64.0
+    unit: percent
+    conditions: {effort: default, harness: codex-cli@1.4, date: "2026-08-14"}
+    source: {id: seeded-leaderboard, copy: leaderboard.html, regions: [no-such-region]}
+    expect: unreachable
+  - id: sol-prose-no-extractor
+    error: prose region, deterministic extractors decline; no LLM extractor configured
+    kind: fact
+    subject: openai/gpt-6-sol
+    names: [GPT-6 Sol]
+    field: context_window
+    value: 400000
+    unit: tokens
+    source: {id: seeded-model-page, copy: model-page.html, regions: [overview]}
+    expect: skipped
