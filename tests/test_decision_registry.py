@@ -404,6 +404,9 @@ def test_proxy_only_domains_are_never_tagged_direct(registry):
     ("aime_2025", "maths"),
     ("arena_elo_overall", "chat_preference"),
     ("mteb_v2_retrieval", "retrieval"),
+    # The retrieval domain covers rerankers too; without this tag the
+    # reranker lineup had no domain evidence at all.
+    ("mteb_v2_reranking", "retrieval"),
     ("docvqa", "vision_documents"),
 ])
 def test_slice_1_domains_have_direct_benchmarks(benchmark, domain):

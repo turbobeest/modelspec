@@ -88,6 +88,8 @@ freshness:
   researched_by: Grok 4.7, MODEL-109
   reviewed: ''
   reviewed_by: ''
+domains:
+  - {id: retrieval, directness: direct}
 ---
 
 Part of the [MTEB](mteb.md) family.
