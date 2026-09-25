@@ -1,0 +1,125 @@
+- model: anthropic/claude-opus-5-5
+  provider: aws-bedrock
+  region: global-cross-region
+  tier: standard
+  facts:
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.price.input
+    value: 4.0
+    state: known
+    sources:
+    - source_id: aws-pricing
+      snapshot_ref: sha256:f2f9e7ac82910da824c98195c9ba71033d68eb353ddb2e264b2db29ef33b5f7b
+      cited_regions:
+      - global-cross-region-anthropic
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.output
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.price.output
+    value: 20.0
+    state: known
+    sources:
+    - source_id: aws-pricing
+      snapshot_ref: sha256:f2f9e7ac82910da824c98195c9ba71033d68eb353ddb2e264b2db29ef33b5f7b
+      cited_regions:
+      - global-cross-region-anthropic
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: aws-pricing
+      snapshot_ref: sha256:f2f9e7ac82910da824c98195c9ba71033d68eb353ddb2e264b2db29ef33b5f7b
+      cited_regions:
+      - global-cross-region-anthropic
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.price.batch_input
+    value: not_offered
+    state: known
+    sources:
+    - source_id: aws-pricing
+      snapshot_ref: sha256:f2f9e7ac82910da824c98195c9ba71033d68eb353ddb2e264b2db29ef33b5f7b
+      cited_regions:
+      - global-cross-region-anthropic
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.price.batch_output
+    value: not_offered
+    state: known
+    sources:
+    - source_id: aws-pricing
+      snapshot_ref: sha256:f2f9e7ac82910da824c98195c9ba71033d68eb353ddb2e264b2db29ef33b5f7b
+      cited_regions:
+      - global-cross-region-anthropic
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: aws-retention
+      snapshot_ref: sha256:c60eb45259e46806cf865f318d5ce5487ff8a83106ead45ace1b613953de06d9
+      cited_regions:
+      - page
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: aws-training
+      snapshot_ref: sha256:7370081c504091d7bf76876ca29470c605f05748648efd470844c7cbd0ccfc04
+      cited_regions:
+      - page
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: aws-retention
+      snapshot_ref: sha256:c60eb45259e46806cf865f318d5ce5487ff8a83106ead45ace1b613953de06d9
+      cited_regions:
+      - page
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: aws-attestations
+      snapshot_ref: sha256:b8754d2c15368932c8cd5999b6520ac0a8bdaeff7abb5ab45ee4d070801cbceb
+      cited_regions:
+      - page
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: aws-attestations
+      snapshot_ref: sha256:b8754d2c15368932c8cd5999b6520ac0a8bdaeff7abb5ab45ee4d070801cbceb
+      cited_regions:
+      - page

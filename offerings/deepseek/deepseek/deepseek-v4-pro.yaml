@@ -1,0 +1,125 @@
+- model: deepseek/deepseek-v4-pro
+  provider: deepseek
+  region: global
+  tier: standard
+  facts:
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.price.input
+    value: 1.32
+    state: known
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.price.output
+    value: 3.96
+    state: known
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.price.cached_input
+    value: 0.044
+    state: known
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.price.batch_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.price.batch_output
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: deepseek-v4-pricing
+      snapshot_ref: sha256:210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2
+      cited_regions:
+      - pricing-table

@@ -23,12 +23,18 @@ GUARANTEED = {
     "offering.attestation.baa",
 }
 GOVERNANCE_DOMAINS = {
+    "alibaba-model-studio": ("alibabacloud.com",),
     "anthropic": ("claude.com",),
     "aws-bedrock": ("aws.amazon.com",),
+    "deepseek": ("deepseek.com",),
     "google-gemini-api": ("google.dev", "google.com"),
     "google-vertex-ai": ("google.com",),
+    "meta-model-api": ("meta.com",),
     "openai": ("openai.com",),
+    "typesafe": ("typesafe.ai",),
+    "xai": ("x.ai",),
     "azure-ai-foundry": ("microsoft.com",),
+    "zai": ("z.ai",),
 }
 
 
@@ -65,3 +71,22 @@ def test_governance_facts_only_use_the_serving_providers_own_documents() -> None
                 host = urlparse(str(sources[ref.source_id].url)).hostname or ""
                 assert any(host == suffix or host.endswith("." + suffix)
                            for suffix in suffixes)
+
+
+def test_contract_only_zero_retention_is_not_filed_as_unconditional() -> None:
+    contract_only_providers = {"anthropic", "openai"}
+    for offering in _offerings():
+        if offering.provider not in contract_only_providers:
+            continue
+        zero_retention = next(
+            fact for fact in offering.facts
+            if fact.facet == "offering.data.zero_retention"
+        )
+        assert zero_retention.state == "requires_contract"
+        assert zero_retention.value is None
+
+
+def test_client_rendered_cloud_sources_are_registered_as_rendered() -> None:
+    sources = load_sources(ROOT / "registry/sources.yaml")
+    for source_id in ("aws-pricing", "azure-pricing"):
+        assert sources[source_id].fetch == "rendered"

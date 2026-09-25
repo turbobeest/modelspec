@@ -182,18 +182,17 @@ providers:
       source: https://www.ai21.com/terms-of-use/
       read: "2026-09-24"
     attestations: {soc2: unknown, iso_27001: unknown}
-  - id: meta-llama-api
-    name: Llama API (Meta)
-    url: https://llama.developer.meta.com/
+  - id: meta-model-api
+    name: Meta Model API
+    url: https://ai.developer.meta.com/
     kind: lab_api
-    jurisdiction:
-      value: US
-      entity: Meta Platforms, Inc.
-      shown_by: address
-      basis: service_terms
-      source: https://llama.developer.meta.com/legal/terms-of-service
-      read: "2026-09-24"
-      note: Meta Platforms Ireland Limited contracts with customers in the European Region.
+    jurisdiction: unknown
+    attestations: {soc2: unknown, iso_27001: unknown}
+  - id: typesafe
+    name: TypeSafe API
+    url: https://typesafe.ai/
+    kind: lab_api
+    jurisdiction: unknown
     attestations: {soc2: unknown, iso_27001: unknown}
 
   # ── Clouds ────────────────────────────────────────────────────────────────

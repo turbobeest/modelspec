@@ -1,0 +1,125 @@
+- model: xai/grok-4-7
+  provider: xai
+  region: global
+  tier: standard
+  facts:
+  - id: xai/xai/grok-4-7/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: xai-grok-4-7
+      snapshot_ref: sha256:a9740413af93fca467dcc382d3dda3440fb51976fbeda484c0caeabd1957c4ef
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.price.output
+    value: 6.0
+    state: known
+    sources:
+    - source_id: xai-grok-4-7
+      snapshot_ref: sha256:a9740413af93fca467dcc382d3dda3440fb51976fbeda484c0caeabd1957c4ef
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.price.cached_input
+    value: 0.5
+    state: known
+    sources:
+    - source_id: xai-grok-4-7
+      snapshot_ref: sha256:a9740413af93fca467dcc382d3dda3440fb51976fbeda484c0caeabd1957c4ef
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.price.batch_input
+    value: not_offered
+    state: known
+    sources:
+    - source_id: xai-grok-4-7
+      snapshot_ref: sha256:a9740413af93fca467dcc382d3dda3440fb51976fbeda484c0caeabd1957c4ef
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.price.batch_output
+    value: not_offered
+    state: known
+    sources:
+    - source_id: xai-grok-4-7
+      snapshot_ref: sha256:a9740413af93fca467dcc382d3dda3440fb51976fbeda484c0caeabd1957c4ef
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: xai-security
+      snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: xai-security
+      snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.data.zero_retention
+    value: true
+    state: known
+    sources:
+    - source_id: xai-security
+      snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: xai-security
+      snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
+      cited_regions:
+      - page
+  - id: xai/xai/grok-4-7/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.attestation.baa
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: xai-security
+      snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
+      cited_regions:
+      - page

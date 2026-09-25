@@ -12,9 +12,9 @@
     state: known
     sources:
     - source_id: vertex-pricing
-      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      snapshot_ref: sha256:9f2e9da97742e7c0d93804ec2e207d601197492b2ffb472b583621a6cb47a707
       cited_regions:
-      - page
+      - partner-anthropic-regional
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.output
     subject:
       kind: offering
@@ -24,9 +24,9 @@
     state: known
     sources:
     - source_id: vertex-pricing
-      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      snapshot_ref: sha256:9f2e9da97742e7c0d93804ec2e207d601197492b2ffb472b583621a6cb47a707
       cited_regions:
-      - page
+      - partner-anthropic-regional
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.cached_input
     subject:
       kind: offering
@@ -36,9 +36,9 @@
     state: known
     sources:
     - source_id: vertex-pricing
-      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      snapshot_ref: sha256:9f2e9da97742e7c0d93804ec2e207d601197492b2ffb472b583621a6cb47a707
       cited_regions:
-      - page
+      - partner-anthropic-regional
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.batch_input
     subject:
       kind: offering
@@ -48,9 +48,9 @@
     state: known
     sources:
     - source_id: vertex-pricing
-      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      snapshot_ref: sha256:9f2e9da97742e7c0d93804ec2e207d601197492b2ffb472b583621a6cb47a707
       cited_regions:
-      - page
+      - partner-anthropic-regional
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.batch_output
     subject:
       kind: offering
@@ -60,9 +60,9 @@
     state: known
     sources:
     - source_id: vertex-pricing
-      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      snapshot_ref: sha256:9f2e9da97742e7c0d93804ec2e207d601197492b2ffb472b583621a6cb47a707
       cited_regions:
-      - page
+      - partner-anthropic-regional
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.data.retention
     subject:
       kind: offering
@@ -72,7 +72,7 @@
     state: known
     sources:
     - source_id: vertex-data
-      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      snapshot_ref: sha256:a96bd9e70cf6359c462c161045a1299433488e13555d6e6e74af550630d21b68
       cited_regions:
       - page
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.data.trains_on_customer_data
@@ -84,7 +84,7 @@
     state: known
     sources:
     - source_id: vertex-data
-      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      snapshot_ref: sha256:a96bd9e70cf6359c462c161045a1299433488e13555d6e6e74af550630d21b68
       cited_regions:
       - page
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.data.zero_retention
@@ -96,7 +96,7 @@
     state: known
     sources:
     - source_id: vertex-data
-      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      snapshot_ref: sha256:a96bd9e70cf6359c462c161045a1299433488e13555d6e6e74af550630d21b68
       cited_regions:
       - page
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.attestation.soc2
@@ -104,11 +104,11 @@
       kind: offering
       id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard
     facet: offering.attestation.soc2
-    value: type_2
-    state: known
+    value: null
+    state: not_disclosed
     sources:
     - source_id: google-attestations
-      snapshot_ref: sha256:ea8472518db2326e0432a895fb95ba0aeed7f95e39d451fadffd2952270b0e4a
+      snapshot_ref: sha256:688d09ddbbfb525eb46fb99d5c04ef668691ac48dd927eb338c45d72965a3947
       cited_regions:
       - page
   - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.attestation.baa
@@ -120,6 +120,6 @@
     state: known
     sources:
     - source_id: google-attestations
-      snapshot_ref: sha256:ea8472518db2326e0432a895fb95ba0aeed7f95e39d451fadffd2952270b0e4a
+      snapshot_ref: sha256:688d09ddbbfb525eb46fb99d5c04ef668691ac48dd927eb338c45d72965a3947
       cited_regions:
       - page

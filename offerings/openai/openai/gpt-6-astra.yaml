@@ -12,7 +12,7 @@
     state: known
     sources:
     - source_id: openai-gpt-6-astra-pricing
-      snapshot_ref: sha256:ec0c8c191e301d90a8ec215638aa2ae6d3fb091af22a5034948769541ae4413b
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.price.output
@@ -24,7 +24,7 @@
     state: known
     sources:
     - source_id: openai-gpt-6-astra-pricing
-      snapshot_ref: sha256:ec0c8c191e301d90a8ec215638aa2ae6d3fb091af22a5034948769541ae4413b
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.price.cached_input
@@ -36,7 +36,7 @@
     state: known
     sources:
     - source_id: openai-gpt-6-astra-pricing
-      snapshot_ref: sha256:ec0c8c191e301d90a8ec215638aa2ae6d3fb091af22a5034948769541ae4413b
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.price.batch_input
@@ -48,7 +48,7 @@
     state: known
     sources:
     - source_id: openai-gpt-6-astra-pricing
-      snapshot_ref: sha256:ec0c8c191e301d90a8ec215638aa2ae6d3fb091af22a5034948769541ae4413b
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.price.batch_output
@@ -60,7 +60,7 @@
     state: known
     sources:
     - source_id: openai-gpt-6-astra-pricing
-      snapshot_ref: sha256:ec0c8c191e301d90a8ec215638aa2ae6d3fb091af22a5034948769541ae4413b
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.data.retention
@@ -72,7 +72,7 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.data.trains_on_customer_data
@@ -84,7 +84,7 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.data.zero_retention
@@ -92,11 +92,11 @@
       kind: offering
       id: openai/openai/gpt-6-astra/global/standard
     facet: offering.data.zero_retention
-    value: true
-    state: known
+    value: null
+    state: requires_contract
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.attestation.soc2
@@ -104,11 +104,11 @@
       kind: offering
       id: openai/openai/gpt-6-astra/global/standard
     facet: offering.attestation.soc2
-    value: type_2
-    state: known
+    value: null
+    state: not_disclosed
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-6-astra/global/standard#offering.attestation.baa
@@ -120,6 +120,6 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page

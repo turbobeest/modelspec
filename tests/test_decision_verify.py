@@ -114,7 +114,7 @@ def test_the_log_shows_collector_and_verifier_differ_on_every_record(store, regi
 
 @pytest.mark.parametrize(
     ("registered", "published"),
-    [("type_2", "Type 2"), ("not_offered", "not offered")],
+    [("type_2", "Type 2"), ("not_offered", "not offered"), ("not_offered", "N/A")],
 )
 def test_registered_enum_spelling_matches_provider_prose(registered, published) -> None:
     claim = verify.Claim(
@@ -158,6 +158,24 @@ def test_explicit_no_training_sentence_matches_false() -> None:
         "Provider API",
         "does not use your inputs or outputs to train models or improve the service",
     )
+    assert verify.compare(claim, [reading]) == []
+
+
+def test_explicit_never_training_sentence_matches_false() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#training-never"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field="offering.data.trains_on_customer_data",
+        value=False,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="provider-doc",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["governance"],
+        ),),
+    )
+    reading = verify.Reading("Provider API", "will never use your data for model training")
     assert verify.compare(claim, [reading]) == []
 
 

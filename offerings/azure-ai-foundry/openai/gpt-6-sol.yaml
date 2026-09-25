@@ -1,0 +1,125 @@
+- model: openai/gpt-6-sol
+  provider: azure-ai-foundry
+  region: global-short-context
+  tier: standard
+  facts:
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: azure-pricing
+      snapshot_ref: sha256:e9c9213930a1aeb2ab9c008123d34c4b0463ed3e02add2cb238da93e67bb05e6
+      cited_regions:
+      - gpt-6-pricing
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.output
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.price.output
+    value: 10.0
+    state: known
+    sources:
+    - source_id: azure-pricing
+      snapshot_ref: sha256:e9c9213930a1aeb2ab9c008123d34c4b0463ed3e02add2cb238da93e67bb05e6
+      cited_regions:
+      - gpt-6-pricing
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: azure-pricing
+      snapshot_ref: sha256:e9c9213930a1aeb2ab9c008123d34c4b0463ed3e02add2cb238da93e67bb05e6
+      cited_regions:
+      - gpt-6-pricing
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.price.batch_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: azure-pricing
+      snapshot_ref: sha256:e9c9213930a1aeb2ab9c008123d34c4b0463ed3e02add2cb238da93e67bb05e6
+      cited_regions:
+      - gpt-6-pricing
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.price.batch_output
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: azure-pricing
+      snapshot_ref: sha256:e9c9213930a1aeb2ab9c008123d34c4b0463ed3e02add2cb238da93e67bb05e6
+      cited_regions:
+      - gpt-6-pricing
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: azure-data
+      snapshot_ref: sha256:3c4cd15900568c189f3c02f901b227a9ed06c4a2ec9ad27c8d271bd2aab6b04a
+      cited_regions:
+      - page
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: azure-data
+      snapshot_ref: sha256:3c4cd15900568c189f3c02f901b227a9ed06c4a2ec9ad27c8d271bd2aab6b04a
+      cited_regions:
+      - page
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: azure-data
+      snapshot_ref: sha256:3c4cd15900568c189f3c02f901b227a9ed06c4a2ec9ad27c8d271bd2aab6b04a
+      cited_regions:
+      - page
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: azure-soc2
+      snapshot_ref: sha256:e82587da54215442ad33130e195ff0d6bc7aba0c2e1499287c0f241cec4845b7
+      cited_regions:
+      - page
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: azure-baa
+      snapshot_ref: sha256:9c43d741bc499532516a40237841de894a06ea20db064744a9ef0fa46983f95f
+      cited_regions:
+      - page
