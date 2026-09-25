@@ -663,3 +663,82 @@ def test_the_site_build_step_is_off_by_default():
 
     args = site_build.parse_args([])
     assert args.decision_snapshot is False
+
+
+def test_writer_stores_the_canonical_content_bytes(tmp_path):
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    raw = gzip.decompress(built.to_bytes(key=KEY))
+    assert raw.startswith(b'{"content":' + snap.canonical_json(built.content) + b',"content_hash":')
+
+
+def test_retained_records_round_trip_all_provenance(tmp_path):
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["notes"] = 'Unicode café, braces },"content_hash": and \\"quotes'
+    index = load(build(tmp_path, evidence=[row]))
+    assert index.record(row["id"]) == row
+    assert index.record(row["id"]) == row
+
+
+@pytest.mark.parametrize("canonical", [False, True])
+def test_source_tampering_is_rejected_before_access(tmp_path, canonical):
+    path = build(tmp_path, key=KEY)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"]["sources"]["src-board"] += "/tampered"
+    raw = snap.canonical_json(env) if canonical else json.dumps(env).encode()
+    path.write_bytes(gzip.compress(raw))
+    with pytest.raises(SnapshotIntegrityError, match="content hash"):
+        load(path, key=KEY)
+
+
+def test_compact_records_preserve_missing_null_and_nested_values(tmp_path):
+    rows = [evidence("lab/alpha", "swe_bench_pro", 55.0),
+            evidence("lab/alpha", "swe_bench_pro", 61.0)]
+    rows[0]["extra"] = {"empty": {}, "null": None, "nested": {"value": [1, "é"]}}
+    rows[1]["extra"] = None
+    index = load(build(tmp_path, evidence=rows))
+    for row in reversed(rows):
+        assert index.record(row["id"]) == row
+
+
+def test_legacy_retained_records_still_load(tmp_path):
+    path = build(tmp_path)
+    original = load(path)
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    table = env["content"].pop("record_table")
+    env["content"]["records"] = {rid: original.record(rid) for rid in table["rows"]}
+    env["content_hash"] = snap.content_hash(env["content"])
+    env["snapshot_id"] = snap.snapshot_id_for(env["content_hash"])
+    path.write_bytes(gzip.compress(json.dumps(env).encode()))
+    assert load(path).record(row["id"]) == row
+
+
+def test_duplicate_content_cannot_bypass_integrity(tmp_path):
+    path = build(tmp_path, key=KEY)
+    raw = gzip.decompress(path.read_bytes())
+    path.write_bytes(gzip.compress(raw[:-1] + b',"content":{}}'))
+    with pytest.raises(SnapshotIntegrityError):
+        load(path, key=KEY)
+
+
+def test_compact_record_tampering_is_detected_without_reading_a_record(tmp_path):
+    path = build(tmp_path, key=KEY)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"]["record_table"]["values"][0] = '"altered"'
+    path.write_bytes(gzip.compress(snap.canonical_json(env)))
+    with pytest.raises(SnapshotIntegrityError, match="content hash"):
+        load(path, key=KEY)
+
+
+@pytest.mark.parametrize("layout", ["pretty", "space_after_content", "leading_space"])
+def test_signed_noncanonical_json_remains_loadable(tmp_path, layout):
+    path = build(tmp_path, key=KEY)
+    raw = gzip.decompress(path.read_bytes()).decode()
+    if layout == "pretty":
+        raw = json.dumps(json.loads(raw), indent=2)
+    elif layout == "space_after_content":
+        raw = raw.replace(',"content_hash":', ' , "content_hash":')
+    else:
+        raw = " " + raw
+    path.write_bytes(gzip.compress(raw.encode()))
+    assert load(path, key=KEY).signature_verified

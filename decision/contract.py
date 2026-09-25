@@ -932,6 +932,8 @@ class OfferingRef(_Strict):
 
 
 class EvidenceItem(_Strict):
+    requested_domain: FacetId | None = None
+    record_id: str | None = None
     benchmark: str
     version: str | None = None
     sub_category: str | None = None
@@ -962,6 +964,9 @@ class Estimate(_Strict):
 
 
 class Contribution(_Strict):
+    raw_value: float | None = None
+    unit: str | None = None
+    records: list[str] = Field(default_factory=list)
     dimension: SignedFacetId
     weight: float | None = None
     value: float | None = None
@@ -997,6 +1002,10 @@ class FunnelStep(_Strict):
 
 
 class ModelElimination(_Strict):
+    values: list[Scalar] = Field(default_factory=list)
+    offering: OfferingRef | None = None
+    unit: str | None = None
+    records: list[str] = Field(default_factory=list)
     model: ModelId
     condition: str
     value: Scalar | None = None
@@ -1008,6 +1017,8 @@ class Eliminated(_Strict):
 
 
 class ConstraintCost(_Strict):
+    units: dict[str, str | None] = Field(default_factory=dict)
+    records: list[str] = Field(default_factory=list)
     condition: str
     admits: int = Field(ge=0)
     gain: dict[SignedFacetId, float] = Field(default_factory=dict)
@@ -1020,9 +1031,45 @@ class TippingPoint(_Strict):
     new_top: ModelId | None = None
 
 
+class NearMiss(_Strict):
+    values: list[Scalar] = Field(default_factory=list)
+    offering: OfferingRef
+    condition: str
+    facet: str | None = None
+    value: Scalar | None = None
+    distance: float | None = None
+    unit: str | None = None
+    records: list[str] = Field(default_factory=list)
+
+
+class ShownFact(_Strict):
+    facet: str
+    value: Scalar | list[Scalar] | None = None
+    unit: str | None = None
+    record_id: str | None = None
+
+
+class CandidateValues(_Strict):
+    offering: OfferingRef
+    facts: list[ShownFact] = Field(default_factory=list)
+    contributions: list[Contribution] = Field(default_factory=list)
+    evidence: list[DomainEvidence] = Field(default_factory=list)
+
+
+class NumberOrigin(_Strict):
+    path: str
+    basis: str
+    records: list[str] = Field(default_factory=list)
+    sources: list[Url] = Field(default_factory=list)
+
+
 class Decision(_Strict):
     """The engine's answer to one spec against one snapshot."""
 
+    near_misses: list[NearMiss] = Field(default_factory=list)
+    top: list[CandidateValues] = Field(default_factory=list)
+    chart: str | None = None
+    number_origins: list[NumberOrigin] = Field(default_factory=list)
     contract_version: Literal["1.0"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
@@ -1058,6 +1105,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, ConstraintCost, TippingPoint,
+    NearMiss, ShownFact, CandidateValues, NumberOrigin,
 )
 
 

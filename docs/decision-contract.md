@@ -396,7 +396,7 @@ Only verified evidence reaches a decision; quarantined values never do.
 |---|---|
 | `none` | `results` without `contributions`; `may_qualify`. For high-rate automated calls. |
 | `summary` | Adds `contributions`, the `funnel`, `constraint_costs` and `tipping_points`. |
-| `full` | Adds `eliminated.models` (per-model reasons). |
+| `full` | Adds `eliminated.models`, `top` candidates with all values, `chart` and `number_origins`. |
 
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
@@ -408,7 +408,7 @@ from decision import decide, parse_spec
 from decision.registry import facet
 
 spec = parse_spec(open("spec.yaml").read(), facets=facet)   # raises SpecError
-decision = decide(spec, snapshot)                             # NotImplementedError until the engine lands
+decision = decide(spec, snapshot)                             # one loaded decision snapshot
 ```
 
 `parse_spec(raw, facets=...)` takes YAML text or a mapping. `facets=None`
@@ -420,18 +420,59 @@ field) and the `reason`.
 modelspec decide SPEC.yaml [--explain none|summary|full] [--json]
 ```
 
-`--explain` overrides the spec's `explain`. Until the engine lands, the command
-validates the spec and exits **1** in both cases:
+`--explain` overrides the spec's `explain`. Pass `--snapshot-file SNAPSHOT.gz`
+or set `MODELSPEC_DECISION_SNAPSHOT` to a local decision snapshot. No network
+request is made. `--explain full --html out.html` writes a self-contained report
+with an inline SVG contribution chart, light and dark styles, and source links.
+The command emits the decision as JSON. Invalid specs, unavailable snapshots,
+and unresolved explanation provenance exit **1** with a structured error when
+`--json` is set. Successful decisions, including `no_feasible`, exit **0**.
 
-- **Invalid spec:** every issue, on stderr. With `--json`, stderr carries
-  `{"contract_version", "command": "decide", "error": {"code": "invalid_spec",
-  "issues": [{"path", "condition", "field", "reason"}]}}`.
-- **Valid spec:** the `spec_hash` and "engine not yet built", on stderr. With
-  `--json`, the error code is `engine_not_built`, beside `spec_hash` and
-  `explain`.
+### Explanation provenance (MODEL-145)
 
-If the facet registry cannot be loaded, the command says so in a warning, and
-facet IDs are not checked.
+These are additive response fields; the contract remains 1.0.
+
+- Contributions add `raw_value`, `unit`, and `records`. The existing `value`
+  remains the feasible-set normalised value, never a capability estimate.
+  `normalisation` states the observed minimum, maximum and direction.
+- Evidence adds `requested_domain` to make contribution directness explicit, and `record_id`, resolving to the snapshot's admitted evidence and
+  its winning verification record. Source dates and measurement qualifiers are
+  preserved. Snapshot date type `evaluated` is exposed as contract `observed`;
+  `independent_evaluator` is exposed as `independent`.
+- `near_misses` lists candidates that fail exactly one hard condition while
+  passing the others. Each includes `offering`, `condition`, `facet`, `value`,
+  `distance`, `unit` and `records`. Distance is to the boundary; a strict
+  inequality can have zero distance. Compound, categorical and unknown distances
+  remain null rather than inventing a conversion or epsilon.
+- Constraint costs add `units` and `records`. Each `gain` is the best raw
+  objective value after relaxing that condition minus the current best, per
+  dimension. A negative gain on a minimised dimension is an improvement. With
+  no comparable values the gain mapping is empty. Profile rules are included.
+- Per-model eliminations add `offering`, `unit` and `records`, preserving
+  offering identity when a model has several providers or tiers. Eliminations
+  and near misses add `values` for conditions with multiple measurements; the
+  scalar `value` remains null in that case.
+- `top` contains up to 20 optimised candidates independently of the result
+  limit, with `offering`, `facts`, `contributions` and domain `evidence`.
+  Shown facts carry `facet`, `value`, `unit`, and `record_id`.
+- `chart` is inline SVG, with separate raw-value scales by objective dimension.
+- `number_origins` covers every numeric JSON leaf outside that index. Each entry
+  has its JSON-pointer `path`, calculation or input `basis`, supporting `records`
+  and registered `sources`. Measurements match retained snapshot records.
+  Counts, ordinals, spec weights, penalties, deltas and thresholds are explicitly
+  derived numbers, not new measurements. Counts on an empty snapshot can have
+  no supporting records. Source URLs and winning verification records resolve
+  through `snapshot.source_url()` and `snapshot.record()`.
+
+Raw measurements without retained provenance fail explanation with a rebuild
+message. Old snapshots still load for `none`. A missing unit is displayed as
+“unit not recorded”; the engine does not infer units from facet names.
+
+The library accepts optional `facets`, `profiles` and `evidence_selectors`
+arguments for the registry and explicit benchmark/version/sub-category bindings.
+Ambiguous benchmark measurements remain missing. Capability objectives have no
+composite until MODEL-129. Requested domains come from `capabilities` and use
+snapshot domain tags, never a fixed benchmark list.
 
 ## Versioning (MODEL-59)
 

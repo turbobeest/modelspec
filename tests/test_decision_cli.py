@@ -1,9 +1,4 @@
-"""MODEL-135: ``modelspec decide`` parses and validates a spec, then says the engine is not built.
-
-Until MODEL-141/142/145 land, a valid spec exits 1 with "engine not yet
-built"; an invalid one exits 1 naming the condition, field and reason. No
-existing command changes.
-"""
+"""The decide command validates specs and requires a local snapshot."""
 
 from __future__ import annotations
 
@@ -42,11 +37,10 @@ def _run(tmp_path: Path, text: str, *args: str):
     return CliRunner().invoke(cli_mod.app, ["decide", str(spec), *args])
 
 
-def test_a_valid_spec_reports_that_the_engine_is_not_built(tmp_path) -> None:
+def test_a_valid_spec_requires_a_local_snapshot(tmp_path) -> None:
     result = _run(tmp_path, VALID)
     assert result.exit_code == 1
-    assert "engine not yet built" in result.output
-    assert "sha256:" in result.output
+    assert "--snapshot-file" in result.output
 
 
 def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
@@ -56,7 +50,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
     assert payload["command"] == "decide"
     assert payload["contract_version"] == "1.0"
     assert payload["spec_hash"].startswith("sha256:")
-    assert payload["error"]["code"] == "engine_not_built"
+    assert payload["error"]["code"] == "snapshot_required"
 
 
 def test_an_invalid_spec_names_condition_field_and_reason(tmp_path) -> None:

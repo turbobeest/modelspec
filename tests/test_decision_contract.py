@@ -609,6 +609,10 @@ def _samples() -> list:
         decision.eliminated.models[0],
         decision.constraint_costs[0],
         decision.tipping_points[0],
+        c.NearMiss(offering=result.offering, condition="context >= 90", distance=10),
+        c.ShownFact(facet="context", value=80, unit="tokens"),
+        c.CandidateValues(offering=result.offering),
+        c.NumberOrigin(path="/results/0/rank", basis="ordinal"),
     ]
 
 
@@ -629,8 +633,8 @@ def test_every_type_round_trips_through_json(sample) -> None:
 # ── library entry point ───────────────────────────────────────────────────
 
 
-def test_decide_is_not_built_yet() -> None:
-    with pytest.raises(NotImplementedError, match="MODEL-141/142/145"):
+def test_decide_requires_a_snapshot() -> None:
+    with pytest.raises(ValueError, match="snapshot is required"):
         decide(_spec(), None)
 
 

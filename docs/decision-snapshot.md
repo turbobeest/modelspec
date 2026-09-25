@@ -78,7 +78,22 @@ unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
   `evidence_for_domain(...)`, which sets `directness`.
 
 The bitsets are built at load time from the columns, so the file cannot hold a
-bitset that disagrees with its values.
+bitset that disagrees with its values. Evidence objects are built per candidate
+on first access and cached.
+
+Explanation provenance uses `fact_records` to link facts to retained records.
+The optional `record_table` stores sorted dictionary paths, a shared pool of
+canonical JSON values, and one row of pool positions per record ID. A null
+position means an absent field; a position pointing to JSON `null` means an
+explicit null. Every admitted field and the winning verification are retained.
+`record(id)` reconstructs and caches the original record on first access. The
+loader also accepts the earlier `records` dictionary.
+
+For canonical writer output, loading hashes the stored content bytes directly.
+The JSON decoder identifies their boundary, so delimiters inside strings cannot
+truncate the checked content. Other JSON encodings use the canonical semantic
+hash check. All retained provenance is covered by the hash and signature before
+any record or evidence is accessed.
 
 ## Publishing
 
