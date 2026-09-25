@@ -47,7 +47,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import pyarrow.parquet as pq
 import yaml
 
 from decision.model import SourceRef, TargetRef, VerificationActor
@@ -139,6 +138,8 @@ def project_swebench(html: str, board: str, *, url: str, page_ref: str,
 def project_arena(parquet: bytes, config: str, category: str, *, url: str, page_ref: str,
                   read_date: str = READ_DATE) -> bytes:
     """LMArena's CC BY 4.0 dataset: one category of one config."""
+    import pyarrow.parquet as pq  # only this reader needs it; CI's test env lacks pyarrow
+
     table = pq.read_table(io.BytesIO(parquet)).to_pylist()
     keys = ("model_name", "rating", "rating_lower", "rating_upper", "vote_count",
             "leaderboard_publish_date")
