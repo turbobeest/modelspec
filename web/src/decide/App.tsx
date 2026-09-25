@@ -24,7 +24,7 @@ import {
 import type { Vocabulary } from "./vocabulary";
 import { VocabContext, fictionalVocab, realVocab } from "./vocabulary/context";
 import { placeIssues } from "./vocabulary/issues";
-import { registerBenchmarks } from "./adapter/condition-label";
+import { registerBenchmarks, registerProviders } from "./adapter/condition-label";
 import { baseSpec, decodeSpec, encodeSpec } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { SpecPanel } from "./components/SpecPanel";
@@ -33,6 +33,7 @@ import { Canvas } from "./components/Canvas";
 import { Shortlist } from "./components/Shortlist";
 import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
+import { Coverage } from "./components/Coverage";
 import { Share } from "./components/Share";
 import "./decide.css";
 import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
@@ -106,6 +107,7 @@ function DesignedApp({
   const vocab = useMemo(() => {
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
+    registerProviders(vocabulary.providers);
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
@@ -147,7 +149,9 @@ function DesignedApp({
           axis: shownAxis,
           dismissed,
           questions: hostedQuestions,
-          ...(vocabulary ? { benchmarks: vocab.benchmarks, models: vocabulary.models } : {}),
+          ...(vocabulary
+            ? { benchmarks: vocab.benchmarks, models: vocabulary.models, providers: vocabulary.providers }
+            : {}),
         }),
         error: null,
       };
@@ -689,6 +693,8 @@ function DesignedApp({
               </div>
             </div>
           ) : decision ? (
+            <>
+            <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
             <div className="results">
               <Canvas
                 decision={decision}
@@ -743,6 +749,7 @@ function DesignedApp({
                 }}
               />
             </div>
+            </>
           ) : null}
         </main>
       )}

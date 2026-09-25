@@ -50,6 +50,10 @@ const slug = (value: string) =>
 export type ModelNames = Readonly<
   Record<string, { display_name: string | null; lab: string; lab_name: string | null }>
 >;
+interface Names {
+  models: ModelNames;
+  providers: Readonly<Record<string, string>>;
+}
 
 function classId(type: Extract<Cond, { f: "type" }>["v"]): string {
   switch (type) {
@@ -313,7 +317,7 @@ function modelAndOffering(
   decision: Decision,
   offeringRef: OfferingRef,
   sources: Map<string, string[]>,
-  names: ModelNames,
+  names: Names,
 ): { model: Model; offering: Offering; evidence: Evidence[] } {
   const values = decision.top.find((candidate) => sameOffering(candidate.offering, offeringRef));
   // Without a top entry (a summary decision), fall back to the ranked result.
@@ -323,7 +327,8 @@ function modelAndOffering(
   const facts = values?.facts ?? [];
   const modelId = offeringRef.model;
   const [lab, tail] = modelId.split("/", 2);
-  const named = names[modelId];
+  const named = names.models[modelId];
+  const provider = offeringRef.provider && (names.providers[offeringRef.provider] ?? offeringRef.provider);
   const priceIn = numberFact(facts, "offering.price.input", sources);
   const priceOut = numberFact(facts, "offering.price.output", sources);
   const ttft = numberFact(facts, "offering.speed.time_to_first_token", sources);
@@ -339,7 +344,7 @@ function modelAndOffering(
     id: [offeringRef.provider, modelId, offeringRef.region, offeringRef.tier]
       .filter((part) => part !== null)
       .join("/"),
-    provider: offeringRef.provider ?? "Provider not available",
+    provider: provider ?? "Provider not available",
     regions: offeringRef.region ? [offeringRef.region] : null,
     in: priceIn,
     out: priceOut,
@@ -367,7 +372,7 @@ function modelAndOffering(
     out: priceOut,
     ttft,
     tps: throughput,
-    hosts: offeringRef.provider ? [offeringRef.provider] : [],
+    hosts: provider ? [provider] : [],
     bench: evidence,
     offerings: [offering],
   };
@@ -426,7 +431,7 @@ function rankedRow(
   result: Decision["results"][number],
   spec: Spec,
   sources: Map<string, string[]>,
-  names: ModelNames,
+  names: Names,
 ): RankedRow {
   const { model, offering, evidence } = modelAndOffering(
     decision,
@@ -504,7 +509,7 @@ function unrankedRow(
   state: 0 | -1,
   unknown: string[],
   why: string,
-  names: ModelNames,
+  names: Names,
 ): Row {
   const { model, offering, evidence } = modelAndOffering(
     decision,
@@ -679,10 +684,12 @@ export function mapDecisionToViewModel(
     benchmarks?: Record<string, BenchDef>;
     /** Display and lab names, from the published vocabulary (real mode). */
     models?: ModelNames;
+    /** Provider display names, from the published vocabulary (real mode). */
+    providers?: Readonly<Record<string, string>>;
   },
 ): AdapterDecision {
   const sources = sourceRecords(decision);
-  const names = options.models ?? {};
+  const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,

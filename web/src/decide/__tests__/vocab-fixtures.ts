@@ -1,5 +1,7 @@
 // Vocabulary fixtures for the real-mode tests. `realVocabulary` is the file
-// decision/vocabulary.py wrote from the live snapshot (snap_7bf37267f8f2b2eb);
+// decision/vocabulary.py wrote from the live snapshot (snap_7bf37267f8f2b2eb),
+// with `providers` and `coverage` added from snap_898e29e1f0c39d6e, the
+// snapshot the empty-q*.json decisions come from;
 // `smallVocabulary` narrows it to the synthetic `quality` benchmark that
 // __fixtures__/full-decision.json ranks on.
 import { vi } from "vitest";

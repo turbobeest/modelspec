@@ -21,6 +21,16 @@ list of facets or benchmarks of its own:
 * ``models``: every lineup and archive model, by ID, with the ``display_name``
   and lab (``lab``, ``lab_name``) its card gives. A name the card does not
   give is ``null``; a client shows the ID, never a name made from the slug.
+* ``providers``: every registered provider's display name, by ID.
+* ``coverage``: what the lineup holds, so a client can say what an empty
+  answer was measured against without writing it per question. ``models`` is
+  the lineup size and ``verified`` how many of those have at least one verified
+  evidence row; ``as_of`` is the snapshot date. ``classes`` lists every
+  registered model class (zeros included) with the same two counts and, per
+  domain, how many of its models have verified evidence there. ``domains``
+  lists every registered domain with how many lineup models have verified
+  evidence on any benchmark tagged to it (``verified``) and on a direct one
+  (``direct``).
 
 Operators are the compact condition forms: ``=``, ``!=``, ``<``, ``<=``,
 ``>``, ``>=``, ``between`` (``facet in [low, high]``), ``in`` and ``not in``
@@ -152,6 +162,48 @@ def _model_rows(snapshot: Any, cards: Mapping[str, Mapping[str, Any]],
     return rows
 
 
+def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]:
+    tags = snapshot.benchmark_domain_tags()
+    class_of: dict[str, Any] = {}
+    for cid in lineup:
+        if snapshot.kind(cid) == "model":
+            class_of[snapshot.model_of(cid)] = snapshot.fact(cid, "model.class").value
+    verified: dict[str, set[str]] = {}  # model -> benchmarks with a verified row
+    for cid in lineup:
+        for benchmark in snapshot.benchmark_ids():
+            if any(e.verified for e in snapshot.evidence(cid, benchmark)):
+                verified.setdefault(snapshot.model_of(cid), set()).add(benchmark)
+
+    def in_domain(mid: str, domain: str, *, direct: bool = False) -> bool:
+        return any(d == domain and (not direct or k == "direct")
+                   for b in verified.get(mid, ()) for d, k in tags.get(b, ()))
+
+    domains = registry.domains()
+    classes = []
+    for class_id in sorted(registry.allowed_values(registry.facet("model.class")) or ()):
+        members = [mid for mid, cls in class_of.items() if cls == class_id]
+        per_domain = [{"id": d.id, "verified": n} for d in domains
+                      if (n := sum(in_domain(mid, d.id) for mid in members))]
+        classes.append({
+            "id": class_id,
+            "models": len(members),
+            "verified": sum(mid in verified for mid in members),
+            "domains": sorted(per_domain, key=lambda row: (-row["verified"], row["id"])),
+        })
+    return {
+        "as_of": snapshot.as_of.isoformat() if snapshot.as_of else None,
+        "models": len(class_of),
+        "verified": sum(mid in verified for mid in class_of),
+        "classes": classes,
+        "domains": [{
+            "id": d.id,
+            "name": d.name,
+            "verified": sum(in_domain(mid, d.id) for mid in class_of),
+            "direct": sum(in_domain(mid, d.id, direct=True) for mid in class_of),
+        } for d in domains],
+    }
+
+
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
                      registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
                      ) -> dict[str, Any]:
@@ -204,4 +256,6 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "benchmarks": benchmarks,
         "domains": domains,
         "models": _model_rows(snapshot, cards or {}),
+        "providers": {p.id: p.name for p in registry.providers()},
+        "coverage": _coverage(view, lineup, registry),
     }

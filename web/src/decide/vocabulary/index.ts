@@ -83,10 +83,38 @@ export const vocabularySchema = z.object({
       }),
     )
     .default({}),
+  /** Provider display names by ID. */
+  providers: z.record(z.string(), z.string()).default({}),
+  /** What the lineup holds, for an empty answer. Absent before MODEL-153's coverage. */
+  coverage: z
+    .object({
+      as_of: z.string().nullable(),
+      models: z.number().int().nonnegative(),
+      verified: z.number().int().nonnegative(),
+      classes: z.array(
+        z.object({
+          id: z.string(),
+          models: z.number().int().nonnegative(),
+          verified: z.number().int().nonnegative(),
+          domains: z.array(z.object({ id: z.string(), verified: z.number().int().nonnegative() })),
+        }),
+      ),
+      domains: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          verified: z.number().int().nonnegative(),
+          direct: z.number().int().nonnegative(),
+        }),
+      ),
+    })
+    .nullable()
+    .default(null),
 });
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
 export type VocabBenchmark = Vocabulary["benchmarks"][number];
+export type Coverage = NonNullable<Vocabulary["coverage"]>;
 
 /** Why the vocabulary could not be used. `missing` means no snapshot is published yet. */
 export class VocabularyError extends Error {

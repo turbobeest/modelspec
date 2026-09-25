@@ -2285,3 +2285,37 @@ body {
 .decision-table td:last-child > small:empty {
   display: none;
 }
+.coverage-panel {
+  border-top-color: var(--warn);
+  margin-bottom: 14px;
+}
+.coverage-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 8px 28px;
+  margin-top: 6px;
+}
+.coverage-panel h2 {
+  font-size: 14px;
+  margin: 4px 0 6px;
+}
+.coverage-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.coverage-panel li + li {
+  margin-top: 4px;
+}
+.coverage-panel p {
+  margin: 0;
+  color: var(--ink2);
+}
+.coverage-relax {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}

@@ -1,0 +1,2901 @@
+{
+ "near_misses": [
+  {
+   "values": [],
+   "offering": {
+    "model": "typesafe/jev-1-13",
+    "provider": "typesafe",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "model.class = text-generator",
+   "facet": "model.class",
+   "value": "decider",
+   "distance": null,
+   "unit": null,
+   "records": [
+    "typesafe/jev-1-13#model.class"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "qwen/qwen3-8-max-0902",
+    "provider": "alibaba-model-studio",
+    "region": "singapore",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-fable-5-1",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-fable-5",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-4-6",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-4-7",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-5-5",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 4.0,
+   "distance": 3.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-5",
+    "provider": "anthropic",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "anthropic/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-4-6",
+    "provider": "aws-bedrock",
+    "region": "global-cross-region",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-5-5",
+    "provider": "aws-bedrock",
+    "region": "global-cross-region",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 4.0,
+   "distance": 3.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-5-4",
+    "provider": "azure-ai-foundry",
+    "region": "global-short-context",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.5,
+   "distance": 2.3,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-4/global-short-context/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-5-6-sol",
+    "provider": "azure-ai-foundry",
+    "region": "global-short-context",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 4.0,
+   "distance": 3.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-6-astra",
+    "provider": "azure-ai-foundry",
+    "region": "global-short-context",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-6-sol",
+    "provider": "azure-ai-foundry",
+    "region": "global-short-context",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-1-pro-preview",
+    "provider": "google-gemini-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-5-flash",
+    "provider": "google-gemini-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 1.5,
+   "distance": 1.3,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-7-flash",
+    "provider": "google-gemini-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 0.75,
+   "distance": 0.55,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-gemini-api/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-8-flash",
+    "provider": "google-gemini-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 0.75,
+   "distance": 0.55,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-gemini-api/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-fable-5-1",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-fable-5",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-4-6",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-4-7",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-5-5",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 4.0,
+   "distance": 3.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "anthropic/claude-opus-5",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 5.0,
+   "distance": 4.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-1-pro-preview",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-5-flash",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 1.5,
+   "distance": 1.3,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-7-flash",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 0.75,
+   "distance": 0.55,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "google/gemini-3-8-flash",
+    "provider": "google-vertex-ai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 0.75,
+   "distance": 0.55,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "google-vertex-ai/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "meta/muse-spark-1-1",
+    "provider": "meta-model-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 1.25,
+   "distance": 1.05,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-1/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "meta/muse-spark-1-3",
+    "provider": "meta-model-api",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 1.25,
+   "distance": 1.05,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-5-4",
+    "provider": "openai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.5,
+   "distance": 2.3,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "openai/openai/gpt-5-4/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-5-6-sol",
+    "provider": "openai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 4.0,
+   "distance": 3.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "openai/openai/gpt-5-6-sol/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-6-astra",
+    "provider": "openai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 10.0,
+   "distance": 9.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "openai/openai/gpt-6-astra/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "openai/gpt-6-sol",
+    "provider": "openai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "openai/openai/gpt-6-sol/global/standard#offering.price.input"
+   ],
+   "formula": null
+  },
+  {
+   "values": [],
+   "offering": {
+    "model": "xai/grok-4-7",
+    "provider": "xai",
+    "region": "global",
+    "tier": "standard"
+   },
+   "condition": "offering.price.input <= 0.2",
+   "facet": "offering.price.input",
+   "value": 2.0,
+   "distance": 1.8,
+   "unit": "usd_per_1m_tokens",
+   "records": [
+    "xai/xai/grok-4-7/global/standard#offering.price.input"
+   ],
+   "formula": null
+  }
+ ],
+ "top": [],
+ "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"></svg>",
+ "number_origins": [
+  {
+   "path": "/near_misses/1/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "alibaba-model-studio-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/1/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "alibaba-model-studio-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/2/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/2/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/3/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/3/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/4/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/4/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/5/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/5/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/6/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/6/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/7/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/7/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "anthropic/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/8/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/8/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/9/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/9/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/10/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-4/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/10/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-4/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/11/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/11/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/12/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/12/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/13/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/13/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/14/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/14/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/15/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/15/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/16/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/16/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-gemini-api/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/17/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/17/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-gemini-api/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/18/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/18/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/19/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/19/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/20/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/20/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/21/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/21/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/22/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/22/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/23/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/23/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/24/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/24/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/25/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/25/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/26/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/26/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/27/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/27/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "google-vertex-ai/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/28/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/28/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/29/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/29/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/30/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-5-4/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-4-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/30/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "openai/openai/gpt-5-4/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-4-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/31/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-5-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/31/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "openai/openai/gpt-5-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/32/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-6-astra/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-astra-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/32/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "openai/openai/gpt-6-astra/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-astra-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/33/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/33/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "openai/openai/gpt-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/near_misses/34/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "xai/xai/grok-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "xai-grok-4-7"
+   ]
+  },
+  {
+   "path": "/near_misses/34/distance",
+   "basis": "distance from snapshot value to spec condition boundary, in original units",
+   "records": [
+    "xai/xai/grok-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "xai-grok-4-7"
+   ]
+  },
+  {
+   "path": "/eliminated/models/18/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "alibaba-model-studio-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/19/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/20/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/21/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/22/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/23/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/24/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "anthropic/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "anthropic-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/25/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/26/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "aws-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/27/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-4/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/28/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-5-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/29/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/30/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "azure-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/31/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "deepseek-v4-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/32/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/33/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/34/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/35/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-gemini-api/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "gemini-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/36/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/37/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-fable-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/38/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/39/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/40/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/41/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/anthropic/claude-opus-5/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/42/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/43/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/44/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/45/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "google-vertex-ai/google/gemini-3-8-flash/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "vertex-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/46/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-1/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/47/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "meta-model-api-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/48/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-5-4/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-4-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/49/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-5-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-5-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/50/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-6-astra/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-astra-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/51/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "openai/openai/gpt-6-sol/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "openai-gpt-6-sol-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/52/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "xai/xai/grok-4-7/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "xai-grok-4-7"
+   ]
+  },
+  {
+   "path": "/eliminated/models/53/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "zai/zhipu/glm-5-2/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "zai-pricing"
+   ]
+  },
+  {
+   "path": "/eliminated/models/54/value",
+   "basis": "snapshot measurement",
+   "records": [
+    "zai/zhipu/glm-5-3/global/standard#offering.price.input"
+   ],
+   "sources": [],
+   "source_ids": [
+    "zai-pricing"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "alibaba-model-studio-pricing",
+   "url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "anthropic-pricing",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "aws-pricing",
+   "url": "https://aws.amazon.com/bedrock/pricing/",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "azure-pricing",
+   "url": "https://azure.microsoft.com/en-us/pricing/details/azure-openai/",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "deepseek-v4-pricing",
+   "url": "https://api-docs.deepseek.com/quick_start/pricing/",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "gemini-pricing",
+   "url": "https://ai.google.dev/gemini-api/docs/pricing",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "meta-model-api-pricing",
+   "url": "https://ai.developer.meta.com/docs/pricing-rate-limits.md",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "openai-gpt-5-4-pricing",
+   "url": "https://developers.openai.com/api/docs/models/gpt-5.4",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "openai-gpt-5-6-sol-pricing",
+   "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "openai-gpt-6-astra-pricing",
+   "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "openai-gpt-6-sol-pricing",
+   "url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "vertex-pricing",
+   "url": "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "xai-grok-4-7",
+   "url": "https://docs.x.ai/developers/models/grok-4.7",
+   "title": null,
+   "date": "2026-09-25"
+  },
+  {
+   "id": "zai-pricing",
+   "url": "https://docs.z.ai/guides/overview/pricing.md",
+   "title": null,
+   "date": "2026-09-25"
+  }
+ ],
+ "contract_version": "1.4",
+ "decision_id": "dec_f4291b50b6d9ad3a123c5d7e",
+ "snapshot": "snap_898e29e1f0c39d6e",
+ "spec_hash": "sha256:e08439e2c7706c8c5432b5cfdc86a3ee7914a511f884e1268058dbe1e6826313",
+ "explain": "full",
+ "status": "no_feasible",
+ "results": [],
+ "may_qualify": [
+  {
+   "model": "meta/muse-spark",
+   "offering": {
+    "model": "meta/muse-spark",
+    "provider": null,
+    "region": null,
+    "tier": null
+   },
+   "unknown": [
+    "offering.price.input"
+   ]
+  }
+ ],
+ "eliminated": {
+  "funnel": [
+   {
+    "condition": "model.class = text-generator",
+    "before": 48,
+    "after": 41,
+    "may_qualify": 0
+   },
+   {
+    "condition": "model.lifecycle = active",
+    "before": 41,
+    "after": 41,
+    "may_qualify": 0
+   },
+   {
+    "condition": "model.weights_openness != open_weights",
+    "before": 41,
+    "after": 35,
+    "may_qualify": 0
+   },
+   {
+    "condition": "offering.price.input <= 0.2",
+    "before": 35,
+    "after": 0,
+    "may_qualify": 1
+   }
+  ],
+  "models": [
+   {
+    "values": [],
+    "offering": {
+     "model": "jcorners/ingot-8b-r3",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "jcorners/ingot-8b-r3#model.class"
+    ],
+    "model": "jcorners/ingot-8b-r3",
+    "condition": "model.class = text-generator",
+    "value": "vectoriser",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "kingsoft/qzhou-embedding",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "kingsoft/qzhou-embedding#model.class"
+    ],
+    "model": "kingsoft/qzhou-embedding",
+    "condition": "model.class = text-generator",
+    "value": "vectoriser",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "microsoft/harrier-oss-v1-27b",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "microsoft/harrier-oss-v1-27b#model.class"
+    ],
+    "model": "microsoft/harrier-oss-v1-27b",
+    "condition": "model.class = text-generator",
+    "value": "vectoriser",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "querit/querit",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "querit/querit#model.class"
+    ],
+    "model": "querit/querit",
+    "condition": "model.class = text-generator",
+    "value": "orderer",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "querit/querit-4b",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "querit/querit-4b#model.class"
+    ],
+    "model": "querit/querit-4b",
+    "condition": "model.class = text-generator",
+    "value": "orderer",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "tencent/kalm-embedding-gemma3-12b-2511",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "tencent/kalm-embedding-gemma3-12b-2511#model.class"
+    ],
+    "model": "tencent/kalm-embedding-gemma3-12b-2511",
+    "condition": "model.class = text-generator",
+    "value": "vectoriser",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "typesafe/jev-1-13",
+     "provider": "typesafe",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": null,
+    "records": [
+     "typesafe/jev-1-13#model.class"
+    ],
+    "model": "typesafe/jev-1-13",
+    "condition": "model.class = text-generator",
+    "value": "decider",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "deepseek/deepseek-v4-pro",
+     "provider": "deepseek",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": null,
+    "records": [
+     "deepseek/deepseek-v4-pro#model.weights_openness"
+    ],
+    "model": "deepseek/deepseek-v4-pro",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "kingsoft/qzhou-embedding",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "kingsoft/qzhou-embedding#model.weights_openness"
+    ],
+    "model": "kingsoft/qzhou-embedding",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "microsoft/harrier-oss-v1-27b",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "microsoft/harrier-oss-v1-27b#model.weights_openness"
+    ],
+    "model": "microsoft/harrier-oss-v1-27b",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "moonshot/kimi-k2-6",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "moonshot/kimi-k2-6#model.weights_openness"
+    ],
+    "model": "moonshot/kimi-k2-6",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "moonshot/kimi-k3",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "moonshot/kimi-k3#model.weights_openness"
+    ],
+    "model": "moonshot/kimi-k3",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "querit/querit",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "querit/querit#model.weights_openness"
+    ],
+    "model": "querit/querit",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "querit/querit-4b",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "querit/querit-4b#model.weights_openness"
+    ],
+    "model": "querit/querit-4b",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "qwen/qwen3-8-flash-next",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "qwen/qwen3-8-flash-next#model.weights_openness"
+    ],
+    "model": "qwen/qwen3-8-flash-next",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "tencent/kalm-embedding-gemma3-12b-2511",
+     "provider": null,
+     "region": null,
+     "tier": null
+    },
+    "unit": null,
+    "records": [
+     "tencent/kalm-embedding-gemma3-12b-2511#model.weights_openness"
+    ],
+    "model": "tencent/kalm-embedding-gemma3-12b-2511",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "zhipu/glm-5-2",
+     "provider": "zai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": null,
+    "records": [
+     "zhipu/glm-5-2#model.weights_openness"
+    ],
+    "model": "zhipu/glm-5-2",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "zhipu/glm-5-3",
+     "provider": "zai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": null,
+    "records": [
+     "zhipu/glm-5-3#model.weights_openness"
+    ],
+    "model": "zhipu/glm-5-3",
+    "condition": "model.weights_openness != open_weights",
+    "value": "open_weights",
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "qwen/qwen3-8-max-0902",
+     "provider": "alibaba-model-studio",
+     "region": "singapore",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input"
+    ],
+    "model": "qwen/qwen3-8-max-0902",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-fable-5-1",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-fable-5-1",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-fable-5",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-fable-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-fable-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-4-6",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-4-6",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-4-7",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-4-7",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-5-5",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-5-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 4.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-5",
+     "provider": "anthropic",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "anthropic/anthropic/claude-opus-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-4-6",
+     "provider": "aws-bedrock",
+     "region": "global-cross-region",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-4-6",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-5-5",
+     "provider": "aws-bedrock",
+     "region": "global-cross-region",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-5-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 4.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-5-4",
+     "provider": "azure-ai-foundry",
+     "region": "global-short-context",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "azure-ai-foundry/openai/gpt-5-4/global-short-context/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-5-4",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.5,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-5-6-sol",
+     "provider": "azure-ai-foundry",
+     "region": "global-short-context",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "azure-ai-foundry/openai/gpt-5-6-sol/global-short-context/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-5-6-sol",
+    "condition": "offering.price.input <= 0.2",
+    "value": 4.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-6-astra",
+     "provider": "azure-ai-foundry",
+     "region": "global-short-context",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-6-astra",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-6-sol",
+     "provider": "azure-ai-foundry",
+     "region": "global-short-context",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-6-sol",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "deepseek/deepseek-v4-pro",
+     "provider": "deepseek",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "deepseek/deepseek/deepseek-v4-pro/global/standard#offering.price.input"
+    ],
+    "model": "deepseek/deepseek-v4-pro",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.32,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-1-pro-preview",
+     "provider": "google-gemini-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-1-pro-preview",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-5-flash",
+     "provider": "google-gemini-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-5-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.5,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-7-flash",
+     "provider": "google-gemini-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-gemini-api/google/gemini-3-7-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-7-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 0.75,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-8-flash",
+     "provider": "google-gemini-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-gemini-api/google/gemini-3-8-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-8-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 0.75,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-fable-5-1",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-fable-5-1",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-fable-5",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-fable-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-fable-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-4-6",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-opus-4-6/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-4-6",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-4-7",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-opus-4-7/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-4-7",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-5-5",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-5-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 4.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "anthropic/claude-opus-5",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/anthropic/claude-opus-5/global/standard#offering.price.input"
+    ],
+    "model": "anthropic/claude-opus-5",
+    "condition": "offering.price.input <= 0.2",
+    "value": 5.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-1-pro-preview",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/google/gemini-3-1-pro-preview/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-1-pro-preview",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-5-flash",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-5-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.5,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-7-flash",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-7-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 0.75,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "google/gemini-3-8-flash",
+     "provider": "google-vertex-ai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "google-vertex-ai/google/gemini-3-8-flash/global/standard#offering.price.input"
+    ],
+    "model": "google/gemini-3-8-flash",
+    "condition": "offering.price.input <= 0.2",
+    "value": 0.75,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "meta/muse-spark-1-1",
+     "provider": "meta-model-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "meta-model-api/meta/muse-spark-1-1/global/standard#offering.price.input"
+    ],
+    "model": "meta/muse-spark-1-1",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.25,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "meta/muse-spark-1-3",
+     "provider": "meta-model-api",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input"
+    ],
+    "model": "meta/muse-spark-1-3",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.25,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-5-4",
+     "provider": "openai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "openai/openai/gpt-5-4/global/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-5-4",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.5,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-5-6-sol",
+     "provider": "openai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "openai/openai/gpt-5-6-sol/global/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-5-6-sol",
+    "condition": "offering.price.input <= 0.2",
+    "value": 4.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-6-astra",
+     "provider": "openai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "openai/openai/gpt-6-astra/global/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-6-astra",
+    "condition": "offering.price.input <= 0.2",
+    "value": 10.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "openai/gpt-6-sol",
+     "provider": "openai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "openai/openai/gpt-6-sol/global/standard#offering.price.input"
+    ],
+    "model": "openai/gpt-6-sol",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "xai/grok-4-7",
+     "provider": "xai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "xai/xai/grok-4-7/global/standard#offering.price.input"
+    ],
+    "model": "xai/grok-4-7",
+    "condition": "offering.price.input <= 0.2",
+    "value": 2.0,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "zhipu/glm-5-2",
+     "provider": "zai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "zai/zhipu/glm-5-2/global/standard#offering.price.input"
+    ],
+    "model": "zhipu/glm-5-2",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.4,
+    "formula": null
+   },
+   {
+    "values": [],
+    "offering": {
+     "model": "zhipu/glm-5-3",
+     "provider": "zai",
+     "region": "global",
+     "tier": "standard"
+    },
+    "unit": "usd_per_1m_tokens",
+    "records": [
+     "zai/zhipu/glm-5-3/global/standard#offering.price.input"
+    ],
+    "model": "zhipu/glm-5-3",
+    "condition": "offering.price.input <= 0.2",
+    "value": 1.4,
+    "formula": null
+   }
+  ]
+ },
+ "constraint_costs": [
+  {
+   "units": {},
+   "records": [],
+   "condition": "model.class = text-generator",
+   "admits": 1,
+   "gain": {}
+  },
+  {
+   "units": {},
+   "records": [],
+   "condition": "model.lifecycle = active",
+   "admits": 0,
+   "gain": {}
+  },
+  {
+   "units": {},
+   "records": [],
+   "condition": "model.weights_openness != open_weights",
+   "admits": 0,
+   "gain": {}
+  },
+  {
+   "units": {},
+   "records": [],
+   "condition": "offering.price.input <= 0.2",
+   "admits": 35,
+   "gain": {}
+  }
+ ],
+ "tipping_points": [],
+ "relax": [
+  "model.class = text-generator"
+ ],
+ "warnings": [],
+ "out_of_lineup": 1334
+}
