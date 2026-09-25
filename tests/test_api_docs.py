@@ -545,3 +545,21 @@ def test_ci_checks_the_spec_and_probes_it_after_a_deploy() -> None:
                     reason="set MODELSPEC_LIVE_API=1 to call api.modelspec.dev")
 def test_a_request_built_only_from_the_spec_succeeds_against_the_live_service() -> None:
     assert generator.probe("https://api.modelspec.dev") == 0
+
+
+def test_probe_validator_accepts_json_schema_null_type():
+    """pydantic writes Optional fields as anyOf [T, {"type": "null"}]; the
+    post-deploy probe must accept null there and reject a non-null value for
+    a null-only schema. (A live /v1/decide `chart: null` failed it.)"""
+    import importlib.util
+    spec_obj = importlib.util.spec_from_file_location(
+        "openapi_probe", REPO_ROOT / "api" / "worker" / "openapi.py")
+    mod = importlib.util.module_from_spec(spec_obj)
+    spec_obj.loader.exec_module(mod)
+    optional = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+    assert mod._validate(None, optional, {}) == []
+    assert mod._validate("svg", optional, {}) == []
+    assert mod._validate(3, optional, {}) != []
+    assert mod._validate(None, {"type": "null"}, {}) == []
+    assert mod._validate("x", {"type": "null"}, {}) != []
+    assert mod._validate(None, {"type": "string"}, {}) != []

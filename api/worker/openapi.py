@@ -2315,11 +2315,15 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
     problems: list[str] = []
     if "not" in schema and not _validate(value, schema["not"], spec, path):
         problems.append(f"{path}: carries a key the spec forbids on this variant")
-    if value is None:
-        if not schema.get("nullable") and schema.get("type"):
-            problems.append(f"{path}: null, but the spec says {schema['type']}")
-        return problems
     kind = schema.get("type")
+    if value is None:
+        # JSON Schema's `{"type": "null"}` (what pydantic emits for Optional,
+        # inside anyOf) accepts null; so does OpenAPI's `nullable`.
+        if not schema.get("nullable") and kind and kind != "null":
+            problems.append(f"{path}: null, but the spec says {kind}")
+        return problems
+    if kind == "null":
+        return problems + [f"{path}: {type(value).__name__}, but the spec says null"]
     checks = {
         "object": dict, "array": list, "string": str, "boolean": bool,
         "integer": int, "number": (int, float),
