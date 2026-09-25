@@ -8,6 +8,10 @@ import type {
   EvidenceItem,
   OfferingRef,
 } from "./contract";
+import {
+  renderContractCondition,
+  renderUnknownFacets,
+} from "./condition-label";
 
 const CLASS_TO_TYPE: Readonly<Record<string, TypeKey>> = {
   "text-generator": "llm",
@@ -217,10 +221,14 @@ function testsFor(
   return spec.conds.map((condition) => {
     const rendered = contractCondition(condition);
     const facet = rendered.split(" ", 1)[0];
-    if (state === -1 && reason.includes(rendered)) return { s: -1, why: reason };
+    if (state === -1 && reason.includes(rendered))
+      return { s: -1, why: renderContractCondition(reason) };
     if (state === 0 && unknown.some((item) => item === facet || rendered.includes(item)))
-      return { s: 0, why: `unknown: ${unknown.join(", ")}` };
-    return { s: state === 1 ? 1 : 0, why: state === 0 ? reason : undefined };
+      return { s: 0, why: `unknown: ${renderUnknownFacets(unknown)}` };
+    return {
+      s: state === 1 ? 1 : 0,
+      why: state === 0 ? renderContractCondition(reason) : undefined,
+    };
   });
 }
 
@@ -432,8 +440,60 @@ function unrankedRow(
     cost: off.cost,
     tps: offering.tps,
     labOnly: selected?.by === "lab",
-    unrankedWhy: why,
+    unrankedWhy: state === -1 ? renderContractCondition(why) : why,
   };
+}
+
+interface CandidateRow<T extends Row = Row> {
+  row: T;
+  hasOffering: boolean;
+}
+
+function rowModel(row: Row): string {
+  return `${row.m.lab}/${row.m.id}`;
+}
+
+function consolidateRows<T extends Row>(
+  base: CandidateRow<T>[],
+  candidates: CandidateRow[],
+  claimed: Set<string>,
+): T[] {
+  const seen = new Set<string>();
+  const consolidated: T[] = [];
+  for (const candidate of base) {
+    const model = rowModel(candidate.row);
+    if (claimed.has(model) || seen.has(model)) continue;
+    seen.add(model);
+    const variants = candidates.filter(
+      (item) => rowModel(item.row) === model && item.hasOffering,
+    );
+    const members = variants.length > 0
+      ? variants
+      : candidates.filter((item) => rowModel(item.row) === model);
+    const offerings = [
+      ...new Map(members.map((item) => [item.row.best.o.id, item.row.best])).values(),
+    ];
+    consolidated.push({
+      ...candidate.row,
+      m: {
+        ...candidate.row.m,
+        offerings: offerings.map((offering) => offering.o),
+      },
+      offs: offerings,
+    });
+  }
+  consolidated.forEach((row) => claimed.add(rowModel(row)));
+  return consolidated;
+}
+
+function offeringKey(ref: OfferingRef): string {
+  return JSON.stringify(ref);
+}
+
+function offeringId(ref: OfferingRef): string {
+  return [ref.provider, ref.model, ref.region, ref.tier]
+    .filter((part) => part !== null)
+    .join("/");
 }
 
 function pareto(rows: RankedRow[], axis: Axis, highY: boolean): Row[] {
@@ -518,18 +578,30 @@ export function mapDecisionToViewModel(
   options: { axis: Axis; dismissed: string[]; questions?: Question[] },
 ): AdapterDecision {
   const sources = sourceRecords(decision);
-  const feasible = decision.results.map((result) => rankedRow(decision, result, spec, sources));
-  const may = decision.may_qualify.map((candidate) =>
-    unrankedRow(
-      decision,
-      candidate.offering ?? { model: candidate.model, provider: null, region: null, tier: null },
-      spec,
-      sources,
-      0,
-      candidate.unknown,
-      `unknown: ${candidate.unknown.join(", ")}`,
-    ),
-  );
+  const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
+    row: rankedRow(decision, result, spec, sources),
+    hasOffering: result.offering.provider !== null,
+  }));
+  const rawMay: CandidateRow[] = decision.may_qualify.map((candidate) => {
+    const ref = candidate.offering ?? {
+      model: candidate.model,
+      provider: null,
+      region: null,
+      tier: null,
+    };
+    return {
+      row: unrankedRow(
+        decision,
+        ref,
+        spec,
+        sources,
+        0,
+        candidate.unknown,
+        `unknown: ${renderUnknownFacets(candidate.unknown)}`,
+      ),
+      hasOffering: ref.provider !== null,
+    };
+  });
   const eliminatedByOffering = new Map<string, Decision["eliminated"]["models"][number]>();
   for (const eliminated of decision.eliminated.models) {
     const ref = eliminated.offering ?? {
@@ -538,24 +610,35 @@ export function mapDecisionToViewModel(
       region: null,
       tier: null,
     };
-    eliminatedByOffering.set(JSON.stringify(ref), eliminated);
+    eliminatedByOffering.set(offeringKey(ref), eliminated);
   }
-  const excluded = [...eliminatedByOffering.values()].map((eliminated) =>
-    unrankedRow(
-      decision,
-      eliminated.offering ?? {
+  const rawExcluded: CandidateRow[] = [...eliminatedByOffering.values()].map(
+    (eliminated) => {
+      const ref = eliminated.offering ?? {
         model: eliminated.model,
         provider: null,
         region: null,
         tier: null,
-      },
-      spec,
-      sources,
-      -1,
-      [],
-      eliminated.condition,
-    ),
+      };
+      return {
+        row: unrankedRow(
+          decision,
+          ref,
+          spec,
+          sources,
+          -1,
+          [],
+          eliminated.condition,
+        ),
+        hasOffering: ref.provider !== null,
+      };
+    },
   );
+  const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
+  const claimed = new Set<string>();
+  const feasible = consolidateRows(rawFeasible, rawRows, claimed);
+  const may = consolidateRows(rawMay, rawRows, claimed);
+  const excluded = consolidateRows(rawExcluded, rawRows, claimed);
   const rows = [...feasible, ...may, ...excluded];
   const benchmarks = Object.fromEntries(
     [...new Set(decision.top.flatMap((candidate) => candidate.evidence.flatMap((group) => group.items.map((item) => item.benchmark))))].map(
@@ -565,30 +648,83 @@ export function mapDecisionToViewModel(
   if (!benchmarks[spec.bench]) benchmarks[spec.bench] = benchmarkDefinition(decision, spec.bench);
   const bench = benchmarks[spec.bench];
   const frontier = pareto(feasible, options.axis, bench.hi);
-  const initial = decision.eliminated.funnel[0]?.before ?? rows.length;
+  const candidateRefs = new Map<string, OfferingRef>();
+  decision.results.forEach((result) =>
+    candidateRefs.set(offeringKey(result.offering), result.offering),
+  );
+  decision.may_qualify.forEach((candidate) => {
+    const ref = candidate.offering ?? {
+      model: candidate.model,
+      provider: null,
+      region: null,
+      tier: null,
+    };
+    candidateRefs.set(offeringKey(ref), ref);
+  });
+  decision.eliminated.models.forEach((candidate) => {
+    const ref = candidate.offering ?? {
+      model: candidate.model,
+      provider: null,
+      region: null,
+      tier: null,
+    };
+    candidateRefs.set(offeringKey(ref), ref);
+  });
+  const population = {
+    models: new Set([...candidateRefs.values()].map((ref) => ref.model)).size,
+    offerings: candidateRefs.size,
+  };
+  const eliminatedThrough = new Set<string>();
   const funnel = [
-    { label: "All candidates", n: initial, may: 0 },
-    ...decision.eliminated.funnel.map((step) => ({
-      label: step.condition,
-      n: step.after,
-      may: step.may_qualify,
-    })),
+    { label: "All models", n: population.models, may: 0 },
+    ...decision.eliminated.funnel.map((step) => {
+      decision.eliminated.models
+        .filter((candidate) => candidate.condition === step.condition)
+        .forEach((candidate) => {
+          const ref = candidate.offering ?? {
+            model: candidate.model,
+            provider: null,
+            region: null,
+            tier: null,
+          };
+          eliminatedThrough.add(offeringKey(ref));
+        });
+      const models = new Set(
+        [...candidateRefs].flatMap(([key, ref]) =>
+          eliminatedThrough.has(key) ? [] : [ref.model],
+        ),
+      ).size;
+      const mayModels = new Set(decision.may_qualify.map((candidate) => candidate.model)).size;
+      return {
+        label: renderContractCondition(step.condition),
+        n: models,
+        may: step.may_qualify === 0 ? 0 : Math.min(models, mayModels),
+      };
+    }),
   ];
   while (funnel.length <= spec.conds.length)
     funnel.push({ label: "Condition not returned", n: feasible.length, may: may.length });
   const nearMisses: NearMiss[] = decision.near_misses.flatMap((miss) => {
-    const row = rows.find((candidate) => candidate.m.lab + "/" + candidate.m.id === miss.offering.model);
-    if (!row) return [];
-    const conditionIndex = Math.max(
-      0,
-      spec.conds.findIndex((condition) => contractCondition(condition) === miss.condition),
+    if (miss.offering.provider === null) return [];
+    const row = excluded.find(
+      (candidate) => rowModel(candidate) === miss.offering.model,
     );
+    const conditionIndex = spec.conds.findIndex(
+      (condition) => contractCondition(condition) === miss.condition,
+    );
+    if (
+      !row ||
+      conditionIndex < 0 ||
+      row.best.o.id !== offeringId(miss.offering) ||
+      row.best.fails.length !== 1 ||
+      row.best.fails[0] !== conditionIndex
+    ) return [];
     return [
       {
         row,
         ci: conditionIndex,
         cond: spec.conds[conditionIndex] ?? { f: "active" },
-        why: `${miss.condition}: ${miss.value ?? miss.values.join(", ")}`,
+        why: `${renderContractCondition(miss.condition)}: ${miss.value ?? miss.values.join(", ")}`,
         relaxed: null,
         off: row.best,
       },
@@ -618,7 +754,7 @@ export function mapDecisionToViewModel(
     costs: decision.constraint_costs.map((cost, index) => ({
       i: index,
       c: spec.conds[index] ?? { f: "active" },
-      label: cost.condition,
+      label: renderContractCondition(cost.condition),
       pts: cost.gain[spec.bench] ?? null,
       unlocks: cost.admits,
       bestAlt: undefined,
@@ -632,6 +768,7 @@ export function mapDecisionToViewModel(
   );
   return {
     ...decision,
+    population,
     explanation: evalView,
     nearMisses,
     questions: (options.questions ?? []).filter(

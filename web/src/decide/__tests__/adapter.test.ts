@@ -20,7 +20,7 @@ const contractSpec = {
   explain: "full" as const,
 };
 const answer = {
-  contract_version: "1.0",
+  contract_version: "1.1",
   decision_id: "dec_12345678",
   snapshot: "snap_12345678",
   spec_hash: `sha256:${"a".repeat(64)}`,
@@ -183,7 +183,7 @@ describe("the fictional decision adapter", () => {
       vi.fn().mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            contract_version: "1.0",
+            contract_version: "1.1",
             error: { code: "invalid_spec", message: "Unknown facet" },
           }),
           { status: 422, headers: { "content-type": "application/json" } },

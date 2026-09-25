@@ -765,6 +765,11 @@ body {
   font-size: 11.5px;
   color: var(--ink2);
 }
+.funnel-label {
+  line-height: 1.25;
+  min-height: 2.5em;
+  overflow-wrap: anywhere;
+}
 .funnel .count {
   font-size: 30px;
   font-weight: 300;

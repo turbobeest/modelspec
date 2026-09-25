@@ -66,7 +66,7 @@ export function Share({
         ),
       ].join("\n")
     : [
-        "# ModelSpec decision contract 1.0",
+        "# ModelSpec decision contract 1.1",
         `spec_version: ${contractSpec.spec_version}`,
         `snapshot: ${contractSpec.snapshot ?? "latest"}`,
         ...(contractSpec.task_type

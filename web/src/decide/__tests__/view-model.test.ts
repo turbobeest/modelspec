@@ -73,6 +73,40 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.explanation.feasible.every((row) => row.capR?.ci === null)).toBe(true);
     expect(view.results.every((result) => result.p_best === null)).toBe(true);
   });
+
+  it("presents candidate-grained decisions as models with offering variants", () => {
+    const view = mapDecisionToViewModel(
+      fixture,
+      { ...baseSpec, bench: "quality" },
+      { axis: "task$", dismissed: [] },
+    );
+
+    expect(view.population).toEqual({ models: 4, offerings: 8 });
+    expect(view.explanation.funnel.map(({ label, n }) => [label, n])).toEqual([
+      ["All models", 4],
+      ["Type: text generator", 4],
+      ["Has a provider", 4],
+    ]);
+    expect(view.explanation.rows.map((row) => row.m.id)).toEqual([
+      "delta",
+      "beta",
+      "gamma",
+      "alpha",
+    ]);
+    expect(view.explanation.rows.every((row) => row.m.offerings.length === 1)).toBe(true);
+    expect(view.explanation.excluded).toEqual([]);
+  });
+
+  it("drops candidate-level near misses unless a model's best offering misses one condition", () => {
+    const view = mapDecisionToViewModel(
+      fixture,
+      { ...baseSpec, bench: "quality" },
+      { axis: "task$", dismissed: [] },
+    );
+
+    expect(fixture.near_misses).toHaveLength(4);
+    expect(view.nearMisses).toEqual([]);
+  });
 });
 
 it("turns the deterministic task parse into conditions and never sends free text", () => {

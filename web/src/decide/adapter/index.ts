@@ -63,7 +63,7 @@ export const candidateQuestions = (spec: Spec, dismissed: string[]) =>
     })),
   }));
 export const status = (r: Row) =>
-  r.unrankedWhy || r.status === 0
+  r.status === 0
     ? "May qualify"
     : r.status === 1
       ? "Qualifies"
@@ -74,7 +74,8 @@ export const reason = (r: Row) =>
       r.best.fails
         .map((i) => r.best.t[i].why)
         .filter(Boolean)
-        .join("; ")
+        .join("; ") ||
+      r.unrankedWhy
     : r.unrankedWhy ||
       r.best.unks
         .map((i) => r.best.t[i].why)
@@ -132,6 +133,7 @@ function axisRecord<T>(value: (axis: Axis) => T): Record<Axis, T> {
   };
 }
 export interface AdapterDecision extends Decision {
+  population: { models: number; offerings: number };
   explanation: FullEval;
   nearMisses: FullEval["nearMisses"];
   questions: ReturnType<typeof suggestions>;
@@ -299,7 +301,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.0",
+      contract_version: "1.1",
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
       spec_hash: "sha256:" + specHash(spec),
@@ -375,6 +377,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         "sample_spec_hash_not_contract_canonical",
         "sample_snapshot_not_signed",
       ],
+      population: { models: catalogue.models.length, offerings: catalogue.offerings },
       explanation: e,
       near_misses: [],
       top: [],

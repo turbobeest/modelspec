@@ -33,6 +33,7 @@ it.each([
     benchmarks,
     not_plotted,
     available_axes,
+    population,
     ...contract
   } = fictionalEngine.decide(spec);
   void explanation;
@@ -47,6 +48,7 @@ it.each([
   void benchmarks;
   void not_plotted;
   void available_axes;
+  void population;
   const legacyContract = {
     ...contract,
     constraint_costs: contract.constraint_costs.map((cost) => ({
