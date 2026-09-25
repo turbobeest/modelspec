@@ -1,0 +1,8 @@
+{
+  "source_url": "https://example.test/leaderboard.json",
+  "observed_at": "2026-09-25",
+  "rows": [
+    {"model": "Changed Model", "score": 81.5, "observed_at": "2026-09-25"},
+    {"model": "Stable Model", "score": 72.0, "observed_at": "2026-09-25"}
+  ]
+}
