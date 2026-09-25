@@ -714,7 +714,7 @@ benchmarks:
     limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: deepseek-v4-pro
-    score: 1457.34
+    score: 1450.6296556657103
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -728,6 +728,15 @@ benchmarks:
       votes, rank 57.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_elo_style_control#9467faca9855
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: deepseek-v4-pro
     score: 1501.5
@@ -971,6 +980,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1445.47 [1438.97, 1451.96], 13179 votes, rank 62.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_webdev#a813b293dcd0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 89.65
@@ -985,6 +1003,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-06-16T20:16:55.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.75 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#gpqa_diamond#d19463c1378a
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 45.26
@@ -999,6 +1026,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-06-17T02:30:14.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.95 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#frontiermath_tiers_1_3_v2#dd93eea5663f
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 46.99
@@ -1028,6 +1064,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-06-18T17:43:54.039Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.90 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#swe_bench_verified#653a9e640833
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-swe-bench-verified-csv
+      snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
+      cited_regions:
+      - rows
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: DeepSeek V4 Pro
     score: 17.64
@@ -1230,6 +1275,468 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1000000
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-deepseek-deepseek-v4-pro
+  - model-143-deepseek-function-calling
+  - model-143-deepseek-json-output
+  - model-143-deepseek-streaming
+  - model-143-deepseek-v4-license
+  - model-143-hf-metadata-deepseek-deepseek-v4-pro
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-deepseek-deepseek-v4-pro
+  - model-143-deepseek-function-calling
+  - model-143-deepseek-json-output
+  - model-143-deepseek-streaming
+  - model-143-deepseek-v4-license
+  - model-143-hf-metadata-deepseek-deepseek-v4-pro
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-deepseek-deepseek-v4-pro
+  - model-143-deepseek-function-calling
+  - model-143-deepseek-json-output
+  - model-143-deepseek-streaming
+  - model-143-deepseek-v4-license
+  - model-143-hf-metadata-deepseek-deepseek-v4-pro
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-deepseek-deepseek-v4-pro
+  - model-143-deepseek-function-calling
+  - model-143-deepseek-json-output
+  - model-143-deepseek-streaming
+  - model-143-deepseek-v4-license
+  - model-143-hf-metadata-deepseek-deepseek-v4-pro
+- facet: model.release_date
+  value: '2026-08-12'
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-v4-license
+    snapshot_ref: sha256:f2c6c602815669d292889e5be8c802f2ed950653b77999b1584e8e6aed25d040
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:4d07285dd7292c42d15980fc6296f9956bf8a655529284a97be5b1b9eacea13f
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-deepseek-deepseek-v4-pro
+  - model-143-deepseek-function-calling
+  - model-143-deepseek-json-output
+  - model-143-deepseek-streaming
+  - model-143-deepseek-v4-license
+  - model-143-hf-metadata-deepseek-deepseek-v4-pro
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-deepseek-deepseek-v4-pro
+    snapshot_ref: sha256:c4d714818a4d3333542edc7d38ea065825a0cf7aa8fea3605bbd1d1c18e4a610
+    cited_regions:
+    - model-spec
+  - source_id: model-143-deepseek-function-calling
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-json-output
+    snapshot_ref: sha256:f728a4dad99c2328c9c982b08c113f400abcc1a7eba238f08738f51a951d1b30
+    cited_regions:
+    - audit
+  - source_id: model-143-deepseek-streaming
+    snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

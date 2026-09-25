@@ -185,6 +185,7 @@ class Fact(Record):
     value: JsonValue = None
     state: Literal["known", "unknown", "not_disclosed", "requires_contract"]
     sources: list[SourceRef] = Field(default_factory=list)
+    checked_sources: list[Text] = Field(default_factory=list)
     verification: Verification | None = None
 
     @model_validator(mode="after")

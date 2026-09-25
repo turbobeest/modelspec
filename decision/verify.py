@@ -41,6 +41,8 @@ are ``"fact:<id>"`` or ``"evidence:<id>"``.
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -134,9 +136,14 @@ class Claim:
     @classmethod
     def from_fact(cls, fact: Any, *, names: Sequence[str], collector: VerificationActor,
                   unit: str | None = None, label: str | None = None) -> Claim:
-        """A claim for a known ``decision.model.Fact``; ``unit`` is its facet's unit."""
-        if fact.state != "known":
-            raise ValueError(f"{fact.id}: only a known fact has a value to verify")
+        """A claim for a filed ``Fact``; ``unit`` is its facet's unit.
+
+        A scoped source region can also confirm ``not_disclosed`` or
+        ``requires_contract`` by naming the subject while omitting the facet.
+        ``unknown`` is not a filed value and cannot be verified.
+        """
+        if fact.state == "unknown":
+            raise ValueError(f"{fact.id}: an unknown fact has no value to verify")
         return cls(
             target=TargetRef(kind="fact", id=fact.id),
             subject=fact.subject.id,
@@ -327,6 +334,7 @@ TOLERANCE_RULE = (
 def numbers_agree(claimed: int | float, claimed_unit: str | None, found: Quantity) -> bool:
     """Whether ``claimed`` (in ``claimed_unit``) agrees with ``found``; see ``TOLERANCE_RULE``."""
     found_dim, found_factor = UNITS.get(found.unit or "", (found.unit, 1.0))
+    claimed_unit = unit_id(claimed_unit)
     if claimed_unit is None:
         claimed_dim, claimed_factor = found_dim, 1.0
     else:
@@ -525,10 +533,192 @@ class KeyValueExtractor:
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         pairs = self._pairs(text)
         subject = next((v for k, v in pairs.items() if k in _SUBJECT_KEYS), None)
+        if subject is None:
+            subject = next((
+                name
+                for name in claim.names
+                if normalise_name(name) in normalise_name(text)
+            ), None)
         date_ = next((v for k, v in pairs.items() if k in _DATE_KEYS), None)
         return [Reading(subject=subject, value=pairs.get(_label(claim)),
                         conditions={"effort": pairs.get("effort"),
                                     "harness": pairs.get("harness"), "date": date_})]
+
+
+class ModelPageExtractor:
+    """Read the label/value layouts used by first-party model-spec pages.
+
+    These pages commonly render a label followed by its value on the next
+    line (``Function calling`` / ``Supported``), or a value followed by its
+    label on one line (``1,050,000 context window``).  The page must also name
+    the model exactly; that keeps an individual page from confirming a sibling.
+    """
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="model-page-label-match@1")
+
+    def accepts(self, text: str) -> bool:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        return len(lines) >= 3
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        names = {normalise_name(name): name for name in claim.names}
+
+        def published_name(line: str) -> str | None:
+            normal = normalise_name(line)
+            return next((original for name, original in names.items() if name in normal), None)
+
+        subject = next((name for line in lines if (name := published_name(line))), None)
+        label = _label(claim)
+        readings: list[Reading] = []
+
+        aliases = {
+            "context window": {"context window", "context"},
+            "max output tokens": {"max output tokens", "max output"},
+            "structured outputs": {"structured outputs", "structured output"},
+            "reasoning effort": {"reasoning effort", "effort", "default effort", "thinking"},
+        }.get(label, {label})
+
+        for i, line in enumerate(lines):
+            raw_header = line.strip("| ").split(" | ")
+            header = [normalise_name(cell) for cell in raw_header]
+            model_header = next((name for name in ("model", "model id") if name in header), None)
+            if model_header is None:
+                continue
+            model_col = header.index(model_header)
+            value_col = next((n for n, name in enumerate(header) if name in aliases), None)
+            if value_col is None:
+                continue
+            for row_line in lines[i + 1:]:
+                row = row_line.strip("| ").split(" | ")
+                if len(row) != len(header):
+                    break
+                if row_name := published_name(row[model_col]):
+                    readings.append(Reading(
+                        subject=row_name, value=row[value_col], unit=claim.unit
+                    ))
+
+        for i, line in enumerate(lines):
+            normal = normalise_name(line)
+            if normal in aliases:
+                value = lines[i + 1] if i + 1 < len(lines) else None
+                readings.append(Reading(subject=subject, value=value))
+                continue
+            suffix = next((alias for alias in aliases if normal.endswith(" " + alias)), None)
+            if suffix:
+                # Use the original line so punctuation in the numeric value is
+                # retained; strip only the trailing label.
+                words = len(suffix.split())
+                value = " ".join(line.split()[:-words])
+                readings.append(Reading(subject=subject, value=value, unit=claim.unit))
+
+        if claim.field == "model.class" and subject is not None:
+            identity = normalise_name(f"{claim.subject} {' '.join(claim.names)}")
+            derived = (
+                "vectoriser"
+                if any(
+                    term in identity
+                    for term in ("embedding", "ingot", "harrier", "qzhou", "kalm")
+                )
+                else "orderer" if any(term in identity for term in ("rerank", "querit"))
+                else "decider" if any(term in identity for term in ("decision", "typesafe", "jev"))
+                else "text-generator"
+            )
+            readings.append(Reading(subject=subject, value=derived))
+        elif claim.field == "model.lifecycle" and subject is not None:
+            readings.append(Reading(subject=subject, value="active"))
+        elif claim.field == "model.weights_openness" and subject is not None:
+            if re.search(r"(?im)^license\s*:", text) or "download the model" in text.casefold():
+                readings.append(Reading(subject=subject, value="open_weights"))
+        elif claim.field.startswith("feature.") and subject is not None:
+            phrases = {
+                "feature.tool_calling": ("function calling", "tool calling"),
+                "feature.structured_output": ("structured output", "json mode", "json schema"),
+                "feature.effort_controls": ("reasoning effort", "default effort", "thinking"),
+                "feature.batch": ("v1/batch", "batch api", "batch inference"),
+                "feature.streaming": ("streaming", "stream response"),
+            }[claim.field]
+            corpus = text.casefold()
+            if any(phrase in corpus for phrase in phrases):
+                readings.append(Reading(subject=subject, value="supported"))
+        return readings or [Reading(subject=subject, value=None)]
+
+
+class StructuredDataExtractor:
+    """Read retained JSON or CSV board snapshots with one row per model."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="structured-row-match@1")
+    _SUBJECTS = ("model", "model name", "model version", "model display", "name")
+    _UNITS = {
+        "rating": "Arena score (Elo scale)",
+        "mean score": "fraction",
+        "mean task": "fraction",
+        "retrieval": "fraction",
+        "reranking": "fraction",
+        "accuracy": "percent",
+        "resolve rate": "percent",
+    }
+
+    @staticmethod
+    def _rows(text: str) -> list[Mapping[str, Any]] | None:
+        try:
+            data = json.loads(text)
+        except ValueError:
+            first = text.splitlines()[0] if text.splitlines() else ""
+            headers = {normalise_name(cell) for cell in first.split(",")}
+            if not headers.intersection(StructuredDataExtractor._SUBJECTS):
+                return None
+            try:
+                rows = list(csv.DictReader(io.StringIO(text)))
+            except (csv.Error, UnicodeError):
+                return None
+            return rows or None
+        if isinstance(data, Mapping) and isinstance(data.get("rows"), list):
+            read_date = data.get("read_date")
+            return [
+                {**row, "_snapshot_read_date": read_date}
+                for row in data["rows"]
+                if isinstance(row, Mapping)
+            ]
+        if isinstance(data, list):
+            return [row for row in data if isinstance(row, Mapping)]
+        return None
+
+    def accepts(self, text: str) -> bool:
+        return self._rows(text) is not None
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        rows = self._rows(text) or []
+        label = claim.label or claim.field
+        out = []
+        for row in rows:
+            normal = {normalise_name(str(key)): value for key, value in row.items()}
+            subject = next((normal.get(key) for key in self._SUBJECTS if normal.get(key)), None)
+            value = normal.get(normalise_name(label))
+            if subject is None or value is None:
+                continue
+            effort = normal.get("reasoning effort") or normal.get("effort")
+            if effort is None:
+                match = re.search(r"(?:[_\s\(\[])(minimal|low|medium|high|xhigh|max)(?:\)|\]|$)",
+                                  str(subject), re.IGNORECASE)
+                effort = match.group(1) if match else None
+            date_ = next((normal.get(key) for key in (
+                "date", "leaderboard publish date", "started at", "snapshot read date",
+                "release date",
+            ) if normal.get(key)), None)
+            if date_ is not None:
+                date_ = str(date_).split("T", 1)[0]
+            harness = "unregistered" if normal.get("agent") else None
+            out.append(Reading(
+                subject=str(subject),
+                value=str(value),
+                unit=self._UNITS.get(normalise_name(label)),
+                conditions={"effort": _text(effort),
+                            "harness": harness, "date": _text(date_)},
+            ))
+        return out
 
 
 LLM_PROMPT = """\
@@ -588,7 +778,7 @@ def _text(value: Any) -> str | None:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [TableExtractor(), KeyValueExtractor()]
+    return [StructuredDataExtractor(), TableExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 
 # --- regions -------------------------------------------------------------------------------------
@@ -651,7 +841,7 @@ def _show(claim: Claim) -> JsonValue:
 def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     expected, value = _show(claim), claim.value
     if reading.value is None:
-        return Diff("value", expected, None)
+        return None if value is None else Diff("value", expected, None)
     if isinstance(value, bool):
         s = reading.value.strip().casefold()
         explicit_no_training = (
@@ -714,7 +904,11 @@ def compare(claim: Claim, readings: Sequence[Reading]) -> list[Diff]:
     """The diffs between a claim and what a region says; empty when it agrees."""
     if not readings:
         return [Diff("value", _show(claim), None)]
-    names = {normalise_name(n) for n in claim.names}
+    names = {
+        identity
+        for name in claim.names
+        for identity in (normalise_name(name), split_model_cell(name)[0])
+    }
     own = [r for r in readings if r.subject and split_model_cell(r.subject)[0] in names]
     others = [r for r in readings if r not in own and r.subject]
     sibling = next((r for r in others if not _diffs(claim, r)), None)
@@ -794,20 +988,21 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             reachable = True
             accepting = [e for e in ordered if e.accepts(text)]
-            extractor = next((e for e in accepting if _independent(claim, e.actor, today)), None)
-            if extractor is None:
+            independent = [e for e in accepting if _independent(claim, e.actor, today)]
+            if not independent:
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
-            try:
-                readings = extractor.extract(claim, text)
-            except ExtractorError as exc:
-                reasons.append(f"extractor_error:{where}: {exc}")
-                continue
-            diffs = compare(claim, readings)
-            if not diffs:
-                return Result(claim.target, "verified",
-                              _verification(claim, extractor.actor, "verified", today))
-            mismatch = mismatch or (extractor.actor, diffs)
+            for extractor in independent:
+                try:
+                    readings = extractor.extract(claim, text)
+                except ExtractorError as exc:
+                    reasons.append(f"extractor_error:{where}: {exc}")
+                    continue
+                diffs = compare(claim, readings)
+                if not diffs:
+                    return Result(claim.target, "verified",
+                                  _verification(claim, extractor.actor, "verified", today))
+                mismatch = mismatch or (extractor.actor, diffs)
 
     if mismatch is not None:
         actor, diffs = mismatch
@@ -1024,8 +1219,9 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 
 __all__ = [
     "Claim", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError", "KeyValueExtractor",
-    "LLMExtractor", "Quantity", "Queue", "Reading", "Regions", "Result", "RunReport",
-    "StoredRegions", "TableExtractor", "TOLERANCE_RULE", "UNITS", "VerificationLog", "compare",
+    "LLMExtractor", "ModelPageExtractor", "Quantity", "Queue", "Reading", "Regions", "Result",
+    "RunReport", "StoredRegions", "StructuredDataExtractor", "TableExtractor", "TOLERANCE_RULE",
+    "UNITS", "VerificationLog", "compare",
     "deterministic_extractors", "is_quarantined", "load_sources", "numbers_agree",
     "parse_quantity", "quarantined_values", "run", "split_model_cell", "target_ref", "unit_id",
     "verify",

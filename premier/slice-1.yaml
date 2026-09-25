@@ -412,7 +412,7 @@ models:
   slice1_group: frontier-generation
   open_weights: false
   status: active
-  release_date: '2026-09-04'
+  release_date: '2026-09-03'
   lab: openai
   clauses:
   - clause: 1
@@ -464,7 +464,7 @@ models:
     url: https://www.tbench.ai/
     read_date: '2026-09-24'
   - clause: 2
-    release_date: '2026-09-04'
+    release_date: '2026-09-03'
     lab: openai
     note: Released on or after 2026-06-26 by openai, a lab with a top-10 model on a current board.
   - clause: 3

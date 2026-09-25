@@ -294,6 +294,129 @@ def test_an_unparseable_llm_reply_is_not_evidence_of_absence(store, regions) -> 
     assert "extractor_error" in result.reason
 
 
+def test_a_scoped_key_value_region_can_verify_not_disclosed(store) -> None:
+    from decision.model import Fact
+
+    body = b"Model: Nimbus 3\nContext Window: 128K tokens\n"
+    ref = store.put(body)
+    fact = Fact(
+        id="lab/nimbus-3#model.max_output_tokens",
+        subject={"kind": "model", "id": "lab/nimbus-3"},
+        facet="model.max_output_tokens",
+        state="not_disclosed",
+        sources=[{
+            "source_id": "nimbus-spec",
+            "snapshot_ref": ref,
+            "cited_regions": ["spec"],
+        }],
+    )
+    claim = verify.Claim.from_fact(fact, names=["Nimbus 3"], collector=COLLECTOR)
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+            return body.decode()
+
+    result = verify.verify(claim, Regions(), verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "verified"
+
+
+@pytest.mark.parametrize(
+    ("label", "value", "unit"),
+    [
+        ("context window", 1_050_000, "tokens"),
+        ("function calling", True, None),
+        ("input", ["text", "image"], None),
+    ],
+)
+def test_model_page_labels_are_read_deterministically(label, value, unit) -> None:
+    text = """\
+GPT-6 Astra
+1,050,000 context window
+Modalities
+Input
+Text, Image
+Features
+Function calling
+Supported
+"""
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id=f"astra-{label}"),
+        subject="openai/gpt-6-astra",
+        names=("GPT-6 Astra",),
+        field=label,
+        label=label,
+        value=value,
+        unit=unit,
+        collector=COLLECTOR,
+        sources=(SourceRef(
+            source_id="astra-model-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["spec"],
+        ),),
+    )
+
+    readings = verify.ModelPageExtractor().extract(claim, text)
+    assert verify.compare(claim, readings) == []
+
+
+def test_an_unrelated_table_does_not_block_a_later_deterministic_reader() -> None:
+    text = """\
+Model | Price
+GPT-6 Astra | $10
+GPT-6 Astra
+1,050,000 context window
+"""
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="astra-context"),
+        subject="openai/gpt-6-astra",
+        names=("GPT-6 Astra",),
+        field="model.context_window",
+        label="context window",
+        value=1_050_000,
+        unit="tokens",
+        collector=COLLECTOR,
+        sources=(SourceRef(
+            source_id="astra-model-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["spec"],
+        ),),
+    )
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+            return text
+
+    result = verify.verify(claim, Regions(), verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "verified"
+
+
+def test_structured_snapshot_rows_are_read_by_subject_and_label() -> None:
+    text = json.dumps({
+        "source_url": "https://board.example.test/results",
+        "rows": [{"model_name": "GPT-6 Astra", "rating": 1498.47,
+                  "leaderboard_publish_date": "2026-09-13"}],
+    })
+    claim = verify.Claim(
+        target=TargetRef(kind="evidence", id="astra-arena"),
+        subject="openai/gpt-6-astra",
+        names=("GPT-6 Astra",),
+        field="arena_elo_style_control",
+        label="rating",
+        value=1498.47,
+        unit="Arena score (Elo scale)",
+        conditions={"date": "2026-09-13"},
+        collector=COLLECTOR,
+        sources=(SourceRef(
+            source_id="arena-snapshot",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["rows"],
+        ),),
+    )
+
+    readings = verify.StructuredDataExtractor().extract(claim, text)
+    assert verify.compare(claim, readings) == []
+
+
 def test_the_collector_never_verifies_its_own_value(store, regions) -> None:
     # The collector is the same agent and model family as the only extractor that accepts
     # prose: model validation refuses the pair, so nothing is verified.

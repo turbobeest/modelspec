@@ -682,6 +682,15 @@ benchmarks:
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
       The JSON states no snapshot date, so the reading is dated by the observation.
     limitations: The leaderboard reports this model as 73% zero-shot on the benchmark's tasks.
+    id: tencent/kalm-embedding-gemma3-12b-2511#mteb_multilingual_v2#f6a9ca9aec9d
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-multilingual-v2-json
+      snapshot_ref: sha256:32f83871582a5ba431612365fb9728de9fb9d516c1c969ed188f4184c74de485
+      cited_regions:
+      - rows
 deployment:
   api_only: false
   local_inference: true
@@ -836,6 +845,302 @@ sources:
   last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - embedding
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 32000
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: origin.base_lineage
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: model.release_date
+  value: '2025-11-04'
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:9310866cfa67c20041e97ff0da30bfc3a1a1989be67c6f03fd92d77076846201
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kalm-license
+    snapshot_ref: sha256:481823be2fb05dede74d099e9a72ec11508dcf5ac4e84a143a072a0024d6929a
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+    snapshot_ref: sha256:7ac81cb7a34b4a4c6298c90de970ba46f8e52a42cebc244d68b9cfdbac8c9f11
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-tencent-kalm-embedding-gemma3-12b-2511
+  - model-143-kalm-license
+  - model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

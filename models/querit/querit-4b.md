@@ -837,6 +837,302 @@ sources:
   last_scraped_huggingface: '2026-09-24'
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: orderer
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - score
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: origin.base_lineage
+  value:
+  - CN
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: model.release_date
+  value: '2026-06-14'
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit-4b
+    snapshot_ref: sha256:e40f69e53ee64fb3d045bc8aee01636675c89177b109f346654ce17300e1c95d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit-4b
+    snapshot_ref: sha256:626f43246f6d1458a2c86ff39c4648d9c4642d34679b1ba4be6de76c0e2603ec
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit-4b
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit-4b
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
