@@ -2,8 +2,9 @@
 
 The slice-1 computation listed top-10 rows with no card. These tests load
 the cards added for that list and check the facts that identify them.
-GPT-5.5 pre-release rows are not products and have no card here.
 The second pass covers the MTEB(Multilingual, v2) rows that had none.
+The GPT-5.5 pre-release checkpoints Epoch evaluated have cards too, at the
+end of this file. They are not products and must never be offered.
 """
 
 from __future__ import annotations
@@ -201,3 +202,79 @@ def test_f2llm_v2_english_evidence(rel, mean, retrieval):
     rows = {row.benchmark_id: row.score for row in _load(rel).benchmarks.evidence}
     assert rows["mteb_eng_v2"] == mean
     assert rows["mteb_v2_retrieval"] == retrieval
+
+
+# ── GPT-5.5 pre-release checkpoints (Epoch rows) ─────────────────────────────
+#
+# Epoch AI lists two rows as pre-release checkpoints. The cards record the
+# evidence and must never make them selectable: no provider, no price, and a
+# status that the v1 ranker and the premier-set script both leave out.
+
+PRE_RELEASE = {
+    "openai/gpt-5-5-pre-release": (
+        "openai/gpt-5-5-pre-release.md",
+        "openai/gpt-5-5",
+        {"gpqa_diamond": 94.0, "swe_bench_verified": 80.58},
+    ),
+    "openai/gpt-5-5-pro-pre-release": (
+        "openai/gpt-5-5-pro-pre-release.md",
+        "openai/gpt-5-5-pro",
+        {"gpqa_diamond": 93.92},
+    ),
+}
+
+
+@pytest.mark.parametrize("model_id", sorted(PRE_RELEASE))
+def test_pre_release_card_records_epochs_xhigh_rows(model_id):
+    rel, released, expected = PRE_RELEASE[model_id]
+    card = _load(rel)
+    assert card.identity.model_id == model_id
+    assert card.identity.model_type.value == "llm-reasoning"
+    assert card.benchmarks.scores == {}
+    rows = {row.benchmark_id: row for row in card.benchmarks.evidence}
+    assert set(rows) == set(expected)
+    for benchmark_id, score in expected.items():
+        row = rows[benchmark_id]
+        assert row.score == score
+        assert row.model_id_as_evaluated.endswith("-pre-release_xhigh")
+        assert "effort xhigh" in row.configuration
+        assert row.source_url.startswith("https://epoch.ai/")
+        assert row.source_kind == "independent_evaluator"
+        assert row.date_type == "evaluated"
+        assert row.verified_at == READ
+        assert "CC BY 4.0" in row.limitations
+    # The released product is a different card, and the prose says so.
+    assert released in card.prose_body
+    assert _load(released + ".md").identity.model_id == released
+
+
+@pytest.mark.parametrize("model_id", sorted(PRE_RELEASE))
+def test_pre_release_card_has_no_offering(model_id):
+    rel = PRE_RELEASE[model_id][0]
+    card = _load(rel)
+    # Never selectable. The v1 ranker skips sunset and deprecated; the
+    # premier-set script skips sunset.
+    assert card.identity.status.value == "sunset"
+    primary = card.availability.primary_provider
+    assert primary.name == primary.api_endpoint == primary.model_id_on_platform == ""
+    assert card.availability.platforms_available() == []
+    assert card.availability.other_platforms == []
+    for name, price in card.cost:
+        if name in {"free_tier", "free_tier_limits", "note"}:
+            continue
+        assert price is None, name
+    assert card.cost.free_tier is False
+    assert not list(ROOT.glob(f"offerings/*/*/{model_id.split('/', 1)[1]}.yaml"))
+
+
+def test_pre_release_checkpoints_stay_out_of_the_premier_set():
+    import yaml
+
+    data = yaml.safe_load((ROOT / "premier" / "slice-1.yaml").read_text())
+    selected = {row["model_id"] for row in data["models"]}
+    near = {row["model_id"] for row in data.get("near_misses") or []}
+    missing = {row["slug"] for row in data.get("missing_cards") or []}
+    for model_id in PRE_RELEASE:
+        assert model_id not in selected
+        assert model_id not in near
+        assert model_id.split("/", 1)[1] not in missing
