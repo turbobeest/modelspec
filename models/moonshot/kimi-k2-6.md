@@ -1190,21 +1190,6 @@ benchmarks:
       snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
       cited_regions:
       - rows
-  - benchmark_id: osworld_2
-    model_id_as_evaluated: Kimi 2.6 (enabled)
-    score: 4.6
-    unit: percent
-    source_url: https://osworld-v2.xlang.ai/
-    source_kind: benchmark_author
-    evidence_date: '2026-09-24'
-    date_type: evaluated
-    verified_at: '2026-09-24'
-    benchmark_version: OSWorld 2.0, binary completion, full set
-    configuration: Board row as copied in Epoch AI's benchmark data (osworld_2_external.csv,
-      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort enabled; the highest-effort
-      row for the model (MODEL-123 max-effort rule). Step budget 500, tool setting standard.
-    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
-      copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Kimi K2.6
     score: 6204.57
