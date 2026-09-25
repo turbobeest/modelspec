@@ -1,0 +1,10 @@
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {retrieval: required}
+where:
+  - model.class = vectoriser
+  - model.languages in {en}
+optimize: {max: mteb_v2_retrieval @independent @direct}
+explain: full
+limit: 3

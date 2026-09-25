@@ -1,0 +1,12 @@
+# gap: "base Apple M4" does not identify a product, RAM amount, or registered hardware SKU.
+# gap: the registry has no model-level local-hosting facet; open weights does not prove deployability.
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {chat_preference: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+optimize: {max: arena_elo_overall @independent @max_effort @direct}
+explain: full
+limit: 3

@@ -1,0 +1,12 @@
+# gap: chart and technical-screenshot interpretation has no distinct registered domain.
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {vision_documents: required}
+where:
+  - model.class = text-generator
+  - model.input_modalities in {image}
+  - model.weights_openness = closed_weights
+optimize: {max: arena_elo_vision @independent @max_effort}
+explain: full
+limit: 3

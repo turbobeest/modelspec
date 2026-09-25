@@ -1,0 +1,10 @@
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {maths: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = closed_weights
+optimize: {max: aime_2026 @independent @max_effort @direct}
+explain: full
+limit: 3

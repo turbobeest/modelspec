@@ -1,0 +1,12 @@
+# gap: one-device count and unspecified quantization cannot be expressed by model.fits_hardware.
+spec_version: 1
+snapshot: latest
+task_type: new_feature
+capabilities: {software_engineering: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+  - model.fits_hardware in {nvidia_rtx_4090}
+optimize: {max: swe_bench_pro @independent @max_effort @direct}
+explain: full
+limit: 3

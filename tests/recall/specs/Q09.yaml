@@ -1,0 +1,12 @@
+# gap: summary faithfulness has no distinct registered domain or facet;
+# longer-prompt chat preference is only a proxy objective.
+spec_version: 1
+snapshot: latest
+task_type: data_transform
+capabilities: {writing: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = closed_weights
+optimize: {max: arena_sc_longer_query @independent @max_effort}
+explain: full
+limit: 3

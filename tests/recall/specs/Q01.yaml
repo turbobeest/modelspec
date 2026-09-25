@@ -1,0 +1,10 @@
+spec_version: 1
+snapshot: latest
+task_type: new_feature
+capabilities: {software_engineering: required, agentic_tool_use: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = closed_weights
+optimize: {max: terminal_bench_v4_0 @independent @max_effort @direct}
+explain: full
+limit: 3
