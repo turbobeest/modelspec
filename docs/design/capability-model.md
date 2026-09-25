@@ -66,7 +66,7 @@ recency weight. Contract 1.6 adds those three nullable provenance fields. Older 
 contracts remain accepted.
 
 The fit runs only while a snapshot is built. A summary decision does no fitting. The
-premier snapshot validation measured a 25.8 ms median and 37.4 ms maximum across all 12
+premier snapshot validation measured a 13.9 ms median and 19.4 ms maximum across all 12
 domain objectives on the local Worker-equivalent Python path, below the 1 s budget. This
 is a compute-path measurement, not deployed network latency.
 
@@ -80,14 +80,16 @@ models and 12 domains.
   0.7060, versus 1.1049 for the benchmark-mean baseline.
 - Holding out each model's newest eligible score produced 20 predictions: scaled RMSE
   0.8326, versus 1.2245 for the same baseline.
-- The report names 43 estimate/single-benchmark leader disagreements and links the dated
-  source behind every single-benchmark leader. These are not silently treated as errors:
-  the estimate combines all tagged evidence with learned discrimination, source offset,
-  directness and recency, while the comparator uses one raw measurement.
+- The report finds 3 separable estimate/single-benchmark leader disagreements and 34
+  point-order differences whose intervals overlap. Every separable disagreement names
+  other fitted direct evidence for the estimate leader and links the dated source behind
+  the single-benchmark leader.
 
 The approved recall specs remain byte-identical to main. The generated recall report
 compares those same benchmark objectives before and after this change; domain objectives
-are not substituted into the approved questions.
+are not substituted into the approved questions. Main reports 1 pass, 6 partial and 13
+fail; this branch reports 4 pass, 6 partial and 10 fail. Q01, Q02 and Q06 move from fail
+to pass, with no question moving backward.
 
 ## Floor policy proposal
 
