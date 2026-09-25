@@ -863,6 +863,15 @@ function DesignedApp({
           ) : null}
         </main>
       )}
+      <footer className="site-footer" aria-label="About ModelSpec">
+        <span>ModelSpec is neutral: no referral fees, no paid placement.</span>
+        <nav aria-label="Legal and API">
+          <a href="/legal/neutrality/">Neutrality</a>
+          <a href="/legal/terms/">Terms</a>
+          <a href="/legal/privacy/">Privacy</a>
+          <a href="/api/decision/vocabulary.json">Data</a>
+        </nav>
+      </footer>
       {provenance && (
         <div
           className="provenance-popover"
