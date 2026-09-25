@@ -684,7 +684,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: muse-spark
-    score: 1488.05
+    score: 1473.3254184714117
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -698,6 +698,15 @@ benchmarks:
       votes, rank 13.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_elo_style_control#9ffc21ef9dd0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: muse-spark
     score: 1525.75
@@ -928,7 +937,7 @@ benchmarks:
       attribution on the benchmark page.
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: muse-spark
-    score: 1293.68
+    score: 1306.1326259105908
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -942,6 +951,15 @@ benchmarks:
       votes, rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_vision#f14df85ad3eb
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-vision-json
+      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: muse-spark
     score: 89.8
@@ -956,13 +974,22 @@ benchmarks:
       read 2026-09-24. Run started 2026-04-08T16:29:51.099Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.20 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: meta/muse-spark#gpqa_diamond#2bc372676afe
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: hle
     model_id_as_evaluated: Muse Spark
     score: 40.56
     unit: percent
     source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
     source_kind: independent_evaluator
-    evidence_date: '2026-04-08'
+    evidence_date: '2026-09-24'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
@@ -970,6 +997,15 @@ benchmarks:
       effort default; ±1.92 (95% CI).
     limitations: 'Potential contamination warning: This model was evaluated after the public
       release of HLE, allowing model builder access to the prompts and solutions.'
+    id: meta/muse-spark#hle#eb29f8f780ed
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-scale-hle-json
+      snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+      cited_regions:
+      - rows
   - benchmark_id: swe_bench_pro
     model_id_as_evaluated: Muse Spark*
     score: 55.0
@@ -1138,6 +1174,540 @@ sources:
   last_scraped_huggingface: '2026-04-05'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - audio
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 8192
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: model.release_date
+  value: '2026-04-08'
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: manual
 card_created: '2026-04-08'

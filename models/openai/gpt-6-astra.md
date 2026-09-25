@@ -5,7 +5,7 @@ provider: openai
 provider_display: OpenAI
 family: gpt-astra
 version: gpt-6-astra
-release_date: '2026-09-04'
+release_date: '2026-09-03'
 last_updated: '2026-09-11'
 status: active
 model_type: llm-reasoning
@@ -785,7 +785,7 @@ benchmarks:
       above clip.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-6-astra-max
-    score: 1479.77
+    score: 1443.7243904445113
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -799,6 +799,15 @@ benchmarks:
       rank 24.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: openai/gpt-6-astra#arena_elo_style_control#0d7335f873ff
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: gpt-6-astra-max
     score: 1542.88
@@ -1014,7 +1023,7 @@ benchmarks:
       attribution on the benchmark page.
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: gpt-6-astra-max
-    score: 1284.0
+    score: 1278.5755227326415
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -1028,6 +1037,15 @@ benchmarks:
       rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: openai/gpt-6-astra#arena_sc_vision#9eba49dadb17
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-vision-json
+      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: gpt-6-astra-max
     score: 1792.18
@@ -1043,6 +1061,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1792.18 [1780.14, 1804.22], 4325 votes, rank 2.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: openai/gpt-6-astra#arena_webdev#a96e60e409a2
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gpt-6-astra_max
     score: 95.77
@@ -1057,6 +1084,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-30T14:57:43.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.37 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-6-astra#gpqa_diamond#51b7426e58b9
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: gpt-6-astra_max
     score: 93.68
@@ -1071,6 +1107,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-30T14:57:43.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.44 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-6-astra#frontiermath_tiers_1_3_v2#de5188649274
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: gpt-6-astra_max
     score: 75.6
@@ -1132,7 +1177,7 @@ benchmarks:
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: GPT-6 Astra (max) with Codex
+    model_id_as_evaluated: GPT-6 Astra
     score: 58.18
     unit: percent
     source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
@@ -1145,13 +1190,22 @@ benchmarks:
       effort max, 330 trials, accuracy 58.18 ± 2.79 (95% CI). The board''s row date is the evidence
       date. Highest-effort row for the model, best agent on a tie.'
     limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
   - benchmark_id: hle
     model_id_as_evaluated: GPT 6 Astra
     score: 54.8
     unit: percent
     source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
     source_kind: independent_evaluator
-    evidence_date: '2026-09-09'
+    evidence_date: '2026-09-24'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
@@ -1159,6 +1213,15 @@ benchmarks:
       effort default; ±1.94 (95% CI).
     limitations: 'Potential contamination warning: This model was evaluated after the public
       release of HLE, allowing model builder access to the prompts and solutions.'
+    id: openai/gpt-6-astra#hle#db4d9ccdc6ff
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-scale-hle-json
+      snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -1316,6 +1379,456 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: '2026-09-11'
   last_scraped_pricing: '2026-09-11'
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - document
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1050000
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-openai-gpt-6-astra
+  - model-143-openai-models-overview
+  - model-143-openai-changelog
+  - model-143-openai-reasoning
+  - model-143-openai-services-agreement
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-openai-gpt-6-astra
+  - model-143-openai-models-overview
+  - model-143-openai-changelog
+  - model-143-openai-reasoning
+  - model-143-openai-services-agreement
+- facet: model.release_date
+  value: '2026-09-03'
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-6-astra
+    snapshot_ref: sha256:e059193b0903ca795149cec121aec23eddaad80ff7081df8d5c7d51d8ff629a8
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

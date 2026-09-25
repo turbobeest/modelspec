@@ -717,6 +717,15 @@ benchmarks:
       2026-09-23, read 2026-09-24. Rank 10, 5342 votes, interval [1648.65, 1667.78].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-3#arena_webdev#3f3d7fdf0fbe
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.3 (xHigh)
     score: 1626.2
@@ -731,6 +740,15 @@ benchmarks:
       2026-09-23, read 2026-09-24. Rank 15, 4391 votes, interval [1616.13, 1636.27].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-3#arena_webdev#b375a0e5e4d2
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -889,6 +907,542 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: '2026-09-24'
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  - audio
+  - document
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1048576
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: model.release_date
+  value: '2026-09-02'
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-meta-muse-spark-1-3
+  - model-143-meta-release-index
+  - model-143-meta-model-api
+  - model-143-meta-company
+  - model-143-meta-sec
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-meta-muse-spark-1-3
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

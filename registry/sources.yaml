@@ -216,3 +216,849 @@ sources:
     locator:
       kind: page
       value: ''
+- id: model-143-alibaba-modelstudio-terms
+  url: https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-product-terms-of-service-v-3-8-0
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-fable-5
+  url: https://platform.claude.com/docs/en/models/fable-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-fable-5-1
+  url: https://platform.claude.com/docs/en/models/fable-5-1/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-4-6
+  url: https://platform.claude.com/docs/en/models/opus-4-6/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-4-7
+  url: https://platform.claude.com/docs/en/models/opus-4-7/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-5
+  url: https://platform.claude.com/docs/en/models/opus-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-5-5
+  url: https://platform.claude.com/docs/en/models/opus-5-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-commercial-terms
+  url: https://www.anthropic.com/legal/commercial-terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-models-overview
+  url: https://platform.claude.com/docs/en/models/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-streaming
+  url: https://platform.claude.com/docs/en/build-with-claude/streaming
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-structured-outputs
+  url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-apache-2-license
+  url: https://www.apache.org/licenses/LICENSE-2.0.txt
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-deepseek-v4-pro
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-function-calling
+  url: https://api-docs.deepseek.com/guides/function_calling
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-json-output
+  url: https://api-docs.deepseek.com/guides/json_mode
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-streaming
+  url: https://api-docs.deepseek.com/guides/streaming
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-v4-license
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-text-json
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-vision-json
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-webdev-json
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+  url: https://epoch.ai/frontiermath
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-gpqa-diamond-csv
+  url: https://epoch.ai/benchmarks/gpqa-diamond
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-swe-bench-verified-csv
+  url: https://epoch.ai/benchmarks/swe-bench-verified
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-mteb-eng-v2-json
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-mteb-multilingual-v2-json
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-scale-hle-json
+  url: https://labs.scale.com/leaderboard/humanitys_last_exam
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-terminal-bench-4-0-json
+  url: https://www.tbench.ai/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-glm-5-3-license
+  url: https://huggingface.co/zai-org/GLM-5.3/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-company
+  url: https://about.google/company-info/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-deprecations
+  url: https://ai.google.dev/gemini-api/docs/deprecations
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-1-pro-preview
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-5-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-7-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-8-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-sec
+  url: https://data.sec.gov/submissions/CIK0001652044.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-streaming
+  url: https://ai.google.dev/gemini-api/docs/text-generation
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-terms
+  url: https://ai.google.dev/gemini-api/terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-jcorners-ingot-8b-r3
+  url: https://huggingface.co/api/models/JCorners/Ingot-8B-R3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-kingsoft-qzhou-embedding
+  url: https://huggingface.co/api/models/Kingsoft-LLM/QZhou-Embedding
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+  url: https://huggingface.co/api/models/microsoft/harrier-oss-v1-27b
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-moonshot-kimi-k2-6
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K2.6
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-moonshot-kimi-k3
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-querit-querit
+  url: https://huggingface.co/api/models/Querit/Querit
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-querit-querit-4b
+  url: https://huggingface.co/api/models/Querit/Querit-4B
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-qwen-qwen3-8-flash-next
+  url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+  url: https://huggingface.co/api/models/tencent/KaLM-Embedding-Gemma3-12B-2511
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-zhipu-glm-5-2
+  url: https://huggingface.co/api/models/zai-org/GLM-5.2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-zhipu-glm-5-3
+  url: https://huggingface.co/api/models/zai-org/GLM-5.3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-jcorners-ingot-8b-r3
+  url: https://huggingface.co/JCorners/Ingot-8B-R3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kalm-license
+  url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/LICENSE.txt
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k2-6-guide
+  url: https://platform.moonshot.ai/docs/guide/use-kimi-k2-thinking-model
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k2-6-license
+  url: https://huggingface.co/moonshotai/Kimi-K2.6/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k3-guide
+  url: https://platform.kimi.ai/docs/guide/kimi-k3-quickstart
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k3-license
+  url: https://huggingface.co/moonshotai/Kimi-K3/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kingsoft-qzhou-embedding
+  url: https://huggingface.co/Kingsoft-LLM/QZhou-Embedding/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-company
+  url: https://about.fb.com/company-info/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-model-api
+  url: https://ai.meta.com/llama/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark-1-1
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark-1-3
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-release-index
+  url: https://ai.meta.com/events/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-sec
+  url: https://data.sec.gov/submissions/CIK0001326801.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-microsoft-harrier-oss-v1-27b
+  url: https://huggingface.co/microsoft/harrier-oss-v1-27b/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-mit-license
+  url: https://opensource.org/license/mit
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-moonshot-kimi-k2-6
+  url: https://huggingface.co/moonshotai/Kimi-K2.6/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-moonshot-kimi-k3
+  url: https://huggingface.co/moonshotai/Kimi-K3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-changelog
+  url: https://developers.openai.com/api/docs/changelog
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-5-4
+  url: https://developers.openai.com/api/docs/models/gpt-5.4
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-5-6-sol
+  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-6-astra
+  url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-6-sol
+  url: https://developers.openai.com/api/docs/models/gpt-6-sol
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-models-overview
+  url: https://developers.openai.com/api/docs/models/all
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-reasoning
+  url: https://developers.openai.com/api/docs/guides/reasoning
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-services-agreement
+  url: https://openai.com/policies/services-agreement/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-querit-querit
+  url: https://huggingface.co/Querit/Querit/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-querit-querit-4b
+  url: https://huggingface.co/Querit/Querit-4B/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen-qwen3-8-flash-next
+  url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen-qwen3-8-max-0902
+  url: https://docs.modelstudio.console.alibabacloud.com/en/model-studio/qwen3-8-max
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen3-8-flash-next-license
+  url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+  url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-jev-1-13
+  url: https://docs.typesafe.ai/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-models
+  url: https://docs.typesafe.ai/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-system-one
+  url: https://docs.typesafe.ai/concepts/system-one.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-terms
+  url: https://typesafe.ai/legal/terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-enterprise-faq
+  url: https://x.ai/legal/faq-enterprise
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-enterprise-terms
+  url: https://x.ai/legal/terms-of-service-enterprise
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-function-calling
+  url: https://docs.x.ai/developers/tools/function-calling
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-grok-4-7
+  url: https://docs.x.ai/docs/models/grok-4-7
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-structured-outputs
+  url: https://docs.x.ai/developers/model-capabilities/text/structured-outputs
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zai-glm-5-2-guide
+  url: https://docs.z.ai/guides/llm/glm-5.2
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zai-glm-5-3-guide
+  url: https://docs.z.ai/guides/llm/glm-5.3
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zhipu-glm-5-2
+  url: https://huggingface.co/zai-org/GLM-5.2/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zhipu-glm-5-3
+  url: https://huggingface.co/zai-org/GLM-5.3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''

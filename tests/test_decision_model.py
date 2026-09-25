@@ -93,6 +93,20 @@ def test_fact_round_trip(context):
     assert Fact.model_validate_json(fact.model_dump_json(), context=context) == fact
 
 
+def test_not_disclosed_fact_records_the_sources_checked(context):
+    fact = Fact.model_validate(
+        fact_data(
+            state="not_disclosed",
+            value=None,
+            checked_sources=["fake-doc", "fake-terms"],
+        ),
+        context=context,
+    )
+
+    assert fact.checked_sources == ["fake-doc", "fake-terms"]
+    assert Fact.model_validate_json(fact.model_dump_json(), context=context) == fact
+
+
 def test_facts_validate_against_the_real_facet_registry() -> None:
     context = Fact.model_validate(
         fact_data(facet="model.context_window", value=128000)

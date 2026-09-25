@@ -683,6 +683,15 @@ benchmarks:
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
+    id: jcorners/ingot-8b-r3#mteb_eng_v2#4bebfdf26d62
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+      cited_regions:
+      - rows
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: jcorners/ingot-8b-r3
     score: 70.0
@@ -696,6 +705,15 @@ benchmarks:
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
+    id: jcorners/ingot-8b-r3#mteb_v2_retrieval#5e3354975702
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -853,6 +871,253 @@ sources:
   last_scraped_huggingface: '2026-09-24'
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - embedding
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 32768
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: origin.base_lineage
+  value:
+  - CN
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: model.release_date
+  value: '2026-05-23'
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-jcorners-ingot-8b-r3
+  - model-143-hf-metadata-jcorners-ingot-8b-r3
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

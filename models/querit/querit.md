@@ -837,6 +837,309 @@ sources:
   last_scraped_huggingface: '2026-09-24'
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: orderer
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - score
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: model.release_date
+  value: '2026-05-14'
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-querit-querit
+    snapshot_ref: sha256:35e98c5618f0305fc10d2caa18b17f3837d932e246da32d659727f42a4fdb240
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-querit-querit
+    snapshot_ref: sha256:ca5d5b66eefa960d6dd2f60c2d726f2c1ebf4dde0b997f0366b087e8bf458621
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-querit-querit
+  - model-143-apache-2-license
+  - model-143-hf-metadata-querit-querit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

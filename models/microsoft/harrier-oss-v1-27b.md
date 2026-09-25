@@ -683,6 +683,15 @@ benchmarks:
       date, so this date is the day the board was read.
     limitations: Mean over the benchmark's 131 tasks. The leaderboard reports this
       model as 78% zero-shot on them.
+    id: microsoft/harrier-oss-v1-27b#mteb_multilingual_v2#0052f05a4e34
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-multilingual-v2-json
+      snapshot_ref: sha256:32f83871582a5ba431612365fb9728de9fb9d516c1c969ed188f4184c74de485
+      cited_regions:
+      - rows
   - benchmark_id: mteb_multilingual_v2
     model_id_as_evaluated: microsoft/harrier-oss-v1-27b
     score: 74.3
@@ -854,6 +863,309 @@ sources:
   last_scraped_huggingface: '2026-09-24'
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - embedding
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 32768
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: model.release_date
+  value: '2026-03-30'
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:6c42cc4b3926576c61b804ec9592d25bf0576243d421aee656c4d31eef58d110
+    cited_regions:
+    - model-spec
+  - source_id: model-143-mit-license
+    snapshot_ref: sha256:5d6e376a9522dce46e757b6200e0bab35dac1cf8286aadad4f9195cc841cc43b
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+    snapshot_ref: sha256:14c56c78ef0e35a7407713bb3415165d113e1f274a485f5113e9d68c85afb66e
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-microsoft-harrier-oss-v1-27b
+  - model-143-mit-license
+  - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
 card_schema_version: '3.0'
 card_author: Claude Opus 5.5
 card_created: '2026-09-24'

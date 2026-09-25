@@ -671,7 +671,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: kimi-k3-max
-    score: 1484.77
+    score: 1472.272610174843
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -685,6 +685,15 @@ benchmarks:
       rank 17.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_elo_style_control#2280a42ea88a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: kimi-k3-max
     score: 1538.42
@@ -928,6 +937,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1659.57 [1652.73, 1666.41], 13252 votes, rank 9.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_webdev#d698922b83c5
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: kimi-k3_max
     score: 93.12
@@ -942,6 +960,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-07-16T21:59:40.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.49 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#gpqa_diamond#f91dd4efa0b8
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: kimi-k3_max
     score: 72.18
@@ -956,6 +983,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-07-17T01:48:42.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.66 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#frontiermath_tiers_1_3_v2#68507244572b
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: kimi-k3_max
     score: 50.6
@@ -1203,6 +1239,387 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1048576
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 131072
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k3
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k3-license
+  - model-143-hf-metadata-moonshot-kimi-k3
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k3
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k3-license
+  - model-143-hf-metadata-moonshot-kimi-k3
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k3
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k3-license
+  - model-143-hf-metadata-moonshot-kimi-k3
+- facet: model.release_date
+  value: '2026-07-16'
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-license
+    snapshot_ref: sha256:20c797ce19af0c17de52c6afb144644768a591c521655f5ebf5712c9850f2887
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k3
+    snapshot_ref: sha256:ef531848d7ea9fef27f5adafff654378067b97e7d8753230deb054058c8e6449
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k3
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k3-license
+  - model-143-hf-metadata-moonshot-kimi-k3
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k3
+    snapshot_ref: sha256:57de265b5842dfa465c6e73b368b0e15a89b8793b5450528dad577da202cc6fe
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

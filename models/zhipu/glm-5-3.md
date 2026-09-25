@@ -676,7 +676,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: glm-5.3-max
-    score: 1483.02
+    score: 1475.0836598142798
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -690,6 +690,15 @@ benchmarks:
       rank 19.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-3#arena_elo_style_control#2247b8b0b2d4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: glm-5.3-max
     score: 1524.01
@@ -933,6 +942,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1621.84 [1612.73, 1630.96], 5801 votes, rank 17.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-3#arena_webdev#d1d902f3e76b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: glm-5.3_max
     score: 90.91
@@ -947,6 +965,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-24T19:44:18.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.59 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-3#gpqa_diamond#f4493a16269f
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: glm-5.3_max
     score: 68.77
@@ -961,6 +988,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-25T14:20:20.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.75 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-3#frontiermath_tiers_1_3_v2#6580c4de9d2f
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: glm-5.3_max
     score: 41.0
@@ -1022,7 +1058,7 @@ benchmarks:
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: GLM-5.3 (max) with Claude Code
+    model_id_as_evaluated: GLM-5.3
     score: 41.82
     unit: percent
     source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
@@ -1035,6 +1071,15 @@ benchmarks:
       reasoning effort max, 330 trials, accuracy 41.82 ± 3.23 (95% CI). The board''s row date
       is the evidence date. Highest-effort row for the model, best agent on a tie.'
     limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: zhipu/glm-5-3#terminal_bench_v4_0#0721891a6173
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -1192,6 +1237,376 @@ sources:
   last_scraped_huggingface: '2026-09-10'
   last_scraped_benchmarks: ''
   last_scraped_pricing: '2026-09-10'
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1048576
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 131072
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-zhipu-glm-5-3
+  - model-143-zai-glm-5-2-guide
+  - model-143-zai-glm-5-3-guide
+  - model-143-glm-5-3-license
+  - model-143-hf-metadata-zhipu-glm-5-3
+- facet: origin.base_lineage
+  value:
+  - CN
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-zhipu-glm-5-3
+  - model-143-zai-glm-5-2-guide
+  - model-143-zai-glm-5-3-guide
+  - model-143-glm-5-3-license
+  - model-143-hf-metadata-zhipu-glm-5-3
+- facet: model.release_date
+  value: '2026-08-14'
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
+  - source_id: model-143-glm-5-3-license
+    snapshot_ref: sha256:96e1622099fc9d6b70c9760f007d99e66d7497eec636b63c60fe208401e9170c
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-zhipu-glm-5-3
+    snapshot_ref: sha256:b198e08d17f97f7c5b01363713fa4548d106cb326069ee235b90e5bd6369fa5b
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-zhipu-glm-5-3
+  - model-143-zai-glm-5-2-guide
+  - model-143-zai-glm-5-3-guide
+  - model-143-glm-5-3-license
+  - model-143-hf-metadata-zhipu-glm-5-3
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-zhipu-glm-5-3
+    snapshot_ref: sha256:ed1c0a4563c437a32f8953d637a1db9bd831de1b24bd3062a5ace9e04340b1cf
+    cited_regions:
+    - model-spec
+  - source_id: model-143-zai-glm-5-2-guide
+    snapshot_ref: sha256:18952b9061a41540d9800a5c9522ae762403538fdbb366d24591c416db6c481c
+    cited_regions:
+    - audit
+  - source_id: model-143-zai-glm-5-3-guide
+    snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'

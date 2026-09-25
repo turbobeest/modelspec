@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+
 import pytest
 from pydantic import ValidationError
 
@@ -158,8 +159,9 @@ def test_forbidden_variants_are_not_forced_into_ranked_keys():
 
 
 def _evidence(model_id: str) -> list[dict]:
-    from scripts.attach_evidence import _card_index
     import yaml
+
+    from scripts.attach_evidence import _card_index
 
     path = _card_index()[model_id]
     front = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
@@ -174,9 +176,9 @@ def test_glm52_arena_row_is_on_the_product_card():
         if e.get("benchmark_id") == "arena_elo_style_control"
         and e.get("model_id_as_evaluated") == "glm-5.2-max"
     ]
-    # MODEL-123 replaced the 2026-09-10 lmarena.ai reading (1471.72) with the
-    # CC BY dataset's 2026-09-13 snapshot of the same row, dated as published.
-    assert arena and arena[0]["score"] == 1472.1
+    # MODEL-143 re-read the row from the retained CC BY dataset snapshot and
+    # preserved its full published precision.
+    assert arena and arena[0]["score"] == 1466.9328617073902
     assert arena[0]["evidence_date"] == "2026-09-13"
     assert all(e.get("source_url", "").startswith("https://") for e in rows)
     scraped = [e for e in rows if e.get("source_url", "").startswith("https://lmarena.ai")]

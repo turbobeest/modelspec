@@ -683,6 +683,15 @@ benchmarks:
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
+    id: kingsoft/qzhou-embedding#mteb_eng_v2#ed8da58ab599
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+      cited_regions:
+      - rows
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: Kingsoft-LLM/QZhou-Embedding
     score: 67.12
@@ -696,6 +705,15 @@ benchmarks:
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
+    id: kingsoft/qzhou-embedding#mteb_v2_retrieval#77f6ba6f1e72
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -853,6 +871,302 @@ sources:
   last_scraped_huggingface: '2026-09-24'
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+- facet: model.input_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+- facet: model.output_modalities
+  value:
+  - embedding
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+- facet: model.context_window
+  value: 8192
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: origin.base_lineage
+  value:
+  - CN
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: model.release_date
+  value: '2025-08-01'
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6161afb32cf7a3e15b5baae9ce2b80898c5d637d6956ef7f59807cece525ab9d
+    cited_regions:
+    - model-spec
+  - source_id: model-143-apache-2-license
+    snapshot_ref: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-kingsoft-qzhou-embedding
+    snapshot_ref: sha256:6f4bc96c87c32baa10a61268b457b6a57738202ed0c8413a23886891b0311d1d
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-kingsoft-qzhou-embedding
+  - model-143-apache-2-license
+  - model-143-hf-metadata-kingsoft-qzhou-embedding
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

@@ -698,6 +698,15 @@ benchmarks:
       2026-09-23, read 2026-09-24. Rank 8, 5502 votes, interval [1651.16, 1670.01].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: qwen/qwen3-8-max-0902#arena_webdev#d4d244346a56
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -855,6 +864,260 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: '2026-09-24'
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1000000
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 131072
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-qwen-qwen3-8-max-0902
+  - model-143-alibaba-modelstudio-terms
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-qwen-qwen3-8-max-0902
+  - model-143-alibaba-modelstudio-terms
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-qwen-qwen3-8-max-0902
+  - model-143-alibaba-modelstudio-terms
+- facet: model.release_date
+  value: '2026-09-02'
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

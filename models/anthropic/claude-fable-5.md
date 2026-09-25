@@ -670,7 +670,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-fable-5
-    score: 1505.68
+    score: 1492.62585065081
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -684,6 +684,15 @@ benchmarks:
       votes, rank 1.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5#arena_elo_style_control#f485b6284009
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: claude-fable-5
     score: 1552.39
@@ -914,7 +923,7 @@ benchmarks:
       attribution on the benchmark page.
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: claude-fable-5
-    score: 1309.5
+    score: 1325.8646704650125
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -928,6 +937,15 @@ benchmarks:
       votes, rank 1.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5#arena_sc_vision#458a2a86ab93
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-vision-json
+      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: claude-fable-5-high
     score: 1626.83
@@ -943,6 +961,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1626.83 [1619.88, 1633.78], 11933 votes, rank 14.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5#arena_webdev#efbde51ffe75
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: claude-fable-5_max
     score: 85.86
@@ -957,6 +984,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-06T22:17:56.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.48 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-fable-5#gpqa_diamond#5b91135baa58
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: claude-fable-5_max
     score: 87.02
@@ -971,6 +1007,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-06-09T18:12:35.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.99 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-fable-5#frontiermath_tiers_1_3_v2#3d8e81975798
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: claude-fable-5_xhigh
     score: 70.7
@@ -1032,7 +1077,7 @@ benchmarks:
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Fable 5 (max) with Claude Code
+    model_id_as_evaluated: Fable 5
     score: 44.55
     unit: percent
     source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
@@ -1045,6 +1090,15 @@ benchmarks:
       reasoning effort max, 330 trials, accuracy 44.55 ± 3.85 (95% CI). The board''s row date
       is the evidence date. Highest-effort row for the model, best agent on a tie.'
     limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: anthropic/claude-fable-5#terminal_bench_v4_0#6d3dc7a08de0
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Claude Fable 5 (max)
     score: 39.69
@@ -1217,6 +1271,456 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - document
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1000000
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-anthropic-claude-fable-5
+  - model-143-anthropic-models-overview
+  - model-143-anthropic-structured-outputs
+  - model-143-anthropic-streaming
+  - model-143-anthropic-commercial-terms
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-anthropic-claude-fable-5
+  - model-143-anthropic-models-overview
+  - model-143-anthropic-structured-outputs
+  - model-143-anthropic-streaming
+  - model-143-anthropic-commercial-terms
+- facet: model.release_date
+  value: '2026-06-07'
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-anthropic-claude-fable-5
+    snapshot_ref: sha256:1ea0e92587855d9cc6695e742a294b76f7a8209a492b3f2cdf8aa6f4f36dca13
+    cited_regions:
+    - model-spec
+  - source_id: model-143-anthropic-models-overview
+    snapshot_ref: sha256:081fd4411b01088963ae62e43b378ba3c708843c5f553c277371f014a02bc65f
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-structured-outputs
+    snapshot_ref: sha256:b93fe8ddc691cd8f9a022aacc8c3adabf38c9e8ed215ae955d61939ee64abaf9
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-streaming
+    snapshot_ref: sha256:cdc7449de7d6829e2f611641ce1fcec68564814fd54ab3398c559189073b6f69
+    cited_regions:
+    - audit
+  - source_id: model-143-anthropic-commercial-terms
+    snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

@@ -672,7 +672,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-3.7-flash-high
-    score: 1489.82
+    score: 1490.4920154663198
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -686,6 +686,15 @@ benchmarks:
       rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_elo_style_control#7be6e7f1d2c9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1520.59
@@ -929,6 +938,15 @@ benchmarks:
       MODEL-123 max-effort rule). Rating 1594.56 [1586.31, 1602.82], 7162 votes, rank 22.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_webdev#3494032d4822
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gemini-3.7-flash_high
     score: 94.82
@@ -943,6 +961,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-14T18:29:12.000Z; effort high; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.35 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-7-flash#gpqa_diamond#fe74472c076a
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: gemini-3.7-flash_high
     score: 71.58
@@ -957,6 +984,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-14T19:59:58.000Z; effort high; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.68 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-7-flash#frontiermath_tiers_1_3_v2#053531728168
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: gemini-3.7-flash_high
     score: 69.2
@@ -1003,7 +1039,7 @@ benchmarks:
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Gemini 3.7 Flash (high) with mini-SWE-agent
+    model_id_as_evaluated: Gemini 3.7 Flash
     score: 11.21
     unit: percent
     source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
@@ -1016,6 +1052,15 @@ benchmarks:
       reasoning effort high, 330 trials, accuracy 11.21 ± 2.45 (95% CI). The board''s row date
       is the evidence date. Highest-effort row for the model, best agent on a tie.'
     limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: google/gemini-3-7-flash#terminal_bench_v4_0#60947f594915
+    measured_by: benchmark_author
+    effort: high
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -1173,6 +1218,524 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  - audio
+  - document
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1048576
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 65536
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-google-gemini-3-7-flash
+  - model-143-google-deprecations
+  - model-143-google-streaming
+  - model-143-google-terms
+  - model-143-google-company
+  - model-143-google-sec
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-google-gemini-3-7-flash
+  - model-143-google-deprecations
+  - model-143-google-streaming
+  - model-143-google-terms
+  - model-143-google-company
+  - model-143-google-sec
+- facet: model.release_date
+  value: '2026-08-13'
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-7-flash
+    snapshot_ref: sha256:78f5cafa60ca51ba2e861fc4a1059287c17d304b220fc73f8e2950121bd0287e
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
