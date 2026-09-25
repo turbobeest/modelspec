@@ -161,10 +161,11 @@ jobs:
           uv sync --project api/worker --frozen
           npm install --prefix api/worker --no-save "wrangler@${WRANGLER_VERSION}"
 
-      - name: PyYAML, for the post-deploy spec probe
-        # The only dependency `api/worker/openapi.py --probe` has. Everything
-        # else it touches is the standard library, by design.
-        run: python -m pip install "PyYAML==6.0.3"
+      - name: Dependencies for the post-deploy spec probe
+        # `api/worker/openapi.py --probe` needs PyYAML, and since MODEL-151 it
+        # imports the decide service, whose contract types need pydantic (the
+        # same pin as the bundle job).
+        run: python -m pip install "PyYAML==6.0.3" "pydantic==2.13.5"
 
       - name: Deploy
         working-directory: api/worker
