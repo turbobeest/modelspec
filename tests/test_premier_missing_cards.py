@@ -3,6 +3,7 @@
 The slice-1 computation listed top-10 rows with no card. These tests load
 the cards added for that list and check the facts that identify them.
 GPT-5.5 pre-release rows are not products and have no card here.
+The second pass covers the MTEB(Multilingual, v2) rows that had none.
 """
 
 from __future__ import annotations
@@ -31,6 +32,12 @@ CASES = [
     ("codefuse/f2llm-4b", "codefuse/f2llm-4b.md", "embedding-text", "mteb_eng_v2", 73.67),
     ("querit/querit-4b", "querit/querit-4b.md", "reranker", "mteb_v2_reranking", 49.2),
     ("querit/querit", "querit/querit.md", "reranker", "mteb_v2_reranking", 48.27),
+    ("microsoft/harrier-oss-v1-27b", "microsoft/harrier-oss-v1-27b.md", "embedding-text", "mteb_multilingual_v2", 74.27),
+    ("microsoft/harrier-oss-v1-0-6b", "microsoft/harrier-oss-v1-0-6b.md", "embedding-text", "mteb_multilingual_v2", 69.01),
+    ("bytedance/seed1-6-embedding-1215", "bytedance/seed1-6-embedding-1215.md", "embedding-multimodal", "mteb_multilingual_v2", 70.26),
+    ("nvidia/llama-embed-nemotron-8b", "nvidia/llama-embed-nemotron-8b.md", "embedding-text", "mteb_multilingual_v2", 69.46),
+    ("codefuse/f2llm-v2-14b", "codefuse/f2llm-v2-14b.md", "embedding-text", "mteb_multilingual_v2", 68.74),
+    ("codefuse/f2llm-v2-8b", "codefuse/f2llm-v2-8b.md", "embedding-text", "mteb_multilingual_v2", 68.09),
 ]
 
 
@@ -87,6 +94,10 @@ def test_open_weight_counts_come_from_the_hub_safetensors_index():
         "codefuse/f2llm-4b.md": 4_022_468_096,
         "querit/querit-4b.md": 4_021_782_018,
         "querit/querit.md": 4_919_641_986,
+        "microsoft/harrier-oss-v1-27b.md": 27_009_346_304,
+        "microsoft/harrier-oss-v1-0-6b.md": 596_049_920,
+        "codefuse/f2llm-v2-14b.md": 13_990_394_880,
+        "codefuse/f2llm-v2-8b.md": 7_568_405_504,
     }
     for rel, count in expected.items():
         card = _load(rel)
@@ -109,7 +120,84 @@ def test_closed_models_do_not_invent_a_parameter_count():
         "jcorners/ingot-8b-r3.md",
         "bytedance/seed1-5-embedding.md",
         "bytedance/seed1-6-embedding.md",
+        "bytedance/seed1-6-embedding-1215.md",
     ):
         card = _load(rel)
         assert card.architecture.total_parameters is None
         assert card.licensing.open_weights is False
+
+
+def test_seed_1215_is_its_own_volcengine_model_id():
+    """Volcengine lists doubao-embedding-vision-251215 beside -250615."""
+    june = _load("bytedance/seed1-6-embedding.md")
+    december = _load("bytedance/seed1-6-embedding-1215.md")
+    assert june.identity.version == "doubao-embedding-vision-250615"
+    assert december.identity.version == "doubao-embedding-vision-251215"
+    assert december.availability.primary_provider.model_id_on_platform == "doubao-embedding-vision-251215"
+    assert december.identity.model_id != june.identity.model_id
+    assert "bytedance/seed1-6-embedding" in december.prose_body
+
+
+def test_f2llm_v2_is_not_the_v1_card():
+    v1 = _load("codefuse/f2llm-4b.md")
+    for rel in ("codefuse/f2llm-v2-14b.md", "codefuse/f2llm-v2-8b.md"):
+        card = _load(rel)
+        assert card.identity.family == "f2llm-v2"
+        assert card.identity.family != v1.identity.family
+        assert card.sources.arxiv_url == "https://arxiv.org/abs/2603.19223"
+
+
+def test_nemotron_names_its_nvidia_licence_and_leaves_commercial_use_open():
+    card = _load("nvidia/llama-embed-nemotron-8b.md")
+    assert card.architecture.total_parameters == 7_504_924_672
+    assert card.architecture.total_parameters_source == "safetensors"
+    assert card.licensing.open_weights is True
+    assert card.licensing.license_type.value == "other"
+    assert card.licensing.license_url == "https://huggingface.co/nvidia/llama-embed-nemotron-8b/blob/main/LICENSE"
+    # The licence limits use to non-commercial research. The prose says so;
+    # the public field stays unspecified like every other new card.
+    assert card.licensing.commercial_use.value == "unspecified"
+    assert "non-commercial" in card.prose_body
+
+
+def test_provider_self_reports_are_labelled():
+    expected = {
+        "microsoft/harrier-oss-v1-27b.md": 74.3,
+        "microsoft/harrier-oss-v1-0-6b.md": 69.0,
+        "nvidia/llama-embed-nemotron-8b.md": 69.46,
+    }
+    for rel, score in expected.items():
+        rows = [
+            row
+            for row in _load(rel).benchmarks.evidence
+            if row.benchmark_id == "mteb_multilingual_v2" and row.source_kind == "provider_self_report"
+        ]
+        assert [row.score for row in rows] == [score], rel
+
+
+@pytest.mark.parametrize("_model_id,rel,_model_type,_benchmark_id,_score", CASES[-6:])
+def test_multilingual_live_readings_use_observation_dates(
+    _model_id, rel, _model_type, _benchmark_id, _score
+):
+    rows = [row for row in _load(rel).benchmarks.evidence if row.source_kind == "benchmark_author"]
+    assert rows
+    for row in rows:
+        assert row.date_type == "evaluated"
+        assert row.evidence_date == READ
+
+
+def test_multilingual_unknowns_stay_unknown():
+    seed = _load("bytedance/seed1-6-embedding-1215.md")
+    assert seed.identity.release_date == ""
+    assert seed.modalities.embeddings.max_input_tokens is None
+    assert _load("microsoft/harrier-oss-v1-27b.md").modalities.embeddings.max_input_tokens is None
+
+
+@pytest.mark.parametrize("rel,mean,retrieval", [
+    ("codefuse/f2llm-v2-14b.md", 73.08, 60.63),
+    ("codefuse/f2llm-v2-8b.md", 72.86, 59.82),
+])
+def test_f2llm_v2_english_evidence(rel, mean, retrieval):
+    rows = {row.benchmark_id: row.score for row in _load(rel).benchmarks.evidence}
+    assert rows["mteb_eng_v2"] == mean
+    assert rows["mteb_v2_retrieval"] == retrieval
