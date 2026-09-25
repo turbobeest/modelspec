@@ -2,10 +2,17 @@
 
 Research phase of slice 1. These files restate the independent audit's 20
 questions and record what a correct decision may contain. They are data.
-They do not encode the decision contract. That waits on MODEL-135.
+The contract encodings live in `specs/` (MODEL-146).
 
-**Jamie approves this set before it gates anything.** Nothing here fails a
-build, blocks a merge, or defines a passing decision until that approval.
+**Approved by Jamie on 2026-09-25** (MODEL-146 sign-off): the expected
+answers in `expected.yaml` are the reference for slice 1. The specs in
+`specs/` encode the questions (contract 1.x); `scripts/recall_run.py` scores
+the engine against them and writes `docs/recall/<date>-<snapshot>.md`.
+
+The runner **reports; it does not gate CI yet.** At approval the engine scored
+1 pass, 6 partial, 13 fail. The fails are "cannot separate a single winner"
+(intervals arrive with MODEL-129) and questions outside the slice-1 lineup.
+Gating is proposed once MODEL-129 lands and the pass rate supports it.
 
 ## Method
 
