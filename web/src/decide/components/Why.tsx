@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  BENCH,
   TYPES,
   fmtB,
   fmtCI,
@@ -44,7 +43,7 @@ export function Why({
     o = row.best.o,
     ranked = e.feasible.find((r) => r.m.id === m.id),
     insep = e.insep(ranked),
-    bd = BENCH[spec.bench];
+    bd = decision.benchmarks[spec.bench];
   const dims = [
     {
       key: "cap",
@@ -77,12 +76,22 @@ export function Why({
           <div className="eyebrow">Why this model</div>
           <h2>{m.name}</h2>
           <p>
-            {m.labName} · released {m.rel} ({daysAgo(m.rel)} days ago)
+            {m.labName} ·{" "}
+            {m.rel
+              ? `released ${m.rel} (${daysAgo(m.rel)} days ago)`
+              : "release date not available in this snapshot"}
           </p>
           <div className="inline">
-            <span className="badge">{TYPES[m.type]}</span>
             <span className="badge">
-              {m.open ? "Open weights" : "Closed weights"} · {m.lic}
+              {m.type ? TYPES[m.type] : "Class not available in this snapshot"}
+            </span>
+            <span className="badge">
+              {m.open === null
+                ? "Weights not available in this snapshot"
+                : m.open
+                  ? "Open weights"
+                  : "Closed weights"}
+              {m.lic ? ` · ${m.lic}` : ""}
             </span>
             {m.provisional && <span className="badge warn">Provisional</span>}
             {m.status === "retired" && (
@@ -111,7 +120,7 @@ export function Why({
       </div>
       {m.provisional && (
         <div className="provisional">
-          Released {daysAgo(m.rel)} days ago.{" "}
+          {m.rel ? `Released ${daysAgo(m.rel)} days ago.` : "Release date not available."}{" "}
           {m.bench.filter((b) => b.by === "lab").length} lab-reported scores,{" "}
           {m.bench.filter((b) => b.by === "indep").length} independent. Speed
           not yet measured. Scheduled updates at +1, +7 and +30 days.
@@ -242,7 +251,8 @@ export function Why({
                   </span>
                 </div>
                 <small>
-                  {BENCH[b.b].unit} · effort {b.effort} · {b.harness} · {b.date}
+                  {decision.benchmarks[b.b]?.unit ?? "unit not recorded"} · effort{" "}
+                  {b.effort} · {b.harness} · {b.date}
                 </small>
                 <button
                   className={"provenance " + (b.by === "lab" ? "note" : "")}
@@ -257,23 +267,25 @@ export function Why({
             <div>
               <dt>Context</dt>
               <dd>
-                {m.ctx === null ? "not published" : num(m.ctx) + " tokens"}
+                {m.ctx === null
+                  ? "not available in this snapshot"
+                  : num(m.ctx) + " tokens"}
               </dd>
             </div>
             <div>
               <dt>Licence</dt>
               <dd>
-                {m.lic}
+                {m.lic ?? "not available in this snapshot"}
                 {m.commercial === false ? " (no commercial use)" : ""}
               </dd>
             </div>
             <div>
               <dt>Origin jurisdiction</dt>
-              <dd>{m.origin}</dd>
+              <dd>{m.origin ?? "not available in this snapshot"}</dd>
             </div>
             <div>
               <dt>Lifecycle</dt>
-              <dd>{m.status}</dd>
+              <dd>{m.status ?? "not available in this snapshot"}</dd>
             </div>
             <div>
               <dt>Offerings</dt>
@@ -282,14 +294,14 @@ export function Why({
           </dl>
           <div className="eyebrow">What the lab didn't report</div>
           <p>
-            {Object.keys(BENCH)
+            {Object.keys(decision.benchmarks)
               .filter(
                 (b) =>
-                  BENCH[b].types.includes(m.type) &&
+                  (m.type === null || decision.benchmarks[b].types.includes(m.type)) &&
                   !m.bench.some((x) => x.b === b && x.by === "lab"),
               )
               .join(", ") ||
-              `${m.labName} reported on every benchmark we track for ${TYPES[m.type]}s.`}
+              `${m.labName} reported on every benchmark returned for this decision.`}
           </p>
         </div>
         <div>
@@ -359,7 +371,7 @@ export function Why({
           </div>
           <div className="near-misses">
             <div className="eyebrow">Near misses</div>
-            {decision.near_misses.slice(0, 4).map((n, i) => (
+            {decision.nearMisses.slice(0, 4).map((n, i) => (
               <div key={n.row.m.id}>
                 <strong>{n.row.m.name}</strong>
                 <small>{n.why}</small>
@@ -368,7 +380,7 @@ export function Why({
                 </button>
               </div>
             ))}
-            {!decision.near_misses.length && (
+            {!decision.nearMisses.length && (
               <small>No model is one condition away.</small>
             )}
           </div>

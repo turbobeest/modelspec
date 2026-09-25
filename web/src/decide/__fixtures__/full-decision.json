@@ -1,0 +1,2295 @@
+{
+  "near_misses": [
+    {
+      "values": [],
+      "offering": {
+        "model": "lab/alpha",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "known(offering.provider)",
+      "facet": "offering.provider",
+      "value": "unknown",
+      "distance": null,
+      "unit": null,
+      "records": []
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "lab/beta",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "known(offering.provider)",
+      "facet": "offering.provider",
+      "value": "unknown",
+      "distance": null,
+      "unit": null,
+      "records": []
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "lab/delta",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "known(offering.provider)",
+      "facet": "offering.provider",
+      "value": "unknown",
+      "distance": null,
+      "unit": null,
+      "records": []
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "lab/gamma",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "known(offering.provider)",
+      "facet": "offering.provider",
+      "value": "unknown",
+      "distance": null,
+      "unit": null,
+      "records": []
+    }
+  ],
+  "top": [
+    {
+      "offering": {
+        "model": "lab/delta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/delta#model.class"
+        },
+        {
+          "facet": "model.context_window",
+          "value": 64000,
+          "unit": "tokens",
+          "record_id": "lab/delta#model.context_window"
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/delta#model.lifecycle"
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/delta#model.weights_openness"
+        },
+        {
+          "facet": "offering.data.retention",
+          "value": 30,
+          "unit": "days",
+          "record_id": "cloud/lab/delta/global/standard#offering.data.retention"
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 0.5,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/delta/global/standard#offering.price.input"
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 2.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/delta/global/standard#offering.price.output"
+        },
+        {
+          "facet": "offering.provider",
+          "value": "cloud",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.region",
+          "value": "global",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.speed.throughput",
+          "value": 30,
+          "unit": "tokens_per_second",
+          "record_id": "cloud/lab/delta/global/standard#offering.speed.throughput"
+        },
+        {
+          "facet": "offering.speed.time_to_first_token",
+          "value": 1200,
+          "unit": "milliseconds",
+          "record_id": "cloud/lab/delta/global/standard#offering.speed.time_to_first_token"
+        },
+        {
+          "facet": "offering.tier",
+          "value": "standard",
+          "unit": null,
+          "record_id": null
+        }
+      ],
+      "contributions": [
+        {
+          "raw_value": 0.5,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/delta/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 1.0,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/delta#quality#36.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 36.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "offering": {
+        "model": "lab/beta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/beta#model.class"
+        },
+        {
+          "facet": "model.context_window",
+          "value": 128000,
+          "unit": "tokens",
+          "record_id": "lab/beta#model.context_window"
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/beta#model.lifecycle"
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "open_weights",
+          "unit": null,
+          "record_id": "lab/beta#model.weights_openness"
+        },
+        {
+          "facet": "offering.data.retention",
+          "value": 30,
+          "unit": "days",
+          "record_id": "cloud/lab/beta/global/standard#offering.data.retention"
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 1.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/beta/global/standard#offering.price.input"
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 4.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/beta/global/standard#offering.price.output"
+        },
+        {
+          "facet": "offering.provider",
+          "value": "cloud",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.region",
+          "value": "global",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.speed.throughput",
+          "value": 55,
+          "unit": "tokens_per_second",
+          "record_id": "cloud/lab/beta/global/standard#offering.speed.throughput"
+        },
+        {
+          "facet": "offering.speed.time_to_first_token",
+          "value": 780,
+          "unit": "milliseconds",
+          "record_id": "cloud/lab/beta/global/standard#offering.speed.time_to_first_token"
+        },
+        {
+          "facet": "offering.tier",
+          "value": "standard",
+          "unit": null,
+          "record_id": null
+        }
+      ],
+      "contributions": [
+        {
+          "raw_value": 1.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/beta/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.8,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/beta#quality#72.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 72.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "offering": {
+        "model": "lab/gamma",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/gamma#model.class"
+        },
+        {
+          "facet": "model.context_window",
+          "value": 256000,
+          "unit": "tokens",
+          "record_id": "lab/gamma#model.context_window"
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/gamma#model.lifecycle"
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "open_weights",
+          "unit": null,
+          "record_id": "lab/gamma#model.weights_openness"
+        },
+        {
+          "facet": "offering.data.retention",
+          "value": 30,
+          "unit": "days",
+          "record_id": "cloud/lab/gamma/global/standard#offering.data.retention"
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 2.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/gamma/global/standard#offering.price.input"
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 8.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/gamma/global/standard#offering.price.output"
+        },
+        {
+          "facet": "offering.provider",
+          "value": "cloud",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.region",
+          "value": "global",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.speed.throughput",
+          "value": 80,
+          "unit": "tokens_per_second",
+          "record_id": "cloud/lab/gamma/global/standard#offering.speed.throughput"
+        },
+        {
+          "facet": "offering.speed.time_to_first_token",
+          "value": 510,
+          "unit": "milliseconds",
+          "record_id": "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token"
+        },
+        {
+          "facet": "offering.tier",
+          "value": "standard",
+          "unit": null,
+          "record_id": null
+        }
+      ],
+      "contributions": [
+        {
+          "raw_value": 2.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/gamma/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.4,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/gamma#quality#88.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 88.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "offering": {
+        "model": "lab/alpha",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/alpha#model.class"
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/alpha#model.context_window"
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/alpha#model.lifecycle"
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/alpha#model.weights_openness"
+        },
+        {
+          "facet": "offering.data.retention",
+          "value": 0,
+          "unit": "days",
+          "record_id": "cloud/lab/alpha/global/standard#offering.data.retention"
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 3.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/alpha/global/standard#offering.price.input"
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 12.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/alpha/global/standard#offering.price.output"
+        },
+        {
+          "facet": "offering.provider",
+          "value": "cloud",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.region",
+          "value": "global",
+          "unit": null,
+          "record_id": null
+        },
+        {
+          "facet": "offering.speed.throughput",
+          "value": 95,
+          "unit": "tokens_per_second",
+          "record_id": "cloud/lab/alpha/global/standard#offering.speed.throughput"
+        },
+        {
+          "facet": "offering.speed.time_to_first_token",
+          "value": 420,
+          "unit": "milliseconds",
+          "record_id": "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token"
+        },
+        {
+          "facet": "offering.tier",
+          "value": "standard",
+          "unit": null,
+          "record_id": null
+        }
+      ],
+      "contributions": [
+        {
+          "raw_value": 3.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/alpha/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/alpha#quality#92.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 92.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 220\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">lab/delta \u00b7 -offering.price.input: 0.5 usd_per_1m_tokens</text><rect x=\"8\" y=\"27\" width=\"50\" height=\"12\" /><text x=\"8\" y=\"73\">lab/beta \u00b7 -offering.price.input: 1 usd_per_1m_tokens</text><rect x=\"8\" y=\"82\" width=\"100\" height=\"12\" /><text x=\"8\" y=\"128\">lab/gamma \u00b7 -offering.price.input: 2 usd_per_1m_tokens</text><rect x=\"8\" y=\"137\" width=\"200\" height=\"12\" /><text x=\"8\" y=\"183\">lab/alpha \u00b7 -offering.price.input: 3 usd_per_1m_tokens</text><rect x=\"8\" y=\"192\" width=\"300\" height=\"12\" /></svg>",
+  "number_origins": [
+    {
+      "path": "/top/0/facts/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/delta#model.context_window"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/0/facts/4/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.data.retention"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/0/facts/5/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/0/facts/6/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.output"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/0/facts/9/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.speed.throughput"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/0/facts/10/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/0/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/0/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/0/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/0/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/delta#quality#36.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/1/facts/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/beta#model.context_window"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/1/facts/4/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.data.retention"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/1/facts/5/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/1/facts/6/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.output"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/1/facts/9/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.speed.throughput"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/1/facts/10/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/1/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/1/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/1/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/1/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/beta#quality#72.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/2/facts/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/gamma#model.context_window"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/2/facts/4/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.data.retention"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/2/facts/5/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/2/facts/6/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.output"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/2/facts/9/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.speed.throughput"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/2/facts/10/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/2/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/2/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/2/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/2/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/3/facts/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/alpha#model.context_window"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/3/facts/4/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention"
+      ],
+      "sources": [
+        "https://lab.example.com/docs/models"
+      ]
+    },
+    {
+      "path": "/top/3/facts/5/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/3/facts/6/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.output"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/3/facts/9/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.speed.throughput"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/3/facts/10/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/top/3/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/3/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/3/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/top/3/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/alpha#quality#92.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/results/0/rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/0/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/delta#quality#36.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/results/0/soft_penalty",
+      "basis": "sum of spec penalties on failed or unknown soft conditions",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/delta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/1/rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/1/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/beta#quality#72.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/results/1/soft_penalty",
+      "basis": "sum of spec penalties on failed or unknown soft conditions",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/2/rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/2/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/results/2/soft_penalty",
+      "basis": "sum of spec penalties on failed or unknown soft conditions",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/3/rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/3/evidence/0/items/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/alpha#quality#92.0"
+      ],
+      "sources": [
+        "https://board.example.org/results"
+      ]
+    },
+    {
+      "path": "/results/3/soft_penalty",
+      "basis": "sum of spec penalties on failed or unknown soft conditions",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/0/weight",
+      "basis": "spec objective weight; unweighted objectives use unit weight",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/0/before",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/0/after",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/0/may_qualify",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/1/before",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/1/after",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/eliminated/funnel/1/may_qualify",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/constraint_costs/0/admits",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/constraint_costs/0/gain/-offering.price.input",
+      "basis": "best relaxed raw objective value minus best current raw value",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/constraint_costs/1/admits",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "sources": [
+        "https://lab.example.com/pricing"
+      ]
+    },
+    {
+      "path": "/constraint_costs/1/gain/-offering.price.input",
+      "basis": "best relaxed raw objective value minus best current raw value",
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.data.retention",
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/alpha/global/standard#offering.price.output",
+        "cloud/lab/alpha/global/standard#offering.speed.throughput",
+        "cloud/lab/alpha/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/beta/global/standard#offering.data.retention",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/beta/global/standard#offering.speed.throughput",
+        "cloud/lab/beta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/delta/global/standard#offering.data.retention",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.speed.throughput",
+        "cloud/lab/delta/global/standard#offering.speed.time_to_first_token",
+        "cloud/lab/gamma/global/standard#offering.data.retention",
+        "cloud/lab/gamma/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.output",
+        "cloud/lab/gamma/global/standard#offering.speed.throughput",
+        "cloud/lab/gamma/global/standard#offering.speed.time_to_first_token",
+        "lab/alpha#model.class",
+        "lab/alpha#model.context_window",
+        "lab/alpha#model.lifecycle",
+        "lab/alpha#model.weights_openness",
+        "lab/alpha#quality#92.0",
+        "lab/beta#model.class",
+        "lab/beta#model.context_window",
+        "lab/beta#model.lifecycle",
+        "lab/beta#model.weights_openness",
+        "lab/beta#quality#72.0",
+        "lab/delta#model.class",
+        "lab/delta#model.context_window",
+        "lab/delta#model.lifecycle",
+        "lab/delta#model.weights_openness",
+        "lab/delta#quality#36.0",
+        "lab/gamma#model.class",
+        "lab/gamma#model.context_window",
+        "lab/gamma#model.lifecycle",
+        "lab/gamma#model.weights_openness",
+        "lab/gamma#quality#88.0"
+      ],
+      "sources": [
+        "https://board.example.org/results",
+        "https://lab.example.com/docs/models",
+        "https://lab.example.com/pricing"
+      ]
+    }
+  ],
+  "contract_version": "1.0",
+  "decision_id": "dec_3a97fadf7a200027c618b3a3",
+  "snapshot": "snap_6909016f95b289ea",
+  "spec_hash": "sha256:ad40ee1b64a3bc1b56bf133e5d1a3e788c4352cdffd5085ca8fbf030f19e38e1",
+  "explain": "full",
+  "status": "answered",
+  "results": [
+    {
+      "rank": 1,
+      "offering": {
+        "model": "lab/delta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/delta#quality#36.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 36.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.5,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/delta/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 1.0,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 2,
+      "offering": {
+        "model": "lab/beta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/beta#quality#72.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 72.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 1.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/beta/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.8,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 3,
+      "offering": {
+        "model": "lab/gamma",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/gamma#quality#88.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 88.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 2.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/gamma/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.4,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 4,
+      "offering": {
+        "model": "lab/alpha",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/alpha#quality#92.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 92.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": "default",
+              "harness": "codex-cli@1.4",
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 3.0,
+          "unit": "usd_per_1m_tokens",
+          "records": [
+            "cloud/lab/alpha/global/standard#offering.price.input"
+          ],
+          "dimension": "-offering.price.input",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; min; minimum=0.5 usd_per_1m_tokens; maximum=3.0 usd_per_1m_tokens; constant dimensions contribute zero dimensionless",
+          "evidence": []
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "may_qualify": [],
+  "eliminated": {
+    "funnel": [
+      {
+        "condition": "model.class = text-generator",
+        "before": 8,
+        "after": 8,
+        "may_qualify": 0
+      },
+      {
+        "condition": "known(offering.provider)",
+        "before": 8,
+        "after": 4,
+        "may_qualify": 0
+      }
+    ],
+    "models": [
+      {
+        "values": [],
+        "offering": {
+          "model": "lab/alpha",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [],
+        "model": "lab/alpha",
+        "condition": "known(offering.provider)",
+        "value": "unknown"
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "lab/beta",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [],
+        "model": "lab/beta",
+        "condition": "known(offering.provider)",
+        "value": "unknown"
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "lab/delta",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [],
+        "model": "lab/delta",
+        "condition": "known(offering.provider)",
+        "value": "unknown"
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "lab/gamma",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [],
+        "model": "lab/gamma",
+        "condition": "known(offering.provider)",
+        "value": "unknown"
+      }
+    ]
+  },
+  "constraint_costs": [
+    {
+      "units": {
+        "-offering.price.input": "usd_per_1m_tokens"
+      },
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "condition": "model.class = text-generator",
+      "admits": 0,
+      "gain": {
+        "-offering.price.input": 0.0
+      }
+    },
+    {
+      "units": {
+        "-offering.price.input": null
+      },
+      "records": [
+        "cloud/lab/alpha/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/gamma/global/standard#offering.price.input"
+      ],
+      "condition": "known(offering.provider)",
+      "admits": 4,
+      "gain": {
+        "-offering.price.input": 0.0
+      }
+    }
+  ],
+  "tipping_points": [],
+  "relax": [],
+  "warnings": []
+}

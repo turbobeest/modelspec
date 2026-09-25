@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import {
   axisDefs,
   plotDomain,
-  BENCH,
   fmtB,
   fmtCI,
   status,
@@ -39,9 +38,8 @@ export function Canvas({
     drag = useRef<"x" | "y" | null>(null);
   const e = decision.explanation,
     ax = axisDefs[axis],
-    bd = BENCH[spec.bench],
-    pd = plotDomain(e.inScope, spec, axis),
-    type = spec.conds.find((c) => c.f === "type")?.v || "llm";
+    bd = decision.benchmarks[spec.bench],
+    pd = plotDomain(e.inScope, spec, axis, bd);
   const xc = spec.conds.find((c) => c.f === axis),
     yc = spec.conds.find((c) => c.f === "bench" && c.b === spec.bench);
   const xp = pd.xv == null ? (ax.low ? 0.985 : 0.015) : pd.fx(pd.xv),
@@ -187,9 +185,12 @@ export function Canvas({
                 onAxis(key);
             }}
           >
-            {Object.entries(axisDefs).map(([k, a]) => (
+            {(["task$", "in$", "ttft", "tps", "ctx"] satisfies Axis[]).map((k) => (
               <option value={k} key={k}>
-                {a.label} ({a.unit})
+                {axisDefs[k].label} ({axisDefs[k].unit})
+                {decision.available_axes[k]
+                  ? ""
+                  : " — not available in this snapshot"}
               </option>
             ))}
           </select>
@@ -201,9 +202,7 @@ export function Canvas({
             value={spec.bench}
             onChange={(e) => onSpec({ ...spec, bench: e.target.value })}
           >
-            {Object.entries(BENCH)
-              .filter(([, b]) => b.types.includes(type))
-              .map(([k, b]) => (
+            {Object.entries(decision.benchmarks).map(([k, b]) => (
                 <option key={k} value={k}>
                   {k} ({b.unit})
                 </option>
@@ -462,7 +461,7 @@ export function Canvas({
               </small>
               <span>
                 {spec.bench}: {fmtB(spec.bench, hover.cap)}{" "}
-                {hover.capR && fmtCI(spec.bench, hover.capR)} ·{" "}
+                {hover.capR ? fmtCI(spec.bench, hover.capR) : "no interval"} ·{" "}
                 {hover.labOnly ? "Lab-reported" : "Independent"}
               </span>
               <span>
@@ -484,7 +483,7 @@ export function Canvas({
                   : "Nothing qualifies under these conditions."}
               </strong>
               <p>These are one condition away:</p>
-              {decision.near_misses.slice(0, 3).map((n, i) => (
+              {decision.nearMisses.slice(0, 3).map((n, i) => (
                 <div key={n.row.m.id}>
                   <strong>{n.row.m.name}</strong>
                   <small>{n.why}</small>

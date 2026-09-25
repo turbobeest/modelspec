@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { BENCH, fmtB, label } from "../adapter";
+import { fmtB, label } from "../adapter";
 import type { Row, Spec } from "../adapter";
 import { encodeSpec } from "../state/spec";
 import type { Axis } from "../state/spec";
+import { toDecisionSpec } from "../adapter/view-model";
 const tabs = [
   "Permalink",
   "API call",
@@ -16,12 +17,14 @@ export function Share({
   snapshot,
   axis,
   row,
+  demo,
   onClose,
 }: {
   spec: Spec;
   snapshot: string;
   axis: Axis;
   row: Row | null;
+  demo: boolean;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState("Permalink"),
@@ -38,32 +41,49 @@ export function Share({
       if (previous instanceof HTMLElement) previous.focus();
     };
   }, []);
-  const sample = {
-    fictional_sample: true,
-    task: spec.task,
-    tokens_per_task: { input: spec.tokIn, output: spec.tokOut },
-    conditions: spec.conds,
-    objective: { benchmark: spec.bench, weights: spec.w },
-    snapshot,
-  };
-  const yaml = [
-    "# ModelSpec fictional sample spec, not a live API request",
-    `snapshot: ${snapshot}`,
-    `task: ${JSON.stringify(spec.task || "")}`,
-    "tokens_per_task:",
-    `  input: ${spec.tokIn}`,
-    `  output: ${spec.tokOut}`,
-    "conditions:",
-    ...spec.conds.map(
-      (c) => "  - " + JSON.stringify(label(c)) + (c.soft ? " # soft" : ""),
-    ),
-    "objective:",
-    `  benchmark: ${JSON.stringify(spec.bench)}`,
-    "  weights:",
-    `    capability: ${spec.w.cap}`,
-    `    cost: ${spec.w.cost}`,
-    `    speed: ${spec.w.speed}`,
-  ].join("\n");
+  const contractSpec = toDecisionSpec(spec, "full");
+  const sample = demo
+    ? {
+        fictional_sample: true,
+        task: spec.task,
+        tokens_per_task: { input: spec.tokIn, output: spec.tokOut },
+        conditions: spec.conds,
+        objective: { benchmark: spec.bench, weights: spec.w },
+        snapshot,
+      }
+    : contractSpec;
+  const yaml = demo
+    ? [
+        "# ModelSpec fictional sample spec, not a live API request",
+        `snapshot: ${snapshot}`,
+        `task: ${JSON.stringify(spec.task || "")}`,
+        "conditions:",
+        ...spec.conds.map(
+          (condition) =>
+            "  - " +
+            JSON.stringify(label(condition)) +
+            (condition.soft ? " # soft" : ""),
+        ),
+      ].join("\n")
+    : [
+        "# ModelSpec decision contract 1.0",
+        `spec_version: ${contractSpec.spec_version}`,
+        `snapshot: ${contractSpec.snapshot ?? "latest"}`,
+        ...(contractSpec.task_type
+          ? [`task_type: ${contractSpec.task_type}`]
+          : []),
+        ...(contractSpec.capabilities
+          ? [`capabilities: ${JSON.stringify(contractSpec.capabilities)}`]
+          : []),
+        "where:",
+        ...(contractSpec.where ?? []).map(
+          (condition) => `  - ${JSON.stringify(condition)}`,
+        ),
+        `optimize: ${JSON.stringify(contractSpec.optimize)}`,
+        `unknowns: ${contractSpec.unknowns ?? "default"}`,
+        `explain: ${contractSpec.explain ?? "full"}`,
+        `limit: ${contractSpec.limit ?? 20}`,
+      ].join("\n");
   const code =
     tab === "Permalink"
       ? location.origin +
@@ -71,9 +91,13 @@ export function Share({
         location.search +
         encodeSpec(spec, axis)
       : tab === "API call"
-        ? `# Fictional sample preview. MODEL-151 will connect the decision contract.\n# This payload documents the sample; it is not accepted by the real API.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
+        ? demo
+          ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
+          : `curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(contractSpec, null, 2).replaceAll("'", "'\\''")}'`
         : tab === "CLI"
-          ? `# Fictional sample preview; real CLI requires a contract spec.\n# Save the sample YAML for reference, then translate to the decision contract.\nmodelspec decide spec.yaml --explain full --json`
+          ? demo
+            ? "# Fictional sample preview\nmodelspec decide spec.yaml --explain full --json"
+            : "modelspec decide spec.yaml --explain full --json"
           : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {
@@ -88,9 +112,11 @@ export function Share({
           clause: label(c),
           result: t.s === 1 ? "Yes" : t.s === 0 ? "Unknown" : "No",
           evidence: b
-            ? `${fmtB(b.b, b.v)} ${BENCH[b.b].unit} · ${b.who} · ${b.date} · ${b.src}`
+            ? `${fmtB(b.b, b.v)} · ${b.who} · ${b.date} · ${b.src}`
             : t.why ||
-              `Fictional ${row.best.o.provider} catalogue entry · read 2026-09-24 · ${snapshot}`,
+              (demo
+                ? `Fictional ${row.best.o.provider} catalogue entry · read 2026-09-24 · ${snapshot}`
+                : "No sourced value returned for this clause."),
         };
       })
     : [];
@@ -160,10 +186,14 @@ export function Share({
           {tab === "Permalink"
             ? "The whole spec is encoded in the link. Anyone who opens it can change it."
             : tab === "Save and alert"
-              ? "Try alert preferences for this fictional spec. This preview saves them in this browser; no monitoring service is connected."
+              ? demo
+                ? "Try alert preferences for this fictional spec. This preview saves them in this browser; no monitoring service is connected."
+                : "Alert preferences are saved in this browser. Server monitoring is not enabled."
               : tab === "Procurement review"
-                ? `Yes, no or unknown per clause for ${row?.m.name || "the selected model"}, with fictional evidence. Unknowns are listed, not assumed.`
-                : "Fictional sample format. The real backend follows the decision contract and will be connected in MODEL-151."}
+                ? `Yes, no or unknown per clause for ${row?.m.name || "the selected model"}, with returned evidence. Unknowns are listed, not assumed.`
+                : demo
+                  ? "Fictional sample format."
+                  : "This is the contract sent to the hosted decision backend."}
         </p>
         {tabs.indexOf(tab) < 4 && (
           <>
@@ -206,13 +236,17 @@ export function Share({
               className="primary"
               onClick={() => {
                 localStorage.setItem(
-                  "modelspec-sample-alerts",
+                  demo ? "modelspec-sample-alerts" : "modelspec-alerts",
                   JSON.stringify({ spec, alerts }),
                 );
                 setSaved(true);
               }}
             >
-              {saved ? "Saved locally · preview only" : "Save and watch"}
+              {saved
+                ? demo
+                  ? "Saved locally · preview only"
+                  : "Saved in this browser"
+                : "Save and watch"}
             </button>
           </div>
         )}

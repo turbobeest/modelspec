@@ -5,6 +5,7 @@ import {
   hostedEngine,
   templates,
   catalogue,
+  decisionSchema,
 } from "../adapter";
 import { baseSpec } from "../state/spec";
 import type { Spec } from "../adapter";
@@ -86,8 +87,8 @@ describe("the fictional decision adapter", () => {
       d.constraint_costs.find((c) => c.condition === "≤ $0.100 per task")?.gain
         .codebench_pro,
     ).toBeCloseTo(7.9);
-    expect(d.near_misses[0].relaxed).toEqual({ f: "task$", max: 1.35 });
-    const n = d.near_misses[0],
+    expect(d.nearMisses[0].relaxed).toEqual({ f: "task$", max: 1.35 });
+    const n = d.nearMisses[0],
       s = {
         ...budget,
         conds: budget.conds.map((c, i) => (i === n.ci ? n.relaxed || c : c)),
@@ -159,7 +160,9 @@ describe("the fictional decision adapter", () => {
       }),
     );
     vi.stubGlobal("fetch", fetch);
-    await expect(hostedEngine.decide(contractSpec)).resolves.toEqual(answer);
+    await expect(hostedEngine.decide(contractSpec)).resolves.toEqual(
+      decisionSchema.parse(answer),
+    );
     expect(fetch).toHaveBeenCalledWith(
       DECIDE_ENDPOINT,
       expect.objectContaining({

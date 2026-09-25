@@ -7,6 +7,7 @@
 // the adapter, never to the engine.
 import { BENCH, TODAY, TYPES } from "./catalogue";
 import type {
+  BenchDef,
   Catalogue,
   Cond,
   Evidence,
@@ -17,10 +18,17 @@ import type {
 } from "./types";
 
 // ---------- formatting
+const benchDef = (benchmark: string): BenchDef =>
+  BENCH[benchmark] ?? {
+    unit: "unit not recorded",
+    d: 2,
+    hi: true,
+    types: [],
+  };
 export const fmtB = (b: string, v: number | null | undefined) =>
-  v == null ? "—" : v.toFixed(BENCH[b].d) + (BENCH[b].pct ? "%" : "");
+  v == null ? "—" : v.toFixed(benchDef(b).d) + (benchDef(b).pct ? "%" : "");
 export const fmtCI = (b: string, r: { ci: number | null }) =>
-  r.ci == null ? "" : "± " + r.ci.toFixed(BENCH[b].d);
+  r.ci == null ? "no interval" : "± " + r.ci.toFixed(benchDef(b).d);
 export const money = (k: number | null | undefined) =>
   k == null
     ? "unknown"
@@ -112,7 +120,11 @@ export function testCond(
 ): Test {
   switch (c.f) {
     case "type":
-      return m.type === c.v ? P : fl(`${TYPES[m.type]}, not ${TYPES[c.v]}`);
+      return m.type === c.v
+        ? P
+        : fl(
+            `${m.type === null ? "class not available" : TYPES[m.type]}, not ${TYPES[c.v]}`,
+          );
     case "active":
       return m.status === "retired"
         ? fl(`retired ${m.retiredOn}, in the live archive`)
@@ -186,7 +198,9 @@ export function testCond(
           ? P
           : fl(`${o.tps} tokens/s, you need ${c.min}`);
     case "origin":
-      return c.ex.includes(m.origin)
+      return m.origin === null
+        ? un("origin jurisdiction not published")
+        : c.ex.includes(m.origin)
         ? fl(`origin ${m.origin}, which you excluded`)
         : P;
     case "rel": {

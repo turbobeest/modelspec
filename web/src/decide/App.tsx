@@ -3,12 +3,15 @@ import {
   fictionalEngine,
   templates,
   catalogue,
+  candidateQuestions,
+  hostedEngine,
+  DecideApiError,
   parseTask,
   label,
   fmtB,
   fmtCI,
 } from "./adapter";
-import type { Cond, Evidence, Spec } from "./adapter";
+import type { Cond, Decision, Evidence, Spec } from "./adapter";
 import { baseSpec, decodeSpec, encodeSpec } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { SpecPanel } from "./components/SpecPanel";
@@ -19,11 +22,15 @@ import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
 import { Share } from "./components/Share";
 import "./decide.css";
-import { RealApp } from "./RealApp";
+import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
+import { evaluateQuestionOptions } from "./adapter/questions";
+import type { Question } from "./engine/reference";
 
-export function DemoApp({
+function DesignedApp({
+  demo,
   simulate,
 }: {
+  demo: boolean;
   simulate?: "loading" | "error" | "none";
 }) {
   const [initial] = useState(() => decodeSpec(location.hash)),
@@ -57,17 +64,123 @@ export function DemoApp({
     } | null>(null),
     [retried, setRetried] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    requestAbort = useRef<AbortController | null>(null),
+    questionsAbort = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null);
-  const decision = useMemo(
+  const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
+    [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
+    [requestState, setRequestState] = useState<
+      | { kind: "idle" }
+      | { kind: "loading" }
+      | { kind: "error"; message: string; code: string | null }
+      | { kind: "success" }
+    >({ kind: "idle" });
+  const sampleDecision = useMemo(
       () => fictionalEngine.decide(spec, { axis, dismissed }),
       [spec, axis, dismissed],
-    ),
-    e = decision.explanation,
-    selectedId = selected || e.shortlist.top?.m.id || e.may[0]?.m.id || null,
-    row = e.rows.find((r) => r.m.id === selectedId) || null;
+    );
+  const shownSpec = useMemo(() => {
+    if (demo || !hostedDecision) return spec;
+    const availableBenchmarks = [
+      ...new Set(
+        hostedDecision.top.flatMap((candidate) =>
+          candidate.evidence.flatMap((group) =>
+            group.items.map((item) => item.benchmark),
+          ),
+        ),
+      ),
+    ];
+    return availableBenchmarks.length > 0 &&
+      !availableBenchmarks.includes(spec.bench)
+      ? { ...spec, bench: availableBenchmarks[0] }
+      : spec;
+  }, [demo, hostedDecision, spec]);
+  const liveDecision = useMemo(
+    () =>
+      hostedDecision
+        ? mapDecisionToViewModel(hostedDecision, shownSpec, {
+            axis,
+            dismissed,
+            questions: hostedQuestions,
+          })
+        : null,
+    [hostedDecision, shownSpec, axis, dismissed, hostedQuestions],
+  );
+  const decision = demo ? sampleDecision : liveDecision,
+    e = decision?.explanation,
+    selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
+    row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
-    error = sim === "error" && !retried,
-    loading = sim === "loading";
+    simulatedError = demo && sim === "error" && !retried,
+    error = simulatedError || requestState.kind === "error",
+    loading = (demo && sim === "loading") || requestState.kind === "loading";
+
+  async function runDecision(nextSpec: Spec) {
+    if (demo) return;
+    requestAbort.current?.abort();
+    questionsAbort.current?.abort();
+    const controller = new AbortController();
+    requestAbort.current = controller;
+    setHostedDecision(null);
+    setHostedQuestions([]);
+    setRequestState({ kind: "loading" });
+    try {
+      const answer = await hostedEngine.decide(toDecisionSpec(nextSpec, "full"), {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      setHostedDecision(answer);
+      setHostedQuestions(candidateQuestions(nextSpec, dismissed));
+      setRequestState({ kind: "success" });
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "AbortError") return;
+      const apiError = cause instanceof DecideApiError ? cause : null;
+      setRequestState({
+        kind: "error",
+        message: apiError?.message ?? "The decision service could not be reached.",
+        code: apiError?.code ?? null,
+      });
+    }
+  }
+
+  function scheduleDecision(nextSpec: Spec) {
+    if (demo) return;
+    if (requestTimer.current) clearTimeout(requestTimer.current);
+    requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
+  }
+
+  function changeSpec(nextSpec: Spec) {
+    setSpec(nextSpec);
+    scheduleDecision(nextSpec);
+  }
+
+  useEffect(() => {
+    if (demo || !hostedDecision) return;
+    questionsAbort.current?.abort();
+    const controller = new AbortController();
+    questionsAbort.current = controller;
+    const candidates = candidateQuestions(spec, dismissed);
+    void evaluateQuestionOptions({
+      engine: hostedEngine,
+      spec: toDecisionSpec(spec, "none"),
+      questions: candidates,
+      signal: controller.signal,
+      onUpdate: (next) =>
+        setHostedQuestions(
+          next.map((question) => ({
+            ...question,
+            opts: question.opts.map((option) => ({ ...option })),
+          })),
+        ),
+    })
+      .then(setHostedQuestions)
+      .catch((cause: unknown) => {
+        if (!(cause instanceof Error && cause.name === "AbortError"))
+          setHostedQuestions([]);
+      });
+    return () => controller.abort();
+  }, [demo, hostedDecision, spec, dismissed]);
   useEffect(() => {
     if (view === "work")
       history.replaceState(
@@ -108,6 +221,9 @@ export function DemoApp({
       window.removeEventListener("keydown", esc);
       window.removeEventListener("hashchange", hash);
       if (timer.current) clearTimeout(timer.current);
+      if (requestTimer.current) clearTimeout(requestTimer.current);
+      requestAbort.current?.abort();
+      questionsAbort.current?.abort();
     };
   }, []);
   function find() {
@@ -127,41 +243,43 @@ export function DemoApp({
                 (n.f !== "bench" || c.f !== "bench" || n.b === c.b),
             ),
         );
-      setSpec({
+      const nextSpec = {
         ...spec,
         task: draft,
         bench: p.bench,
         w: p.w,
         conds: [...p.conds, ...keep],
-      });
+      };
+      setSpec(nextSpec);
       setTrace(p.trace);
       setParsing(false);
       setSelected(null);
       setAxis(p.bench === "RetrievalEval v2" ? "in$" : "task$");
+      void runDecision(nextSpec);
     }, 420);
   }
   function add(c: Cond) {
-    setSpec((s) => {
-      const i = s.conds.findIndex(
+    const i = spec.conds.findIndex(
         (x) =>
           x.f === c.f && (x.f !== "bench" || c.f !== "bench" || x.b === c.b),
       );
-      return {
-        ...s,
+    changeSpec({
+        ...spec,
         conds:
-          i < 0 ? [...s.conds, c] : s.conds.map((x, j) => (j === i ? c : x)),
-      };
+          i < 0
+            ? [...spec.conds, c]
+            : spec.conds.map((x, j) => (j === i ? c : x)),
     });
   }
   function relax(i: number) {
-    const n = decision.near_misses[i];
+    const n = decision?.nearMisses[i];
     if (n)
-      setSpec((s) => ({
-        ...s,
-        conds: s.conds.flatMap((c, j) =>
+      changeSpec({
+        ...spec,
+        conds: spec.conds.flatMap((c, j) =>
           j === n.ci ? (n.relaxed ? [n.relaxed] : []) : [c],
         ),
-      }));
+      });
   }
   function start(s: Spec) {
     setSpec(structuredClone(s));
@@ -170,6 +288,7 @@ export function DemoApp({
     setSelected(null);
     setTrace([]);
     setDismissed([]);
+    void runDecision(s);
   }
   return (
     <div className="decide-app" data-theme={theme} data-layout={layout}>
@@ -209,10 +328,10 @@ export function DemoApp({
             Model<span>Spec</span>
           </span>
         </button>
-        <span className="sample-badge">Fictional sample data</span>
+        {demo && <span className="sample-badge">Fictional sample data</span>}
         <div className="spacer" />
         {view === "work" && (
-          <span className="snapshot">{decision.snapshot}</span>
+          decision && <span className="snapshot">{decision.snapshot}</span>
         )}
         <div className="segments" role="group" aria-label="Layout">
           <button
@@ -232,9 +351,16 @@ export function DemoApp({
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
         {view === "work" && (
-          <button className="primary" onClick={() => setShare(true)}>
-            Share or act
-          </button>
+          <>
+            {!demo && (
+              <button className="ink-button" onClick={() => void runDecision(spec)}>
+                Run decision
+              </button>
+            )}
+            <button className="primary" onClick={() => setShare(true)}>
+              Share or act
+            </button>
+          </>
         )}
       </header>
       {view === "arrive" ? (
@@ -246,10 +372,11 @@ export function DemoApp({
             </h1>
             <p>
               Describe the task or set conditions. ModelSpec filters{" "}
-              {catalogue.models.length} models across {catalogue.offerings}{" "}
-              provider offerings, ranks what is left on evidence, and shows the
-              source of every number. Independent measurements sit next to lab
-              claims.
+              {demo
+                ? `${catalogue.models.length} models across ${catalogue.offerings} provider offerings`
+                : "models in the current snapshot"}
+              , ranks what is left on evidence, and shows the source of every
+              number. Independent measurements sit next to lab claims.
             </p>
           </div>
           <div className="task-box">
@@ -296,12 +423,18 @@ export function DemoApp({
                       ))}
                   </div>
                   <footer>
-                    <strong>{t.counts.feasible.length}</strong> qualify{" "}
-                    <span className="warn">
-                      {t.counts.may.length
-                        ? "+ " + t.counts.may.length + " may qualify"
-                        : ""}
-                    </span>
+                    {demo ? (
+                      <>
+                        <strong>{t.counts.feasible.length}</strong> qualify{" "}
+                        <span className="warn">
+                          {t.counts.may.length
+                            ? "+ " + t.counts.may.length + " may qualify"
+                            : ""}
+                        </span>
+                      </>
+                    ) : (
+                      <span>Counts load from the current snapshot</span>
+                    )}
                   </footer>
                 </button>
               ))}
@@ -323,36 +456,54 @@ export function DemoApp({
         </main>
       ) : (
         <main className="work">
-          <SpecPanel
-            spec={spec}
+          {parsing && !decision && (
+            <div role="status" aria-busy="true" className="loading">
+              <span>Reading your task…</span>
+            </div>
+          )}
+          {decision && <SpecPanel
+            spec={shownSpec}
             decision={decision}
             draft={draft}
             onDraft={setDraft}
             onParse={find}
-            onSpec={setSpec}
+            onSpec={changeSpec}
             parsing={parsing}
             trace={trace}
             addOpen={addOpen}
             setAddOpen={setAddOpen}
             edit={edit}
             setEdit={setEdit}
-          />
-          <Field
+          />}
+          {decision && <Field
             decision={decision}
             onAdd={add}
             onDismiss={(id) => setDismissed([...dismissed, id])}
-          />
+          />}
           {error ? (
             <div role="alert" className="error">
               <div>
-                <strong>Couldn't load snapshot {decision.snapshot}.</strong>
+                <strong>
+                  {simulatedError ? "Couldn't load snapshot" : "Decision unavailable"}
+                  {requestState.kind === "error" && requestState.code
+                    ? ` (${requestState.code})`
+                    : ""}
+                  .
+                </strong>
                 <p>
-                  The catalogue service didn't respond in 8 s. Your spec is kept
-                  in the link, so nothing is lost. Results below are hidden
-                  rather than shown stale.
+                  {requestState.kind === "error"
+                    ? requestState.message
+                    : "The catalogue service did not respond. Your spec is kept in the link, so nothing is lost."}{" "}
+                  Results below are hidden rather than shown stale.
                 </p>
               </div>
-              <button className="ink-button" onClick={() => setRetried(true)}>
+              <button
+                className="ink-button"
+                onClick={() => {
+                  setRetried(true);
+                  if (!demo) void runDecision(spec);
+                }}
+              >
                 Retry
               </button>
             </div>
@@ -362,7 +513,9 @@ export function DemoApp({
                 <span className="skeleton" />
                 <div className="skeleton" />
                 <p>
-                  Loading snapshot {decision.snapshot} · 25 models, 60 offerings
+                  {demo
+                    ? `${catalogue.models.length} models, ${catalogue.offerings} offerings`
+                    : "Running decision against the current snapshot"}
                 </p>
               </div>
               <div className="loading-cards">
@@ -371,14 +524,14 @@ export function DemoApp({
                 <span />
               </div>
             </div>
-          ) : (
+          ) : decision ? (
             <div className="results">
               <Canvas
                 decision={decision}
-                spec={spec}
+                spec={shownSpec}
                 axis={axis}
                 onAxis={setAxis}
-                onSpec={setSpec}
+                onSpec={changeSpec}
                 onAdd={add}
                 selected={selectedId}
                 onSelect={setSelected}
@@ -387,21 +540,21 @@ export function DemoApp({
               />
               <Shortlist
                 decision={decision}
-                spec={spec}
+                spec={shownSpec}
                 selected={selectedId}
                 onSelect={setSelected}
               />
               <DecisionTable
                 decision={decision}
-                spec={spec}
+                spec={shownSpec}
                 selected={selectedId}
                 onSelect={setSelected}
               />
               <Why
                 decision={decision}
-                spec={spec}
+                spec={shownSpec}
                 row={row}
-                onSpec={setSpec}
+                onSpec={changeSpec}
                 onRelax={relax}
                 onProvenance={(ev) => {
                   provTrigger.current =
@@ -426,7 +579,7 @@ export function DemoApp({
                 }}
               />
             </div>
-          )}
+          ) : null}
         </main>
       )}
       {provenance && (
@@ -483,15 +636,16 @@ export function DemoApp({
               </div>
             ))}
           </dl>
-          <small>Fictional sample evidence</small>
+          {demo && <small>Fictional sample evidence</small>}
         </div>
       )}
       {share && (
         <Share
-          spec={spec}
-          snapshot={decision.snapshot}
+          spec={shownSpec}
+          snapshot={decision?.snapshot ?? "latest"}
           axis={axis}
           row={row}
+          demo={demo}
           onClose={() => setShare(false)}
         />
       )}
@@ -499,10 +653,14 @@ export function DemoApp({
   );
 }
 
+export function DemoApp(props: { simulate?: "loading" | "error" | "none" }) {
+  return <DesignedApp demo {...props} />;
+}
+
 export default function App(props: { simulate?: "loading" | "error" | "none" }) {
   return new URLSearchParams(location.search).get("demo") === "1" ? (
     <DemoApp {...props} />
   ) : (
-    <RealApp />
+    <DesignedApp demo={false} {...props} />
   );
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 const facetId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$/);
 const modelId = z.string().regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/);
 const nullableString = z.string().nullable();
+const scalar = z.union([z.string(), z.number().finite(), z.boolean()]);
 
 export const offeringRefSchema = z
   .object({
@@ -15,6 +16,8 @@ export const offeringRefSchema = z
 
 export const evidenceItemSchema = z
   .object({
+    requested_domain: nullableString.optional(),
+    record_id: nullableString.optional(),
     benchmark: z.string(),
     version: nullableString,
     sub_category: nullableString,
@@ -50,6 +53,9 @@ const estimateSchema = z
 
 const contributionSchema = z
   .object({
+    raw_value: z.number().finite().nullable().optional(),
+    unit: nullableString.optional(),
+    records: z.array(z.string()).optional(),
     dimension: facetId,
     weight: z.number().finite().nullable(),
     value: z.number().finite().nullable(),
@@ -78,6 +84,66 @@ const resultSchema = z
 
 export const decisionSchema = z
   .object({
+    near_misses: z
+      .array(
+        z
+          .object({
+            values: z.array(scalar),
+            offering: offeringRefSchema,
+            condition: z.string(),
+            facet: nullableString,
+            value: scalar.nullable(),
+            distance: z.number().finite().nullable(),
+            unit: nullableString,
+            records: z.array(z.string()),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
+    top: z
+      .array(
+        z
+          .object({
+            offering: offeringRefSchema,
+            facts: z.array(
+              z
+                .object({
+                  facet: z.string(),
+                  value: z.union([scalar, z.array(scalar)]).nullable(),
+                  unit: nullableString,
+                  record_id: nullableString,
+                })
+                .strict(),
+            ),
+            contributions: z.array(contributionSchema),
+            evidence: z.array(
+              z
+                .object({
+                  domain: facetId,
+                  items: z.array(evidenceItemSchema),
+                })
+                .strict(),
+            ),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
+    chart: nullableString.optional().default(null),
+    number_origins: z
+      .array(
+        z
+          .object({
+            path: z.string(),
+            basis: z.string(),
+            records: z.array(z.string()),
+            sources: z.array(z.url()),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
     contract_version: z.literal("1.0"),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -109,9 +175,13 @@ export const decisionSchema = z
         models: z.array(
           z
             .object({
+              values: z.array(scalar).optional().default([]),
+              offering: offeringRefSchema.nullable().optional().default(null),
+              unit: nullableString.optional().default(null),
+              records: z.array(z.string()).optional().default([]),
               model: modelId,
               condition: z.string(),
-              value: z.union([z.string(), z.number(), z.boolean()]).nullable(),
+              value: scalar.nullable(),
             })
             .strict(),
         ),
@@ -120,6 +190,8 @@ export const decisionSchema = z
     constraint_costs: z.array(
       z
         .object({
+          units: z.record(z.string(), nullableString).optional().default({}),
+          records: z.array(z.string()).optional().default([]),
           condition: z.string(),
           admits: z.number().int().nonnegative(),
           gain: z.record(facetId, z.number().finite()),
@@ -215,3 +287,4 @@ export type EvidenceItem = z.infer<typeof evidenceItemSchema>;
 export type Result = z.infer<typeof resultSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type DecisionSpec = z.infer<typeof decisionSpecSchema>;
+export type Contribution = z.infer<typeof contributionSchema>;
