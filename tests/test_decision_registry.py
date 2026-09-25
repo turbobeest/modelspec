@@ -447,3 +447,9 @@ def test_software_engineering_defaults_to_swe_bench_pro(registry):
     """Jamie, 2026-09-25: coding tasks rank on SWE-bench Pro by default."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["software_engineering"].default_benchmark == "swe_bench_pro"
+
+
+def test_chat_preference_defaults_to_the_overall_text_board(registry):
+    """A general assistant ranks on Arena's overall board, not a category board."""
+    domains = {d.id: d for d in registry.domains()}
+    assert domains["chat_preference"].default_benchmark == "arena_elo_style_control"

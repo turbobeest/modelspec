@@ -656,7 +656,8 @@ export function realTemplates(v: Vocabulary): RealTemplate[] {
       "private",
       "Open weights you can host",
       "Internal assistant we run on our own servers",
-      "software_engineering",
+      // A general assistant, not a coding task: rank on chat preference.
+      "chat_preference",
       "llm",
       [20000, 2000],
       { cap: 0.7, cost: 0.3, speed: 0 },

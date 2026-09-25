@@ -116,6 +116,9 @@ domains:
       Which of two models' responses to the same open-ended prompt people
       prefer, aggregated into a rating by pairwise comparison. Measures
       preference, not correctness.
+    # Orchestrator, 2026-09-25 (Jamie delegated the call): a general assistant
+    # ranks on the overall text board, not on a category board such as WebDev.
+    default_benchmark: arena_elo_style_control
   - id: retrieval
     name: Retrieval
     definition: >-

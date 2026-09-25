@@ -1787,11 +1787,11 @@
       "name": "Chat and preference",
       "proxy_only": false,
       "benchmarks": [
-        "arena_webdev",
         "arena_elo_style_control",
+        "arena_webdev",
         "arena_sc_vision"
       ],
-      "default_benchmark": null
+      "default_benchmark": "arena_elo_style_control"
     },
     {
       "id": "retrieval",
