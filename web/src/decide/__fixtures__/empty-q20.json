@@ -1,1736 +1,1737 @@
 {
- "near_misses": [
-  {
-   "values": [],
-   "offering": {
-    "model": "qwen/qwen3-8-max-0902",
-    "provider": "alibaba-model-studio",
-    "region": "singapore",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "qwen/qwen3-8-max-0902#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-fable-5-1",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-fable-5-1#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-fable-5",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-fable-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-4-6",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-4-6#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-4-7",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-4-7#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-5-5",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-5-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-5",
-    "provider": "anthropic",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-4-6",
-    "provider": "aws-bedrock",
-    "region": "global-cross-region",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-4-6#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-5-5",
-    "provider": "aws-bedrock",
-    "region": "global-cross-region",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-5-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-5-4",
-    "provider": "azure-ai-foundry",
-    "region": "global-short-context",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-5-4#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-5-6-sol",
-    "provider": "azure-ai-foundry",
-    "region": "global-short-context",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-5-6-sol#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-6-astra",
-    "provider": "azure-ai-foundry",
-    "region": "global-short-context",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-6-astra#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-6-sol",
-    "provider": "azure-ai-foundry",
-    "region": "global-short-context",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-6-sol#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "deepseek/deepseek-v4-pro",
-    "provider": "deepseek",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "deepseek/deepseek-v4-pro#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-1-pro-preview",
-    "provider": "google-gemini-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-1-pro-preview#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-5-flash",
-    "provider": "google-gemini-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-5-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-7-flash",
-    "provider": "google-gemini-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-7-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-8-flash",
-    "provider": "google-gemini-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-8-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-fable-5-1",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-fable-5-1#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-fable-5",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-fable-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-4-6",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-4-6#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-4-7",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-4-7#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-5-5",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-5-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "anthropic/claude-opus-5",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "anthropic/claude-opus-5#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-1-pro-preview",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-1-pro-preview#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-5-flash",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-5-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-7-flash",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-7-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "google/gemini-3-8-flash",
-    "provider": "google-vertex-ai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "google/gemini-3-8-flash#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "jcorners/ingot-8b-r3",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "vectoriser",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "jcorners/ingot-8b-r3#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "kingsoft/qzhou-embedding",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "vectoriser",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "kingsoft/qzhou-embedding#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "meta/muse-spark-1-1",
-    "provider": "meta-model-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "meta/muse-spark-1-1#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "meta/muse-spark-1-3",
-    "provider": "meta-model-api",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "meta/muse-spark-1-3#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "meta/muse-spark",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "meta/muse-spark#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "microsoft/harrier-oss-v1-27b",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "vectoriser",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "microsoft/harrier-oss-v1-27b#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "moonshot/kimi-k2-6",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "moonshot/kimi-k2-6#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "moonshot/kimi-k3",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "moonshot/kimi-k3#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-5-4",
-    "provider": "openai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-5-4#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-5-6-sol",
-    "provider": "openai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-5-6-sol#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-6-astra",
-    "provider": "openai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-6-astra#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "openai/gpt-6-sol",
-    "provider": "openai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "openai/gpt-6-sol#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "querit/querit",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "orderer",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "querit/querit#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "querit/querit-4b",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "orderer",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "querit/querit-4b#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "qwen/qwen3-8-flash-next",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "qwen/qwen3-8-flash-next#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "tencent/kalm-embedding-gemma3-12b-2511",
-    "provider": null,
-    "region": null,
-    "tier": null
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "vectoriser",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "tencent/kalm-embedding-gemma3-12b-2511#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "typesafe/jev-1-13",
-    "provider": "typesafe",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "decider",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "typesafe/jev-1-13#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "xai/grok-4-7",
-    "provider": "xai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "xai/grok-4-7#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "zhipu/glm-5-2",
-    "provider": "zai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "zhipu/glm-5-2#model.class"
-   ],
-   "formula": null
-  },
-  {
-   "values": [],
-   "offering": {
-    "model": "zhipu/glm-5-3",
-    "provider": "zai",
-    "region": "global",
-    "tier": "standard"
-   },
-   "condition": "model.class = transcriber",
-   "facet": "model.class",
-   "value": "text-generator",
-   "distance": null,
-   "unit": null,
-   "records": [
-    "zhipu/glm-5-3#model.class"
-   ],
-   "formula": null
-  }
- ],
- "top": [],
- "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"></svg>",
- "number_origins": [],
- "sources": [],
- "contract_version": "1.4",
- "decision_id": "dec_a4a69bb4de577283a732d9fd",
- "snapshot": "snap_898e29e1f0c39d6e",
- "spec_hash": "sha256:24a00396a4d4936ac0b4e2e68bfe4e52ba607f0c6a45a03c9e68a5851ca97fe3",
- "explain": "full",
- "status": "no_feasible",
- "results": [],
- "may_qualify": [],
- "eliminated": {
-  "funnel": [
-   {
-    "condition": "model.class = transcriber",
-    "before": 48,
-    "after": 0,
-    "may_qualify": 0
-   },
-   {
-    "condition": "model.lifecycle = active",
-    "before": 0,
-    "after": 0,
-    "may_qualify": 0
-   }
+  "near_misses": [
+    {
+      "values": [],
+      "offering": {
+        "model": "qwen/qwen3-8-max-0902",
+        "provider": "alibaba-model-studio",
+        "region": "singapore",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "qwen/qwen3-8-max-0902#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-fable-5-1",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-fable-5-1#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-fable-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-fable-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-4-6",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-4-6#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-4-7",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-4-7#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-5-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-4-6",
+        "provider": "aws-bedrock",
+        "region": "global-cross-region",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-4-6#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global-cross-region",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-5-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-5-4",
+        "provider": "azure-ai-foundry",
+        "region": "global-short-context",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-5-4#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-5-6-sol",
+        "provider": "azure-ai-foundry",
+        "region": "global-short-context",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-5-6-sol#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-6-astra",
+        "provider": "azure-ai-foundry",
+        "region": "global-short-context",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-6-astra#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-6-sol",
+        "provider": "azure-ai-foundry",
+        "region": "global-short-context",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-6-sol#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "deepseek/deepseek-v4-pro",
+        "provider": "deepseek",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "deepseek/deepseek-v4-pro#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-1-pro-preview",
+        "provider": "google-gemini-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-1-pro-preview#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-5-flash",
+        "provider": "google-gemini-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-5-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-7-flash",
+        "provider": "google-gemini-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-7-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-8-flash",
+        "provider": "google-gemini-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-8-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-fable-5-1",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-fable-5-1#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-fable-5",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-fable-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-4-6",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-4-6#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-4-7",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-4-7#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-5-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "anthropic/claude-opus-5",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "anthropic/claude-opus-5#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-1-pro-preview",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-1-pro-preview#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-5-flash",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-5-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-7-flash",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-7-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "google/gemini-3-8-flash",
+        "provider": "google-vertex-ai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "google/gemini-3-8-flash#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "jcorners/ingot-8b-r3",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "vectoriser",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "jcorners/ingot-8b-r3#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "kingsoft/qzhou-embedding",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "vectoriser",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "kingsoft/qzhou-embedding#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "meta/muse-spark-1-1",
+        "provider": "meta-model-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "meta/muse-spark-1-1#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "meta/muse-spark-1-3",
+        "provider": "meta-model-api",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "meta/muse-spark-1-3#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "meta/muse-spark",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "meta/muse-spark#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "microsoft/harrier-oss-v1-27b",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "vectoriser",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "microsoft/harrier-oss-v1-27b#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "moonshot/kimi-k2-6",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "moonshot/kimi-k2-6#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "moonshot/kimi-k3",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "moonshot/kimi-k3#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-5-4",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-5-4#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-5-6-sol",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-5-6-sol#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-6-astra",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-6-astra#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "openai/gpt-6-sol",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "openai/gpt-6-sol#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "querit/querit",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "orderer",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "querit/querit#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "querit/querit-4b",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "orderer",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "querit/querit-4b#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "qwen/qwen3-8-flash-next",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "qwen/qwen3-8-flash-next#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "tencent/kalm-embedding-gemma3-12b-2511",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "vectoriser",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "tencent/kalm-embedding-gemma3-12b-2511#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "typesafe/jev-1-13",
+        "provider": "typesafe",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "decider",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "typesafe/jev-1-13#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "xai/grok-4-7",
+        "provider": "xai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "xai/grok-4-7#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "zhipu/glm-5-2",
+        "provider": "zai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "zhipu/glm-5-2#model.class"
+      ],
+      "formula": null
+    },
+    {
+      "values": [],
+      "offering": {
+        "model": "zhipu/glm-5-3",
+        "provider": "zai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "model.class = transcriber",
+      "facet": "model.class",
+      "value": "text-generator",
+      "distance": null,
+      "unit": null,
+      "records": [
+        "zhipu/glm-5-3#model.class"
+      ],
+      "formula": null
+    }
   ],
-  "models": [
-   {
-    "values": [],
-    "offering": {
-     "model": "qwen/qwen3-8-max-0902",
-     "provider": "alibaba-model-studio",
-     "region": "singapore",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "qwen/qwen3-8-max-0902#model.class"
+  "top": [],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"></svg>",
+  "number_origins": [],
+  "sources": [],
+  "contract_version": "1.5",
+  "decision_id": "dec_a5d1d52a08adcf4d6a3de54b",
+  "snapshot": "snap_898e29e1f0c39d6e",
+  "spec_hash": "sha256:370183cd5ab3a3c0f96c11c4fb548d1c9ee8b064acd49f0c058b46e1aa614a70",
+  "explain": "full",
+  "status": "no_feasible",
+  "results": [],
+  "may_qualify": [],
+  "eliminated": {
+    "funnel": [
+      {
+        "condition": "model.class = transcriber",
+        "before": 48,
+        "after": 0,
+        "may_qualify": 0
+      },
+      {
+        "condition": "model.lifecycle = active",
+        "before": 0,
+        "after": 0,
+        "may_qualify": 0
+      }
     ],
-    "model": "qwen/qwen3-8-max-0902",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-fable-5-1",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-fable-5-1#model.class"
-    ],
-    "model": "anthropic/claude-fable-5-1",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-fable-5",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-fable-5#model.class"
-    ],
-    "model": "anthropic/claude-fable-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-4-6",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-4-6#model.class"
-    ],
-    "model": "anthropic/claude-opus-4-6",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-4-7",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-4-7#model.class"
-    ],
-    "model": "anthropic/claude-opus-4-7",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-5-5",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-5-5#model.class"
-    ],
-    "model": "anthropic/claude-opus-5-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-5",
-     "provider": "anthropic",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-5#model.class"
-    ],
-    "model": "anthropic/claude-opus-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-4-6",
-     "provider": "aws-bedrock",
-     "region": "global-cross-region",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-4-6#model.class"
-    ],
-    "model": "anthropic/claude-opus-4-6",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-5-5",
-     "provider": "aws-bedrock",
-     "region": "global-cross-region",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-5-5#model.class"
-    ],
-    "model": "anthropic/claude-opus-5-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-5-4",
-     "provider": "azure-ai-foundry",
-     "region": "global-short-context",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-5-4#model.class"
-    ],
-    "model": "openai/gpt-5-4",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-5-6-sol",
-     "provider": "azure-ai-foundry",
-     "region": "global-short-context",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-5-6-sol#model.class"
-    ],
-    "model": "openai/gpt-5-6-sol",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-6-astra",
-     "provider": "azure-ai-foundry",
-     "region": "global-short-context",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-6-astra#model.class"
-    ],
-    "model": "openai/gpt-6-astra",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-6-sol",
-     "provider": "azure-ai-foundry",
-     "region": "global-short-context",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-6-sol#model.class"
-    ],
-    "model": "openai/gpt-6-sol",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "deepseek/deepseek-v4-pro",
-     "provider": "deepseek",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "deepseek/deepseek-v4-pro#model.class"
-    ],
-    "model": "deepseek/deepseek-v4-pro",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-1-pro-preview",
-     "provider": "google-gemini-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-1-pro-preview#model.class"
-    ],
-    "model": "google/gemini-3-1-pro-preview",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-5-flash",
-     "provider": "google-gemini-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-5-flash#model.class"
-    ],
-    "model": "google/gemini-3-5-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-7-flash",
-     "provider": "google-gemini-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-7-flash#model.class"
-    ],
-    "model": "google/gemini-3-7-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-8-flash",
-     "provider": "google-gemini-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-8-flash#model.class"
-    ],
-    "model": "google/gemini-3-8-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-fable-5-1",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-fable-5-1#model.class"
-    ],
-    "model": "anthropic/claude-fable-5-1",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-fable-5",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-fable-5#model.class"
-    ],
-    "model": "anthropic/claude-fable-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-4-6",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-4-6#model.class"
-    ],
-    "model": "anthropic/claude-opus-4-6",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-4-7",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-4-7#model.class"
-    ],
-    "model": "anthropic/claude-opus-4-7",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-5-5",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-5-5#model.class"
-    ],
-    "model": "anthropic/claude-opus-5-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "anthropic/claude-opus-5",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "anthropic/claude-opus-5#model.class"
-    ],
-    "model": "anthropic/claude-opus-5",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-1-pro-preview",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-1-pro-preview#model.class"
-    ],
-    "model": "google/gemini-3-1-pro-preview",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-5-flash",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-5-flash#model.class"
-    ],
-    "model": "google/gemini-3-5-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-7-flash",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-7-flash#model.class"
-    ],
-    "model": "google/gemini-3-7-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "google/gemini-3-8-flash",
-     "provider": "google-vertex-ai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "google/gemini-3-8-flash#model.class"
-    ],
-    "model": "google/gemini-3-8-flash",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "jcorners/ingot-8b-r3",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "jcorners/ingot-8b-r3#model.class"
-    ],
-    "model": "jcorners/ingot-8b-r3",
-    "condition": "model.class = transcriber",
-    "value": "vectoriser",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "kingsoft/qzhou-embedding",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "kingsoft/qzhou-embedding#model.class"
-    ],
-    "model": "kingsoft/qzhou-embedding",
-    "condition": "model.class = transcriber",
-    "value": "vectoriser",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "meta/muse-spark-1-1",
-     "provider": "meta-model-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "meta/muse-spark-1-1#model.class"
-    ],
-    "model": "meta/muse-spark-1-1",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "meta/muse-spark-1-3",
-     "provider": "meta-model-api",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "meta/muse-spark-1-3#model.class"
-    ],
-    "model": "meta/muse-spark-1-3",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "meta/muse-spark",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "meta/muse-spark#model.class"
-    ],
-    "model": "meta/muse-spark",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "microsoft/harrier-oss-v1-27b",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "microsoft/harrier-oss-v1-27b#model.class"
-    ],
-    "model": "microsoft/harrier-oss-v1-27b",
-    "condition": "model.class = transcriber",
-    "value": "vectoriser",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "moonshot/kimi-k2-6",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "moonshot/kimi-k2-6#model.class"
-    ],
-    "model": "moonshot/kimi-k2-6",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "moonshot/kimi-k3",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "moonshot/kimi-k3#model.class"
-    ],
-    "model": "moonshot/kimi-k3",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-5-4",
-     "provider": "openai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-5-4#model.class"
-    ],
-    "model": "openai/gpt-5-4",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-5-6-sol",
-     "provider": "openai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-5-6-sol#model.class"
-    ],
-    "model": "openai/gpt-5-6-sol",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-6-astra",
-     "provider": "openai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-6-astra#model.class"
-    ],
-    "model": "openai/gpt-6-astra",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "openai/gpt-6-sol",
-     "provider": "openai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "openai/gpt-6-sol#model.class"
-    ],
-    "model": "openai/gpt-6-sol",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "querit/querit",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "querit/querit#model.class"
-    ],
-    "model": "querit/querit",
-    "condition": "model.class = transcriber",
-    "value": "orderer",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "querit/querit-4b",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "querit/querit-4b#model.class"
-    ],
-    "model": "querit/querit-4b",
-    "condition": "model.class = transcriber",
-    "value": "orderer",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "qwen/qwen3-8-flash-next",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "qwen/qwen3-8-flash-next#model.class"
-    ],
-    "model": "qwen/qwen3-8-flash-next",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "tencent/kalm-embedding-gemma3-12b-2511",
-     "provider": null,
-     "region": null,
-     "tier": null
-    },
-    "unit": null,
-    "records": [
-     "tencent/kalm-embedding-gemma3-12b-2511#model.class"
-    ],
-    "model": "tencent/kalm-embedding-gemma3-12b-2511",
-    "condition": "model.class = transcriber",
-    "value": "vectoriser",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "typesafe/jev-1-13",
-     "provider": "typesafe",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "typesafe/jev-1-13#model.class"
-    ],
-    "model": "typesafe/jev-1-13",
-    "condition": "model.class = transcriber",
-    "value": "decider",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "xai/grok-4-7",
-     "provider": "xai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "xai/grok-4-7#model.class"
-    ],
-    "model": "xai/grok-4-7",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "zhipu/glm-5-2",
-     "provider": "zai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "zhipu/glm-5-2#model.class"
-    ],
-    "model": "zhipu/glm-5-2",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   },
-   {
-    "values": [],
-    "offering": {
-     "model": "zhipu/glm-5-3",
-     "provider": "zai",
-     "region": "global",
-     "tier": "standard"
-    },
-    "unit": null,
-    "records": [
-     "zhipu/glm-5-3#model.class"
-    ],
-    "model": "zhipu/glm-5-3",
-    "condition": "model.class = transcriber",
-    "value": "text-generator",
-    "formula": null
-   }
-  ]
- },
- "constraint_costs": [
-  {
-   "units": {},
-   "records": [],
-   "condition": "model.class = transcriber",
-   "admits": 48,
-   "gain": {}
+    "models": [
+      {
+        "values": [],
+        "offering": {
+          "model": "qwen/qwen3-8-max-0902",
+          "provider": "alibaba-model-studio",
+          "region": "singapore",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "qwen/qwen3-8-max-0902#model.class"
+        ],
+        "model": "qwen/qwen3-8-max-0902",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-fable-5-1",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-fable-5-1#model.class"
+        ],
+        "model": "anthropic/claude-fable-5-1",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-fable-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-fable-5#model.class"
+        ],
+        "model": "anthropic/claude-fable-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-4-6",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-4-6#model.class"
+        ],
+        "model": "anthropic/claude-opus-4-6",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-4-7",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-4-7#model.class"
+        ],
+        "model": "anthropic/claude-opus-4-7",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-5-5#model.class"
+        ],
+        "model": "anthropic/claude-opus-5-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-5#model.class"
+        ],
+        "model": "anthropic/claude-opus-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-4-6",
+          "provider": "aws-bedrock",
+          "region": "global-cross-region",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-4-6#model.class"
+        ],
+        "model": "anthropic/claude-opus-4-6",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "aws-bedrock",
+          "region": "global-cross-region",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-5-5#model.class"
+        ],
+        "model": "anthropic/claude-opus-5-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-5-4",
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-5-4#model.class"
+        ],
+        "model": "openai/gpt-5-4",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-5-6-sol",
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-5-6-sol#model.class"
+        ],
+        "model": "openai/gpt-5-6-sol",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-6-astra",
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-6-astra#model.class"
+        ],
+        "model": "openai/gpt-6-astra",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-6-sol",
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-6-sol#model.class"
+        ],
+        "model": "openai/gpt-6-sol",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "deepseek/deepseek-v4-pro",
+          "provider": "deepseek",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "deepseek/deepseek-v4-pro#model.class"
+        ],
+        "model": "deepseek/deepseek-v4-pro",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-1-pro-preview",
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-1-pro-preview#model.class"
+        ],
+        "model": "google/gemini-3-1-pro-preview",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-5-flash",
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-5-flash#model.class"
+        ],
+        "model": "google/gemini-3-5-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-7-flash",
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-7-flash#model.class"
+        ],
+        "model": "google/gemini-3-7-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-8-flash",
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-8-flash#model.class"
+        ],
+        "model": "google/gemini-3-8-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-fable-5-1",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-fable-5-1#model.class"
+        ],
+        "model": "anthropic/claude-fable-5-1",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-fable-5",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-fable-5#model.class"
+        ],
+        "model": "anthropic/claude-fable-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-4-6",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-4-6#model.class"
+        ],
+        "model": "anthropic/claude-opus-4-6",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-4-7",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-4-7#model.class"
+        ],
+        "model": "anthropic/claude-opus-4-7",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-5-5#model.class"
+        ],
+        "model": "anthropic/claude-opus-5-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "anthropic/claude-opus-5",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "anthropic/claude-opus-5#model.class"
+        ],
+        "model": "anthropic/claude-opus-5",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-1-pro-preview",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-1-pro-preview#model.class"
+        ],
+        "model": "google/gemini-3-1-pro-preview",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-5-flash",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-5-flash#model.class"
+        ],
+        "model": "google/gemini-3-5-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-7-flash",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-7-flash#model.class"
+        ],
+        "model": "google/gemini-3-7-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "google/gemini-3-8-flash",
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "google/gemini-3-8-flash#model.class"
+        ],
+        "model": "google/gemini-3-8-flash",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "jcorners/ingot-8b-r3",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "jcorners/ingot-8b-r3#model.class"
+        ],
+        "model": "jcorners/ingot-8b-r3",
+        "condition": "model.class = transcriber",
+        "value": "vectoriser",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "kingsoft/qzhou-embedding",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "kingsoft/qzhou-embedding#model.class"
+        ],
+        "model": "kingsoft/qzhou-embedding",
+        "condition": "model.class = transcriber",
+        "value": "vectoriser",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "meta/muse-spark-1-1",
+          "provider": "meta-model-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "meta/muse-spark-1-1#model.class"
+        ],
+        "model": "meta/muse-spark-1-1",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "meta/muse-spark-1-3",
+          "provider": "meta-model-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "meta/muse-spark-1-3#model.class"
+        ],
+        "model": "meta/muse-spark-1-3",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "meta/muse-spark",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "meta/muse-spark#model.class"
+        ],
+        "model": "meta/muse-spark",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "microsoft/harrier-oss-v1-27b",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "microsoft/harrier-oss-v1-27b#model.class"
+        ],
+        "model": "microsoft/harrier-oss-v1-27b",
+        "condition": "model.class = transcriber",
+        "value": "vectoriser",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "moonshot/kimi-k2-6",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "moonshot/kimi-k2-6#model.class"
+        ],
+        "model": "moonshot/kimi-k2-6",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "moonshot/kimi-k3",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "moonshot/kimi-k3#model.class"
+        ],
+        "model": "moonshot/kimi-k3",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-5-4",
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-5-4#model.class"
+        ],
+        "model": "openai/gpt-5-4",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-5-6-sol",
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-5-6-sol#model.class"
+        ],
+        "model": "openai/gpt-5-6-sol",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-6-astra",
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-6-astra#model.class"
+        ],
+        "model": "openai/gpt-6-astra",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "openai/gpt-6-sol",
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "openai/gpt-6-sol#model.class"
+        ],
+        "model": "openai/gpt-6-sol",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "querit/querit",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "querit/querit#model.class"
+        ],
+        "model": "querit/querit",
+        "condition": "model.class = transcriber",
+        "value": "orderer",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "querit/querit-4b",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "querit/querit-4b#model.class"
+        ],
+        "model": "querit/querit-4b",
+        "condition": "model.class = transcriber",
+        "value": "orderer",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "qwen/qwen3-8-flash-next",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "qwen/qwen3-8-flash-next#model.class"
+        ],
+        "model": "qwen/qwen3-8-flash-next",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "tencent/kalm-embedding-gemma3-12b-2511",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [
+          "tencent/kalm-embedding-gemma3-12b-2511#model.class"
+        ],
+        "model": "tencent/kalm-embedding-gemma3-12b-2511",
+        "condition": "model.class = transcriber",
+        "value": "vectoriser",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "typesafe/jev-1-13",
+          "provider": "typesafe",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "typesafe/jev-1-13#model.class"
+        ],
+        "model": "typesafe/jev-1-13",
+        "condition": "model.class = transcriber",
+        "value": "decider",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "xai/grok-4-7",
+          "provider": "xai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "xai/grok-4-7#model.class"
+        ],
+        "model": "xai/grok-4-7",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "zhipu/glm-5-2",
+          "provider": "zai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "zhipu/glm-5-2#model.class"
+        ],
+        "model": "zhipu/glm-5-2",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "zhipu/glm-5-3",
+          "provider": "zai",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unit": null,
+        "records": [
+          "zhipu/glm-5-3#model.class"
+        ],
+        "model": "zhipu/glm-5-3",
+        "condition": "model.class = transcriber",
+        "value": "text-generator",
+        "formula": null
+      }
+    ]
   },
-  {
-   "units": {},
-   "records": [],
-   "condition": "model.lifecycle = active",
-   "admits": 0,
-   "gain": {}
-  }
- ],
- "tipping_points": [],
- "relax": [
-  "model.class = transcriber"
- ],
- "warnings": [],
- "out_of_lineup": 1334
+  "constraint_costs": [
+    {
+      "units": {},
+      "records": [],
+      "condition": "model.class = transcriber",
+      "admits": 48,
+      "gain": {}
+    },
+    {
+      "units": {},
+      "records": [],
+      "condition": "model.lifecycle = active",
+      "admits": 0,
+      "gain": {}
+    }
+  ],
+  "tipping_points": [],
+  "relax": [
+    "no complete objective values"
+  ],
+  "relax_to": [],
+  "warnings": [],
+  "out_of_lineup": 1334
 }

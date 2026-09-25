@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.4",
-          "default": "1.4",
+          "const": "1.5",
+          "default": "1.5",
           "title": "Contract Version",
           "type": "string"
         },
@@ -562,6 +562,13 @@
             "type": "string"
           },
           "title": "Relax",
+          "type": "array"
+        },
+        "relax_to": {
+          "items": {
+            "$ref": "#/$defs/Relaxation"
+          },
+          "title": "Relax To",
           "type": "array"
         },
         "results": {
@@ -1935,6 +1942,54 @@
       "title": "ProfileOffering",
       "type": "object"
     },
+    "Relaxation": {
+      "additionalProperties": false,
+      "description": "The smallest change to one numeric cap or floor that admits a model. Added in 1.5.\n\n``condition`` is the spec's condition; ``relaxed`` is the same facet and\ndirection at ``value``, in ``unit``, the nearest value any excluded\ncandidate has; ``admits`` counts the models that then qualify.",
+      "properties": {
+        "admits": {
+          "minimum": 1,
+          "title": "Admits",
+          "type": "integer"
+        },
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        },
+        "facet": {
+          "title": "Facet",
+          "type": "string"
+        },
+        "relaxed": {
+          "title": "Relaxed",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "condition",
+        "relaxed",
+        "facet",
+        "value",
+        "admits"
+      ],
+      "title": "Relaxation",
+      "type": "object"
+    },
     "Result": {
       "additionalProperties": false,
       "properties": {
@@ -2596,5 +2651,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.4"
+  "x-contract-version": "1.5"
 }

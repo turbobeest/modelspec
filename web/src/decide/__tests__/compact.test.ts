@@ -1,21 +1,12 @@
 // Contract 1.4 (MODEL-163): a `full` decision lists each source once, names it
-// by ID from the origins and from each shown fact, and a page that meets a
-// Worker limit on `full` falls back to `summary`. The fixtures are the
+// by ID from the origins and from each shown fact. The fixtures are the
 // engine's own answers (tests/test_decide_page_fixtures.py).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fullJson from "../__fixtures__/compact-full.json";
 import summaryJson from "../__fixtures__/compact-summary.json";
-import {
-  DecideApiError,
-  decideWithFallback,
-  decisionSchema,
-  hostedEngine,
-  mayBeLimit,
-} from "../adapter";
-import type { DecisionSpec } from "../adapter";
+import { decisionSchema } from "../adapter";
 import { mapDecisionToViewModel } from "../adapter/view-model";
 import { baseSpec } from "../state/spec";
-import { json } from "./vocab-fixtures";
 
 const full = decisionSchema.parse(fullJson);
 const summary = decisionSchema.parse(summaryJson);
@@ -27,7 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("the compact full decision", () => {
   it("parses, with sources listed once and origins naming them by ID", () => {
-    expect(full.contract_version).toBe("1.4");
+    expect(full.contract_version).toBe("1.5");
     expect(full.sources.map((source) => source.id)).toEqual([
       "src-board",
       "src-lab-docs",
@@ -83,64 +74,3 @@ describe("a summary decision, when the full explanation was unavailable", () => 
   });
 });
 
-const fullSpec: DecisionSpec = {
-  spec_version: 1,
-  optimize: { max: "quality" },
-  explain: "full",
-};
-
-describe("decideWithFallback", () => {
-  it("retries a full decision once with summary after a Worker limit", async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce(new Response("error code: 1102", { status: 503 }))
-      .mockResolvedValueOnce(json(summaryJson));
-    vi.stubGlobal("fetch", fetch);
-    const answer = await decideWithFallback(hostedEngine, fullSpec);
-    expect(answer.limited).toBe(true);
-    expect(answer.decision.explain).toBe("summary");
-    const sent = fetch.mock.calls.map(([, init]) => JSON.parse(String(init.body)).explain);
-    expect(sent).toEqual(["full", "summary"]);
-  });
-
-  it("retries after a network failure too: a limit page carries no CORS header", async () => {
-    const fetch = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-      .mockResolvedValueOnce(json(summaryJson));
-    vi.stubGlobal("fetch", fetch);
-    expect((await decideWithFallback(hostedEngine, fullSpec)).limited).toBe(true);
-  });
-
-  it("does not retry a spec error, a missing snapshot, or a summary request", async () => {
-    expect(mayBeLimit(new DecideApiError("bad spec", 400, "invalid_spec"))).toBe(false);
-    expect(mayBeLimit(new DecideApiError("none yet", 503, "no_snapshot"))).toBe(false);
-    expect(mayBeLimit(new DecideApiError("slow", null, "timeout"))).toBe(false);
-    const fetch = vi.fn().mockResolvedValue(new Response("error code: 1102", { status: 503 }));
-    vi.stubGlobal("fetch", fetch);
-    await expect(
-      decideWithFallback(hostedEngine, { ...fullSpec, explain: "summary" }),
-    ).rejects.toBeInstanceOf(DecideApiError);
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports the limit, not the retry, when a limited request's retry fails too", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockResolvedValueOnce(new Response("error code: 1102", { status: 503 }))
-        .mockRejectedValueOnce(new TypeError("Failed to fetch")),
-    );
-    const error = await decideWithFallback(hostedEngine, fullSpec).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(DecideApiError);
-    expect((error as DecideApiError).code).toBe("limit");
-  });
-
-  it("reports a network failure as one when the summary retry cannot connect either", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
-    const error = await decideWithFallback(hostedEngine, fullSpec).catch((e: unknown) => e);
-    expect((error as DecideApiError).status).toBeNull();
-    expect((error as DecideApiError).code).toBeNull();
-  });
-});

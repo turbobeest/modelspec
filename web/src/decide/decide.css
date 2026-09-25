@@ -1680,6 +1680,13 @@ body {
 .limit-notice strong {
   color: var(--ink);
 }
+.details-loading {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink2);
+  border: 1px dashed var(--line);
+  border-radius: 2px;
+}
 .error strong {
   color: var(--bad);
 }
@@ -1816,10 +1823,14 @@ body {
   bottom: 3px;
 }
 .point-label {
-  text-shadow:
-    0 0 3px var(--surface),
-    0 0 3px var(--surface),
-    0 0 3px var(--surface);
+  /* A frontier or grid line never runs through a label. */
+  padding: 0 3px;
+  background: var(--surface);
+  border-radius: 2px;
+}
+.label-leader {
+  stroke: var(--ink2);
+  stroke-width: 1;
 }
 .vertical-grid {
   position: absolute;
@@ -2318,4 +2329,9 @@ body {
   margin-top: 12px;
   font-size: 13px;
   color: var(--muted);
+}
+.coverage-relax button small {
+  color: inherit;
+  opacity: 0.75;
+  font-weight: 400;
 }

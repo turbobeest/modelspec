@@ -23,7 +23,7 @@
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "1.4",
+  "contract_version": "1.5",
   "decision_id": "dec_82fef2f3022a66e1b7f897c0",
   "snapshot": "snap_abbaaf63dc6a7cac",
   "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
@@ -375,6 +375,7 @@
     }
   ],
   "relax": [],
+  "relax_to": [],
   "warnings": [],
   "out_of_lineup": 0
 }

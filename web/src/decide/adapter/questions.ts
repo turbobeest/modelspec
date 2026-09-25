@@ -51,9 +51,17 @@ export async function evaluateQuestionOptions({
     while (next < jobs.length) {
       const job = jobs[next];
       next += 1;
-      const answer = await engine.decide(probeSpec(spec, job.option), { signal });
-      job.option.n = answer.results.length;
-      job.option.may = answer.may_qualify.length;
+      try {
+        const answer = await engine.decide(probeSpec(spec, job.option), { signal });
+        job.option.n = answer.results.length;
+        job.option.may = answer.may_qualify.length;
+      } catch (error) {
+        if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) throw error;
+        // One refused probe costs that answer its count, not every question.
+        // The console names the condition, so a refusal can be traced to its spec.
+        job.option.failed = true;
+        console.warn("next-question probe failed", contractCondition(job.option.c), error);
+      }
       onUpdate?.(output);
     }
   };

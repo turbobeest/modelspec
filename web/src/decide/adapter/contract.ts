@@ -167,7 +167,7 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4"]),
+    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
@@ -233,6 +233,22 @@ export const decisionSchema = z
         .strict(),
     ),
     relax: z.array(z.string()),
+    // 1.5: the smallest change to each numeric cap or floor that admits a model.
+    relax_to: z
+      .array(
+        z
+          .object({
+            condition: z.string(),
+            relaxed: z.string(),
+            facet: facetId,
+            value: z.number().finite(),
+            unit: z.string().nullable(),
+            admits: z.number().int().positive(),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)),
     out_of_lineup: z.number().int().nonnegative().optional().default(0),
   })

@@ -5,7 +5,6 @@ import {
   catalogue,
   candidateQuestions,
   hostedEngine,
-  decideWithFallback,
   DecideApiError,
   parseTask,
   fmtB,
@@ -24,7 +23,11 @@ import {
 import type { Vocabulary } from "./vocabulary";
 import { VocabContext, fictionalVocab, realVocab } from "./vocabulary/context";
 import { placeIssues } from "./vocabulary/issues";
-import { registerBenchmarks, registerProviders } from "./adapter/condition-label";
+import {
+  registerBenchmarks,
+  registerProviders,
+  registerValueLabels,
+} from "./adapter/condition-label";
 import { baseSpec, decodeSpec, encodeSpec } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { SpecPanel } from "./components/SpecPanel";
@@ -94,8 +97,8 @@ function DesignedApp({
           status: number | null;
           issues: SpecIssue[];
         }
-      // `limited`: the full explanation hit a Worker limit; this is the summary.
-      | { kind: "success"; limited: boolean }
+      // The summary is drawn at once; `details` tracks the `full` explanation behind it.
+      | { kind: "success"; details: "loading" | "ready" | "unavailable" }
     >({ kind: "idle" }),
     [vocabState, setVocabState] = useState<
       | { kind: "loading" }
@@ -108,6 +111,7 @@ function DesignedApp({
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
     registerProviders(vocabulary.providers);
+    registerValueLabels(vocabulary.facets);
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
@@ -189,13 +193,16 @@ function DesignedApp({
     setHostedQuestions([]);
     setRequestState({ kind: "loading" });
     try {
-      const answer = await decideWithFallback(hostedEngine, toDecisionSpec(nextSpec, "full"), {
+      // Summary first: it is small and answers well inside the Worker's limits,
+      // so the ranking draws at once. The full explanation follows and only
+      // enriches the Why panel; if it fails, the summary stands (MODEL-153).
+      const summary = await hostedEngine.decide(toDecisionSpec(nextSpec, "summary"), {
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      setHostedDecision(answer.decision);
+      setHostedDecision(summary);
       setHostedQuestions(questionsFor(nextSpec));
-      setRequestState({ kind: "success", limited: answer.limited });
+      setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
       const apiError = cause instanceof DecideApiError ? cause : null;
@@ -206,6 +213,19 @@ function DesignedApp({
         status: apiError?.status ?? null,
         issues: apiError?.issues ?? [],
       });
+      return;
+    }
+    try {
+      const full = await hostedEngine.decide(toDecisionSpec(nextSpec, "full"), {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      setHostedDecision(full);
+      setRequestState({ kind: "success", details: "ready" });
+    } catch (cause) {
+      if (controller.signal.aborted || (cause instanceof Error && cause.name === "AbortError"))
+        return;
+      setRequestState({ kind: "success", details: "unavailable" });
     }
   }
 
@@ -220,8 +240,9 @@ function DesignedApp({
     scheduleDecision(nextSpec);
   }
 
+  const answered = hostedDecision !== null;
   useEffect(() => {
-    if (demo || !hostedDecision) return;
+    if (demo || !answered) return;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
@@ -246,8 +267,10 @@ function DesignedApp({
       });
     return () => controller.abort();
     // questionsFor and sendable read only vocabulary and dismissed, listed here.
+    // `answered`, not the decision: the full explanation replacing the summary
+    // must not send every probe again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, hostedDecision, spec, dismissed, vocabulary]);
+  }, [demo, answered, spec, dismissed, vocabulary]);
   useEffect(() => {
     if (demo) return;
     const controller = new AbortController();
@@ -427,7 +450,6 @@ function DesignedApp({
     if (requestState.status === 400 && requestState.issues.length)
       return "The engine could not read part of this spec.";
     if (requestState.code === "no_snapshot") return "No snapshot yet.";
-    if (requestState.code === "limit") return "The decision service hit a limit on this request.";
     if (requestState.code === "timeout") return "The decision service is taking too long.";
     if (requestState.status === null) return "Couldn't reach the decision service.";
     return `Decision unavailable${requestState.code ? ` (${requestState.code})` : ""}.`;
@@ -643,13 +665,6 @@ function DesignedApp({
             onAdd={add}
             onDismiss={(id) => setDismissed([...dismissed, id])}
           />}
-          {!error && requestState.kind === "success" && requestState.limited && (
-            <div role="status" className="limit-notice">
-              <strong>The decision service hit a limit on this request.</strong>{" "}
-              The ranking below comes from its summary explanation; the detailed
-              explanation is unavailable for this request.
-            </div>
-          )}
           {error ? (
             <div role="alert" className="error">
               <div>
@@ -726,6 +741,7 @@ function DesignedApp({
                 row={row}
                 onSpec={changeSpec}
                 onRelax={relax}
+                details={requestState.kind === "success" ? requestState.details : "ready"}
                 onProvenance={(ev) => {
                   provTrigger.current =
                     document.activeElement instanceof HTMLElement

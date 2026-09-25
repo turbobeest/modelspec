@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.4"
+CONTRACT_VERSION = "1.5"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1181,6 +1181,22 @@ class NumberOrigin(_Strict):
     source_ids: list[str] = Field(default_factory=list)
 
 
+class Relaxation(_Strict):
+    """The smallest change to one numeric cap or floor that admits a model. Added in 1.5.
+
+    ``condition`` is the spec's condition; ``relaxed`` is the same facet and
+    direction at ``value``, in ``unit``, the nearest value any excluded
+    candidate has; ``admits`` counts the models that then qualify.
+    """
+
+    condition: str
+    relaxed: str
+    facet: str
+    value: float
+    unit: str | None = None
+    admits: int = Field(ge=1)
+
+
 class Decision(_Strict):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1190,7 +1206,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.4"] = CONTRACT_VERSION
+    contract_version: Literal["1.5"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1202,6 +1218,9 @@ class Decision(_Strict):
     constraint_costs: list[ConstraintCost] = Field(default_factory=list)
     tipping_points: list[TippingPoint] = Field(default_factory=list)
     relax: list[str] = Field(default_factory=list)
+    #: For ``no_feasible`` only: the smallest change to each numeric cap or
+    #: floor that admits a model. Added in 1.5.
+    relax_to: list[Relaxation] = Field(default_factory=list)
     warnings: list[Code] = Field(default_factory=list)
     #: Active models the snapshot leaves out of the lineup. Added in 1.2.
     out_of_lineup: int = Field(default=0, ge=0)
@@ -1213,7 +1232,7 @@ class Decision(_Strict):
                 raise ValueError("a no_feasible decision has no results")
             if not self.relax:
                 raise ValueError("a no_feasible decision names the fewest conditions to relax")
-        elif self.relax:
+        elif self.relax or self.relax_to:
             raise ValueError(f"relax is only for no_feasible, not {self.status}")
         ranks = [r.rank for r in self.results]
         if ranks != list(range(1, len(ranks) + 1)):
@@ -1227,7 +1246,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, ConstraintCost, TippingPoint,
-    NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource,
+    NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
 )
 
 

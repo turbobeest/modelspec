@@ -5,6 +5,7 @@ import type { AdapterDecision } from "../adapter";
 import { setWeight } from "../state/spec";
 import type { ParsedTask } from "../engine/reference";
 import type { FacetOp, FacetValue, TypeKey } from "../engine/types";
+import { valueLabel } from "../adapter/condition-label";
 import { useVocab } from "../vocabulary/context";
 import { domainForType, rankChoices, switchBenchmark } from "../vocabulary";
 import { issuesFor } from "../vocabulary/issues";
@@ -566,7 +567,7 @@ function FacetEditor({
                 aria-pressed={listed.includes(value)}
                 onClick={() => (many ? toggle(value) : onChange({ ...cond, value }))}
               >
-                {value.replaceAll(/[_-]+/g, " ")}
+                {valueLabel(cond.facet, value)}
               </button>
             );
           })}

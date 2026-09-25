@@ -109,8 +109,11 @@ def _facet_row(facet: Any, snapshot: Any, subjects: Iterable[str], unit_definiti
         counts: Counter[Any] = Counter()
         for value in values:
             counts.update(set(value) if isinstance(value, list) else {value})
-        row["values"] = [{"value": v, "count": counts[v]}
-                         for v in sorted(counts, key=lambda v: (str(type(v)), str(v)))]
+        row["values"] = [
+            {"value": v, "count": counts[v],
+             **({"label": label} if isinstance(v, str) and (label := facet.value_label(v))
+                else {})}
+            for v in sorted(counts, key=lambda v: (str(type(v)), str(v)))]
     return row
 
 

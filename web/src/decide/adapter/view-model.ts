@@ -20,6 +20,8 @@ import type {
 import {
   renderContractCondition,
   renderUnknownFacets,
+  valueLabel,
+  valueWithUnit,
 } from "./condition-label";
 
 const CLASS_TO_TYPE: Readonly<Record<string, TypeKey>> = {
@@ -151,7 +153,7 @@ function capabilities(spec: Spec): DecisionSpec["capabilities"] {
 
 export function toDecisionSpec(
   spec: Spec,
-  explain: "none" | "full",
+  explain: "none" | "summary" | "full",
 ): DecisionSpec {
   const weights: Record<string, number> = {};
   if (spec.w.cap > 0) weights[slug(spec.bench)] = spec.w.cap;
@@ -337,6 +339,7 @@ function modelAndOffering(
   const className = stringFact(facts, "model.class", sources);
   const openness = stringFact(facts, "model.weights_openness", sources);
   const lifecycle = stringFact(facts, "model.lifecycle", sources);
+  const licence = stringFact(facts, "licence.commercial_use", sources);
   const evidence = values
     ? values.evidence.flatMap((group) => group.items.map(uiEvidence))
     : resultEvidence(result).map(uiEvidence);
@@ -345,7 +348,7 @@ function modelAndOffering(
       .filter((part) => part !== null)
       .join("/"),
     provider: provider ?? "Provider not available",
-    regions: offeringRef.region ? [offeringRef.region] : null,
+    regions: offeringRef.region ? [valueLabel("offering.region", offeringRef.region)] : null,
     in: priceIn,
     out: priceOut,
     ttft,
@@ -364,7 +367,7 @@ function modelAndOffering(
     type: className ? (CLASS_TO_TYPE[className] ?? null) : null,
     status: lifecycle === "active" || lifecycle === "retired" ? lifecycle : null,
     open,
-    lic: stringFact(facts, "licence.commercial_use", sources),
+    lic: licence === null ? null : valueLabel("licence.commercial_use", licence),
     commercial: null,
     ctx: numberFact(facts, "model.context_window", sources),
     rel: stringFact(facts, "model.release_date", sources),
@@ -838,7 +841,11 @@ export function mapDecisionToViewModel(
         row,
         ci: conditionIndex,
         cond: spec.conds[conditionIndex] ?? { f: "active" },
-        why: `${renderContractCondition(miss.condition)}: ${miss.value ?? miss.values.join(", ")}`,
+        why: `${renderContractCondition(miss.condition)}: ${[
+          ...(miss.value === null ? miss.values : [miss.value]),
+        ]
+          .map((value) => (miss.facet ? valueWithUnit(miss.facet, String(value)) : String(value)))
+          .join(", ")}`,
         relaxed: null,
         off: row.best,
       },

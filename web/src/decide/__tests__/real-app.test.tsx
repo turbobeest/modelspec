@@ -157,7 +157,7 @@ it("renders the full decision as four models without machine condition syntax", 
   const table = await screen.findByRole("region", { name: "Decision table" });
   expect(within(table).getAllByRole("row")).toHaveLength(5);
   expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
-  expect(screen.getAllByText("Type: text generator").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Type: Text generator").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Has a provider").length).toBeGreaterThan(0);
   expect(screen.getByText("No model is one condition away.")).toBeInTheDocument();
   expect(screen.queryByText("model.class = text-generator")).not.toBeInTheDocument();

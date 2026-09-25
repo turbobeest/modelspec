@@ -806,7 +806,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "1.4",
+  "contract_version": "1.5",
   "decision_id": "dec_cc55843bc8a929e6bef02739",
   "snapshot": "snap_abbaaf63dc6a7cac",
   "spec_hash": "sha256:2e6d018a3802e03cd200cf58efd0d6910f67f06e11d32f6063b7a0ff7706e806",
@@ -1176,6 +1176,7 @@
     }
   ],
   "relax": [],
+  "relax_to": [],
   "warnings": [],
   "out_of_lineup": 0
 }

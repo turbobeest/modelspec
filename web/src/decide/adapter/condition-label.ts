@@ -91,6 +91,27 @@ export function registerProviders(names: Readonly<Record<string, string>>): void
   for (const [id, name] of Object.entries(names)) PROVIDERS.set(id, name);
 }
 
+const VALUE_LABELS = new Map<string, Map<string, string>>();
+
+/** Plain labels for enum values from the published vocabulary (real mode). */
+export function registerValueLabels(
+  facets: readonly { id: string; values?: readonly { value: unknown; label?: string }[] }[],
+): void {
+  VALUE_LABELS.clear();
+  for (const row of facets) {
+    const labels = new Map<string, string>();
+    for (const item of row.values ?? [])
+      if (typeof item.value === "string" && item.label) labels.set(item.value, item.label);
+    if (labels.size) VALUE_LABELS.set(row.id, labels);
+  }
+}
+
+/** What the page shows for one enum value: its label, else the value in words. */
+export function valueLabel(facet: string, value: string): string {
+  if (facet === "offering.provider") return providerName(value);
+  return VALUE_LABELS.get(facet)?.get(value) ?? value.replaceAll(/[_-]+/g, " ");
+}
+
 export function providerName(id: string): string {
   return PROVIDERS.get(id) ?? id;
 }
@@ -103,21 +124,15 @@ export function facetName(id: string): string {
   );
 }
 
-function humanValue(value: string): string {
+function humanValue(facet: string, value: string): string {
   const bare = value.replace(/^\{(.*)\}$/, "$1");
   return bare
     .split(/,\s*/)
-    .map((item) => item.replaceAll(/[_-]+/g, " "))
+    .map((item) => valueLabel(facet, item))
     .join(" or ");
 }
 
 export function valueWithUnit(facet: string, value: string): string {
-  if (facet === "offering.provider")
-    return value
-      .replace(/^\{(.*)\}$/, "$1")
-      .split(/,\s*/)
-      .map(providerName)
-      .join(" or ");
   const numeric = /^-?\d+(\.\d+)?(e-?\d+)?$/.test(value);
   const unitId = FACETS[facet]?.unitId;
   if (numeric && unitId === "usd_per_task") return `$${Number(value)} per task`;
@@ -126,7 +141,7 @@ export function valueWithUnit(facet: string, value: string): string {
   const unit = FACETS[facet]?.unit;
   const formatted = numeric
     ? Number(value).toLocaleString("en-US")
-    : humanValue(value);
+    : humanValue(facet, value);
   return unit ? `${formatted} ${unit}` : formatted;
 }
 

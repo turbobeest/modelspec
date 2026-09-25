@@ -655,6 +655,8 @@ export interface QuestionOpt {
   n?: number;
   may?: number;
   removes?: number;
+  /** The probe for this answer failed; its count is unknown, the question stays. */
+  failed?: boolean;
 }
 export interface Question {
   id: string;

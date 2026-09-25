@@ -26,11 +26,9 @@ export {
   DECIDE_TIMEOUT_MS,
   DecideApiError,
   PUBLIC_DECIDE_ENDPOINT,
-  decideWithFallback,
   hostedEngine,
-  mayBeLimit,
 } from "./hosted";
-export type { HostedAnswer, SpecIssue } from "./hosted";
+export type { SpecIssue } from "./hosted";
 export { decisionSchema, decisionSpecSchema } from "./contract";
 export type {
   Decision,
@@ -311,7 +309,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.4",
+      contract_version: "1.5",
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
@@ -383,6 +381,7 @@ export const fictionalEngine: SampleDecisionEngine = {
       })),
       tipping_points: tips,
       relax: e.feasible.length ? [] : minimalRelaxation(spec),
+      relax_to: [],
       warnings: [
         "fictional_sample_data",
         "sample_spec_hash_not_contract_canonical",
