@@ -71,6 +71,13 @@ jobs:
           npm ci
           npm run build
 
+      - name: Test the decide app
+        # The web suite (Vitest) guards the decide page on every PR: this job is
+        # the required "Build both sites" check. Browser (Playwright) tests stay
+        # local; they need installed browsers.
+        working-directory: web
+        run: npm test
+
       - name: Build
         id: build
         env:
