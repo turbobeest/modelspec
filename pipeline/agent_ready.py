@@ -12,10 +12,10 @@ import hashlib
 import json
 import re
 import shutil
-import struct
 from pathlib import Path
 from typing import Any, Iterable
 
+from pipeline import brand
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
 
@@ -156,20 +156,6 @@ def robots_txt(base: str) -> str:
         f"\n"
         f"Sitemap: {base}/sitemap.xml\n"
     )
-
-
-def png_to_ico(png: bytes) -> bytes:
-    """Wrap a PNG in a single-image ICO. No resampling, no external fetch."""
-    if png[:8] != b"\x89PNG\r\n\x1a\n":
-        raise ValueError("not a PNG")
-    if png[12:16] != b"IHDR":
-        raise ValueError("PNG missing IHDR")
-    width, height = struct.unpack(">II", png[16:24])
-    w = 0 if width >= 256 else width
-    h = 0 if height >= 256 else height
-    header = struct.pack("<HHH", 0, 1, 1)
-    entry = struct.pack("<BBBBHHII", w, h, 0, 0, 1, 32, len(png), 22)
-    return header + entry + png
 
 
 def wants_markdown(accept: str | None) -> bool:
@@ -832,12 +818,8 @@ def llms_full(models: Iterable[Model], benchmarks: Iterable[Benchmark], catalogu
 
 
 def _write_favicon(tree: Path) -> int:
-    png_path = tree / "favicon-64.png"
-    if not png_path.is_file():
-        return 0
-    ico = png_to_ico(png_path.read_bytes())
-    (tree / "favicon.ico").write_bytes(ico)
-    return len(ico)
+    brand.write_icons(tree)
+    return (tree / "favicon.ico").stat().st_size
 
 
 def _copy_functions(root: Path, tree: Path) -> None:

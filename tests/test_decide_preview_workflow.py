@@ -2,8 +2,13 @@
 
 from pathlib import Path
 import subprocess
+import sys
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from pipeline import brand  # noqa: E402
 
 
 WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/deploy-sites.yml'
@@ -40,7 +45,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'web/dist/assets/decide-abc.js': b'decide bundle',
         'web/dist/assets/decide-abc.css': b'decide styles',
         'web/dist/assets/main-old.js': b'old graph bundle, harmless but unreachable',
-        'web/dist/favicon.svg': b'icon',
+        'web/dist/favicon.svg': b'old graph app icon',
+        **{f'dist/modelspec/{name}': f'2a {name}'.encode() for name in brand.FILES},
     }
     for name, content in fixture.items():
         path = tmp_path / name
@@ -61,7 +67,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/.well-known/api-catalog'] == b'catalog'
     assert live['modelspec/assets/decide-abc.js'] == b'decide bundle'
     assert 'modelspec/assets/main-old.js' not in live
-    assert live['modelspec/favicon.svg'] == b'icon'
+    assert 'modelspec/favicon.svg' not in live
+    for name in brand.FILES:
+        assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
     for removed in ('downselect', 'models', 'm', 'pricing'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
 
@@ -98,3 +106,13 @@ def test_live_mode_deploys_the_composed_dist_and_internal_deploys_its_identical_
                for command in commands)
     assert any('pages deploy dist-internal/modelspec' in command and '--branch=internal' in command
                for command in commands)
+
+
+def test_the_live_composition_copies_exactly_the_brand_icon_set():
+    step = next(step for step in workflow()['jobs']['build']['steps']
+                if step.get('name') == 'Assemble the live and internal decide sites')
+    assert f"for icon in {' '.join(brand.FILES)}; do" in step['run']
+    checks = next(step for step in workflow()['jobs']['build']['steps']
+                  if step.get('name') == 'Check the pages we promise actually exist')
+    for name in brand.FILES:
+        assert f'test -s dist/modelspec/{name}' in checks['run'], name
