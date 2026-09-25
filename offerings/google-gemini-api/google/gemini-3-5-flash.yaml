@@ -12,9 +12,9 @@
     state: known
     sources:
     - source_id: gemini-pricing
-      snapshot_ref: sha256:47a2542b9468d1afd47138e6d8767fbddcb8cb019b9b1940bf8fc0c609306fed
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
       cited_regions:
-      - page
+      - gemini-3-5-flash
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.output
     subject:
       kind: offering
@@ -24,9 +24,9 @@
     state: known
     sources:
     - source_id: gemini-pricing
-      snapshot_ref: sha256:47a2542b9468d1afd47138e6d8767fbddcb8cb019b9b1940bf8fc0c609306fed
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
       cited_regions:
-      - page
+      - gemini-3-5-flash
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.cached_input
     subject:
       kind: offering
@@ -36,9 +36,9 @@
     state: known
     sources:
     - source_id: gemini-pricing
-      snapshot_ref: sha256:47a2542b9468d1afd47138e6d8767fbddcb8cb019b9b1940bf8fc0c609306fed
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
       cited_regions:
-      - page
+      - gemini-3-5-flash
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.batch_input
     subject:
       kind: offering
@@ -48,9 +48,9 @@
     state: known
     sources:
     - source_id: gemini-pricing
-      snapshot_ref: sha256:47a2542b9468d1afd47138e6d8767fbddcb8cb019b9b1940bf8fc0c609306fed
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
       cited_regions:
-      - page
+      - gemini-3-5-flash
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.price.batch_output
     subject:
       kind: offering
@@ -60,9 +60,9 @@
     state: known
     sources:
     - source_id: gemini-pricing
-      snapshot_ref: sha256:47a2542b9468d1afd47138e6d8767fbddcb8cb019b9b1940bf8fc0c609306fed
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
       cited_regions:
-      - page
+      - gemini-3-5-flash
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.data.retention
     subject:
       kind: offering
@@ -72,7 +72,7 @@
     state: known
     sources:
     - source_id: gemini-retention
-      snapshot_ref: sha256:03eea2aa0fc3d555f66fa88c4bad179ea5110115bfa8087a236745405394d435
+      snapshot_ref: sha256:0f1ce512d7ed48d2c20be054402e65cb83dd477bd0763ac1c4563ea10697def6
       cited_regions:
       - page
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.data.trains_on_customer_data
@@ -84,7 +84,7 @@
     state: known
     sources:
     - source_id: gemini-zdr
-      snapshot_ref: sha256:4c4fbc716a92473b9622db34664543fe0092fb9580fd0ad047a227d3c1d99d1c
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
       cited_regions:
       - page
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.data.zero_retention
@@ -96,7 +96,7 @@
     state: known
     sources:
     - source_id: gemini-zdr
-      snapshot_ref: sha256:4c4fbc716a92473b9622db34664543fe0092fb9580fd0ad047a227d3c1d99d1c
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
       cited_regions:
       - page
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.attestation.soc2
@@ -104,11 +104,11 @@
       kind: offering
       id: google-gemini-api/google/gemini-3-5-flash/global/standard
     facet: offering.attestation.soc2
-    value: type_2
-    state: known
+    value: null
+    state: not_disclosed
     sources:
     - source_id: google-attestations
-      snapshot_ref: sha256:ea8472518db2326e0432a895fb95ba0aeed7f95e39d451fadffd2952270b0e4a
+      snapshot_ref: sha256:688d09ddbbfb525eb46fb99d5c04ef668691ac48dd927eb338c45d72965a3947
       cited_regions:
       - page
   - id: google-gemini-api/google/gemini-3-5-flash/global/standard#offering.attestation.baa
@@ -116,10 +116,10 @@
       kind: offering
       id: google-gemini-api/google/gemini-3-5-flash/global/standard
     facet: offering.attestation.baa
-    value: false
-    state: known
+    value: null
+    state: not_disclosed
     sources:
     - source_id: gemini-zdr
-      snapshot_ref: sha256:4c4fbc716a92473b9622db34664543fe0092fb9580fd0ad047a227d3c1d99d1c
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
       cited_regions:
       - page

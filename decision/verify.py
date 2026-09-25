@@ -848,6 +848,7 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
             "train" in s
             and any(phrase in s for phrase in (
                 "do not use", "does not use", "will not use", "won't use", "not used",
+                "never use",
             ))
         )
         explicit_available = (
@@ -876,6 +877,8 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))
     found_name = normalise_name(reading.value)
+    if expected_name == "not offered" and found_name in {"n a", "na", "not available"}:
+        return None
     if expected_name == found_name:
         return None
     if expected_name == "type 2" and (

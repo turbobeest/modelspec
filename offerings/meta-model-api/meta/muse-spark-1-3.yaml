@@ -1,0 +1,125 @@
+- model: meta/muse-spark-1-3
+  provider: meta-model-api
+  region: global
+  tier: standard
+  facts:
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.price.input
+    value: 1.25
+    state: known
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.price.output
+    value: 4.25
+    state: known
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.price.cached_input
+    value: 0.15
+    state: known
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.price.batch_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.price.batch_output
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page
+  - id: meta-model-api/meta/muse-spark-1-3/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-3/global/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: meta-model-api-pricing
+      snapshot_ref: sha256:b839244a5d95e2e2ab6857e4c23781af3396a696c620d92fb481ed33c5d18b0c
+      cited_regions:
+      - page

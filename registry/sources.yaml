@@ -9,6 +9,18 @@ sources:
     locator:
       kind: page
       value: ''
+  - id: base-pricing
+    locator:
+      kind: table
+      value: '0'
+  - id: cache-multipliers
+    locator:
+      kind: table
+      value: '3'
+  - id: batch-pricing
+    locator:
+      kind: table
+      value: '5'
 - id: anthropic-retention
   url: https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data
   fetch: conditional_http
@@ -47,13 +59,17 @@ sources:
       value: ''
 - id: aws-pricing
   url: https://aws.amazon.com/bedrock/pricing/
-  fetch: conditional_http
+  fetch: rendered
   normaliser: html-default
   cited_regions:
   - id: page
     locator:
       kind: page
       value: ''
+  - id: global-cross-region-anthropic
+    locator:
+      kind: table
+      value: '26'
 - id: aws-retention
   url: https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html
   fetch: conditional_http
@@ -90,6 +106,18 @@ sources:
     locator:
       kind: page
       value: ''
+  - id: gemini-standard
+    locator:
+      kind: table
+      value: '0'
+  - id: gemini-batch
+    locator:
+      kind: table
+      value: '2'
+  - id: partner-anthropic-regional
+    locator:
+      kind: table
+      value: '38'
 - id: vertex-data
   url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
   fetch: conditional_http
@@ -110,13 +138,25 @@ sources:
       value: ''
 - id: azure-pricing
   url: https://azure.microsoft.com/en-us/pricing/details/azure-openai/
-  fetch: conditional_http
+  fetch: rendered
   normaliser: html-default
   cited_regions:
   - id: page
     locator:
       kind: page
       value: ''
+  - id: gpt-6-pricing
+    locator:
+      kind: table
+      value: '1'
+  - id: gpt-5-6-pricing
+    locator:
+      kind: table
+      value: '2'
+  - id: gpt-5-4-pricing
+    locator:
+      kind: table
+      value: '4'
 - id: azure-data
   url: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy
   fetch: conditional_http
@@ -162,6 +202,22 @@ sources:
     locator:
       kind: page
       value: ''
+  - id: gemini-3-1-pro-preview
+    locator:
+      kind: heading
+      value: gemini-3.1-pro-preview
+  - id: gemini-3-5-flash
+    locator:
+      kind: heading
+      value: gemini-3.5-flash
+  - id: gemini-3-7-flash
+    locator:
+      kind: heading
+      value: gemini-3.7-flash
+  - id: gemini-3-8-flash
+    locator:
+      kind: heading
+      value: gemini-3.8-flash
 - id: gemini-retention
   url: https://ai.google.dev/gemini-api/docs/usage-policies
   fetch: conditional_http
@@ -1059,6 +1115,87 @@ sources:
   normaliser: text-default
   cited_regions:
   - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: deepseek-v4-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: pricing-table
+    locator:
+      kind: table
+      value: '0'
+- id: xai-grok-4-7
+  url: https://docs.x.ai/developers/models/grok-4.7
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: xai-security
+  url: https://docs.x.ai/developers/faq/security
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-pricing
+  url: https://docs.z.ai/guides/overview/pricing.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-privacy
+  url: https://docs.z.ai/legal-agreement/privacy-policy.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: alibaba-model-studio-pricing
+  url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: singapore-qwen-max
+    locator:
+      kind: table
+      value: '0'
+- id: alibaba-model-studio-privacy
+  url: https://www.alibabacloud.com/help/en/model-studio/privacy-notice
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: meta-model-api-pricing
+  url: https://ai.developer.meta.com/docs/pricing-rate-limits.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: typesafe-models
+  url: https://docs.typesafe.ai/models.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
     locator:
       kind: page
       value: ''

@@ -12,9 +12,9 @@
     state: known
     sources:
     - source_id: anthropic-pricing
-      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
       cited_regions:
-      - page
+      - base-pricing
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.output
     subject:
       kind: offering
@@ -24,9 +24,9 @@
     state: known
     sources:
     - source_id: anthropic-pricing
-      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
       cited_regions:
-      - page
+      - base-pricing
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.cached_input
     subject:
       kind: offering
@@ -36,9 +36,10 @@
     state: known
     sources:
     - source_id: anthropic-pricing
-      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
       cited_regions:
-      - page
+      - base-pricing
+      - cache-multipliers
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.batch_input
     subject:
       kind: offering
@@ -48,9 +49,9 @@
     state: known
     sources:
     - source_id: anthropic-pricing
-      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
       cited_regions:
-      - page
+      - batch-pricing
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.batch_output
     subject:
       kind: offering
@@ -60,9 +61,9 @@
     state: known
     sources:
     - source_id: anthropic-pricing
-      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
       cited_regions:
-      - page
+      - batch-pricing
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.retention
     subject:
       kind: offering
@@ -72,7 +73,7 @@
     state: known
     sources:
     - source_id: anthropic-retention
-      snapshot_ref: sha256:34b1d61c26d9c5348d3102e3fc182e0388ee958f4173b11dda00f091013d6350
+      snapshot_ref: sha256:68ebcdaaddf0892b68cc2a1ac52fe2b8477d1245ef9226acad4d2e071c5308aa
       cited_regions:
       - page
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.trains_on_customer_data
@@ -84,7 +85,7 @@
     state: known
     sources:
     - source_id: anthropic-training
-      snapshot_ref: sha256:61d03c0e497193e1fee09daf93dbfcf82c2d7e2f14ac88eeef97a3ec8755d74c
+      snapshot_ref: sha256:1190dac269f393343d590cbeacd6c00b04fecee43f60c85caae76f0dbe8ddcf2
       cited_regions:
       - page
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.zero_retention
@@ -92,11 +93,11 @@
       kind: offering
       id: anthropic/anthropic/claude-opus-5/global/standard
     facet: offering.data.zero_retention
-    value: true
-    state: known
+    value: null
+    state: requires_contract
     sources:
     - source_id: anthropic-zdr
-      snapshot_ref: sha256:a797add371a878f40dfb63de1096e76bb8a65b392f7a8c7e1b27f61ccec67665
+      snapshot_ref: sha256:b60a03c22326e34ab12ef5ac51eceae560d55fb328a05fafaaa6871e788b20ab
       cited_regions:
       - page
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.attestation.soc2
@@ -108,7 +109,7 @@
     state: known
     sources:
     - source_id: anthropic-attestations
-      snapshot_ref: sha256:adac1e9b59a81f13f8ddccd65980455d2f0dc50595ae417e07fb604acae2e394
+      snapshot_ref: sha256:1366c875e0ab9796ab73416b6f990fdce833072bfac59cbfb23b122dc38fb0c3
       cited_regions:
       - page
   - id: anthropic/anthropic/claude-opus-5/global/standard#offering.attestation.baa
@@ -120,6 +121,6 @@
     state: known
     sources:
     - source_id: anthropic-attestations
-      snapshot_ref: sha256:adac1e9b59a81f13f8ddccd65980455d2f0dc50595ae417e07fb604acae2e394
+      snapshot_ref: sha256:1366c875e0ab9796ab73416b6f990fdce833072bfac59cbfb23b122dc38fb0c3
       cited_regions:
       - page

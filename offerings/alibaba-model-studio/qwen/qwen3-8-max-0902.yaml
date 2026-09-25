@@ -1,0 +1,125 @@
+- model: qwen/qwen3-8-max-0902
+  provider: alibaba-model-studio
+  region: singapore
+  tier: standard
+  facts:
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: alibaba-model-studio-pricing
+      snapshot_ref: sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f
+      cited_regions:
+      - singapore-qwen-max
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.output
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.price.output
+    value: 6.0
+    state: known
+    sources:
+    - source_id: alibaba-model-studio-pricing
+      snapshot_ref: sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f
+      cited_regions:
+      - singapore-qwen-max
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.price.cached_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-pricing
+      snapshot_ref: sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f
+      cited_regions:
+      - singapore-qwen-max
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.price.batch_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-pricing
+      snapshot_ref: sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f
+      cited_regions:
+      - singapore-qwen-max
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.price.batch_output
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-pricing
+      snapshot_ref: sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f
+      cited_regions:
+      - singapore-qwen-max
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-privacy
+      snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+      cited_regions:
+      - page
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: alibaba-model-studio-privacy
+      snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+      cited_regions:
+      - page
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-privacy
+      snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+      cited_regions:
+      - page
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-privacy
+      snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+      cited_regions:
+      - page
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: alibaba-model-studio-privacy
+      snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+      cited_regions:
+      - page

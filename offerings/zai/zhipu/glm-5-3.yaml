@@ -1,0 +1,125 @@
+- model: zhipu/glm-5-3
+  provider: zai
+  region: global
+  tier: standard
+  facts:
+  - id: zai/zhipu/glm-5-3/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.price.input
+    value: 1.4
+    state: known
+    sources:
+    - source_id: zai-pricing
+      snapshot_ref: sha256:3b5587f7826bf8573174e721613745262cf9a891f8a1408385251ccbba0b5be2
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.price.output
+    value: 4.4
+    state: known
+    sources:
+    - source_id: zai-pricing
+      snapshot_ref: sha256:3b5587f7826bf8573174e721613745262cf9a891f8a1408385251ccbba0b5be2
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.price.cached_input
+    value: 0.26
+    state: known
+    sources:
+    - source_id: zai-pricing
+      snapshot_ref: sha256:3b5587f7826bf8573174e721613745262cf9a891f8a1408385251ccbba0b5be2
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.price.batch_input
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-pricing
+      snapshot_ref: sha256:3b5587f7826bf8573174e721613745262cf9a891f8a1408385251ccbba0b5be2
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.price.batch_output
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-pricing
+      snapshot_ref: sha256:3b5587f7826bf8573174e721613745262cf9a891f8a1408385251ccbba0b5be2
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-privacy
+      snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-privacy
+      snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-privacy
+      snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-privacy
+      snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+      cited_regions:
+      - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: zai-privacy
+      snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+      cited_regions:
+      - page

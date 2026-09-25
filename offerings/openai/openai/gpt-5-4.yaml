@@ -12,7 +12,7 @@
     state: known
     sources:
     - source_id: openai-gpt-5-4-pricing
-      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      snapshot_ref: sha256:218528dfbadf7da857393139bc66255d5aa5ed955e608b78ba91df4c8601b5d7
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.price.output
@@ -24,7 +24,7 @@
     state: known
     sources:
     - source_id: openai-gpt-5-4-pricing
-      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      snapshot_ref: sha256:218528dfbadf7da857393139bc66255d5aa5ed955e608b78ba91df4c8601b5d7
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.price.cached_input
@@ -36,7 +36,7 @@
     state: known
     sources:
     - source_id: openai-gpt-5-4-pricing
-      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      snapshot_ref: sha256:218528dfbadf7da857393139bc66255d5aa5ed955e608b78ba91df4c8601b5d7
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.price.batch_input
@@ -48,7 +48,7 @@
     state: known
     sources:
     - source_id: openai-gpt-5-4-pricing
-      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      snapshot_ref: sha256:218528dfbadf7da857393139bc66255d5aa5ed955e608b78ba91df4c8601b5d7
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.price.batch_output
@@ -60,7 +60,7 @@
     state: known
     sources:
     - source_id: openai-gpt-5-4-pricing
-      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      snapshot_ref: sha256:218528dfbadf7da857393139bc66255d5aa5ed955e608b78ba91df4c8601b5d7
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.data.retention
@@ -72,7 +72,7 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.data.trains_on_customer_data
@@ -84,7 +84,7 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.data.zero_retention
@@ -92,11 +92,11 @@
       kind: offering
       id: openai/openai/gpt-5-4/global/standard
     facet: offering.data.zero_retention
-    value: true
-    state: known
+    value: null
+    state: requires_contract
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.attestation.soc2
@@ -104,11 +104,11 @@
       kind: offering
       id: openai/openai/gpt-5-4/global/standard
     facet: offering.attestation.soc2
-    value: type_2
-    state: known
+    value: null
+    state: not_disclosed
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
   - id: openai/openai/gpt-5-4/global/standard#offering.attestation.baa
@@ -120,6 +120,6 @@
     state: known
     sources:
     - source_id: openai-data
-      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
