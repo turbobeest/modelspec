@@ -9,7 +9,7 @@ The rule is the one in the decision-engine design, section 5. A model is in the 
 3. At least three major providers offer it, counted only from providers the card already records.
 4. A reviewer added it. The MODEL-136 brief requires one decision model, so the set includes `typesafe/jev-1-13`.
 
-Retired models leave the set. The catalogue has no `sunset` card, so `archived` in the YAML is empty. Deprecated models would stay, with a retirement date when the card records one. None of the selected cards are deprecated.
+Retired models leave the set. The only `sunset` cards the rule reaches are the two GPT-5.5 pre-release checkpoints Epoch AI evaluated, `openai/gpt-5-5-pre-release` and `openai/gpt-5-5-pro-pre-release`. They were never offered, and `sunset` is the closest existing status, so they are the whole of `archived` in the YAML. Deprecated models would stay, with a retirement date when the card records one. None of the selected cards are deprecated.
 
 ## Method
 
