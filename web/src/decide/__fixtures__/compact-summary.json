@@ -24,8 +24,8 @@
   "number_origins": [],
   "sources": [],
   "contract_version": "1.6",
-  "decision_id": "dec_82fef2f3022a66e1b7f897c0",
-  "snapshot": "snap_abbaaf63dc6a7cac",
+  "decision_id": "dec_ef4039a301f0f201d42a0bab",
+  "snapshot": "snap_35e2b3baf5cb21c3",
   "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
   "explain": "summary",
   "status": "answered",
@@ -61,7 +61,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ]
         }
@@ -113,7 +116,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ],
           "formula": null
@@ -152,7 +158,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ]
         }
@@ -204,7 +213,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ],
           "formula": null
@@ -243,7 +255,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ]
         }
@@ -295,7 +310,10 @@
               "date_type": "observed",
               "source": "https://board.example.org/results",
               "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-              "directness": "direct"
+              "directness": "direct",
+              "loading": null,
+              "estimate_weight": null,
+              "recency_weight": null
             }
           ],
           "formula": null

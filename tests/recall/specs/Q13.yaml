@@ -7,6 +7,6 @@ capabilities: {reasoning: required}
 where:
   - model.class = text-generator
   - model.weights_openness = open_weights
-optimize: {max: gpqa_diamond @independent}
+optimize: {max: reasoning}
 explain: full
 limit: 3

@@ -144,6 +144,24 @@ class EvidenceValue:
 
 
 @dataclass(frozen=True)
+class CapabilityEstimateValue:
+    value: float
+    low: float
+    high: float
+    sd: float
+
+
+@dataclass(frozen=True)
+class CapabilityDriverValue:
+    record_id: str
+    benchmark_id: str
+    version: str | None
+    loading: float
+    weight: float
+    recency_weight: float
+
+
+@dataclass(frozen=True)
 class Bitset3:
     """Three disjoint bitsets over ``candidates()``: bit ``i`` is candidate ``i``."""
 
@@ -190,6 +208,14 @@ class SnapshotIndex(Protocol):
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
 
+    def capability_estimate(
+        self, cid: str, domain_id: str
+    ) -> CapabilityEstimateValue | None: ...
+
+    def capability_drivers(
+        self, cid: str, domain_id: str
+    ) -> Sequence[CapabilityDriverValue]: ...
+
     def kind(self, cid: str) -> Literal["model", "offering"]: ...
 
     def model_of(self, cid: str) -> str: ...
@@ -222,6 +248,8 @@ class SnapshotInputs:
     sources: Mapping[str, str] = field(default_factory=dict)
     #: Benchmark ID -> ((domain ID, directness), ...), from the benchmark pages.
     benchmark_domains: Mapping[str, Sequence[Sequence[str]]] = field(default_factory=dict)
+    #: Benchmark measurement metadata used by the build-time capability fit.
+    benchmark_metadata: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     #: The verification log. The latest verification of a target wins, over an
     #: inline one too.
     verifications: Sequence[Any] = ()
@@ -605,6 +633,58 @@ class _Compiler:
             if self.guard is not None and self.guard.benchmark(bench):
                 continue
             domains[str(bench)] = sorted([str(d), str(k)] for d, k in tags)
+        capability: dict[str, Any] = {}
+        if self.inputs.benchmark_metadata and as_of is not None:
+            from decision.capability import (
+                BenchmarkSpec,
+                CapabilityObservation,
+                Directness,
+                fit_capabilities,
+            )
+
+            observations = []
+            fitted_models = {self.subjects[sid]["model"] for sid in kept}
+            for subject, evidence_rows in sorted(self.evidence.items()):
+                model_id = self.subjects[subject]["model"]
+                if model_id not in fitted_models:
+                    continue
+                for row in evidence_rows:
+                    evidence_date = _date(row[8])
+                    tag_rows: list[tuple[str, Directness]] = []
+                    for domain_id, raw_directness in self.inputs.benchmark_domains.get(row[0], ()):
+                        directness = str(raw_directness)
+                        if directness not in ("direct", "proxy"):
+                            raise SnapshotBuildError(
+                                f"{row[0]}: invalid capability directness {directness!r}"
+                            )
+                        tag_rows.append((str(domain_id), directness))
+                    tags = tuple(tag_rows)
+                    if evidence_date is None or not tags:
+                        continue
+                    observations.append(CapabilityObservation(
+                        model_id=model_id,
+                        benchmark_id=row[0],
+                        value=float(row[3]),
+                        unit=row[4],
+                        measured_by=str(row[5] or ""),
+                        date=evidence_date,
+                        record_id=row[10],
+                        version=row[1],
+                        domains=tags,
+                    ))
+            specs = {
+                benchmark: BenchmarkSpec(
+                    random_baseline=metadata.get("random_baseline"),
+                    sample_size=metadata.get("sample_size"),
+                    direction=metadata.get("direction", "higher_is_better"),
+                )
+                for benchmark, metadata in self.inputs.benchmark_metadata.items()
+            }
+            fit = fit_capabilities(observations, specs, as_of=as_of)
+            capability = fit.to_payload(
+                self.subjects[sid]["model"] for sid in kept
+                if self.subjects[sid]["kind"] == "model"
+            )
         return {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
@@ -613,6 +693,7 @@ class _Compiler:
             "archive": self._section(archive),
             "out_of_lineup": out_of_lineup,
             "benchmark_domains": domains,
+            "capability": capability,
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
             "record_table": _pack_records({r: self.records[r] for r in record_ids}),
@@ -743,10 +824,18 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for source_id, source in load_sources(root / "registry" / "sources.yaml").items()
     }
     domains = {}
+    metadata = {}
     for b in load_benchmarks(root):
         tags = b.front.get("domains") or []
         if tags:
             domains[b.benchmark_id] = tuple((str(t["id"]), str(t["directness"])) for t in tags)
+        metric = b.front.get("metric") or {}
+        dataset = b.front.get("dataset") or {}
+        metadata[b.benchmark_id] = {
+            "random_baseline": metric.get("random_baseline"),
+            "sample_size": dataset.get("size"),
+            "direction": metric.get("direction", "higher_is_better"),
+        }
     verifications = []
     verification_log = root / "verification" / "log.jsonl"
     if verification_log.is_file():
@@ -754,7 +843,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
             if line.strip():
                 verifications.append(json.loads(line))
     return SnapshotInputs(models=models, offerings=offerings, evidence=evidence, sources=sources,
-                          benchmark_domains=domains, verifications=verifications)
+                          benchmark_domains=domains, benchmark_metadata=metadata,
+                          verifications=verifications)
 
 
 def load_premier(path: str | Path) -> tuple[str, ...]:
@@ -1068,6 +1158,12 @@ class LoadedSnapshot:
                                    {cid: meta["model"] for cid, meta in self._meta.items()})
         self._evidence_bits: dict[tuple[Any, ...], _FacetBitsets] = {}
         self._benchmarks = tuple(sorted(content["benchmark_domains"]))
+        capability = content.get("capability") or {}
+        self._capability_estimates = capability.get("estimates") or {}
+        self._capability_drivers = capability.get("drivers") or {}
+        self.capability_method = capability.get("method")
+        self.capability_items = capability.get("items") or {}
+        self.capability_source_offsets = capability.get("source_offsets") or {}
         self._domains: dict[str, list[tuple[str, str]]] = {}
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
@@ -1205,6 +1301,29 @@ class LoadedSnapshot:
         return tuple(
             EvidenceValue(**{**e.__dict__, "directness": directness[e.benchmark_id]})
             for e in self._evidence[cid] if e.benchmark_id in directness)
+
+    def capability_estimate(
+        self, cid: str, domain_id: str
+    ) -> CapabilityEstimateValue | None:
+        self._check(cid)
+        model_id = self._meta[cid]["model"]
+        row = self._capability_estimates.get(model_id, {}).get(domain_id)
+        if row is None:
+            return None
+        return CapabilityEstimateValue(*map(float, row))
+
+    def capability_drivers(
+        self, cid: str, domain_id: str
+    ) -> Sequence[CapabilityDriverValue]:
+        self._check(cid)
+        model_id = self._meta[cid]["model"]
+        return tuple(
+            CapabilityDriverValue(
+                record_id=row[0], benchmark_id=row[1], version=row[2],
+                loading=float(row[3]), weight=float(row[4]), recency_weight=float(row[5]),
+            )
+            for row in self._capability_drivers.get(model_id, {}).get(domain_id, ())
+        )
 
     # beyond the protocol -----------------------------------------------------
 

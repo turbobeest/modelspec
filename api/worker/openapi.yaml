@@ -3175,6 +3175,26 @@ components:
           - proxy
           title: Directness
           type: string
+        loading:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Loading
+        estimate_weight:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Estimate Weight
+        recency_weight:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Recency Weight
       required:
       - benchmark
       - value

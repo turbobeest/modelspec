@@ -1033,6 +1033,12 @@ class EvidenceItem(_Strict):
     source: Url
     source_snapshot: str | None = None
     directness: Directness
+    #: Learned benchmark loading in the capability estimate. Added in 1.6.
+    loading: float | None = None
+    #: Share of the estimate's tagged measurement precision. Added in 1.6.
+    estimate_weight: float | None = None
+    #: Precision multiplier from the observation's age. Added in 1.6.
+    recency_weight: float | None = Field(default=None, ge=0, le=1)
 
     @model_validator(mode="after")
     def _one_harness(self) -> EvidenceItem:

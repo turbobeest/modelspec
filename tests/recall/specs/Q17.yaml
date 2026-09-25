@@ -7,6 +7,6 @@ where:
   - model.class = text-generator
   - model.weights_openness = open_weights
   - model.fits_hardware in {nvidia_rtx_4090}
-optimize: {max: swe_bench_pro @independent}
+optimize: {max: software_engineering}
 explain: full
 limit: 3

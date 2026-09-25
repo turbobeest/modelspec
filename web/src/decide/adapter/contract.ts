@@ -39,6 +39,9 @@ export const evidenceItemSchema = z
     source: z.url(),
     source_snapshot: nullableString,
     directness: z.enum(["direct", "proxy"]),
+    loading: z.number().finite().nullable().optional(),
+    estimate_weight: z.number().min(0).max(1).nullable().optional(),
+    recency_weight: z.number().min(0).max(1).nullable().optional(),
   })
   .strict();
 

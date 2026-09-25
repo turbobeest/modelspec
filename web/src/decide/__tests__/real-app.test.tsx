@@ -149,6 +149,36 @@ it("renders unavailable snapshot facets instead of hiding them", async () => {
   expect(within(detail).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
 });
 
+it("renders capability intervals, probability of best and top-three stability", async () => {
+  const estimated = {
+    ...fixture,
+    contract_version: "1.6",
+    results: fixture.results.map((result, index) => ({
+      ...result,
+      estimates: [
+        {
+          domain: "software_engineering",
+          value: 2 - index * 0.2,
+          interval: [1.6 - index * 0.2, 2.4 - index * 0.2],
+          harness: null,
+          effort: null,
+        },
+      ],
+      p_best: index === 0 ? 0.62 : 0.12,
+      top3_stability: index === 0 ? 0.91 : 0.5,
+    })),
+  };
+  vi.stubGlobal("fetch", routeFetch({ decide: () => json(estimated) }));
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.click(screen.getByText("start from constraints"));
+
+  const detail = await screen.findByRole("region", { name: "Why this model" });
+  expect(detail).toHaveTextContent("P(best) 62%");
+  expect(detail).toHaveTextContent("Top-3 stability 91%");
+  expect(detail).toHaveTextContent(/Evidence too thin to separate these/);
+});
+
 it("renders the full decision as four models without machine condition syntax", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixture) }));
   render(<App />);

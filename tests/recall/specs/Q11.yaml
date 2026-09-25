@@ -7,6 +7,6 @@ where:
   - model.class = text-generator
   - model.weights_openness = closed_weights
   - offering.price.input <= 0.50
-optimize: {max: arena_elo_overall @independent}
+optimize: {max: chat_preference}
 explain: full
 limit: 3

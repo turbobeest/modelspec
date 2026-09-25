@@ -790,6 +790,18 @@
           "default": null,
           "title": "Effort"
         },
+        "estimate_weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Weight"
+        },
         "harness": {
           "anyOf": [
             {
@@ -807,6 +819,18 @@
           "default": false,
           "title": "Harness Unregistered",
           "type": "boolean"
+        },
+        "loading": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loading"
         },
         "measured_by": {
           "enum": [
@@ -831,6 +855,20 @@
           ],
           "default": null,
           "title": "N"
+        },
+        "recency_weight": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recency Weight"
         },
         "record_id": {
           "anyOf": [

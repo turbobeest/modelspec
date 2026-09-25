@@ -135,3 +135,33 @@ def test_the_runner_judges_one_row_per_model() -> None:
         (1, "lab/a", "p1"), (2, "lab/b", "p1"), (3, "lab/c", "p1")]
     assert [(m.model, m.unknown) for m in grouped.may_qualify] == [
         ("lab/e", ["x", "y"]), ("lab/f", ["x"])]
+
+
+def test_overlapping_capability_intervals_count_as_not_separable() -> None:
+    from decision.contract import Decision, Estimate, OfferingRef, Result
+    from scripts.recall_run import _top_is_tied
+
+    def ranked(rank: int, model_id: str, interval: tuple[float, float]) -> Result:
+        return Result(
+            rank=rank,
+            offering=OfferingRef(model=model_id),
+            estimates=[
+                Estimate(
+                    domain="software_engineering",
+                    value=sum(interval) / 2,
+                    interval=interval,
+                )
+            ],
+            warnings=["not_separable"],
+        )
+
+    decision = Decision(
+        decision_id="dec_0123456789ab",
+        snapshot="snap_0123456789abcdef",
+        spec_hash="sha256:" + "0" * 64,
+        explain="none",
+        status="answered",
+        results=[ranked(1, "lab/a", (1.0, 2.0)), ranked(2, "lab/b", (1.8, 2.4))],
+    )
+
+    assert _top_is_tied(decision)

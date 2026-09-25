@@ -1,0 +1,542 @@
+{
+  "date": "2026-09-25",
+  "disagreements": [
+    {
+      "benchmark": "metr_time_horizon_50",
+      "directness": "direct",
+      "domain": "agentic_tool_use",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-02-20",
+      "single_benchmark_top": "anthropic/claude-opus-4-6",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ]
+    },
+    {
+      "benchmark": "metr_time_horizon_80",
+      "directness": "direct",
+      "domain": "agentic_tool_use",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-04-15",
+      "single_benchmark_top": "google/gemini-3-1-pro-preview",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ]
+    },
+    {
+      "benchmark": "osworld_2",
+      "directness": "direct",
+      "domain": "agentic_tool_use",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-25",
+      "single_benchmark_top": "anthropic/claude-opus-5",
+      "sources": [
+        "https://osworld-v2.xlang.ai/"
+      ]
+    },
+    {
+      "benchmark": "tau3_banking",
+      "directness": "direct",
+      "domain": "agentic_tool_use",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-08-03",
+      "single_benchmark_top": "anthropic/claude-opus-5",
+      "sources": [
+        "https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-5_sierra_2026-08-04/submission.json"
+      ]
+    },
+    {
+      "benchmark": "arena_elo_overall",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5-1",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_elo_style_control",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_business",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-opus-4-7",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_coding",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_creative_writing",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_expert",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_legal",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_math",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_multi_turn",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_non_english",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_science",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_vision",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/vision_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_writing",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_webdev",
+      "directness": "direct",
+      "domain": "chat_preference",
+      "estimate_top": "anthropic/claude-opus-4-6",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-23",
+      "single_benchmark_top": "anthropic/claude-opus-5-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_science",
+      "directness": "proxy",
+      "domain": "engineering_stem",
+      "estimate_top": "google/gemini-3-1-pro-preview",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "gpqa_diamond",
+      "directness": "direct",
+      "domain": "engineering_stem",
+      "estimate_top": "google/gemini-3-1-pro-preview",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-08-30",
+      "single_benchmark_top": "openai/gpt-6-astra",
+      "sources": [
+        "https://epoch.ai/benchmarks/gpqa-diamond"
+      ]
+    },
+    {
+      "benchmark": "hle",
+      "directness": "direct",
+      "domain": "engineering_stem",
+      "estimate_top": "google/gemini-3-1-pro-preview",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-24",
+      "single_benchmark_top": "openai/gpt-6-astra",
+      "sources": [
+        "https://labs.scale.com/leaderboard/humanitys_last_exam"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_legal",
+      "directness": "proxy",
+      "domain": "legal",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "aime_2026",
+      "directness": "direct",
+      "domain": "maths",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-25",
+      "single_benchmark_top": "openai/gpt-5-4",
+      "sources": [
+        "https://matharena.ai/competition_tables/aime--aime_2026"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_math",
+      "directness": "proxy",
+      "domain": "maths",
+      "estimate_top": "openai/gpt-6-astra",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_medicine",
+      "directness": "proxy",
+      "domain": "medical",
+      "estimate_top": "meta/muse-spark",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-opus-4-6",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_non_english",
+      "directness": "proxy",
+      "domain": "multilingual",
+      "estimate_top": "anthropic/claude-fable-5-1",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "mteb_multilingual_v2",
+      "directness": "proxy",
+      "domain": "multilingual",
+      "estimate_top": "anthropic/claude-fable-5-1",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-24",
+      "single_benchmark_top": "microsoft/harrier-oss-v1-27b",
+      "sources": [
+        "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores"
+      ]
+    },
+    {
+      "benchmark": "gpqa_diamond",
+      "directness": "proxy",
+      "domain": "reasoning",
+      "estimate_top": "openai/gpt-5-6-sol",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-08-30",
+      "single_benchmark_top": "openai/gpt-6-astra",
+      "sources": [
+        "https://epoch.ai/benchmarks/gpqa-diamond"
+      ]
+    },
+    {
+      "benchmark": "hle",
+      "directness": "proxy",
+      "domain": "reasoning",
+      "estimate_top": "openai/gpt-5-6-sol",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-24",
+      "single_benchmark_top": "openai/gpt-6-astra",
+      "sources": [
+        "https://labs.scale.com/leaderboard/humanitys_last_exam"
+      ]
+    },
+    {
+      "benchmark": "arena_elo_coding",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-opus-4-6",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_coding",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "deepswe_v1_1",
+      "directness": "direct",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-25",
+      "single_benchmark_top": "google/gemini-3-8-flash",
+      "sources": [
+        "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json"
+      ]
+    },
+    {
+      "benchmark": "frontiercode_v1_1",
+      "directness": "direct",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-25",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://cognition.com/frontiercode"
+      ]
+    },
+    {
+      "benchmark": "metr_time_horizon_50",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-02-20",
+      "single_benchmark_top": "anthropic/claude-opus-4-6",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ]
+    },
+    {
+      "benchmark": "metr_time_horizon_80",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-04-15",
+      "single_benchmark_top": "google/gemini-3-1-pro-preview",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ]
+    },
+    {
+      "benchmark": "swe_bench_multilingual",
+      "directness": "direct",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-02-13",
+      "single_benchmark_top": "anthropic/claude-opus-4-6",
+      "sources": [
+        "https://www.swebench.com/"
+      ]
+    },
+    {
+      "benchmark": "swe_bench_pro",
+      "directness": "direct",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-07-09",
+      "single_benchmark_top": "meta/muse-spark-1-1",
+      "sources": [
+        "https://labs.scale.com/leaderboard/swe_bench_pro_public"
+      ]
+    },
+    {
+      "benchmark": "swe_bench_verified",
+      "directness": "direct",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-04-20",
+      "single_benchmark_top": "anthropic/claude-opus-4-7",
+      "sources": [
+        "https://epoch.ai/benchmarks/swe-bench-verified"
+      ]
+    },
+    {
+      "benchmark": "terminal_bench_v4_0",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-03",
+      "single_benchmark_top": "openai/gpt-6-astra",
+      "sources": [
+        "https://www.tbench.ai/"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_vision",
+      "directness": "proxy",
+      "domain": "vision_documents",
+      "estimate_top": "meta/muse-spark",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/vision_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "osworld_2",
+      "directness": "proxy",
+      "domain": "vision_documents",
+      "estimate_top": "meta/muse-spark",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-25",
+      "single_benchmark_top": "anthropic/claude-opus-5",
+      "sources": [
+        "https://osworld-v2.xlang.ai/"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_creative_writing",
+      "directness": "proxy",
+      "domain": "writing",
+      "estimate_top": "google/gemini-3-8-flash",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_writing",
+      "directness": "proxy",
+      "domain": "writing",
+      "estimate_top": "google/gemini-3-8-flash",
+      "reason": "the estimate combines every tagged item with learned discrimination, source offset, directness and recency; the benchmark row uses one measurement",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ]
+    }
+  ],
+  "domains": 12,
+  "holdout_cells": {
+    "cells": 345,
+    "model_rmse": 0.7059991608479196,
+    "naive_rmse": 1.1048513223026948
+  },
+  "holdout_newest": {
+    "cells": 20,
+    "model_rmse": 0.8326373702959886,
+    "naive_rmse": 1.2245095511923692
+  },
+  "items": 35,
+  "models": 32,
+  "observations": 462,
+  "snapshot": "snap_113410f682a6fd7d",
+  "summary_latency_ms": {
+    "environment": "local Worker-equivalent Python decision path",
+    "max": 37.4111250275746,
+    "median": 25.84474949981086,
+    "runs": 12
+  }
+}

@@ -46,7 +46,8 @@ export function Why({
     o = row.best.o,
     ranked = e.feasible.find((r) => r.m.id === m.id),
     insep = e.insep(ranked),
-    bd = decision.benchmarks[spec.bench];
+    bd = decision.benchmarks[spec.bench],
+    result = decision.results.find((item) => item.offering.model === `${m.lab}/${m.id}`);
   const dims = [
     {
       key: "cap",
@@ -132,6 +133,14 @@ export function Why({
             {reason(row) ||
               `Best offering: ${o.provider}, ${money(row.cost)} per task`}
           </small>
+          {result && (result.p_best !== null || result.top3_stability !== null) && (
+            <small>
+              {result.p_best !== null && `P(best) ${Math.round(result.p_best * 100)}%`}
+              {result.p_best !== null && result.top3_stability !== null && " · "}
+              {result.top3_stability !== null &&
+                `Top-3 stability ${Math.round(result.top3_stability * 100)}%`}
+            </small>
+          )}
         </div>
       </div>
       {m.provisional && (

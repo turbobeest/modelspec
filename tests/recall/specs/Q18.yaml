@@ -7,6 +7,6 @@ capabilities: {chat_preference: required}
 where:
   - model.class = text-generator
   - model.weights_openness = open_weights
-optimize: {max: arena_elo_overall @independent}
+optimize: {max: chat_preference}
 explain: full
 limit: 3
