@@ -6,14 +6,9 @@ import pytest
 
 from decision.contract import parse_spec
 from decision.engine import decide
-from decision.resolve import FacetView
+from decision.registry import facet as facets
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot
 from tests.test_decision_snapshot import SOURCES, evidence, fact, model
-
-
-def facets(name):
-    kinds = {"price": "model", "context": "model", "quality": "evidence", "coding": "model"}
-    return FacetView(name, "number", "best_effort", "capability", kinds[name])
 
 
 @pytest.fixture
@@ -22,19 +17,19 @@ def index(tmp_path):
         model(
             "lab/" + name,
             facts=[
-                fact("model", "lab/" + name, "price", price),
-                fact("model", "lab/" + name, "context", context),
+                fact("model", "lab/" + name, "model.context_window", price),
+                fact("model", "lab/" + name, "model.max_output_tokens", context),
             ],
         )
         for name, price, context in [("a", 3, 100), ("b", 1, 80), ("c", 2, 60)]
     ]
     for m in models:
         for f in m["facts"]:
-            f["unit"] = "USD / million tokens" if f["facet"] == "price" else "tokens"
+            f["unit"] = "tokens"
     rows = [
         evidence(
             "lab/" + name,
-            "quality",
+            "swe_bench_pro",
             value,
             measured_by=measurer,
             effort="default",
@@ -51,7 +46,7 @@ def index(tmp_path):
             models=models,
             evidence=rows,
             sources=SOURCES,
-            benchmark_domains={"quality": [("coding", "direct")]},
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
         ),
         as_of=date(2026, 9, 24),
     )
@@ -62,9 +57,9 @@ def spec(level="full", **updates):
     return parse_spec(
         dict(
             spec_version=1,
-            where=["context >= 90"],
-            optimize={"min": "price"},
-            capabilities={"coding": "required"},
+            where=["model.max_output_tokens >= 90"],
+            optimize={"min": "model.context_window"},
+            capabilities={"software_engineering": "required"},
             explain=level,
         )
         | updates,
@@ -85,7 +80,7 @@ def test_full_decision_keeps_unblended_evidence_and_fact_provenance(index):
     assert item.harness == "codex-cli@1.4"
     part = result.results[0].contributions[0]
     assert part.raw_value == 3
-    assert part.records == ["lab/a#price"]
+    assert part.records == ["lab/a#model.context_window"]
     assert index.record(part.records[0])["verification"]["outcome"] == "verified"
 
 
@@ -93,19 +88,23 @@ def test_costs_and_near_misses_measure_one_relaxed_condition(index):
     decision = decide(spec(), index, facets=facets)
     (cost,) = decision.constraint_costs
     assert cost.admits == 2
-    assert cost.gain == {"-price": -2}
-    assert cost.units == {"-price": "USD / million tokens"}
+    assert cost.gain == {"-model.context_window": -2}
+    assert cost.units == {"-model.context_window": "tokens"}
     assert [(m.offering.model, m.distance, m.unit) for m in decision.near_misses] == [
         ("lab/b", 10, "tokens"),
         ("lab/c", 30, "tokens"),
     ]
-    both = decide(spec(where=["context >= 90", "price >= 2"]), index, facets=facets)
+    both = decide(
+        spec(where=["model.max_output_tokens >= 90", "model.context_window >= 2"]),
+        index,
+        facets=facets,
+    )
     assert [m.offering.model for m in both.near_misses] == ["lab/c"]
 
 
 def test_full_adds_all_values_and_reasons_while_none_skips_explanation(index):
     full = decide(spec(limit=1), index, facets=facets)
-    assert full.top[0].facts[0].value == 100
+    assert {fact.value for fact in full.top[0].facts} == {3, 100}
     assert len(full.eliminated.models) == 2
     assert "<svg" in full.chart
     summary = decide(spec("summary"), index, facets=facets)
@@ -217,10 +216,11 @@ def test_cli_writes_full_html_from_local_snapshot(index, tmp_path, monkeypatch):
     from modelspec import decide_cmd
     from modelspec.cli import app
 
-    monkeypatch.setattr(decide_cmd, "_facet_lookup", lambda: (facets, None))
+    monkeypatch.setattr(decide_cmd, "_facet_lookup", lambda: facets)
     spec_path = tmp_path / "spec.yaml"
     spec_path.write_text(
-        "spec_version: 1\noptimize: {min: price}\ncapabilities: {coding: required}\n"
+        "spec_version: 1\noptimize: {min: model.context_window}\n"
+        "capabilities: {software_engineering: required}\n"
     )
     report = tmp_path / "out.html"
     result = CliRunner().invoke(
@@ -260,12 +260,43 @@ def test_missing_provenance_and_unverified_measurements_do_not_get_explained(ind
 
 def test_benchmark_objective_uses_optimize_tipping_points(index):
     decision = decide(
-        spec(where=[], optimize={"weights": {"quality": 2, "-price": 1}}), index, facets=facets
+        spec(
+            where=[],
+            optimize={"weights": {"swe_bench_pro": 2, "-model.context_window": 1}},
+        ),
+        index,
+        facets=facets,
     )
     assert decision.results[0].offering.model == "lab/b"
     assert decision.results[0].contributions[1].evidence[0].value == 90
     assert decision.results[0].contributions[1].evidence[0].measured_by == "provider_self_report"
     assert decision.results[0].estimates is None
+
+
+def test_objective_qualifiers_reach_the_optimiser(index):
+    decision = decide(
+        spec(where=[], optimize={"max": "swe_bench_pro @independent @default_effort"}),
+        index,
+        facets=facets,
+    )
+    assert decision.results[0].offering.model == "lab/a"
+    assert decision.results[0].contributions[0].evidence[0].measured_by == "independent"
+
+
+def test_fact_units_come_from_the_real_facet_registry(tmp_path):
+    from decision.registry import facet
+
+    built = build_snapshot(
+        SnapshotInputs(models=[model("lab/a")], sources=SOURCES),
+        as_of=date(2026, 9, 24),
+    )
+    snapshot = load_snapshot(built.write(tmp_path / "units.gz", key=None), key=None)
+    request = parse_spec(
+        {"spec_version": 1, "optimize": {"max": "model.context_window"}, "explain": "full"},
+        facets=facet,
+    )
+    decision = decide(request, snapshot, facets=facet)
+    assert decision.results[0].contributions[0].unit == "tokens"
 
 
 def test_top_twenty_does_not_depend_on_result_limit(index):
@@ -276,23 +307,28 @@ def test_top_twenty_does_not_depend_on_result_limit(index):
 
 
 def test_empty_feasible_set_and_domain_objectives_remain_honest(index):
-    empty = decide(spec(where=["context > 1000"]), index, facets=facets)
+    empty = decide(spec(where=["model.max_output_tokens > 1000"]), index, facets=facets)
     assert empty.status == "no_feasible"
-    assert empty.relax == ["context > 1000"]
+    assert empty.relax == ["model.max_output_tokens > 1000"]
     assert empty.constraint_costs[0].gain == {}
-    domain = decide(spec(optimize={"max": "coding"}), index, facets=facets)
+    domain = decide(spec(optimize={"max": "software_engineering"}), index, facets=facets)
     assert domain.status == "no_feasible"
     assert "MODEL-129" in domain.relax[0]
 
 
 def test_tipping_point_is_the_optimiser_weight_crossing(index):
     decision = decide(
-        spec(where=[], optimize={"weights": {"quality": 2, "context": 1}}), index, facets=facets
+        spec(
+            where=[],
+            optimize={"weights": {"swe_bench_pro": 2, "model.max_output_tokens": 1}},
+        ),
+        index,
+        facets=facets,
     )
     assert decision.results[0].offering.model == "lab/b"
     assert [(p.dimension, p.threshold, p.new_top) for p in decision.tipping_points] == [
-        ("context", 2, "lab/a"),
-        ("quality", 1, "lab/a"),
+        ("model.max_output_tokens", 2, "lab/a"),
+        ("swe_bench_pro", 1, "lab/a"),
     ]
 
 
@@ -330,17 +366,29 @@ def test_numeric_list_fact_values_are_measurements_not_counts(tmp_path):
 
 
 def test_full_explains_multiple_measurements_failing_an_evidence_window(tmp_path):
-    rows = [evidence("lab/a", "quality", value, measured_by="independent") for value in (40, 50)]
+    rows = [
+        evidence("lab/a", "swe_bench_pro", value, measured_by="independent")
+        for value in (40, 50)
+    ]
     built = build_snapshot(
         SnapshotInputs(
-            models=[model("lab/a", facts=[fact("model", "lab/a", "price", 1)])],
+            models=[
+                model(
+                    "lab/a",
+                    facts=[fact("model", "lab/a", "model.context_window", 1)],
+                )
+            ],
             evidence=rows,
             sources=SOURCES,
-            benchmark_domains={"quality": [("coding", "direct")]},
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
         )
     )
     index = load_snapshot(built.write(tmp_path / "multi.gz", key=None), key=None)
-    decision = decide(spec(where=[{"facet": "quality", "between": [60, 90]}]), index, facets=facets)
+    decision = decide(
+        spec(where=[{"facet": "swe_bench_pro", "between": [60, 90]}]),
+        index,
+        facets=facets,
+    )
     (reason,) = decision.eliminated.models
     assert reason.value is None
     assert reason.values == [40, 50]

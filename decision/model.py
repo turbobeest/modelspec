@@ -8,6 +8,8 @@ are read here. See docs/decision-model.md for the card evidence mapping.
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
 import math
 from importlib import import_module
 from pathlib import Path
@@ -52,6 +54,10 @@ class TargetRef(Record):
     id: Text
 
 
+class VerificationTarget(TargetRef):
+    value_hash: ContentRef
+
+
 class VerificationActor(Record):
     agent: Text
     model_family: Text
@@ -59,7 +65,7 @@ class VerificationActor(Record):
 
 
 class Verification(Record):
-    target: TargetRef
+    target: VerificationTarget
     collector: VerificationActor
     verifier: VerificationActor
     method: Text
@@ -85,18 +91,37 @@ class Verification(Record):
         return self.outcome != "verified"
 
 
-def _registered(info: ValidationInfo, collection: str, id: str):
+def _registry(info: ValidationInfo):
     registry = (info.context or {}).get("registry")
     if registry is None:
         registry = import_module("decision.registry")
+    return registry
+
+
+def _registered(info: ValidationInfo, collection: str, id: str):
+    registry = _registry(info)
     try:
         return getattr(registry, collection)(id)
     except KeyError as exc:
         raise ValueError(f"unknown {collection} ID: {id}") from exc
 
 
-def _check_value(value: JsonValue, value_type: str) -> None:
-    if value_type == "date":
+def _allowed_values(registry, facet) -> frozenset[str] | None:
+    if isinstance(facet.value_type, str):
+        return None
+    owner = registry.default() if hasattr(registry, "default") else registry
+    return owner.allowed_values(facet) if hasattr(owner, "allowed_values") else None
+
+
+def _check_value(value: JsonValue, facet, registry) -> None:
+    value_type = facet.value_type
+    kind = value_type if isinstance(value_type, str) else value_type.kind
+    if not isinstance(value_type, str):
+        if value == "unbounded" and value_type.unbounded:
+            return
+        if value == "not_offered" and value_type.not_offered:
+            return
+    if kind == "date":
         if not isinstance(value, str):
             raise ValueError("date value must be an ISO date string")
         parsed = datetime.date.fromisoformat(value)
@@ -105,6 +130,7 @@ def _check_value(value: JsonValue, value_type: str) -> None:
         checks = {
             "integer": lambda: type(value) is int,
             "number": lambda: type(value) in (int, float) and math.isfinite(value),
+            "bool": lambda: type(value) is bool,
             "boolean": lambda: type(value) is bool,
             "string": lambda: isinstance(value, str),
             "string_set": lambda: (
@@ -112,19 +138,44 @@ def _check_value(value: JsonValue, value_type: str) -> None:
                 and all(isinstance(item, str) for item in value)
                 and len(value) == len(set(value))
             ),
+            "enum": lambda: isinstance(value, str),
+            "set": lambda: (
+                isinstance(value, list)
+                and all(isinstance(item, str) for item in value)
+                and len(value) == len(set(value))
+            ),
+            "range": lambda: (
+                isinstance(value, list)
+                and len(value) == 2
+                and all(type(item) in (int, float) and math.isfinite(item) for item in value)
+                and value[0] <= value[1]
+            ),
         }
-        if value_type not in checks:
-            raise ValueError(f"unsupported facet value_type: {value_type}")
-        valid = checks[value_type]()
+        if kind not in checks:
+            raise ValueError(f"unsupported facet value_type: {kind}")
+        valid = checks[kind]()
     if not valid:
-        raise ValueError(f"value must match facet value_type {value_type}")
+        raise ValueError(f"value must match facet value_type {kind}")
+    allowed = _allowed_values(registry, facet)
+    members = value if kind in ("set", "string_set") else [value]
+    if allowed is not None and any(member not in allowed for member in members):
+        raise ValueError(f"value must use the facet's registered values: {sorted(allowed)}")
 
 
-def _check_target(verification: Verification | None, kind: str, id: str) -> None:
+def value_hash(value: JsonValue) -> str:
+    encoded = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _check_target(verification: Verification | None, kind: str, id: str, value: JsonValue) -> None:
     if verification is not None and (
-        verification.target.kind != kind or verification.target.id != id
+        verification.target.kind != kind
+        or verification.target.id != id
+        or verification.target.value_hash != value_hash(value)
     ):
-        raise ValueError("verification target does not match this record")
+        raise ValueError("verification target or value_hash does not match this record")
 
 
 class Fact(Record):
@@ -139,15 +190,20 @@ class Fact(Record):
     @model_validator(mode="after")
     def valid_fact(self, info: ValidationInfo) -> Self:
         facet = _registered(info, "facet", self.facet)
+        facet_subject = getattr(facet, "subject", None)
+        if facet_subject is not None and facet_subject != self.subject.kind:
+            raise ValueError(
+                f"facet {self.facet} belongs to {facet_subject}, not {self.subject.kind}"
+            )
         if self.subject.kind == "provider":
             _registered(info, "provider", self.subject.id)
         if self.state == "known":
             if self.value is None or not self.sources:
                 raise ValueError("a known fact requires a value and sources")
-            _check_value(self.value, facet.value_type)
+            _check_value(self.value, facet, _registry(info))
         elif self.value is not None:
             raise ValueError("only a known fact may have a value")
-        _check_target(self.verification, "fact", self.id)
+        _check_target(self.verification, "fact", self.id, self.value)
         return self
 
     @property
@@ -156,8 +212,8 @@ class Fact(Record):
 
 
 class RegionLocator(Record):
-    kind: Literal["css", "xpath", "heading_anchor"]
-    value: Text
+    kind: Literal["page", "css", "xpath", "heading", "heading_anchor", "table"]
+    value: str = ""
 
 
 class CitedRegion(Record):
@@ -168,24 +224,41 @@ class CitedRegion(Record):
 class Source(Record):
     id: Text
     url: HttpUrl
-    fetch: Literal["http", "conditional_http", "rendered"]
-    normaliser: Text
-    cited_regions: list[CitedRegion] = Field(min_length=1)
+    fetch: Literal["http", "conditional_http", "rendered"] = "conditional_http"
+    normaliser: Text = "html-default"
+    cited_regions: list[CitedRegion] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def unique_regions(self) -> Self:
+        from decision.normalise import NORMALISERS, Locator
+
         ids = [region.id for region in self.cited_regions]
         if len(ids) != len(set(ids)):
             raise ValueError("cited region IDs must be unique within a source")
+        if self.normaliser not in NORMALISERS:
+            raise ValueError(f"unknown normaliser {self.normaliser!r}")
+        for region in self.cited_regions:
+            locator = region.locator
+            if locator.kind == "xpath":
+                raise ValueError(
+                    "xpath cited-region locators are not supported; register a css, "
+                    "heading_anchor, table, or page locator"
+                )
+            kind = "heading" if locator.kind == "heading_anchor" else locator.kind
+            Locator(kind, locator.value)
+            if NORMALISERS[self.normaliser].content == "text" and kind != "page":
+                raise ValueError("text sources support only page locators")
         return self
 
 
 class SourceSnapshot(Record):
     source_id: Text
     retrieved_at: AwareDatetime
-    fingerprint: ContentRef
-    region_fingerprints: dict[Text, ContentRef]
+    page_fingerprint: ContentRef
+    region_fingerprints: dict[Text, ContentRef | None]
     copy_ref: ContentRef
+    etag: Text | None = None
+    last_modified: Text | None = None
 
 
 class EvidenceSubjectRef(Record):
@@ -225,7 +298,7 @@ class Evidence(BenchmarkEvidence):
         if self.verification is not None:
             if self.id is None or self.subject is None or not self.sources:
                 raise ValueError("verification requires an ID, subject and source snapshots")
-            _check_target(self.verification, "evidence", self.id)
+            _check_target(self.verification, "evidence", self.id, self.score)
         return self
 
     @property

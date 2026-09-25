@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import difflib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from functools import cache
 from pathlib import Path
@@ -218,7 +218,25 @@ class Registry:
             raise UnknownIdError(kind, str(id_), table) from None
 
     def facet(self, id_: str) -> Facet:
-        return self._get("facet", self._facets, id_)
+        if id_ in self._facets:
+            return self._facets[id_]
+        for facet in self._facets.values():
+            if facet.parameter is None:
+                continue
+            producer = self._named_lists[facet.parameter.values_from]
+            if producer is not None and id_ in producer():
+                return replace(facet, id=id_)
+        raise UnknownIdError("facet", str(id_), self._known_facet_ids())
+
+    def _known_facet_ids(self) -> tuple[str, ...]:
+        ids = list(self._facets)
+        for facet in self._facets.values():
+            if facet.parameter is None:
+                continue
+            producer = self._named_lists[facet.parameter.values_from]
+            if producer is not None:
+                ids.extend(producer())
+        return tuple(ids)
 
     def unit(self, id_: str) -> Unit:
         return self._get("unit", self._units, id_)

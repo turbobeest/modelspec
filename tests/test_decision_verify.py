@@ -18,7 +18,14 @@ import yaml
 from typer.testing import CliRunner
 
 from decision import verify
-from decision.model import SourceRef, TargetRef, Verification, VerificationActor
+from decision.model import (
+    SourceRef,
+    TargetRef,
+    Verification,
+    VerificationActor,
+    VerificationTarget,
+    value_hash,
+)
 from decision.sources import CopyStore, RecheckReport, SourceSnapshot, SourceState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "verification"
@@ -268,7 +275,7 @@ def test_model_cells_split_into_identity_and_effort(cell, name, effort) -> None:
 
 def _record(target_id: str, outcome: str, day: date) -> Verification:
     return Verification(
-        target=TargetRef(kind="fact", id=target_id),
+        target=VerificationTarget(kind="fact", id=target_id, value_hash=value_hash(1)),
         collector=COLLECTOR,
         verifier=VerificationActor(agent="v", model_family="deterministic", method="m"),
         method="m",
@@ -306,7 +313,10 @@ def test_module_level_quarantine_helpers_read_a_directory(log) -> None:
     log.append(_record("bad", "unreachable", TODAY))
     target = TargetRef(kind="fact", id="bad")
     assert verify.is_quarantined(target, directory=log.directory)
-    assert verify.quarantined_values(directory=log.directory) == [target]
+    [quarantined] = verify.quarantined_values(directory=log.directory)
+    assert quarantined == VerificationTarget(
+        kind="fact", id="bad", value_hash=value_hash(1)
+    )
 
 
 # --- triggers: change detection re-queues, --changed-only ---------------------------------------
@@ -320,7 +330,12 @@ def test_changed_regions_are_reverified_against_the_new_copy(store, regions, log
         "<td>64.0</td>", "<td>65.0</td>")
     new_ref = store.put(page.encode())
     state = SourceState("seeded-leaderboard", SourceSnapshot(
-        "seeded-leaderboard", NOW, "sha256:" + "1" * 64, {}, new_ref))
+        source_id="seeded-leaderboard",
+        retrieved_at=NOW,
+        page_fingerprint="sha256:" + "1" * 64,
+        region_fingerprints={},
+        copy_ref=new_ref,
+    ))
     report = RecheckReport(requeue=["evidence:sol-default", "evidence:sol-max"],
                            states={"seeded-leaderboard": state})
     queue.requeue(report, at=NOW)

@@ -1,4 +1,4 @@
-"""MODEL-135: the decision contract, v1.
+"""MODEL-135: the decision contract.
 
 The contract comes before the engine so the engine tickets (MODEL-141, 142,
 145) can build against it in parallel. These tests hold what a caller relies
@@ -7,9 +7,7 @@ and compact forms, an invalid spec names the condition, field and reason, the
 spec hash is canonical, and the public document, the generated JSON Schema and
 the types agree.
 
-The facet registry (MODEL-133, ``decision.registry.facet``) was being built in
-parallel, so these tests inject a small stub with the agreed interface
-(``.id``, ``.value_type``, ``.tier``, ``.risk``; ``KeyError`` when unknown).
+Facet validation uses the real MODEL-133 registry.
 """
 
 from __future__ import annotations
@@ -17,7 +15,6 @@ from __future__ import annotations
 import json
 import re
 import sys
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -29,45 +26,10 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from decision import contract as c  # noqa: E402
 from decision import decide  # noqa: E402
+from decision.registry import facet as registry_facet  # noqa: E402
 
 DOC = REPO_ROOT / "docs" / "decision-contract.md"
 SCHEMA = REPO_ROOT / "docs" / "decision-contract.schema.json"
-
-
-# ── registry stub (MODEL-133's interface) ─────────────────────────────────
-
-
-@dataclass(frozen=True)
-class _Facet:
-    id: str
-    value_type: str
-    tier: str
-    risk: str
-
-
-_STUB = {
-    f.id: f
-    for f in [
-        _Facet("input_price", "number", "guaranteed", "capability"),
-        _Facet("context_window", "integer", "guaranteed", "capability"),
-        _Facet("swe_bench_pro", "number", "best_effort", "capability"),
-        _Facet("coding", "number", "guaranteed", "capability"),
-        _Facet("cost_per_task", "number", "best_effort", "capability"),
-        _Facet("output_tps", "number", "best_effort", "capability"),
-        _Facet("offered_on", "string", "guaranteed", "capability"),
-        _Facet("deployment", "enum", "guaranteed", "capability"),
-        _Facet("license", "enum", "guaranteed", "governance"),
-        _Facet("origin.lab_country", "enum", "guaranteed", "governance"),
-        _Facet("data.trains_on_customer_data", "bool", "guaranteed", "governance"),
-        _Facet("license.commercial_use", "bool", "guaranteed", "governance"),
-        _Facet("parameters.total", "integer", "best_effort", "capability"),
-        _Facet("release_date", "date", "guaranteed", "capability"),
-    ]
-}
-
-
-def stub_facet(facet_id: str) -> _Facet:
-    return _STUB[facet_id]
 
 
 # ── the DPF example, the one every section below leans on ────────────────
@@ -81,14 +43,14 @@ capabilities:
   coding.rust: required
   formal_verification: preferred
 where:
-  - input_price in [0.50, 3.00]
+  - offering.price.input in [0.50, 3.00]
   - swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
-  - any: [ offered_on = aws-bedrock:us-east-1, deployment = self_hosted ]
-  - not: license = noncommercial
-  - coding >= model(openai/gpt-6-sol)
-  - context_window >= 200000 soft(0.2)
+  - any: [ offering.provider = aws-bedrock, model.weights_openness = open_weights ]
+  - not: licence.commercial_use = prohibited
+  - software_engineering >= model(openai/gpt-6-sol)
+  - model.context_window >= 200000 soft(0.2)
 optimize:
-  weights: { coding: 0.6, -cost_per_task: 0.3, output_tps: 0.1 }
+  weights: { software_engineering: 0.6, -offering.price.output: 0.3, offering.speed.throughput: 0.1 }
 unknowns: default
 explain: summary
 limit: 20
@@ -97,34 +59,34 @@ save_as: acme-rust-refactor
 
 
 def _spec(text: str = DPF_SPEC) -> c.Spec:
-    return c.parse_spec(text, facets=stub_facet)
+    return c.parse_spec(text, facets=registry_facet)
 
 
 # ── the compact condition grammar ─────────────────────────────────────────
 
 
 COMPACT = [
-    "input_price in [0.5, 3.0]",
+    "offering.price.input in [0.5, 3.0]",
     "swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01",
-    "offered_on = aws-bedrock:us-east-1",
-    "license != noncommercial",
-    "coding >= model(openai/gpt-6-sol)",
-    "context_window >= 200000 soft(0.2)",
-    "context_window >= 200000 soft(penalty: 0.2)",
-    "origin.lab_country in {US}",
-    "origin.lab_country not in {CN, RU}",
-    "known(parameters.total)",
-    "known(parameters.total) soft(0.1)",
+    "offering.provider = aws-bedrock",
+    "licence.commercial_use != prohibited",
+    "software_engineering >= model(openai/gpt-6-sol)",
+    "model.context_window >= 200000 soft(0.2)",
+    "model.context_window >= 200000 soft(penalty: 0.2)",
+    "origin.lab_jurisdiction in {US}",
+    "origin.lab_jurisdiction not in {CN, RU}",
+    "known(model.parameters_total)",
+    "known(model.parameters_total) soft(0.1)",
     "swe_bench_pro > 40 @provider_self_report @max_effort",
     "swe_bench_pro > 40 @any @effort(high) @harness(claude-code@2.1) @direct",
-    "data.trains_on_customer_data = false unknown(fail)",
-    "data.trains_on_customer_data = false unknown: fail",
-    "release_date >= 2026-01-01 unknown(pass)",
-    'offered_on = "odd value, with a comma"',
-    "any(offered_on = aws-bedrock:us-east-1; deployment = self_hosted)",
-    "all(input_price <= 3; not(license = noncommercial)) soft(0.5)",
-    "not(license = noncommercial) unknown(list)",
-    "input_price < -1.5",
+    "offering.data.trains_on_customer_data = false unknown(fail)",
+    "offering.data.trains_on_customer_data = false unknown: fail",
+    "model.release_date >= 2026-01-01 unknown(pass)",
+    'offering.provider = "odd value, with a comma"',
+    "any(offering.provider = aws-bedrock; model.weights_openness = open_weights)",
+    "all(offering.price.input <= 3; not(licence.commercial_use = prohibited)) soft(0.5)",
+    "not(licence.commercial_use = prohibited) unknown(list)",
+    "offering.price.input < -1.5",
 ]
 
 
@@ -159,8 +121,50 @@ def test_evidence_qualifiers_parse_into_named_fields() -> None:
     assert q.measured_after == date(2026, 6, 1)
 
 
+def test_real_registry_allows_qualifiers_only_on_evidence_facets() -> None:
+    from decision.registry import facet
+
+    accepted = c.parse_spec(
+        {
+            "spec_version": 1,
+            "where": ["swe_bench_pro >= 55 @independent"],
+            "optimize": {"max": "swe_bench_pro"},
+        },
+        facets=facet,
+    )
+    assert accepted.where[0].qualifiers.measured_by == "independent"
+
+    with pytest.raises(c.SpecError, match="qualifiers are only valid on evidence facets"):
+        c.parse_spec(
+            {
+                "spec_version": 1,
+                "where": ["model.context_window >= 128000 @independent"],
+                "optimize": {"max": "model.context_window"},
+            },
+            facets=facet,
+        )
+
+
+def test_objective_terms_accept_evidence_qualifiers() -> None:
+    from decision.registry import facet
+
+    spec = c.parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent @default_effort"},
+        },
+        facets=facet,
+    )
+    assert spec.optimize.max == "swe_bench_pro"
+    assert spec.optimize.qualifiers["swe_bench_pro"] == c.EvidenceQualifiers(
+        measured_by="independent", effort="default"
+    )
+    assert '"qualifiers"' in c.canonical_json(spec)
+    assert c.CONTRACT_VERSION == "1.1"
+
+
 def test_relative_condition_names_the_model() -> None:
-    cond = c.parse_condition("coding >= model(openai/gpt-6-sol)")
+    cond = c.parse_condition("software_engineering >= model(openai/gpt-6-sol)")
     assert isinstance(cond, c.Compare)
     assert cond.value == c.ModelRef(model="openai/gpt-6-sol")
 
@@ -170,8 +174,8 @@ def test_set_values_are_canonically_ordered() -> None:
 
 
 def test_iso_dates_are_dates_in_both_forms() -> None:
-    compact = c.parse_condition("release_date >= 2026-01-01")
-    as_dict = c.parse_condition({"facet": "release_date", "op": ">=", "value": "2026-01-01"})
+    compact = c.parse_condition("model.release_date >= 2026-01-01")
+    as_dict = c.parse_condition({"facet": "model.release_date", "op": ">=", "value": "2026-01-01"})
     assert compact == as_dict
     assert compact.value == date(2026, 1, 1)
 
@@ -183,14 +187,14 @@ BAD_CONDITIONS = [
     ("swe_bench_pro >= 55 @independnt", "swe_bench_pro", "@independnt"),
     ("swe_bench_pro >= 55 @independent @provider_self_report", "swe_bench_pro", "measured_by"),
     ("swe_bench_pro >=", "swe_bench_pro", "value"),
-    ("input_price in [3, 1]", "input_price", "low"),
-    ("known(parameters.total) unknown(list)", "parameters.total", "known()"),
-    ("context_window >= 1 soft(0)", "context_window", "penalty"),
+    ("offering.price.input in [3, 1]", "offering.price.input", "low"),
+    ("known(model.parameters_total) unknown(list)", "model.parameters_total", "known()"),
+    ("model.context_window >= 1 soft(0)", "model.context_window", "penalty"),
     ("swe_bench_pro > 1 @harness(claude-code)", "swe_bench_pro", "name@major.minor"),
-    ("coding >= model(GPT 6)", "coding", "model"),
-    ("coding == 3", "coding", "operator"),
-    ("coding >= 3 unknown(maybe)", "coding", "unknown"),
-    ("coding >= 3 measured_after yesterday", "coding", "date"),
+    ("software_engineering >= model(GPT 6)", "software_engineering", "model"),
+    ("software_engineering == 3", "software_engineering", "operator"),
+    ("software_engineering >= 3 unknown(maybe)", "software_engineering", "unknown"),
+    ("software_engineering >= 3 measured_after yesterday", "software_engineering", "date"),
     ("Coding >= 3", "Coding", "facet"),
     ("x in {}", "x", "empty"),
     ("any(a = 1)", None, "at least two"),
@@ -200,7 +204,7 @@ BAD_CONDITIONS = [
 @pytest.mark.parametrize(("text", "field", "reason"), BAD_CONDITIONS)
 def test_bad_conditions_name_condition_field_and_reason(text, field, reason) -> None:
     with pytest.raises(c.SpecError) as info:
-        c.parse_spec({"spec_version": 1, "where": [text], "optimize": {"max": "coding"}},
+        c.parse_spec({"spec_version": 1, "where": [text], "optimize": {"max": "software_engineering"}},
                      facets=None)
     [issue] = info.value.issues
     assert issue.condition == text
@@ -215,19 +219,19 @@ def test_bad_conditions_name_condition_field_and_reason(text, field, reason) -> 
 def test_a_bad_nested_condition_points_at_its_own_path() -> None:
     raw = {
         "spec_version": 1,
-        "where": ["coding >= 1", {"any": ["deployment = self_hosted", "coding >= @x"]}],
-        "optimize": {"max": "coding"},
+        "where": ["software_engineering >= 1", {"any": ["model.weights_openness = open_weights", "software_engineering >= @x"]}],
+        "optimize": {"max": "software_engineering"},
     }
     with pytest.raises(c.SpecError) as info:
         c.parse_spec(raw, facets=None)
     [issue] = info.value.issues
     assert issue.path == "where[1].any[1]"
-    assert issue.condition == "coding >= @x"
-    assert issue.field == "coding"
+    assert issue.condition == "software_engineering >= @x"
+    assert issue.field == "software_engineering"
 
 
 def test_yaml_splitting_a_compact_condition_gets_a_useful_error() -> None:
-    text = "spec_version: 1\noptimize: {max: coding}\nwhere:\n  - coding >= 1 soft(penalty: 0.2)\n"
+    text = "spec_version: 1\noptimize: {max: software_engineering}\nwhere:\n  - software_engineering >= 1 soft(penalty: 0.2)\n"
     with pytest.raises(c.SpecError) as info:
         c.parse_spec(text, facets=None)
     [issue] = info.value.issues
@@ -236,12 +240,12 @@ def test_yaml_splitting_a_compact_condition_gets_a_useful_error() -> None:
 
 
 def test_a_bad_yaml_form_condition_is_reported_too() -> None:
-    raw = {"spec_version": 1, "optimize": {"max": "coding"},
-           "where": [{"facet": "coding", "op": ">=", "value": 3, "soft": {"penalty": 2}}]}
+    raw = {"spec_version": 1, "optimize": {"max": "software_engineering"},
+           "where": [{"facet": "software_engineering", "op": ">=", "value": 3, "soft": {"penalty": 2}}]}
     with pytest.raises(c.SpecError) as info:
         c.parse_spec(raw, facets=None)
     [issue] = info.value.issues
-    assert issue.field == "coding"
+    assert issue.field == "software_engineering"
     assert "penalty" in issue.reason
     assert issue.path == "where[0]"
 
@@ -250,7 +254,7 @@ def test_a_bad_yaml_form_condition_is_reported_too() -> None:
 
 
 def test_unknown_facet_fails_naming_it() -> None:
-    text = DPF_SPEC.replace("input_price in", "input_prize in")
+    text = DPF_SPEC.replace("offering.price.input in", "input_prize in")
     with pytest.raises(c.SpecError) as info:
         _spec(text)
     [issue] = info.value.issues
@@ -265,11 +269,11 @@ def test_every_facet_reference_is_checked() -> None:
     raw = {
         "spec_version": 1,
         "where": [{"not": "nope_a = 1"}],
-        "optimize": {"weights": {"coding": 1, "-nope_b": 1}},
+        "optimize": {"weights": {"software_engineering": 1, "-nope_b": 1}},
         "profile": {"profile_version": 1, "rules": ["nope_c = true"]},
     }
     with pytest.raises(c.SpecError) as info:
-        c.parse_spec(raw, facets=stub_facet)
+        c.parse_spec(raw, facets=registry_facet)
     fields = {i.field for i in info.value.issues}
     assert fields == {"nope_a", "nope_b", "nope_c"}
     paths = {i.path for i in info.value.issues}
@@ -277,21 +281,21 @@ def test_every_facet_reference_is_checked() -> None:
 
 
 def test_ordering_an_unordered_facet_is_rejected() -> None:
-    raw = {"spec_version": 1, "where": ["license.commercial_use >= true"],
-           "optimize": {"max": "coding"}}
+    raw = {"spec_version": 1, "where": ["offering.data.trains_on_customer_data >= true"],
+           "optimize": {"max": "software_engineering"}}
     with pytest.raises(c.SpecError) as info:
-        c.parse_spec(raw, facets=stub_facet)
+        c.parse_spec(raw, facets=registry_facet)
     [issue] = info.value.issues
-    assert issue.field == "license.commercial_use"
+    assert issue.field == "offering.data.trains_on_customer_data"
     assert "bool" in issue.reason
 
 
 def test_optimising_an_unordered_facet_is_rejected() -> None:
-    raw = {"spec_version": 1, "optimize": {"max": "license"}}
+    raw = {"spec_version": 1, "optimize": {"max": "licence.commercial_use"}}
     with pytest.raises(c.SpecError) as info:
-        c.parse_spec(raw, facets=stub_facet)
+        c.parse_spec(raw, facets=registry_facet)
     [issue] = info.value.issues
-    assert issue.field == "license"
+    assert issue.field == "licence.commercial_use"
     assert issue.path == "optimize.max"
 
 
@@ -308,7 +312,7 @@ def test_the_dpf_example_parses() -> None:
     assert len(spec.where) == 6
     assert isinstance(spec.where[2], c.AnyOf)
     assert isinstance(spec.where[3], c.NotOf)
-    assert spec.optimize.weights == {"coding": 0.6, "-cost_per_task": 0.3, "output_tps": 0.1}
+    assert spec.optimize.weights == {"software_engineering": 0.6, "-offering.price.output": 0.3, "offering.speed.throughput": 0.1}
     assert spec.explain == "summary"
     assert spec.limit == 20
     assert spec.save_as == "acme-rust-refactor"
@@ -335,21 +339,21 @@ def test_free_text_task_is_parsed_but_rejected_in_slice_1() -> None:
         ({"limit": 0}, "limit", "1"),
         ({"save_as": "Has Spaces"}, "save_as", "pattern"),
         ({"task_type": "vibes"}, "task_type", "refactor"),
-        ({"capabilities": {"coding": "nice"}}, "capabilities.coding", "required"),
+        ({"capabilities": {"software_engineering": "nice"}}, "capabilities.software_engineering", "required"),
         ({"unknowns": "pass"}, "unknowns", "default"),
         ({"wher": []}, "wher", "not a spec field"),
         ({"optimize": {}}, "optimize", "exactly one"),
-        ({"optimize": {"max": "coding", "min": "input_price"}}, "optimize", "exactly one"),
-        ({"optimize": {"weights": {"coding": 0}}}, "optimize.weights", "positive"),
-        ({"optimize": {"weights": {"coding": 1, "-coding": 1}}}, "optimize.weights", "twice"),
-        ({"optimize": {"pareto": ["coding"]}}, "optimize.pareto", "two"),
-        ({"optimize": {"lexicographic": [{"max": "coding"}]}}, "optimize.lexicographic", "two"),
-        ({"optimize": {"lexicographic": [{"max": "coding"}, {"min": "input_price within 5%"}]}},
+        ({"optimize": {"max": "software_engineering", "min": "offering.price.input"}}, "optimize", "exactly one"),
+        ({"optimize": {"weights": {"software_engineering": 0}}}, "optimize.weights", "positive"),
+        ({"optimize": {"weights": {"software_engineering": 1, "-software_engineering": 1}}}, "optimize.weights", "twice"),
+        ({"optimize": {"pareto": ["software_engineering"]}}, "optimize.pareto", "two"),
+        ({"optimize": {"lexicographic": [{"max": "software_engineering"}]}}, "optimize.lexicographic", "two"),
+        ({"optimize": {"lexicographic": [{"max": "software_engineering"}, {"min": "offering.price.input within 5%"}]}},
          "optimize.lexicographic", "last"),
     ],
 )
 def test_invalid_spec_fields_name_field_and_reason(patch, field, reason) -> None:
-    raw = {"spec_version": 1, "optimize": {"max": "coding"}} | patch
+    raw = {"spec_version": 1, "optimize": {"max": "software_engineering"}} | patch
     with pytest.raises(c.SpecError) as info:
         c.parse_spec(raw, facets=None)
     issues = info.value.issues
@@ -365,21 +369,21 @@ def test_optimize_is_required() -> None:
 def test_lexicographic_tolerances() -> None:
     spec = c.parse_spec(
         {"spec_version": 1, "optimize": {"lexicographic": [
-            {"max": "output_tps within 5%"},
-            {"min": "cost_per_task", "within": 0.25},
-            {"max": "coding"},
+            {"max": "offering.speed.throughput within 5%"},
+            {"min": "offering.price.output", "within": 0.25},
+            {"max": "software_engineering"},
         ]}},
-        facets=stub_facet,
+        facets=registry_facet,
     )
     steps = spec.optimize.lexicographic
-    assert steps[0].max == "output_tps" and steps[0].within == c.Tolerance(relative=0.05)
-    assert steps[1].min == "cost_per_task" and steps[1].within == c.Tolerance(absolute=0.25)
+    assert steps[0].max == "offering.speed.throughput" and steps[0].within == c.Tolerance(relative=0.05)
+    assert steps[1].min == "offering.price.output" and steps[1].within == c.Tolerance(absolute=0.25)
     assert steps[2].within is None
 
 
 def test_duplicate_yaml_keys_are_rejected() -> None:
     with pytest.raises(c.SpecError) as info:
-        c.parse_spec("spec_version: 1\nlimit: 5\nlimit: 6\noptimize: {max: coding}\n",
+        c.parse_spec("spec_version: 1\nlimit: 5\nlimit: 6\noptimize: {max: software_engineering}\n",
                      facets=None)
     assert "limit" in str(info.value)
 
@@ -388,7 +392,7 @@ def test_inline_profile() -> None:
     spec = c.parse_spec(
         {
             "spec_version": 1,
-            "optimize": {"max": "coding"},
+            "optimize": {"max": "software_engineering"},
             "profile": {
                 "profile_version": 1,
                 "id": "profile:acme-prod",
@@ -398,11 +402,11 @@ def test_inline_profile() -> None:
                            "hardware": {"class": "nvidia-dgx-spark", "count": 2,
                                         "memory_gb": 256}}],
                 "harnesses": ["claude-code@2.1", "dpf-native@1.0"],
-                "rules": ["origin.lab_country in {US}", "license.commercial_use = true"],
+                "rules": ["origin.lab_jurisdiction in {US}", "licence.commercial_use = true"],
                 "budget": {"max_cost_per_task_usd": 2.0},
             },
         },
-        facets=stub_facet,
+        facets=registry_facet,
     )
     assert isinstance(spec.profile, c.InventoryProfile)
     assert spec.profile.local[0].hardware.class_ == "nvidia-dgx-spark"
@@ -419,17 +423,17 @@ def test_hash_has_the_published_shape() -> None:
 def test_hash_is_stable_under_key_order_and_whitespace() -> None:
     reordered = """
 optimize:
-    weights:   {output_tps: 0.1,   -cost_per_task: 0.3, coding: 0.6}
+    weights:   {offering.speed.throughput: 0.1,   -offering.price.output: 0.3, software_engineering: 0.6}
 save_as: acme-rust-refactor
 limit: 20
 explain:    summary
 where:
-  - "input_price   in [0.5,3]"
+  - "offering.price.input   in [0.5,3]"
   - swe_bench_pro >= 55   @independent  @default_effort measured_after 2026-06-01
-  - any: [ offered_on = aws-bedrock:us-east-1, deployment = self_hosted ]
-  - not: license = noncommercial
-  - coding >= model(openai/gpt-6-sol)
-  - context_window >= 200000.0   soft(0.2)
+  - any: [ offering.provider = aws-bedrock, model.weights_openness = open_weights ]
+  - not: licence.commercial_use = prohibited
+  - software_engineering >= model(openai/gpt-6-sol)
+  - model.context_window >= 200000.0   soft(0.2)
 capabilities: {formal_verification: preferred, coding.rust: required}
 task_type: refactor
 profile: profile:acme-prod
@@ -440,18 +444,18 @@ spec_version: 1
 
 
 def test_hash_is_the_same_for_compact_and_yaml_conditions() -> None:
-    compact = {"spec_version": 1, "optimize": {"max": "coding"},
+    compact = {"spec_version": 1, "optimize": {"max": "software_engineering"},
                "where": ["swe_bench_pro >= 55 @independent measured_after 2026-06-01"]}
-    structured = {"spec_version": 1, "optimize": {"max": "coding"},
+    structured = {"spec_version": 1, "optimize": {"max": "software_engineering"},
                   "where": [{"facet": "swe_bench_pro", "op": ">=", "value": 55,
                              "qualifiers": {"measured_by": "independent",
                                             "measured_after": "2026-06-01"}}]}
-    assert c.spec_hash(c.parse_spec(compact, facets=stub_facet)) == \
-        c.spec_hash(c.parse_spec(structured, facets=stub_facet))
+    assert c.spec_hash(c.parse_spec(compact, facets=registry_facet)) == \
+        c.spec_hash(c.parse_spec(structured, facets=registry_facet))
 
 
 def test_hash_treats_omitted_defaults_as_the_defaults() -> None:
-    bare = {"spec_version": 1, "optimize": {"max": "coding"}}
+    bare = {"spec_version": 1, "optimize": {"max": "software_engineering"}}
     explicit = bare | {"snapshot": "latest", "explain": "summary", "limit": 20,
                        "unknowns": "default", "where": []}
     assert c.spec_hash(c.parse_spec(bare, facets=None)) == \
@@ -462,17 +466,17 @@ def test_hash_changes_when_the_spec_does() -> None:
     assert c.spec_hash(_spec()) != c.spec_hash(_spec(DPF_SPEC.replace("0.6", "0.7")))
     # condition order is part of the spec: it orders the elimination funnel
     swapped = DPF_SPEC.replace(
-        "  - input_price in [0.50, 3.00]\n  - swe_bench_pro",
+        "  - offering.price.input in [0.50, 3.00]\n  - swe_bench_pro",
         "  - swe_bench_pro",
-    ).replace("  - any:", "  - input_price in [0.50, 3.00]\n  - any:")
+    ).replace("  - any:", "  - offering.price.input in [0.50, 3.00]\n  - any:")
     assert c.spec_hash(_spec(swapped)) != c.spec_hash(_spec())
 
 
 def test_hash_is_pinned() -> None:
     """A change here changes every published spec_hash: that is a contract change."""
-    spec = c.parse_spec({"spec_version": 1, "optimize": {"max": "coding"}}, facets=None)
+    spec = c.parse_spec({"spec_version": 1, "optimize": {"max": "software_engineering"}}, facets=None)
     assert c.canonical_json(spec) == (
-        '{"explain":"summary","limit":20,"optimize":{"max":"coding"},'
+        '{"explain":"summary","limit":20,"optimize":{"max":"software_engineering"},'
         '"snapshot":"latest","spec_version":1,"unknowns":"default","where":[]}'
     )
 
@@ -511,17 +515,17 @@ DECISION = {
         "warnings": ["provisional_released_2_days_ago"],
     }],
     "may_qualify": [{"model": "google/gemini-3-8-pro",
-                     "unknown": ["data.trains_on_customer_data"]}],
+                     "unknown": ["offering.data.trains_on_customer_data"]}],
     "eliminated": {
-        "funnel": [{"condition": "input_price in [0.5, 3.0]", "before": 212, "after": 64,
+        "funnel": [{"condition": "offering.price.input in [0.5, 3.0]", "before": 212, "after": 64,
                     "may_qualify": 3}],
         "models": [{"model": "acme/slow-1", "condition": "swe_bench_pro >= 55 @independent",
                     "value": 41.0}],
     },
-    "constraint_costs": [{"condition": "origin.lab_country in {US}", "admits": 12,
+    "constraint_costs": [{"condition": "origin.lab_jurisdiction in {US}", "admits": 12,
                           "gain": {"coding.rust": 0.06}}],
     "tipping_points": [{"description": "rank 1 holds unless the cost weight exceeds 0.35",
-                        "dimension": "-cost_per_task", "threshold": 0.35,
+                        "dimension": "-offering.price.output", "threshold": 0.35,
                         "new_top": "openai/gpt-6-sol"}],
     "relax": [],
     "warnings": [],
@@ -539,8 +543,8 @@ def test_no_feasible_names_what_to_relax() -> None:
     raw = DECISION | {"status": "no_feasible", "results": [], "relax": []}
     with pytest.raises(ValueError, match="relax"):
         c.Decision.model_validate(raw)
-    ok = c.Decision.model_validate(raw | {"relax": ["input_price in [0.5, 3.0]"]})
-    assert ok.relax == ["input_price in [0.5, 3.0]"]
+    ok = c.Decision.model_validate(raw | {"relax": ["offering.price.input in [0.5, 3.0]"]})
+    assert ok.relax == ["offering.price.input in [0.5, 3.0]"]
 
 
 def test_no_feasible_has_no_results_and_answered_has_no_relax() -> None:
@@ -580,11 +584,11 @@ def _samples() -> list:
     return [
         spec,
         spec.optimize,
-        c.Objective(max="coding"),
-        c.Objective(pareto=["coding", "-cost_per_task"]),
-        c.Objective(lexicographic=[c.LexStep(max="output_tps", within=c.Tolerance(relative=0.05)),
-                                   c.LexStep(min="cost_per_task")]),
-        c.LexStep(min="cost_per_task", within=c.Tolerance(relative=0.1)),
+        c.Objective(max="software_engineering"),
+        c.Objective(pareto=["software_engineering", "-offering.price.output"]),
+        c.Objective(lexicographic=[c.LexStep(max="offering.speed.throughput", within=c.Tolerance(relative=0.05)),
+                                   c.LexStep(min="offering.price.output")]),
+        c.LexStep(min="offering.price.output", within=c.Tolerance(relative=0.1)),
         c.Tolerance(absolute=1.5),
         c.Hardware(class_="nvidia-dgx-spark", count=2, memory_gb=256),
         c.EvidenceQualifiers(measured_by="any", effort="max", harness="aider@0.9",

@@ -1,21 +1,20 @@
 """Resolve a spec before filtering (MODEL-141, design §6.1).
 
 Validate every facet against the registry, reject a free-text ``task``, and
-place the inventory profile's standing rules in front of ``where``. The facet
-registry is MODEL-133. Until it is merged, :func:`stub_facet` answers the
-facets the contract examples use and rejects every other id.
+place the inventory profile's standing rules in front of ``where``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from decision.contract import (
     AllOf,
     AnyOf,
     Compare,
+    EvidenceQualifiers,
     FacetLookup,
     InSet,
     InventoryProfile,
@@ -25,19 +24,7 @@ from decision.contract import (
     SpecError,
     check_facets,
 )
-
-Risk = Literal["capability", "governance"]
-
-
-@dataclass(frozen=True)
-class FacetView:
-    """The facet fields the filter needs. ``value_type`` is the registry kind."""
-
-    id: str
-    value_type: str
-    tier: str
-    risk: Risk
-    subject: str
+from decision.registry import facet as registry_facet
 
 
 @dataclass(frozen=True)
@@ -49,82 +36,12 @@ class Resolved:
     conditions: tuple[Any, ...]
     include_retired: bool
     facets: FacetLookup
+    objective_qualifiers: Mapping[str, EvidenceQualifiers]
 
-
-# Kind, tier, risk, subject. Not a score, and not a benchmark weight.
-_STUB_ROWS: dict[str, tuple[str, str, Risk, str]] = {
-    "input_price": ("number", "guaranteed", "capability", "offering"),
-    "context_window": ("integer", "guaranteed", "capability", "model"),
-    "swe_bench_pro": ("number", "best_effort", "capability", "evidence"),
-    "coding": ("number", "guaranteed", "capability", "model"),
-    "cost_per_task": ("number", "best_effort", "capability", "model"),
-    "output_tps": ("number", "best_effort", "capability", "offering"),
-    "offered_on": ("string", "guaranteed", "capability", "offering"),
-    "deployment": ("enum", "guaranteed", "capability", "model"),
-    "license": ("enum", "guaranteed", "governance", "model"),
-    "origin.lab_country": ("enum", "guaranteed", "governance", "model"),
-    "data.trains_on_customer_data": ("bool", "guaranteed", "governance", "offering"),
-    "license.commercial_use": ("bool", "guaranteed", "governance", "model"),
-    "parameters.total": ("integer", "best_effort", "capability", "model"),
-    "release_date": ("date", "guaranteed", "capability", "model"),
-    "model.lifecycle": ("enum", "guaranteed", "capability", "model"),
-    "lifecycle": ("enum", "guaranteed", "capability", "model"),
-}
-
-_STUB: dict[str, FacetView] = {
-    facet_id: FacetView(facet_id, kind, tier, risk, subject)
-    for facet_id, (kind, tier, risk, subject) in _STUB_ROWS.items()
-}
 
 _TASK_REASON = (
     "free-text task is not yet in slice 1; send task_type and capabilities instead"
 )
-
-
-def stub_facet(facet_id: str) -> FacetView:
-    """Registry stand-in. Raises ``KeyError`` for an id it does not hold."""
-    try:
-        return _STUB[facet_id]
-    except KeyError:
-        raise KeyError(facet_id) from None
-
-
-def load_facet_lookup() -> FacetLookup:
-    """``decision.registry.facet`` when MODEL-133 is importable, else :func:`stub_facet`."""
-    try:
-        from decision.registry import facet as registry_facet
-    except ImportError:
-        return stub_facet
-    return registry_facet
-
-
-def _view(facet_id: str, info: Any) -> FacetView:
-    if isinstance(info, FacetView):
-        return info
-    raw_type = getattr(info, "value_type", None)
-    kind = raw_type if isinstance(raw_type, str) else getattr(raw_type, "kind", None)
-    if not isinstance(kind, str):
-        raise SpecError([Issue(None, facet_id, f"{facet_id} has no value type", facet_id)])
-    risk = getattr(info, "risk", None)
-    if risk not in ("capability", "governance"):
-        raise SpecError([Issue(
-            None, facet_id,
-            f"{facet_id} has no risk direction (capability or governance)", facet_id,
-        )])
-    subject = getattr(info, "subject", None) or "model"
-    tier = getattr(info, "tier", "") or ""
-    return FacetView(getattr(info, "id", facet_id), kind, str(tier), risk, str(subject))
-
-
-def _lookup(raw: FacetLookup) -> FacetLookup:
-    def lookup(facet_id: str) -> FacetView:
-        try:
-            info = raw(facet_id)
-        except KeyError:
-            raise KeyError(facet_id) from None
-        return _view(facet_id, info)
-
-    return lookup
 
 
 def _is_lifecycle(facet_id: str) -> bool:
@@ -169,7 +86,7 @@ def resolve(
     profiles: Mapping[str, InventoryProfile] | None = None,
 ) -> Resolved:
     """Validate ``spec`` and return the condition list the filter runs, rules first."""
-    lookup = _lookup(facets if facets is not None else load_facet_lookup())
+    lookup = facets if facets is not None else registry_facet
     issues = check_facets(spec, lookup)
     profile = _loaded_profile(spec, profiles)
     if profile is not None and not isinstance(spec.profile, InventoryProfile):
@@ -190,4 +107,5 @@ def resolve(
         conditions=conditions,
         include_retired=any(asks_for_retired(cond) for cond in conditions),
         facets=lookup,
+        objective_qualifiers=spec.optimize.qualifiers,
     )

@@ -26,7 +26,6 @@ the builder reads them by field name, so either works.
 
 from __future__ import annotations
 
-import ast
 import gzip
 import hashlib
 import hmac
@@ -34,16 +33,17 @@ import io
 import json
 import math
 import os
-import re
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal, Protocol, runtime_checkable
-from urllib.parse import urlsplit
 
 import yaml
+
+from decision.excluded import ExcludedSources, excluded_sources
+from decision.model import value_hash
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -173,75 +173,13 @@ class SnapshotIndex(Protocol):
 class ExplanationIndex(SnapshotIndex, Protocol):
     """Snapshot metadata and retained records needed to transport a decision."""
 
+    def require_explanation_records(self) -> None: ...
     def kind(self, cid: str) -> Literal["model", "offering"]: ...
     def model_of(self, cid: str) -> str: ...
     def source_url(self, source_id: str) -> str: ...
     def record(self, record_id: str) -> Mapping[str, Any]: ...
     def facet_ids(self) -> tuple[str, ...]: ...
     def domain_ids(self) -> tuple[str, ...]: ...
-
-
-# ── excluded sources ───────────────────────────────────────────────────────
-
-
-@dataclass(frozen=True)
-class ExcludedSources:
-    """The excluded-source rules, read from ``tests/test_removed_sources.py``.
-
-    That file is the one place allowed to name the excluded publishers
-    (MODEL-117), so the rules are parsed out of it rather than copied here.
-    """
-
-    hosts: tuple[str, ...]
-    text: re.Pattern[str]
-    ids: re.Pattern[str]
-
-    def url(self, url: Any) -> bool:
-        host = (urlsplit(str(url or "").strip()).hostname or "").lower().rstrip(".")
-        return any(host == h or host.endswith("." + h) for h in self.hosts)
-
-    def benchmark(self, benchmark_id: Any) -> bool:
-        return bool(self.ids.search(str(benchmark_id)))
-
-
-def excluded_sources(repo_root: Path) -> ExcludedSources:
-    path = Path(repo_root) / "tests" / "test_removed_sources.py"
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError) as exc:
-        raise SnapshotBuildError(f"cannot read the excluded-source guard {path}: {exc}") from exc
-    found: dict[str, Any] = {}
-    for node in tree.body:
-        target = (node.target if isinstance(node, ast.AnnAssign)
-                  else node.targets[0] if isinstance(node, ast.Assign) else None)
-        if isinstance(target, ast.Name) and target.id in ("REMOVED_HOSTS", "REMOVED_TEXT",
-                                                          "REMOVED_ID"):
-            found[target.id] = node.value
-    try:
-        hosts = tuple(ast.literal_eval(found["REMOVED_HOSTS"]))
-        text, ids = (_compiled(found[name]) for name in ("REMOVED_TEXT", "REMOVED_ID"))
-    except (KeyError, ValueError) as exc:
-        raise SnapshotBuildError(f"{path}: cannot read the excluded-source rules ({exc})") from exc
-    return ExcludedSources(hosts=hosts, text=text, ids=ids)
-
-
-def _compiled(node: ast.AST) -> re.Pattern[str]:
-    """``re.compile("…", re.FLAG | …)`` as a pattern, without executing the file."""
-    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "compile"):
-        raise ValueError("expected re.compile(...)")
-    pattern = ast.literal_eval(node.args[0])
-    flags = 0
-    stack = list(node.args[1:])
-    while stack:
-        part = stack.pop()
-        if isinstance(part, ast.BinOp) and isinstance(part.op, ast.BitOr):
-            stack += [part.left, part.right]
-        elif isinstance(part, ast.Attribute):
-            flags |= getattr(re, part.attr)
-        else:
-            raise ValueError("unsupported regex flag expression")
-    return re.compile(pattern, flags)
 
 
 # ── inputs ─────────────────────────────────────────────────────────────────
@@ -415,32 +353,43 @@ class _Compiler:
     # verification ------------------------------------------------------------
 
     @staticmethod
-    def _verification_log(rows: Iterable[Any]) -> dict[tuple[str, str], tuple[str, int, dict]]:
-        latest: dict[tuple[str, str], tuple[str, int, dict]] = {}
+    def _verification_log(
+        rows: Iterable[Any],
+    ) -> dict[tuple[str, str, str], tuple[str, int, dict]]:
+        latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
         for i, raw in enumerate(rows):
             v = _as_dict(raw)
-            target = (v["target"]["kind"], v["target"]["id"])
-            entry = (str(v["date"]), 1, v)
-            if target not in latest or entry[:2] >= latest[target][:2]:
-                latest[target] = entry
+            target = v["target"]
+            key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
+            entry = (str(v["date"]), i + 1, v)
+            if key not in latest or entry[:2] >= latest[key][:2]:
+                latest[key] = entry
         return latest
 
-    def _verification(self, kind: str, rid: Any, inline: Any) -> dict | None:
+    def _verification(self, kind: str, rid: Any, inline: Any, value: Any) -> dict | None:
         """The winning verification record, or ``None``."""
-        best = None if inline is None else (str(_as_dict(inline)["date"]), 0, _as_dict(inline))
-        logged = self.log.get((kind, str(rid))) if rid is not None else None
+        expected = value_hash(value)
+        inline_record = None if inline is None else _as_dict(inline)
+        best = (
+            None
+            if inline_record is None
+            or inline_record.get("target", {}).get("value_hash") != expected
+            else (str(inline_record["date"]), 0, inline_record)
+        )
+        logged = self.log.get((kind, str(rid), expected)) if rid is not None else None
         if logged is not None and (best is None or logged[:2] >= best[:2]):
             best = logged
         return None if best is None else best[2]
 
-    def _outcome(self, kind: str, rid: Any, inline: Any) -> str:
-        record = self._verification(kind, rid, inline)
+    def _outcome(self, kind: str, rid: Any, inline: Any, value: Any) -> str:
+        record = self._verification(kind, rid, inline, value)
         return "unverified" if record is None else str(record["outcome"])
 
     def _retain(self, kind: str, record: dict) -> str:
         rid = str(record.get("id") or content_hash(record))
+        value = record.get("value") if kind == "fact" else record.get("score")
         retained = {**record, "verification": self._verification(
-            kind, record.get("id"), record.get("verification"))}
+            kind, record.get("id"), record.get("verification"), value)}
         if rid in self.records and self.records[rid] != retained:
             raise SnapshotBuildError(f"duplicate record ID {rid}")
         self.records[rid] = retained
@@ -451,7 +400,7 @@ class _Compiler:
     def _source_ids(self, refs: Iterable[Any]) -> list[str]:
         return sorted({str(_as_dict(r)["source_id"]) for r in refs or ()})
 
-    def _admit(self, kind: str, rid: Any, inline: Any, source_ids: list[str],
+    def _admit(self, kind: str, rid: Any, inline: Any, value: Any, source_ids: list[str],
                extra_urls: Iterable[Any] = (), benchmark: Any = None) -> str | None:
         """Why a record stays out, or ``None`` when it enters."""
         urls = [self.sources[s] for s in source_ids if s in self.sources]
@@ -459,7 +408,7 @@ class _Compiler:
                                        or (benchmark is not None
                                            and self.guard.benchmark(benchmark))):
             return "excluded_source"
-        outcome = self._outcome(kind, rid, inline)
+        outcome = self._outcome(kind, rid, inline, value)
         if outcome != "verified":
             return f"quarantined ({outcome})"
         if not source_ids:
@@ -500,7 +449,9 @@ class _Compiler:
                 self.rejected[(sid, facet_id)] = ("unknown", tuple(
                     self.sources.get(s, s) for s in source_ids))
                 continue
-            reason = self._admit("fact", f.get("id"), f.get("verification"), source_ids)
+            reason = self._admit(
+                "fact", f.get("id"), f.get("verification"), f.get("value"), source_ids
+            )
             if reason is not None:
                 self._reject((sid, facet_id), reason, source_ids)
                 continue
@@ -547,7 +498,7 @@ class _Compiler:
         if sid not in self.subjects:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
-        reason = self._admit("evidence", e.get("id"), e.get("verification"), source_ids,
+        reason = self._admit("evidence", e.get("id"), e.get("verification"), e.get("score"), source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
         if reason is not None:
             self.excluded["quarantined" if reason.startswith("quarantined") else reason] += 1
@@ -685,9 +636,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
       sunset map to ``deprecated``, everything else to ``active``), v2 ``facts``,
       and ``benchmarks.evidence`` rows. ``benchmarks.scores`` is never read.
     * Offerings: ``offerings/<provider>/<lab>/<model>.yaml``, each a list.
-    * Sources: ``registry/sources.yaml`` (``sources: [{id, url}]``).
+    * Sources: canonical ``registry/sources.yaml``; see ``verification/README.md``.
     * Domains: each benchmark page's ``domains`` tags.
-    * The verification log: ``verification/*.jsonl``.
+    * The verification log: ``verification/log.jsonl``.
     """
     from pipeline.load import load_benchmarks, load_models
 
@@ -716,20 +667,21 @@ def collect_repo(root: Path) -> SnapshotInputs:
             o["facts"] = [{"subject": {"kind": "offering", "id": oid},
                            "id": f"{oid}#{f.get('facet')}", **f} for f in o.get("facts") or []]
             offerings.append(o)
-    sources: dict[str, str] = {}
-    sources_file = root / "registry" / "sources.yaml"
-    if sources_file.is_file():
-        data = yaml.safe_load(sources_file.read_text(encoding="utf-8")) or {}
-        for s in data.get("sources") or []:
-            sources[str(s["id"])] = str(s["url"])
+    from decision.sources import load_sources
+
+    sources = {
+        source_id: str(source.url)
+        for source_id, source in load_sources(root / "registry" / "sources.yaml").items()
+    }
     domains = {}
     for b in load_benchmarks(root):
         tags = b.front.get("domains") or []
         if tags:
             domains[b.benchmark_id] = tuple((str(t["id"]), str(t["directness"])) for t in tags)
     verifications = []
-    for path in sorted((root / "verification").glob("*.jsonl")):
-        for line in path.read_text(encoding="utf-8").splitlines():
+    verification_log = root / "verification" / "log.jsonl"
+    if verification_log.is_file():
+        for line in verification_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 verifications.append(json.loads(line))
     return SnapshotInputs(models=models, offerings=offerings, evidence=evidence, sources=sources,
@@ -767,7 +719,7 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
         registry=registry if registry is not None else default_registry(),
         premier=load_premier(premier) if premier is not None else None,
         as_of=as_of,
-        guard=excluded_sources(root),
+        guard=excluded_sources(),
     )
 
 
@@ -864,6 +816,11 @@ class LoadedSnapshot:
         self._sources: dict[str, str] = dict(content["sources"])
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
+        self.explanation_rebuild_required = (
+            None
+            if "fact_records" in content and ("record_table" in content or "records" in content)
+            else "snapshot predates retained verification records; rebuild it before explaining"
+        )
         sections = [content["lineup"]] + ([content["archive"]] if include_archive else [])
 
         rows: list[tuple[dict[str, Any], dict[str, Any], int]] = []
@@ -998,6 +955,11 @@ class LoadedSnapshot:
             for e in self._evidence[cid] if e.benchmark_id in directness)
 
     # beyond the protocol -----------------------------------------------------
+
+    def require_explanation_records(self) -> None:
+        """Refuse explanations from a snapshot built before provenance retention."""
+        if self.explanation_rebuild_required is not None:
+            raise SnapshotError(self.explanation_rebuild_required)
 
     def kind(self, cid: str) -> Literal["model", "offering"]:
         self._check(cid)

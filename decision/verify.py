@@ -27,9 +27,9 @@ anything never verified, is **quarantined**.
 Files, under ``verification/`` at the repository root:
 
 - ``log.jsonl``: the verification log, append-only, one
-  ``decision.model.Verification`` per line. The latest outcome per target wins:
-  latest ``date``, and on a tie the later line (the rule ``decision.snapshot``
-  applies when it reads ``verification/*.jsonl``).
+  ``decision.model.Verification`` per line. The latest outcome per target and
+  checked value wins: latest ``date``, and on a tie the later line (the rule
+  ``decision.snapshot`` applies when it reads ``verification/log.jsonl``).
 - ``queue/events.jsonl``: append-only work queue. A collector files a claim
   (``collected``), change detection re-queues one (``changed``), a run records
   what it checked (``checked``). Mismatched and unreachable targets stay listed
@@ -50,10 +50,16 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
-import yaml
 from pydantic import JsonValue, ValidationError
 
-from decision.model import SourceRef, TargetRef, Verification, VerificationActor
+from decision.model import (
+    SourceRef,
+    TargetRef,
+    Verification,
+    VerificationActor,
+    VerificationTarget,
+    value_hash,
+)
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -61,7 +67,7 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
-from decision.sources import CitedRegion, CopyStore, RecheckReport, Source
+from decision.sources import CopyStore, RecheckReport, Source, load_sources
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
@@ -587,37 +593,6 @@ class Regions(Protocol):
         """The cited region's text in that retained copy, or ``None`` when unreachable."""
 
 
-_LOCATOR_KINDS = {"css": "css", "heading_anchor": "heading", "heading": "heading",
-                  "table": "table", "page": "page"}
-
-
-def load_sources(path: str | Path) -> dict[str, Source]:
-    """Registered sources from ``registry/sources.yaml`` (``sources: [...]``).
-
-    Region locators use ``decision.model``'s kinds (``css``, ``heading_anchor``;
-    ``xpath`` is not readable yet and its regions are left out, so claims citing
-    them are unreachable) or ``decision.normalise``'s (``table``, ``page``,
-    ``heading``). A missing file is an empty registry.
-    """
-    path = Path(path)
-    if not path.is_file():
-        return {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    registered: dict[str, Source] = {}
-    for entry in data.get("sources") or []:
-        regions = []
-        for region in entry.get("cited_regions") or []:
-            kind = _LOCATOR_KINDS.get(region["locator"]["kind"])
-            if kind is not None:
-                regions.append(CitedRegion(region["id"],
-                                           Locator(kind, str(region["locator"].get("value", "")))))
-        source = Source(id=entry["id"], url=entry["url"],
-                        normaliser=entry.get("normaliser", "html-default"),
-                        cited_regions=tuple(regions))
-        registered[source.id] = source
-    return registered
-
-
 class StoredRegions:
     """Regions read from retained copies in a ``CopyStore``.
 
@@ -638,7 +613,8 @@ class StoredRegions:
         rules = replace(NORMALISERS[source.normaliser], strip_volatile=False)
         try:
             doc = normalise_document(self.store.get(copy_ref), rules)
-            return select_region(doc, region.locator)
+            kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
+            return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
 
@@ -748,7 +724,11 @@ def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: d
                   diffs: Sequence[Diff] = ()) -> Verification:
     """Raises ``ValidationError`` when ``actor`` is not independent of the collector."""
     return Verification(
-        target=claim.target,
+        target=VerificationTarget(
+            kind=claim.target.kind,
+            id=claim.target.id,
+            value_hash=value_hash(claim.value),
+        ),
         collector=claim.collector,
         verifier=actor,
         method=actor.method,
@@ -852,7 +832,7 @@ class VerificationLog:
         return record is None or record.quarantined
 
     def quarantined_values(self, targets: Iterable[TargetRef | str] | None = None
-                           ) -> list[TargetRef]:
+                           ) -> list[TargetRef | VerificationTarget]:
         """Quarantined targets: of ``targets`` (never-verified ones included), else of the log."""
         latest = self.latest()
         if targets is None:
@@ -866,7 +846,8 @@ def is_quarantined(target: TargetRef | str, *, directory: str | Path = DEFAULT_D
 
 
 def quarantined_values(targets: Iterable[TargetRef | str] | None = None, *,
-                       directory: str | Path = DEFAULT_DIRECTORY) -> list[TargetRef]:
+                       directory: str | Path = DEFAULT_DIRECTORY
+                       ) -> list[TargetRef | VerificationTarget]:
     return VerificationLog(directory).quarantined_values(targets)
 
 

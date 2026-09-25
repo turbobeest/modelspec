@@ -16,10 +16,7 @@ already passes does not change this. A per-condition ``unknown`` override wins.
 condition calls ``evidence`` and then applies its qualifiers. Retired
 candidates are excluded unless the resolved spec asks for lifecycle ``retired``.
 
-The snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138). That
-module had not merged yet, so this file depends only on the method names and
-the ``passing`` / ``failing`` / ``unknown`` bitsets. A copy of the protocol is
-in ``tests/snapshot_protocol.py``.
+The shared snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138).
 """
 
 from __future__ import annotations
@@ -50,7 +47,7 @@ UNVERIFIED_MAY_QUALIFY = "unverified: may qualify"
 
 # Measurers that are not the model's own lab or provider.
 _INDEPENDENT = frozenset({
-    "benchmark_author", "independent", "modelspec", "outcome_protocol",
+    "benchmark_author", "independent", "independent_evaluator", "modelspec", "outcome_protocol",
 })
 _PROVIDER = frozenset({"provider_self_report"})
 

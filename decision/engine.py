@@ -60,6 +60,8 @@ def decide(
     """Return a reproducible decision. Explanation work is skipped at ``none``."""
     if snapshot is None:
         raise ValueError("a loaded decision snapshot is required")
+    if spec.explain in ("summary", "full"):
+        snapshot.require_explanation_records()
     resolved = resolve(spec, facets=facets, profiles=profiles)
     domains = frozenset(snapshot.domain_ids())
     selectors = dict(evidence_selectors or {})
@@ -76,7 +78,12 @@ def decide(
     for signed in names:
         name = signed.removeprefix("-")
         if resolved.facets(name).subject == "evidence" and name not in domains:
-            selectors.setdefault(name, EvidenceSelector(name))
+            selectors.setdefault(
+                name,
+                EvidenceSelector.from_qualifiers(
+                    name, resolved.objective_qualifiers.get(name)
+                ),
+            )
     filtered = apply(resolved, snapshot)
     ordered = run_optimise(snapshot, filtered, spec, selectors, domains)
     digest = spec_hash(spec)

@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from decision.contract import Contribution, DomainEvidence, EvidenceItem
+from decision.registry import facet as registry_facet
 
 
 class ExplanationError(ValueError):
     """A displayed measurement cannot be traced to a verified snapshot record."""
+
+
+def facet_unit(facet_id):
+    return registry_facet(facet_id).unit
 
 
 def checked_record(snapshot, rid):
@@ -102,10 +107,11 @@ def contributions(snapshot, cid, parts, evidence):
             for rid in records:
                 checked_record(snapshot, rid)
         elif part.raw_value is not None:
-            fact = snapshot.fact(cid, part.dimension.removeprefix("-"))
-            record = checked_record(snapshot, fact.record_id)
+            facet_id = part.dimension.removeprefix("-")
+            fact = snapshot.fact(cid, facet_id)
+            checked_record(snapshot, fact.record_id)
             records = [fact.record_id]
-            unit = record.get("unit")
+            unit = facet_unit(facet_id)
         norm = part.normalisation
         out.append(
             Contribution(
@@ -236,9 +242,9 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             if reason.facet and reason.value is not None:
                 fact = snapshot.fact(reason.candidate, reason.facet)
                 if fact.record_id:
-                    record = checked_record(snapshot, fact.record_id)
+                    checked_record(snapshot, fact.record_id)
                     records = [fact.record_id]
-                    unit = record.get("unit")
+                    unit = facet_unit(reason.facet)
                 else:
                     for row in snapshot.evidence(reason.candidate, reason.facet):
                         if row.value in (values or [reason.value]):
@@ -321,7 +327,8 @@ def _full(decision, snapshot, filtered, ordered, requested):
                 continue
             unit = None
             if fact.record_id:
-                unit = checked_record(snapshot, fact.record_id).get("unit")
+                checked_record(snapshot, fact.record_id)
+                unit = facet_unit(facet)
             facts.append(
                 ShownFact(facet=facet, value=fact.value, unit=unit, record_id=fact.record_id)
             )
