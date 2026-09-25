@@ -1,0 +1,125 @@
+- model: google/gemini-3-7-flash
+  provider: google-vertex-ai
+  region: global
+  tier: standard
+  facts:
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.price.input
+    value: 0.75
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.price.output
+    value: 3.75
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.price.cached_input
+    value: 0.075
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.price.batch_input
+    value: 0.375
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.price.batch_output
+    value: 1.875
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:843f0f6e8dfeec4f9201ef92d899fe4d061880a45869122e84d063de3180fde1
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.data.retention
+    value: 0
+    state: known
+    sources:
+    - source_id: vertex-data
+      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: vertex-data
+      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.data.zero_retention
+    value: true
+    state: known
+    sources:
+    - source_id: vertex-data
+      snapshot_ref: sha256:36b0249cd3f82e9c87f76a0703c55b2ac1ebd902e78fda58457bdbb3542c76d6
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: google-attestations
+      snapshot_ref: sha256:ea8472518db2326e0432a895fb95ba0aeed7f95e39d451fadffd2952270b0e4a
+      cited_regions:
+      - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: google-attestations
+      snapshot_ref: sha256:ea8472518db2326e0432a895fb95ba0aeed7f95e39d451fadffd2952270b0e4a
+      cited_regions:
+      - page

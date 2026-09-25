@@ -1,4 +1,218 @@
-# Registered sources for decision facts and evidence.
-# The canonical row format is documented in verification/README.md.
 schema_version: 1
-sources: []
+sources:
+- id: anthropic-pricing
+  url: https://platform.claude.com/docs/en/about-claude/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-retention
+  url: https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-training
+  url: https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-zdr
+  url: https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-attestations
+  url: https://privacy.claude.com/en/articles/10015870-what-certifications-has-anthropic-obtained
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-pricing
+  url: https://aws.amazon.com/bedrock/pricing/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-retention
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-training
+  url: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/omni-opting-out-of-using-your-data-for-service-improvement.html
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-attestations
+  url: https://aws.amazon.com/bedrock/security-compliance/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-pricing
+  url: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-data
+  url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: google-attestations
+  url: https://cloud.google.com/security/compliance/hipaa-compliance
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-pricing
+  url: https://azure.microsoft.com/en-us/pricing/details/azure-openai/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-data
+  url: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-baa
+  url: https://learn.microsoft.com/en-us/azure/compliance/offerings/offering-hipaa-us
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-soc2
+  url: https://learn.microsoft.com/en-us/compliance/regulatory/offering-soc-2
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-data
+  url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: gemini-pricing
+  url: https://ai.google.dev/gemini-api/docs/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: gemini-retention
+  url: https://ai.google.dev/gemini-api/docs/usage-policies
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: gemini-zdr
+  url: https://ai.google.dev/gemini-api/docs/zdr
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-4-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.4
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-astra-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''

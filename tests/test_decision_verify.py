@@ -112,6 +112,108 @@ def test_the_log_shows_collector_and_verifier_differ_on_every_record(store, regi
         assert record.method == record.verifier.method
 
 
+@pytest.mark.parametrize(
+    ("registered", "published"),
+    [("type_2", "Type 2"), ("not_offered", "not offered")],
+)
+def test_registered_enum_spelling_matches_provider_prose(registered, published) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#attestation"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field="offering.attestation.soc2",
+        value=registered,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="provider-doc",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["governance"],
+        ),),
+    )
+
+    assert verify.compare(claim, [verify.Reading("Provider API", published)]) == []
+
+
+def test_currency_with_mtok_header_is_a_per_million_token_price() -> None:
+    quantity = verify.parse_quantity("$4", "MTok")
+    assert quantity is not None
+    assert (quantity.number, quantity.unit) == (4, "usd_per_1m_tokens")
+
+
+def test_explicit_no_training_sentence_matches_false() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#training"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field="offering.data.trains_on_customer_data",
+        value=False,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="provider-doc",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["governance"],
+        ),),
+    )
+    reading = verify.Reading(
+        "Provider API",
+        "does not use your inputs or outputs to train models or improve the service",
+    )
+    assert verify.compare(claim, [reading]) == []
+
+
+@pytest.mark.parametrize(
+    ("field", "published"),
+    [
+        ("offering.data.zero_retention", "Zero data retention"),
+        ("offering.attestation.baa", "BAA available"),
+    ],
+)
+def test_explicit_availability_phrases_match_true(field, published) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#available"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field=field,
+        value=True,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="provider-doc",
+                                  snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["governance"]),),
+    )
+    assert verify.compare(claim, [verify.Reading("Provider API", published)]) == []
+
+
+def test_soc2_type_2_phrase_matches_registered_enum() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#soc2"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field="offering.attestation.soc2",
+        value="type_2",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="provider-doc",
+                                  snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["governance"]),),
+    )
+    assert verify.compare(claim, [verify.Reading("Provider API", "SOC 2 Type 2")]) == []
+
+
+def test_zero_retention_phrase_means_zero_retention_days() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="offering#retention"),
+        subject="provider/model/global/standard",
+        names=("Provider API",),
+        field="offering.data.retention",
+        value=0,
+        unit="days",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="provider-doc",
+                                  snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["governance"]),),
+    )
+    assert verify.compare(claim, [verify.Reading("Provider API", "zero data retention")]) == []
+
+
 def test_a_mismatch_records_a_structured_diff(store, regions, log) -> None:
     _seeded_run(store, regions, log)
     record = log.latest()[("evidence", "sol-max-filed-as-default")]

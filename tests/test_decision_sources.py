@@ -254,6 +254,48 @@ def test_governance_region_change_emits_an_alert(store: CopyStore) -> None:
     assert alert.to_dict()["event"] == "governance_source_changed"
 
 
+def test_provider_retention_sentence_change_requeues_the_fact_and_emits_an_alert(
+    store: CopyStore,
+) -> None:
+    """MODEL-144: governance prose changes retain both copies and raise an alert."""
+    source = pricing_source(cited_regions=(
+        CitedRegion(id="retention", locator={"kind": "heading", "value": "Data retention"}),
+    ))
+    citation = Citation(
+        "fact:provider/model/data-retention",
+        source.id,
+        "retention",
+        FactKind.GOVERNANCE,
+    )
+    first = recheck(
+        (source,),
+        {},
+        (citation,),
+        fetcher=fetcher_for(Server(html(fixture("provider_data_handling_v1.html")))),
+        store=store,
+        now=T0,
+    )
+    previous = first.states[source.id].snapshot
+    assert previous is not None
+
+    changed = recheck(
+        (source,),
+        first.states,
+        (citation,),
+        fetcher=fetcher_for(Server(html(fixture("provider_data_handling_v2.html")))),
+        store=store,
+        now=T0 + timedelta(days=1),
+    )
+
+    assert changed.requeue == [citation.ref]
+    [alert] = changed.alerts
+    assert alert.to_dict()["event"] == "governance_source_changed"
+    assert alert.refs == (citation.ref,)
+    assert alert.previous_copy_ref == previous.copy_ref
+    assert store.get(alert.previous_copy_ref) == fixture("provider_data_handling_v1.html")
+    assert store.get(alert.current_copy_ref) == fixture("provider_data_handling_v2.html")
+
+
 def test_304_is_unchanged_without_refetching_the_body(store: CopyStore) -> None:
     states = baseline(store, etag='"v1"', last_modified="Sun, 20 Sep 2026 14:02:11 GMT")
     before = states["example-lab-pricing"].snapshot
