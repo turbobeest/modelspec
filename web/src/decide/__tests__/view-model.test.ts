@@ -78,7 +78,7 @@ describe("the hosted Decision view-model mapper", () => {
   it("uses the stored domain estimate, interval and probabilities", () => {
     const estimated = {
       ...fixture,
-      contract_version: "1.6" as const,
+      contract_version: "1.7" as const,
       results: fixture.results.map((result, index) => ({
         ...result,
         estimates: [

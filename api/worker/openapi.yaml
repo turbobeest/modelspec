@@ -2919,8 +2919,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.6'
-          default: '1.6'
+          const: '1.7'
+          default: '1.7'
           title: Contract Version
           type: string
         decision_id:
@@ -4326,7 +4326,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.6'
+          - '1.7'
         endpoint:
           type: string
           enum:
@@ -4377,7 +4377,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.6'
+          - '1.7'
         endpoint:
           type: string
           enum:

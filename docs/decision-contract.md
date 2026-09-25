@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.6**
+Contract version: **1.7**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.6",
+  "contract_version": "1.7",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -389,7 +389,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.6"`. |
+| `contract_version` | `"1.7"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -631,7 +631,7 @@ or accepting more in a spec, is compatible and keeps the major.
 Decided now, so that later slices do not widen anything:
 
 - `estimates`, `p_best` and `top3_stability` are **nullable from 1.0**. Version
-  1.6 fills them without a major bump.
+  1.7 fills them without a major bump.
 - Every list and object in a decision is **always present**. Explanation
   levels decide what is populated, not what is present.
 - `warnings` (on the decision and on each result) are **an open set of
@@ -647,14 +647,14 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.7 — MODEL-129:** The estimate stage fills `estimates`, `p_best`, and
+  `top3_stability`. Estimate evidence adds the optional `loading`,
+  `estimate_weight`, and `recency_weight` fields. The additions are compatible.
 - **1.6 — MODEL-155:** Funnel steps add model and offering counts beside the
   candidate counts. `near_misses` now has at most one row per model and names
   the best offering that fails exactly one condition. `model_groups` groups
   candidate eliminations by model and places offering eliminations beneath
   that model. The candidate-grained fields remain unchanged.
-- **1.6 — MODEL-129:** The estimate stage fills `estimates`, `p_best`, and
-  `top3_stability`. Estimate evidence adds the optional `loading`,
-  `estimate_weight`, and `recency_weight` fields. The additions are compatible.
 - **1.5 — MODEL-153:** A `no_feasible` decision adds `relax_to`, the smallest
   change to each numeric cap or floor that admits a model, stated in the
   facet's unit. Additive, so not a major change. `relax` keeps its meaning but
