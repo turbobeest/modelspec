@@ -190,16 +190,6 @@ charts:
       - model_as_labelled: "LFM2.5-8B-A1B"
         confirmed_by: ["grok-build-4.7"]
         model_id: "liquid/lfm2-5-8b-a1b"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -24.70
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: ifeval
         score: 8.67
         unit: "percent"
@@ -224,16 +214,6 @@ charts:
         printed: true
         configuration: ""
         role: subject
-      - model_as_labelled: "Granite-4.0-H-Tiny"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "ibm/granite-4-0-h-tiny"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -75.50
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
       - model_as_labelled: "Granite-4.0-H-Tiny"
         confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "ibm/granite-4-0-h-tiny"
@@ -267,16 +247,6 @@ charts:
         benchmark_id: multiif
         score: 82.23
         unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "qwen/qwen3-5-4b"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -51.53
-        unit: "score"
         printed: true
         configuration: ""
         role: competitor
@@ -330,16 +300,6 @@ charts:
           - reader: claude-opus
             value: 67.43
       - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -51.31
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Qwen3-30B-A3B-Thinking-2507"
         confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: null
         benchmark_id: ifeval
@@ -372,16 +332,6 @@ charts:
         benchmark_id: multiif
         score: 90.82
         unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E2B-IT"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemma-4-e2b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -72
-        unit: "score"
         printed: true
         configuration: ""
         role: competitor
@@ -435,16 +385,6 @@ charts:
           - reader: claude-opus
             value: 69.70
       - model_as_labelled: "Gemma-4-E4B-IT"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemma-4-e4b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -50.67
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-E4B-IT"
         confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifeval
@@ -494,16 +434,6 @@ charts:
           - reader: claude-opus
             value: 77.58
       - model_as_labelled: "Gemma-4-26B-A4B-IT"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemma-4-26b-a4b-it"
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -62.07
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemma-4-26B-A4B-IT"
         confirmed_by: ["claude-opus", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifeval
@@ -536,16 +466,6 @@ charts:
         benchmark_id: multiif
         score: 91.40
         unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "gpt-oss-20b"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: null
-        benchmark_id: null
-        benchmark_as_labelled: "Non-Hallucination"
-        score: -49.17
-        unit: "score"
         printed: true
         configuration: ""
         role: competitor
