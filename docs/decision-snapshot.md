@@ -75,7 +75,11 @@ unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
   state but `known` is unknown. `unbounded` exceeds every number; `not_offered`
   fails ordered comparisons;
 - `evidence(...)` with qualifier filters (`after` is exclusive), and
-  `evidence_for_domain(...)`, which sets `directness`.
+  `evidence_for_domain(...)`, which sets `directness`. An offering answers its
+  model's evidence (MODEL-158): capability belongs to the model. Its own
+  measurements of a benchmark, if it has any, replace its model's for that
+  benchmark. This is resolved at load; the file stores evidence under its
+  subject only, so the bytes do not change.
 
 The bitsets are built at load time from the columns, so the file cannot hold a
 bitset that disagrees with its values. Evidence objects are built per candidate
