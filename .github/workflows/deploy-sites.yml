@@ -54,6 +54,18 @@ jobs:
       - name: Install dependencies
         run: pip install pydantic pyyaml
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the decide app
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
       - name: Build
         id: build
         run: |
@@ -84,11 +96,22 @@ jobs:
             echo "Production modelspec.dev gets \`$production/modelspec\`."
             echo "benchgraph.dev gets \`$production/benchgraph\`, the redirect file"
             echo '(the same bytes as `dist/benchgraph`, in both modes).'
-            echo 'The preview branch `internal` gets `dist`.'
+            echo 'The modelspec preview branch `internal` gets `dist-internal`, including decide.'
             echo
             echo "holding modelspec: $(find dist-holding/modelspec -type f | wc -l) files, $(du -sh dist-holding/modelspec | cut -f1)"
             echo "holding benchgraph: $(find dist-holding/benchgraph -type f | wc -l) files, $(du -sh dist-holding/benchgraph | cut -f1)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assemble the internal decide preview
+        run: |
+          cp -a dist dist-internal
+          cp web/dist/decide.html dist-internal/modelspec/decide.html
+          mkdir -p dist-internal/modelspec/assets
+          cp -R web/dist/assets/. dist-internal/modelspec/assets/
+          test -s dist-internal/modelspec/decide.html
+          test ! -e dist/modelspec/decide.html
+          test ! -e dist-holding/modelspec/decide.html
+          cmp dist/modelspec/index.html dist-internal/modelspec/index.html
 
       - name: Guard the Cloudflare Pages limits
         run: |
@@ -96,7 +119,7 @@ jobs:
           # Failing here is far cheaper than a rejected deploy.
           # benchgraph, in dist and in dist-holding, is the one-file redirect.
           # The limit still applies. There is no minimum size.
-          for site in dist/modelspec dist/benchgraph dist-holding/modelspec dist-holding/benchgraph; do
+          for site in dist/modelspec dist/benchgraph dist-holding/modelspec dist-holding/benchgraph dist-internal/modelspec; do
             count=$(find "$site" -type f | wc -l)
             if [ "$count" -ge 20000 ]; then
               echo "::error::$site has $count files, at or over the Pages limit of 20,000"
@@ -236,6 +259,13 @@ jobs:
           path: dist-holding
           retention-days: 7
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sites-internal
+          path: dist-internal
+          retention-days: 7
+          include-hidden-files: true
+
   deploy:
     name: Deploy to Cloudflare Pages
     needs: build
@@ -277,6 +307,12 @@ jobs:
           name: sites-holding
           path: dist-holding
 
+      - uses: actions/download-artifact@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          name: sites-internal
+          path: dist-internal
+
       # Production first, so the domains show what SITE_MODE says even if a
       # preview deploy below fails. `production` is dist-holding unless
       # SITE_MODE is exactly `live` (the build job's summary names it).
@@ -304,7 +340,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/modelspec --project-name=modelspec --branch=internal
+          command: pages deploy dist-internal/modelspec --project-name=modelspec --branch=internal
 
       # Same redirect file production deploys. Benchmark pages preview on modelspec.
       - name: Deploy the real benchgraph site to the internal preview

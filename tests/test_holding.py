@@ -83,7 +83,7 @@ def test_the_workflow_sends_the_holding_trees_to_production_unless_live():
     assert sorted(deploys) == sorted([
         (f"{production}/modelspec", "modelspec", "main"),
         (f"{production}/benchgraph", "benchgraph", "main"),
-        ("dist/modelspec", "modelspec", "internal"),
+        ("dist-internal/modelspec", "modelspec", "internal"),
         ("dist/benchgraph", "benchgraph", "internal"),
     ])
 
