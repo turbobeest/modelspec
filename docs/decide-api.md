@@ -14,7 +14,7 @@ a separate catalogue.
 models, offerings, registry and verification records
                   |
                   v
-pipeline.build --decision-snapshot
+pipeline.build --decision-snapshot-if-ready
                   |
                   v
 modelspec.dev/api/decision/snapshot.json.gz
@@ -144,7 +144,8 @@ and handles its `OPTIONS` preflight. It does not send a wildcard CORS header.
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
-| 503 | `snapshot_refused` | The Snapshot is unsigned, altered, wrongly signed, or the verification key is absent. | Fix the site build or Worker secret. Never retry as if this were a valid empty answer. |
+| 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |
+| 503 | `snapshot_refused` | The Snapshot is unsigned, altered, or wrongly signed. | Fix the site build or Worker secret. Never retry as if this were a valid empty answer. |
 
 The shared access layer can also return its documented `401`, `402`, `403`,
 `429`, and `503` responses. See [`api-access.md`](api-access.md) and

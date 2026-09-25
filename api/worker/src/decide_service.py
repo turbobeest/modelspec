@@ -17,6 +17,7 @@ HTTP_CONFLICT = 409
 HTTP_BAD_GATEWAY = 502
 HTTP_SERVICE_UNAVAILABLE = 503
 MAX_BODY_BYTES = 64 * 1024
+RETRY_AFTER_SECONDS = 300
 
 
 class SnapshotRefusalError(ValueError):
@@ -80,6 +81,17 @@ def error_response(
         "endpoint": "decide",
         "snapshot": snapshot_id,
         "error": error,
+    }
+
+
+def no_snapshot(message: str) -> tuple[int, dict[str, Any]]:
+    """Return the temporary state used until Pages publishes a signed snapshot."""
+    return HTTP_SERVICE_UNAVAILABLE, {
+        "contract_version": contract.CONTRACT_VERSION,
+        "endpoint": "decide",
+        "snapshot": None,
+        "error": "no_snapshot",
+        "message": message,
     }
 
 

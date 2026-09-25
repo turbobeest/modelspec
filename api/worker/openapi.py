@@ -569,7 +569,7 @@ _ENTRY_ONLY = {
     "credits_store_not_configured", "missing_holder", "origin_not_allowed",
     "snapshot_refused", "snapshot_unavailable",
 }
-_DECIDE_ONLY = {"invalid_spec", "snapshot_not_loaded"}
+_DECIDE_ONLY = {"invalid_spec", "no_snapshot", "snapshot_not_loaded"}
 
 
 def source_error_codes() -> set[str]:
@@ -598,7 +598,7 @@ def source_error_codes() -> set[str]:
             # {"code": "...", ...}
             if isinstance(node, ast.Dict):
                 for key, value in zip(node.keys, node.values):
-                    if (isinstance(key, ast.Constant) and key.value == "code"
+                    if (isinstance(key, ast.Constant) and key.value in {"code", "error"}
                             and isinstance(value, ast.Constant) and isinstance(value.value, str)):
                         codes.add(value.value)
     return codes
@@ -1731,6 +1731,20 @@ def _decision_schemas() -> dict[str, Any]:
             },
         },
     }
+    schemas["DecisionSnapshotUnavailable"] = {
+        "type": "object",
+        "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+        "properties": {
+            "contract_version": {
+                "type": "string",
+                "enum": [decide_service.contract.CONTRACT_VERSION],
+            },
+            "endpoint": {"type": "string", "enum": ["decide"]},
+            "snapshot": {"type": "null"},
+            "error": {"type": "string", "enum": ["no_snapshot"]},
+            "message": {"type": "string"},
+        },
+    }
     return schemas
 
 
@@ -1840,6 +1854,21 @@ def build_spec() -> dict[str, Any]:
                 "(tier_not_configured), or the deployment has no tier table "
                 "(access_not_configured)."),
         }
+
+    decision_unavailable = refused_by_access(
+        "The snapshot is not published, it cannot be verified, or a live key cannot "
+        "reach the access store. A no_snapshot response includes Retry-After.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/DecisionSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+        ]},
+    )
+    decision_unavailable["headers"] = {
+        "Retry-After": {
+            "description": "Seconds before retrying a no_snapshot response.",
+            "schema": {"type": "integer", "minimum": 1},
+        }
+    }
 
     security_schemes = {
         "bearer": {"type": "http", "scheme": "bearer",
@@ -2027,18 +2056,12 @@ def build_spec() -> dict[str, Any]:
                             "The published snapshot could not be fetched.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
-                        str(decide_service.HTTP_SERVICE_UNAVAILABLE): _json_body(
-                            "The snapshot is unsigned, tampered, or cannot be verified.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
-                        ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
                             "Payment required when X402_ENABLED is on.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **access_responses(),
-                        str(access.HTTP_STORE_UNAVAILABLE): refused_by_access(
-                            "A live key was presented and the access store is unavailable."
-                        ),
+                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
                     },
                 },
             },
@@ -2375,7 +2398,12 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
             if str(status) not in operation["responses"]:
                 failures.append(f"{path}: HTTP {status} is not in the spec")
                 continue
-            if data is not None and status != 200:
+            temporary_decision = (
+                path == "/v1/decide"
+                and status == decide_service.HTTP_SERVICE_UNAVAILABLE
+                and payload.get("error") == "no_snapshot"
+            )
+            if data is not None and status != 200 and not temporary_decision:
                 failures.append(f"{path}: the spec's own example returned HTTP {status}, "
                                 "not 200")
             schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]

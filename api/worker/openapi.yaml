@@ -50,6 +50,7 @@ info:
   - method_not_allowed
   - missing_api_key
   - no_match
+  - no_snapshot
   - not_found
   - origin_not_allowed
   - payload_too_large
@@ -373,12 +374,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DecisionRequestRefused'
-        '503':
-          description: A live key was presented and the access store is unavailable.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccessRefused'
         '402':
           description: Payment required when X402_ENABLED is on.
           content:
@@ -412,6 +407,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
+        '503':
+          description: The snapshot is not published, it cannot be verified, or a live key cannot reach
+            the access store. A no_snapshot response includes Retry-After.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - oneOf:
+                  - $ref: '#/components/schemas/DecisionSnapshotUnavailable'
+                  - $ref: '#/components/schemas/DecisionRequestRefused'
+                - $ref: '#/components/schemas/AccessRefused'
+          headers:
+            Retry-After:
+              description: Seconds before retrying a no_snapshot response.
+              schema:
+                type: integer
+                minimum: 1
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -4031,6 +4043,7 @@ components:
               type: string
               enum:
               - invalid_spec
+              - no_snapshot
               - origin_not_allowed
               - payload_too_large
               - snapshot_not_loaded
@@ -4042,6 +4055,31 @@ components:
               type: array
               items:
                 type: object
+    DecisionSnapshotUnavailable:
+      type: object
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      - message
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.1'
+        endpoint:
+          type: string
+          enum:
+          - decide
+        snapshot:
+          type: 'null'
+        error:
+          type: string
+          enum:
+          - no_snapshot
+        message:
+          type: string
     PolicyCheckRequest:
       type: object
       additionalProperties: false

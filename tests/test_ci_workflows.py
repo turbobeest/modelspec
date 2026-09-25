@@ -155,23 +155,41 @@ def test_deploy_syncs_the_snapshot_verification_secret() -> None:
         "${{ secrets.MODELSPEC_SNAPSHOT_KEY }}"
     deploy_text = yaml.safe_dump(deploy)
     assert "pywrangler secret put MODELSPEC_SNAPSHOT_KEY" in deploy_text
+    sync = next(step["run"] for step in deploy["steps"]
+                if step.get("name") == "Sync the decision snapshot verification key")
+    missing_key = sync.split("else", 1)[0]
+    assert "::warning::" in missing_key
+    assert "exit 1" not in missing_key
 
 
-def test_deploy_waits_for_the_signed_snapshot_before_the_openapi_probe() -> None:
+def test_deploy_accepts_a_decision_or_the_documented_no_snapshot_response() -> None:
     workflow = RANK_API.read_text(encoding="utf-8")
     decide = workflow.index("probe /v1/decide")
     openapi = workflow.index("python3 api/worker/openapi.py --probe")
     assert decide < openapi
     between = workflow[decide:openapi]
     assert 'snapshot=$(field snapshot)' in between
-    assert "signed decision snapshot was not ready" in between
+    assert 'error=$(field error)' in between
+    assert '[ "$status" = 503 ] && [ "$error" = "no_snapshot" ]' in between
+    assert "signed decision snapshot was not ready" not in between
 
 
-def test_site_build_publishes_a_signed_decision_snapshot_off_pull_requests() -> None:
+def test_site_build_only_publishes_a_complete_signed_decision_snapshot() -> None:
     workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
     assert "github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY" in workflow
-    assert "--decision-snapshot" in workflow
+    assert "--decision-snapshot-if-ready" in workflow
     assert 'if [ "$GITHUB_EVENT_NAME" != "pull_request" ]' in workflow
+    assert "::error::MODELSPEC_SNAPSHOT_KEY is not configured" not in workflow
+
+
+def test_rank_smoke_failure_rolls_back_before_the_job_fails() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert "wrangler rollback --message" in workflow
+    assert "fail_rank()" in workflow
+    rank_checks = workflow[
+        workflow.index("# 3. A ranking") : workflow.index("# 7. The policy-check endpoint")
+    ]
+    assert rank_checks.count("fail_rank ") >= 5
 
 
 def test_the_smoke_test_asserts_the_deployed_version_is_the_one_answering() -> None:

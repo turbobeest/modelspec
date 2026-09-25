@@ -262,6 +262,12 @@ def test_the_spec_will_not_let_undetermined_pass_for_a_pass(spec: dict[str, Any]
         "a failed row carrying a `passed` key validated")
 
 
+def test_no_snapshot_response_documents_retry_after(spec: dict[str, Any]) -> None:
+    unavailable = spec["paths"]["/v1/decide"]["post"]["responses"]["503"]
+    assert "Retry-After" in unavailable["headers"]
+    assert unavailable["headers"]["Retry-After"]["schema"]["minimum"] == 1
+
+
 # ── every error, with its fix ────────────────────────────────────────────────
 
 def _codes_of(*modules: str) -> set[str]:
@@ -277,7 +283,7 @@ def _codes_of(*modules: str) -> set[str]:
                 codes.add(node.args[0].value)
             if isinstance(node, ast.Dict):
                 codes |= {v.value for k, v in zip(node.keys, node.values)
-                          if isinstance(k, ast.Constant) and k.value == "code"
+                          if isinstance(k, ast.Constant) and k.value in {"code", "error"}
                           and isinstance(v, ast.Constant) and isinstance(v.value, str)}
     return codes
 
@@ -287,7 +293,9 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
     assert _codes_of(
         "rank_service", "decide_service", "policy_service", "entry"
     ) == generator.source_error_codes()
-    decide_transport = {"origin_not_allowed", "snapshot_refused", "snapshot_unavailable"}
+    decide_transport = {
+        "no_snapshot", "origin_not_allowed", "snapshot_refused", "snapshot_unavailable"
+    }
     transport = set(generator.entry_error_codes()) - decide_transport
     for text, name, modules in ((reference, "docs/api.md", ("rank_service",)),
                                 (policy_reference, "docs/api-policy-check.md",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import gzip
 import importlib.util
 import json
@@ -174,6 +175,20 @@ def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> 
     assert body["snapshot"] == snapshot.snapshot_id
 
 
+def test_missing_published_snapshot_is_retryable(service) -> None:
+    status, body = service.no_snapshot("the published decision snapshot does not exist")
+
+    assert status == 503
+    assert body == {
+        "contract_version": service.contract.CONTRACT_VERSION,
+        "endpoint": "decide",
+        "snapshot": None,
+        "error": "no_snapshot",
+        "message": "the published decision snapshot does not exist",
+    }
+    assert service.RETRY_AFTER_SECONDS > 0
+
+
 def test_explain_none_p95_is_under_200_ms(service) -> None:
     raw = build_snapshot(thirty_models()).to_bytes(key=KEY)
     snapshot = service.load_snapshot(raw, key=KEY)
@@ -223,6 +238,22 @@ def test_entry_routes_decide_through_the_existing_access_gate() -> None:
     assert '"/v1/decide"' in source
     assert "await access.gate(" in source
     assert "await self._decide(" in source
+
+
+def test_entry_imports_the_decision_stack_only_for_the_decide_route() -> None:
+    source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    top_level_imports = {
+        alias.name
+        for node in tree.body
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+
+    assert "decide_service" not in top_level_imports
+    assert 'if path == "/v1/decide":' in source
+    assert "decider = _decide_service()" in source
+    assert 'headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)' in source
 
 
 def test_cors_is_only_for_the_internal_preview_origin() -> None:

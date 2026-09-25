@@ -100,3 +100,8 @@ any record or evidence is accessed.
 `python -m pipeline.build --decision-snapshot` writes
 `api/decision/snapshot.json.gz` beside the static export, linked from no page.
 Off by default.
+
+The Pages workflow uses `--decision-snapshot-if-ready`. If the signing key is
+absent or the completeness gate fails, the build emits a GitHub Actions warning
+and publishes the site without the Snapshot. The warning names the gap count and
+the first 20 gaps. This mode never writes an unsigned or incomplete Snapshot.

@@ -75,11 +75,7 @@ jobs:
         run: |
           snapshot_args=()
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            if [ -z "$MODELSPEC_SNAPSHOT_KEY" ]; then
-              echo "::error::MODELSPEC_SNAPSHOT_KEY is not configured"
-              exit 1
-            fi
-            snapshot_args+=(--decision-snapshot)
+            snapshot_args+=(--decision-snapshot-if-ready)
           fi
           python -m pipeline.build --out dist "${snapshot_args[@]}" | tee summary.json
           {

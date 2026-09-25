@@ -40,6 +40,7 @@ instance still answering; this is the cheap version of that lesson for a Worker.
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import time
 from dataclasses import replace
@@ -54,7 +55,6 @@ import access_sandbox
 import billing
 import billing_page
 import credits
-import decide_service
 import kv_value
 import policy_service
 import rank_service as service
@@ -131,11 +131,20 @@ _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "e
 #: is the same one so that a deploy and a load both reach callers in five
 #: minutes rather than by two different rules.
 _policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
-_decision_cache: dict[str, object] = {"snapshot": None, "error": None}
+_decision_cache: dict[str, object] = {"snapshot": None}
 #: `state` is one of the `STORE_*` values below; `error` is set only when it is
 #: `broken`; `message` is the operator-facing sentence for whichever it is.
 _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
                                    "state": None, "message": None}
+
+
+class PublishedSnapshotMissing(RuntimeError):
+    """The static site has not published a decision snapshot yet."""
+
+
+def _decide_service():
+    """Import the decision stack only after the router selects ``/v1/decide``."""
+    return importlib.import_module("decide_service")
 
 
 async def _get_json(url: str):
@@ -148,6 +157,8 @@ async def _get_json(url: str):
 async def _get_bytes(url: str) -> bytes:
     response = await fetch(url)
     if not response.ok:
+        if response.status == 404:
+            raise PublishedSnapshotMissing(f"{url} returned HTTP 404")
         raise RuntimeError(f"{url} returned HTTP {response.status}")
     from js import Uint8Array
 
@@ -159,14 +170,9 @@ async def _load_decision_snapshot(origin: str, key: str | None):
     """Fetch, verify and index the decision snapshot once per isolate."""
     if _decision_cache["snapshot"] is not None:
         return _decision_cache["snapshot"]
-    if _decision_cache["error"] is not None:
-        raise decide_service.SnapshotRefusalError(str(_decision_cache["error"]))
-    try:
-        raw = await _get_bytes(origin + DECISION_SNAPSHOT_PATH)
-        snapshot = decide_service.load_snapshot(raw, key=key)
-    except decide_service.SnapshotRefusalError as exc:
-        _decision_cache["error"] = str(exc)
-        raise
+    decider = _decide_service()
+    raw = await _get_bytes(origin + DECISION_SNAPSHOT_PATH)
+    snapshot = decider.load_snapshot(raw, key=key)
     _decision_cache["snapshot"] = snapshot
     return snapshot
 
@@ -390,8 +396,9 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
 
 def _decision_response(status: int, body: dict,
                        extra_headers: dict | None = None) -> Response:
+    decider = _decide_service()
     return Response(
-        decide_service.serialise(body).decode("utf-8"),
+        decider.serialise(body).decode("utf-8"),
         status=status,
         headers={
             **(extra_headers or {}),
@@ -437,11 +444,15 @@ class Default(WorkerEntrypoint):
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
 
-        if path == "/v1/decide" and method == "OPTIONS":
+        decider = None
+        if path == "/v1/decide":
+            decider = _decide_service()
+
+        if decider is not None and method == "OPTIONS":
             headers = _cors_headers(request)
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
-                    "contract_version": decide_service.contract.CONTRACT_VERSION,
+                    "contract_version": decider.contract.CONTRACT_VERSION,
                     "endpoint": "decide",
                     "snapshot": None,
                     "error": {"code": "origin_not_allowed",
@@ -477,8 +488,8 @@ class Default(WorkerEntrypoint):
         max_body = (
             policy_service.MAX_BODY_BYTES
             if path == "/v1/policy-check"
-            else decide_service.MAX_BODY_BYTES
-            if path == "/v1/decide"
+            else decider.MAX_BODY_BYTES
+            if decider is not None
             else service.MAX_BODY_BYTES
         )
         raw = await request.text()
@@ -490,8 +501,8 @@ class Default(WorkerEntrypoint):
                           "message": f"the body must be at most {max_body} bytes"},
                 "result": [],
             }
-            if path == "/v1/decide":
-                response = decide_service.error_response(
+            if decider is not None:
+                response = decider.error_response(
                     "payload_too_large",
                     f"the body must be at most {max_body} bytes",
                     status=service.HTTP_PAYLOAD_TOO_LARGE,
@@ -510,11 +521,11 @@ class Default(WorkerEntrypoint):
                     policy_service.RequestError(
                         "invalid_request", f"the body is not valid JSON: {exc}"),
                     None, service_commit, origin)
-            elif path == "/v1/decide":
-                status, body = decide_service.error_response(
+            elif decider is not None:
+                status, body = decider.error_response(
                     "invalid_request",
                     f"the body is not valid JSON: {exc}",
-                    status=decide_service.HTTP_BAD_REQUEST,
+                    status=decider.HTTP_BAD_REQUEST,
                     snapshot_id=None,
                 )
                 return _decision_response(status, body, _cors_headers(request))
@@ -550,9 +561,9 @@ class Default(WorkerEntrypoint):
                     "the sandbox answers POST /v1/rank only; it holds no synthetic "
                     "policy data. Call /v1/policy-check with a live key.",
                     envelope=envelope)
-        elif path == "/v1/decide":
+        elif decider is not None:
             envelope = {
-                "contract_version": decide_service.contract.CONTRACT_VERSION,
+                "contract_version": decider.contract.CONTRACT_VERSION,
                 "endpoint": "decide",
                 "snapshot": getattr(_decision_cache.get("snapshot"), "snapshot_id", None),
                 "service_commit": service_commit,
@@ -619,6 +630,9 @@ class Default(WorkerEntrypoint):
             ),
         }
         if path == "/v1/decide":
+            if outcome.status == decider.HTTP_SERVICE_UNAVAILABLE \
+                    and outcome.body.get("error") == "no_snapshot":
+                headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
             return _decision_response(
                 outcome.status, outcome.body, {**headers, **_cors_headers(request)}
             )
@@ -835,24 +849,32 @@ class Default(WorkerEntrypoint):
 
     async def _decide(self, payload, origin: str):
         """``POST /v1/decide`` against the isolate's verified snapshot."""
+        decider = _decide_service()
         key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        if key is None:
+            return decider.no_snapshot(
+                "no signed decision snapshot is published because the verification key "
+                "is not configured"
+            )
         try:
             snapshot = await _load_decision_snapshot(origin, key)
-        except decide_service.SnapshotRefusalError as exc:
-            return decide_service.error_response(
+        except PublishedSnapshotMissing:
+            return decider.no_snapshot("the published decision snapshot does not exist")
+        except decider.SnapshotRefusalError as exc:
+            return decider.error_response(
                 "snapshot_refused",
                 str(exc),
-                status=decide_service.HTTP_SERVICE_UNAVAILABLE,
+                status=decider.HTTP_SERVICE_UNAVAILABLE,
                 snapshot_id=None,
             )
         except Exception as exc:  # noqa: BLE001 - the fetched path is named to the caller
-            return decide_service.error_response(
+            return decider.error_response(
                 "snapshot_unavailable",
                 f"could not read the published decision snapshot: {exc}",
-                status=decide_service.HTTP_BAD_GATEWAY,
+                status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
             )
-        return decide_service.decide(payload, snapshot)
+        return decider.decide(payload, snapshot)
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:
