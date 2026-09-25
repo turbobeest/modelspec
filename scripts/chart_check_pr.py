@@ -10,7 +10,14 @@ changed. Removed rows are counted and do not affect the exit code.
 Added and changed rows are classified against ``benchmarks/_charts/*.yaml``.
 A fixture is the one whose ``page_url`` equals the row's ``source_url`` after
 ``norm_url``. Agreement uses the chart checker's same-source comparison:
-printed precision, unit, headline metric, and sibling configurations.
+printed precision, unit, headline metric, and sibling configurations. The
+outcome is ``verified`` when the agreeing bar names two or more readers in
+``confirmed_by``. Fewer than two is ``verified_single_read``, a warning.
+
+A fixture the pull request adds or changes is judged per bar. An added or
+changed bar needs two distinct ``confirmed_by`` readers, or a non-empty
+``single_read_reason`` on the bar or on its chart. A removed bar is
+informational. ``disputed`` and an invalid ``resolution`` still block.
 
 Exit 1 when any finding blocks. Exit 0 when the only findings are warnings
 or informational, and when nothing relevant changed. Exit 2 when the base
@@ -25,6 +32,7 @@ import os
 import subprocess
 import sys
 import urllib.parse
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +59,7 @@ from scripts.chart_check import (  # noqa: E402
 
 OUTCOMES = (
     "verified",
+    "verified_single_read",
     "mismatch",
     "disputed",
     "no_bar",
@@ -59,6 +68,7 @@ OUTCOMES = (
 )
 LEVEL = {
     "verified": "ok",
+    "verified_single_read": "warning",
     "mismatch": "blocking",
     "disputed": "blocking",
     "no_bar": "warning",
@@ -66,9 +76,11 @@ LEVEL = {
     "no_fixture": "warning, for now",
 }
 BLOCKING_OUTCOMES = {"mismatch", "disputed"}
-WARNING_OUTCOMES = {"no_bar", "no_fixture"}
+WARNING_OUTCOMES = {"verified_single_read", "no_bar", "no_fixture"}
 DATA_SUFFIXES = (".json", ".yaml", ".yml", ".csv", ".zip", ".parquet", ".tsv")
 NOTHING = "nothing to check"
+READER_ROW_LIMIT = 50
+KeyFunc = Callable[[dict[str, Any]], Any]
 
 
 class UsageError(Exception):
@@ -125,9 +137,10 @@ def check(root: Path, base_ref: str) -> tuple[int, str, dict[str, Any]]:
     if not root.is_dir():
         raise UsageError(f"not a directory: {root}")
     sha = merge_base(root, base_ref)
-    card_changes, removed_cards, fixture_paths = changed_paths(root, sha)
+    card_changes, removed_cards, fixture_changes = changed_paths(root, sha)
     findings: list[dict[str, str]] = []
-    fixtures = load_changed_and_rest(root, fixture_paths, findings)
+    changed_heads = {head for head, _base in fixture_changes if head}
+    fixtures = load_changed_and_rest(root, changed_heads, findings)
     by_page: dict[str, list[dict[str, Any]]] = {}
     for fixture in fixtures:
         page = norm_url(str(fixture.get("page_url") or ""))
@@ -142,10 +155,19 @@ def check(root: Path, base_ref: str) -> tuple[int, str, dict[str, Any]]:
     for path in removed_cards:
         removed_rows.extend(removed_card_rows(root, sha, path, findings))
 
-    for fixture in fixtures:
-        rel = _rel(root, fixture)
-        if rel in fixture_paths:
-            findings.extend(judge_fixture(fixture, rel))
+    by_rel = {_rel(root, fixture): fixture for fixture in fixtures}
+    for head_path, base_path in fixture_changes:
+        rel = head_path or base_path
+        base_data, base_error = _base_fixture(root, sha, base_path or None)
+        if base_error:
+            findings.append(_finding(rel, "", base_error, "blocking", "fixture"))
+        if head_path:
+            fixture = by_rel.get(head_path)
+            if fixture is None:
+                continue
+        else:
+            fixture = {"charts": []}
+        findings.extend(judge_fixture(fixture, rel, base_data))
 
     rows.sort(
         key=lambda item: (item["card"], item["benchmark_id"], item["source_url"], item["outcome"])
@@ -165,11 +187,11 @@ def check(root: Path, base_ref: str) -> tuple[int, str, dict[str, Any]]:
         "rows": rows,
         "removed_rows": removed_rows,
         "findings": findings,
-        "fixture_files": sorted(fixture_paths),
+        "fixture_files": sorted({head or base for head, base in fixture_changes}),
         "blocking": blocking,
         "warnings": warnings,
     }
-    relevant = bool(rows or fixture_paths or findings)
+    relevant = bool(rows or fixture_changes or findings)
     if not relevant:
         report["nothing_to_check"] = True
         return 0, NOTHING + "\n", report
@@ -187,7 +209,7 @@ def merge_base(root: Path, base_ref: str) -> str:
 
 def changed_paths(
     root: Path, sha: str
-) -> tuple[list[tuple[str | None, str | None]], list[str], set[str]]:
+) -> tuple[list[tuple[str | None, str | None]], list[str], list[tuple[str, str]]]:
     proc = git(
         root,
         "diff",
@@ -204,7 +226,8 @@ def changed_paths(
         raise UsageError(detail)
     cards: list[tuple[str | None, str | None]] = []
     removed_cards: list[str] = []
-    fixtures: set[str] = set()
+    # (head path, base path). An empty string means that side has no file.
+    fixtures: list[tuple[str, str]] = []
     for line in proc.stdout.splitlines():
         parsed = _split_status(line)
         if parsed is None:
@@ -217,8 +240,11 @@ def changed_paths(
                     removed_cards.append(old)
             else:
                 cards.append((old, new))
-        if new and _is_fixture_path(new) and not status.startswith("D"):
-            fixtures.add(new)
+        if status.startswith("D"):
+            if old and _is_fixture_path(old):
+                fixtures.append(("", old))
+        elif new and _is_fixture_path(new):
+            fixtures.append((new, old or ""))
     return cards, removed_cards, fixtures
 
 
@@ -398,9 +424,12 @@ def classify_row(
     if not clean and not unsettled:
         return "no_bar", None
     held = _held_row(row)
-    agreed = next((item for item in clean if _agrees(item[2], held)), None)
-    if agreed is not None:
-        return "verified", _describe(agreed)
+    agreed = [item for item in clean if _agrees(item[2], held)]
+    if agreed:
+        confirmed = [item for item in agreed if _distinct_confirmers(item[2]) >= 2]
+        if confirmed:
+            return "verified", _describe(confirmed[0])
+        return "verified_single_read", _describe(agreed[0])
     disputed_hit = next((item for item in unsettled if _agrees(item[2], held)), None)
     if disputed_hit is not None:
         return "disputed", _describe(disputed_hit)
@@ -512,58 +541,239 @@ def _data_filename(parts: list[str]) -> bool:
     return any(name.endswith(suffix) for suffix in DATA_SUFFIXES)
 
 
-def judge_fixture(fixture: dict[str, Any], rel: str) -> list[dict[str, str]]:
-    # An unchanged fixture is not passed here, so an old single-read chart
-    # does not block a pull request that leaves the file alone.
-    found = []
-    for chart in fixture.get("charts") or []:
-        if not isinstance(chart, dict):
+def judge_fixture(
+    fixture: dict[str, Any], rel: str, base: dict[str, Any] | None
+) -> list[dict[str, str]]:
+    # An unchanged fixture is not passed here. An unchanged bar inside a
+    # changed fixture is not judged for readers either.
+    found: list[dict[str, str]] = []
+    chart_pairs = _pair_by_key(_charts(base), _charts(fixture), _chart_key)
+    for base_chart, head_chart in chart_pairs:
+        if head_chart is None:
+            title = _chart_label(base_chart or {})
+            for bar in _bars(base_chart):
+                found.append(_removed_finding(rel, title, bar))
             continue
-        title = str(chart.get("title") or "(untitled)")
-        bars = [bar for bar in (chart.get("bars") or []) if isinstance(bar, dict)]
-        if bars and not _two_readers(chart):
-            found.append(
-                {
-                    "file": rel,
-                    "chart": title,
-                    "problem": "fewer than two distinct readers and no single_read_reason",
-                    "level": "blocking",
-                }
-            )
-        for bar in bars:
-            label = str(bar.get("model_as_labelled") or "?")
-            bench = str(bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?")
-            if _explicit_dispute(bar) or _reading_dispute(chart, bar):
-                found.append(
-                    {
-                        "file": rel,
-                        "chart": title,
-                        "problem": f"disputed bar {label} {bench}",
-                        "level": "blocking",
-                    }
-                )
-            for problem in _resolution_problems(bar):
-                found.append(
-                    {
-                        "file": rel,
-                        "chart": title,
-                        "problem": f"{label} {bench}: {problem}",
-                        "level": "blocking",
-                    }
-                )
+        title = _chart_label(head_chart)
+        for base_bar, head_bar in _pair_by_key(_bars(base_chart), _bars(head_chart), _bar_key):
+            if head_bar is None:
+                found.append(_removed_finding(rel, title, base_bar or {}))
+                continue
+            if base_bar is None or _bar_changed(base_bar, head_bar):
+                if _reader_gap(head_chart, head_bar):
+                    found.append(
+                        _finding(
+                            rel,
+                            title,
+                            f"{_bar_name(head_bar)}: fewer than two distinct readers "
+                            "and no single_read_reason",
+                            "blocking",
+                            "readers",
+                        )
+                    )
+            found.extend(_dispute_findings(rel, title, head_chart, head_bar))
     return found
 
 
-def _two_readers(chart: dict[str, Any]) -> bool:
+def _base_fixture(
+    root: Path, sha: str, path: str | None
+) -> tuple[dict[str, Any] | None, str | None]:
+    if not path:
+        return None, None
+    text = git_show(root, sha, path)
+    if text is None:
+        return None, "could not read base fixture"
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        return None, f"could not read base fixture: {exc}"
+    if not isinstance(data, dict):
+        return None, "could not read base fixture"
+    return data, None
+
+
+def _charts(fixture: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not fixture:
+        return []
+    return [chart for chart in (fixture.get("charts") or []) if isinstance(chart, dict)]
+
+
+def _bars(chart: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not chart:
+        return []
+    return [bar for bar in (chart.get("bars") or []) if isinstance(bar, dict)]
+
+
+def _chart_key(chart: dict[str, Any]) -> str:
+    return str(chart.get("title") or "")
+
+
+def _chart_label(chart: dict[str, Any]) -> str:
+    return str(chart.get("title") or "(untitled)")
+
+
+def _bar_key(bar: dict[str, Any]) -> tuple[str, str, str, str]:
+    benchmark = bar.get("benchmark_id")
+    if benchmark is None or str(benchmark).strip() == "":
+        benchmark = bar.get("benchmark_as_labelled")
+    return (
+        str(bar.get("model_as_labelled") or ""),
+        str(benchmark or ""),
+        str(bar.get("metric") or ""),
+        str(bar.get("configuration") or ""),
+    )
+
+
+def _pair_by_key(
+    base_items: list[dict[str, Any]],
+    head_items: list[dict[str, Any]],
+    key_fn: KeyFunc,
+) -> list[tuple[dict[str, Any] | None, dict[str, Any] | None]]:
+    """Pair items that share a unique key. A repeated key pairs in list order."""
+    base_groups = _group(base_items, key_fn)
+    head_groups = _group(head_items, key_fn)
+    colliding = {
+        key
+        for key, group in base_groups.items()
+        if len(group) > 1 or len(head_groups.get(key, [])) > 1
+    }
+    colliding.update(key for key, group in head_groups.items() if len(group) > 1)
+    pairs: list[tuple[dict[str, Any] | None, dict[str, Any] | None]] = []
+    for key, head_group in head_groups.items():
+        if key in colliding:
+            continue
+        base_group = base_groups.get(key, [])
+        if base_group:
+            pairs.append((base_group[0], head_group[0]))
+        else:
+            pairs.append((None, head_group[0]))
+    for key, base_group in base_groups.items():
+        if key in colliding or key in head_groups:
+            continue
+        pairs.append((base_group[0], None))
+    seen: set[Any] = set()
+    for item in head_items + base_items:
+        key = key_fn(item)
+        if key not in colliding or key in seen:
+            continue
+        seen.add(key)
+        base_group = base_groups.get(key, [])
+        head_group = head_groups.get(key, [])
+        width = max(len(base_group), len(head_group))
+        for index in range(width):
+            base_item = base_group[index] if index < len(base_group) else None
+            head_item = head_group[index] if index < len(head_group) else None
+            pairs.append((base_item, head_item))
+    return pairs
+
+
+def _group(items: list[dict[str, Any]], key_fn: KeyFunc) -> dict[Any, list[dict[str, Any]]]:
+    groups: dict[Any, list[dict[str, Any]]] = {}
+    for item in items:
+        groups.setdefault(key_fn(item), []).append(item)
+    return groups
+
+
+def _bar_changed(base: dict[str, Any], head: dict[str, Any]) -> bool:
+    return _bar_signature(base) != _bar_signature(head)
+
+
+def _bar_signature(bar: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        _score_value(bar.get("score")),
+        _field_text(bar.get("unit")),
+        _field_text(bar.get("model_as_labelled")),
+        _field_text(bar.get("benchmark_as_labelled")),
+        _field_text(bar.get("model_id")),
+        _field_text(bar.get("benchmark_id")),
+        _field_text(bar.get("metric")),
+        _field_text(bar.get("configuration")),
+        _field_text(bar.get("role")),
+        _confirmed_names(bar),
+    )
+
+
+def _score_value(score: Any) -> tuple[str, float | str]:
+    if isinstance(score, bool) or score is None:
+        return ("", "")
+    if isinstance(score, (int, float)):
+        return ("n", float(score))
+    return ("s", str(score))
+
+
+def _field_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _confirmed_names(bar: dict[str, Any]) -> tuple[str, ...]:
+    raw = bar.get("confirmed_by")
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        return ("",)
+    names = []
+    for item in raw:
+        if isinstance(item, str) and item.strip():
+            names.append(item.strip())
+        else:
+            names.append("")
+    return tuple(names)
+
+
+def _distinct_confirmers(bar: dict[str, Any]) -> int:
+    return len({name for name in _confirmed_names(bar) if name})
+
+
+def _reader_gap(chart: dict[str, Any], bar: dict[str, Any]) -> bool:
+    if _distinct_confirmers(bar) >= 2:
+        return False
+    if str(bar.get("single_read_reason") or "").strip():
+        return False
     if str(chart.get("single_read_reason") or "").strip():
-        return True
-    readers = set()
-    for reading in chart.get("readings") or []:
-        if isinstance(reading, dict):
-            name = str(reading.get("reader") or "").strip()
-            if name:
-                readers.add(name)
-    return len(readers) >= 2
+        return False
+    return True
+
+
+def _bar_name(bar: dict[str, Any]) -> str:
+    label = str(bar.get("model_as_labelled") or "?")
+    bench = str(bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?")
+    metric = str(bar.get("metric") or "").strip()
+    config = " ".join(str(bar.get("configuration") or "").split())
+    name = f"{label} {bench}"
+    if metric:
+        name = f"{name} {metric}"
+    if config:
+        if len(config) > 80:
+            config = config[:77] + "..."
+        name = f"{name} ({config})"
+    return name
+
+
+def _removed_finding(file: str, chart: str, bar: dict[str, Any]) -> dict[str, str]:
+    return _finding(file, chart, f"removed bar {_bar_name(bar)}", "info", "removed")
+
+
+def _dispute_findings(
+    file: str, chart_title: str, chart: dict[str, Any], bar: dict[str, Any]
+) -> list[dict[str, str]]:
+    found = []
+    label = str(bar.get("model_as_labelled") or "?")
+    bench = str(bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?")
+    if _explicit_dispute(bar) or _reading_dispute(chart, bar):
+        found.append(
+            _finding(file, chart_title, f"disputed bar {label} {bench}", "blocking", "disputed")
+        )
+    for problem in _resolution_problems(bar):
+        found.append(
+            _finding(file, chart_title, f"{label} {bench}: {problem}", "blocking", "resolution")
+        )
+    return found
+
+
+def _finding(file: str, chart: str, problem: str, level: str, kind: str) -> dict[str, str]:
+    return {"file": file, "chart": chart, "problem": problem, "level": level, "kind": kind}
 
 
 def _reading_dispute(chart: dict[str, Any], bar: dict[str, Any]) -> bool:
@@ -673,22 +883,82 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("No blocking or warning rows.")
     if report["fixture_files"]:
         lines.extend(["", f"Fixture files checked: {len(report['fixture_files'])}."])
-    if report["findings"]:
-        lines.extend(
-            [
-                "",
-                "| File | Chart | Problem |",
-                "| --- | --- | --- |",
-            ]
-        )
-        for item in report["findings"]:
-            lines.append(
-                "| "
-                + " | ".join([_cell(item["file"]), _cell(item["chart"]), _cell(item["problem"])])
-                + " |"
-            )
+    findings = report["findings"]
+    reader = [item for item in findings if item.get("kind") == "readers"]
+    removed = [item for item in findings if item.get("kind") == "removed"]
+    other = [item for item in findings if item.get("kind") not in {"readers", "removed"}]
+    if reader or removed:
+        lines.extend(_render_bar_findings(reader, removed))
+    if other:
+        lines.extend(["", *_render_finding_table(other)])
     lines.append("")
     return "\n".join(lines)
+
+
+def _render_bar_findings(reader: list[dict[str, str]], removed: list[dict[str, str]]) -> list[str]:
+    reader_counts = _chart_counts(reader)
+    removed_counts = _chart_counts(removed)
+    lines = [
+        "",
+        "### Changed bars",
+        "",
+        f"Blocking bars: {len(reader)}. Removed bars: {len(removed)}.",
+        "",
+        "| Fixture | Chart | Blocking bars | Removed bars |",
+        "| --- | --- | ---: | ---: |",
+    ]
+    for key in sorted(set(reader_counts) | set(removed_counts)):
+        file, chart = key
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    _cell(file),
+                    _cell(chart),
+                    str(reader_counts.get(key, 0)),
+                    str(removed_counts.get(key, 0)),
+                ]
+            )
+            + " |"
+        )
+    lines.extend(_render_capped_rows(reader, "Blocking bars", READER_ROW_LIMIT))
+    lines.extend(_render_capped_rows(removed, "Removed bars", READER_ROW_LIMIT))
+    return lines
+
+
+def _chart_counts(items: list[dict[str, str]]) -> dict[tuple[str, str], int]:
+    counts: dict[tuple[str, str], int] = {}
+    for item in items:
+        key = (item["file"], item["chart"])
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _render_capped_rows(items: list[dict[str, str]], label: str, limit: int) -> list[str]:
+    if not items:
+        return []
+    shown = items[:limit]
+    lines = ["", f"{label}, {len(shown)} of {len(items)}.", "", *_render_finding_table(shown)]
+    hidden = len(items) - limit
+    if hidden:
+        name = label.lower()
+        if hidden == 1:
+            note = f"1 further {name[:-1]} is omitted."
+        else:
+            note = f"{hidden} further {name} are omitted."
+        lines.extend(["", f"{note} The table above has the count for each chart."])
+    return lines
+
+
+def _render_finding_table(items: list[dict[str, str]]) -> list[str]:
+    lines = ["| Fixture | Chart | Problem |", "| --- | --- | --- |"]
+    for item in items:
+        lines.append(
+            "| "
+            + " | ".join([_cell(item["file"]), _cell(item["chart"]), _cell(item["problem"])])
+            + " |"
+        )
+    return lines
 
 
 def _value(score: Any, unit: str) -> str:
