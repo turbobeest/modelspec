@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.5",
-          "default": "1.5",
+          "const": "1.6",
+          "default": "1.6",
           "title": "Contract Version",
           "type": "string"
         },
@@ -668,6 +668,13 @@
             "$ref": "#/$defs/FunnelStep"
           },
           "title": "Funnel",
+          "type": "array"
+        },
+        "model_groups": {
+          "items": {
+            "$ref": "#/$defs/ModelEliminationGroup"
+          },
+          "title": "Model Groups",
           "type": "array"
         },
         "models": {
@@ -1010,6 +1017,42 @@
           "default": 0,
           "minimum": 0,
           "title": "May Qualify",
+          "type": "integer"
+        },
+        "models_after": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Models After",
+          "type": "integer"
+        },
+        "models_before": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Models Before",
+          "type": "integer"
+        },
+        "models_may_qualify": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Models May Qualify",
+          "type": "integer"
+        },
+        "offerings_after": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offerings After",
+          "type": "integer"
+        },
+        "offerings_before": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offerings Before",
+          "type": "integer"
+        },
+        "offerings_may_qualify": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offerings May Qualify",
           "type": "integer"
         }
       },
@@ -1510,6 +1553,40 @@
       "title": "ModelElimination",
       "type": "object"
     },
+    "ModelEliminationGroup": {
+      "additionalProperties": false,
+      "description": "One eliminated model, with its model row or offering rows. Added in 1.6.",
+      "properties": {
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "model_elimination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelElimination"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "offerings": {
+          "items": {
+            "$ref": "#/$defs/OfferingElimination"
+          },
+          "title": "Offerings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "ModelEliminationGroup",
+      "type": "object"
+    },
     "ModelRef": {
       "additionalProperties": false,
       "description": "The right-hand side of a relative condition: ``coding >= model(openai/gpt-6-sol)``.",
@@ -1845,6 +1922,105 @@
         }
       },
       "title": "Objective",
+      "type": "object"
+    },
+    "OfferingElimination": {
+      "additionalProperties": false,
+      "description": "Why one offering of an eliminated model left the lineup. Added in 1.6.",
+      "properties": {
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formula"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "offering",
+        "condition"
+      ],
+      "title": "OfferingElimination",
       "type": "object"
     },
     "OfferingRef": {
@@ -2651,5 +2827,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.5"
+  "x-contract-version": "1.6"
 }

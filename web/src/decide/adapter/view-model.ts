@@ -693,6 +693,7 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
+  const modelGrained = decision.contract_version === "1.6";
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,
@@ -718,39 +719,39 @@ export function mapDecisionToViewModel(
       hasOffering: ref.provider !== null,
     };
   });
-  const eliminatedByOffering = new Map<string, Decision["eliminated"]["models"][number]>();
-  for (const eliminated of decision.eliminated.models) {
+  const groupedEliminations = decision.eliminated.model_groups.flatMap((group) => [
+    ...(group.model_elimination ? [group.model_elimination] : []),
+    ...group.offerings.map((offering) => ({ ...offering, model: group.model })),
+  ]);
+  const legacyEliminations = [
+    ...new Map(decision.eliminated.models.map((row) => {
+      const ref = row.offering ?? { model: row.model, provider: null, region: null, tier: null };
+      return [offeringKey(ref), row];
+    })).values(),
+  ];
+  const rawExcluded: CandidateRow[] = (
+    modelGrained ? groupedEliminations : legacyEliminations
+  ).map((eliminated) => {
     const ref = eliminated.offering ?? {
       model: eliminated.model,
       provider: null,
       region: null,
       tier: null,
     };
-    eliminatedByOffering.set(offeringKey(ref), eliminated);
-  }
-  const rawExcluded: CandidateRow[] = [...eliminatedByOffering.values()].map(
-    (eliminated) => {
-      const ref = eliminated.offering ?? {
-        model: eliminated.model,
-        provider: null,
-        region: null,
-        tier: null,
-      };
-      return {
-        row: unrankedRow(
-          decision,
-          ref,
-          spec,
-          sources,
-          -1,
-          [],
-          eliminated.condition,
-          names,
-        ),
-        hasOffering: ref.provider !== null,
-      };
-    },
-  );
+    return {
+      row: unrankedRow(
+        decision,
+        ref,
+        spec,
+        sources,
+        -1,
+        [],
+        eliminated.condition,
+        names,
+      ),
+      hasOffering: ref.provider !== null,
+    };
+  });
   const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
   const claimed = new Set<string>();
   const feasible = consolidateRows(rawFeasible, rawRows, claimed);
@@ -765,57 +766,41 @@ export function mapDecisionToViewModel(
   if (!benchmarks[spec.bench]) benchmarks[spec.bench] = benchmarkDefinition(decision, spec.bench);
   const bench = benchmarks[spec.bench];
   const frontier = pareto(feasible, options.axis, bench.hi);
-  const candidateRefs = new Map<string, OfferingRef>();
-  decision.results.forEach((result) =>
-    candidateRefs.set(offeringKey(result.offering), result.offering),
-  );
-  decision.may_qualify.forEach((candidate) => {
-    const ref = candidate.offering ?? {
-      model: candidate.model,
-      provider: null,
-      region: null,
-      tier: null,
-    };
-    candidateRefs.set(offeringKey(ref), ref);
-  });
-  decision.eliminated.models.forEach((candidate) => {
-    const ref = candidate.offering ?? {
-      model: candidate.model,
-      provider: null,
-      region: null,
-      tier: null,
-    };
-    candidateRefs.set(offeringKey(ref), ref);
-  });
-  const population = {
-    models: new Set([...candidateRefs.values()].map((ref) => ref.model)).size,
-    offerings: candidateRefs.size,
+  const firstStep = decision.eliminated.funnel[0];
+  const legacyRefs = new Map<string, OfferingRef>();
+  [...decision.results.map((row) => row.offering),
+    ...decision.may_qualify.map((row) => row.offering ?? {
+      model: row.model, provider: null, region: null, tier: null,
+    }),
+    ...decision.eliminated.models.map((row) => row.offering ?? {
+      model: row.model, provider: null, region: null, tier: null,
+    })].forEach((ref) => legacyRefs.set(offeringKey(ref), ref));
+  const population = modelGrained ? {
+    models: firstStep?.models_before ?? rows.length,
+    offerings: firstStep?.offerings_before ?? rows.flatMap((row) => row.offs).length,
+  } : {
+    models: new Set([...legacyRefs.values()].map((ref) => ref.model)).size,
+    offerings: legacyRefs.size,
   };
-  const eliminatedThrough = new Set<string>();
+  const legacyEliminated = new Set<string>();
   const funnel = [
     { label: "All models", n: population.models, may: 0 },
     ...decision.eliminated.funnel.map((step) => {
+      if (modelGrained) return {
+        label: renderContractCondition(step.condition),
+        n: step.models_after,
+        may: step.models_may_qualify,
+      };
       decision.eliminated.models
-        .filter((candidate) => candidate.condition === step.condition)
-        .forEach((candidate) => {
-          const ref = candidate.offering ?? {
-            model: candidate.model,
-            provider: null,
-            region: null,
-            tier: null,
-          };
-          eliminatedThrough.add(offeringKey(ref));
-        });
-      const models = new Set(
-        [...candidateRefs].flatMap(([key, ref]) =>
-          eliminatedThrough.has(key) ? [] : [ref.model],
-        ),
-      ).size;
-      const mayModels = new Set(decision.may_qualify.map((candidate) => candidate.model)).size;
+        .filter((row) => row.condition === step.condition)
+        .forEach((row) => legacyEliminated.add(offeringKey(row.offering ?? {
+          model: row.model, provider: null, region: null, tier: null,
+        })));
       return {
         label: renderContractCondition(step.condition),
-        n: models,
-        may: step.may_qualify === 0 ? 0 : Math.min(models, mayModels),
+        n: new Set([...legacyRefs].flatMap(([key, ref]) =>
+          legacyEliminated.has(key) ? [] : [ref.model])).size,
+        may: step.may_qualify,
       };
     }),
   ];
@@ -829,13 +814,14 @@ export function mapDecisionToViewModel(
     const conditionIndex = spec.conds.findIndex(
       (condition) => contractCondition(condition) === miss.condition,
     );
-    if (
-      !row ||
-      conditionIndex < 0 ||
+    if (!row || conditionIndex < 0) return [];
+    const offering = row.offs.find((candidate) => candidate.o.id === offeringId(miss.offering));
+    if (!offering) return [];
+    if (!modelGrained && (
       row.best.o.id !== offeringId(miss.offering) ||
       row.best.fails.length !== 1 ||
       row.best.fails[0] !== conditionIndex
-    ) return [];
+    )) return [];
     return [
       {
         row,
@@ -847,7 +833,7 @@ export function mapDecisionToViewModel(
           .map((value) => (miss.facet ? valueWithUnit(miss.facet, String(value)) : String(value)))
           .join(", ")}`,
         relaxed: null,
-        off: row.best,
+        off: offering,
       },
     ];
   });

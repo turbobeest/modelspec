@@ -312,7 +312,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.5",
+      contract_version: "1.6",
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
@@ -364,6 +364,16 @@ export const fictionalEngine: SampleDecisionEngine = {
           before: e.funnel[i].n,
           after: f.n,
           may_qualify: f.may,
+          models_before: e.funnel[i].n,
+          models_after: f.n,
+          offerings_before: e.rows
+            .filter((row) => row.dropAt < 0 || row.dropAt >= i)
+            .reduce((count, row) => count + row.offs.length, 0),
+          offerings_after: e.rows
+            .filter((row) => row.dropAt < 0 || row.dropAt > i)
+            .reduce((count, row) => count + row.offs.length, 0),
+          models_may_qualify: f.may,
+          offerings_may_qualify: f.may,
         })),
         models: e.excluded.map((r) => ({
           values: [],
@@ -374,6 +384,32 @@ export const fictionalEngine: SampleDecisionEngine = {
           condition: label(spec.conds[r.dropAt]),
           value: r.best.t[r.dropAt]?.why || null,
         })),
+        model_groups: e.excluded.map((r) => {
+          const offering = ref(r);
+          const elimination = {
+            values: [],
+            offering,
+            unit: null,
+            records: [],
+            model: offering.model,
+            condition: label(spec.conds[r.dropAt]),
+            value: r.best.t[r.dropAt]?.why || null,
+          };
+          return {
+            model: offering.model,
+            model_elimination: offering.provider === null ? elimination : null,
+            offerings: offering.provider === null
+              ? []
+              : [{
+                  values: elimination.values,
+                  offering,
+                  unit: elimination.unit,
+                  records: elimination.records,
+                  condition: elimination.condition,
+                  value: elimination.value,
+                }],
+          };
+        }),
       },
       constraint_costs: e.costs.map((c) => ({
         units: {},

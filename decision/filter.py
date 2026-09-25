@@ -83,6 +83,12 @@ class FunnelCount:
     before: int
     after: int
     may_qualify: int
+    models_before: int
+    models_after: int
+    offerings_before: int
+    offerings_after: int
+    models_may_qualify: int
+    offerings_may_qualify: int
 
     @property
     def condition(self) -> str:
@@ -94,6 +100,10 @@ class FunnelCount:
         return FunnelStep(
             condition=self.condition, before=self.before, after=self.after,
             may_qualify=self.may_qualify,
+            models_before=self.models_before, models_after=self.models_after,
+            offerings_before=self.offerings_before, offerings_after=self.offerings_after,
+            models_may_qualify=self.models_may_qualify,
+            offerings_may_qualify=self.offerings_may_qualify,
         )
 
 
@@ -664,6 +674,13 @@ class _Run:
         if (feasible | maybe | eliminated) != self.universe:
             raise RuntimeError("filter partition does not cover the lineup")
 
+    def _grain_counts(self, bits: int) -> tuple[int, int]:
+        ids = self._ids_of(bits)
+        return (
+            len({self.index.model_of(cid) for cid in ids}),
+            sum(self.index.kind(cid) == "offering" for cid in ids),
+        )
+
     def run(self) -> FilterResult:
         wanted = self.resolved.spec.snapshot
         if wanted != "latest" and wanted != self.index.snapshot_id:
@@ -702,9 +719,14 @@ class _Run:
             self.path = (f"profile.rules[{index}]" if index < rules
                          else f"where[{index - rules}]")
             before = feasible.bit_count()
+            models_before, offerings_before = self._grain_counts(feasible)
             if cond.soft is not None:
                 self._eval(cond)
-                funnel.append(FunnelCount(cond, before, before, 0))
+                funnel.append(FunnelCount(
+                    cond, before, before, 0,
+                    models_before, models_before, offerings_before, offerings_before,
+                    0, 0,
+                ))
                 continue
             raw = self._eval(cond)
             fe_pass, fe_fail, fe_unk = _split(raw, feasible)
@@ -737,8 +759,12 @@ class _Run:
                     unverified=unverified,
                 ))
             eliminated |= new_elim
+            models_after, offerings_after = self._grain_counts(feasible)
+            models_maybe, offerings_maybe = self._grain_counts(new_maybe)
             funnel.append(FunnelCount(
                 cond, before, feasible.bit_count(), new_maybe.bit_count(),
+                models_before, models_after, offerings_before, offerings_after,
+                models_maybe, offerings_maybe,
             ))
             self._cover(feasible, maybe, eliminated)
 

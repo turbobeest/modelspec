@@ -2919,8 +2919,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.5'
-          default: '1.5'
+          const: '1.6'
+          default: '1.6'
           title: Contract Version
           type: string
         decision_id:
@@ -3029,6 +3029,11 @@ components:
           items:
             $ref: '#/components/schemas/DecisionModelElimination'
           title: Models
+          type: array
+        model_groups:
+          items:
+            $ref: '#/components/schemas/DecisionModelEliminationGroup'
+          title: Model Groups
           type: array
       title: Eliminated
       type: object
@@ -3239,6 +3244,36 @@ components:
           default: 0
           minimum: 0
           title: May Qualify
+          type: integer
+        models_before:
+          default: 0
+          minimum: 0
+          title: Models Before
+          type: integer
+        models_after:
+          default: 0
+          minimum: 0
+          title: Models After
+          type: integer
+        offerings_before:
+          default: 0
+          minimum: 0
+          title: Offerings Before
+          type: integer
+        offerings_after:
+          default: 0
+          minimum: 0
+          title: Offerings After
+          type: integer
+        models_may_qualify:
+          default: 0
+          minimum: 0
+          title: Models May Qualify
+          type: integer
+        offerings_may_qualify:
+          default: 0
+          minimum: 0
+          title: Offerings May Qualify
           type: integer
       required:
       - condition
@@ -3520,6 +3555,28 @@ components:
       - condition
       title: ModelElimination
       type: object
+    DecisionModelEliminationGroup:
+      additionalProperties: false
+      description: One eliminated model, with its model row or offering rows. Added in 1.6.
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        model_elimination:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionModelElimination'
+          - type: 'null'
+          default: null
+        offerings:
+          items:
+            $ref: '#/components/schemas/DecisionOfferingElimination'
+          title: Offerings
+          type: array
+      required:
+      - model
+      title: ModelEliminationGroup
+      type: object
     DecisionModelRef:
       additionalProperties: false
       description: 'The right-hand side of a relative condition: ``coding >= model(lab/example-model)``.'
@@ -3710,6 +3767,59 @@ components:
           title: Qualifiers
           type: object
       title: Objective
+      type: object
+    DecisionOfferingElimination:
+      additionalProperties: false
+      description: Why one offering of an eliminated model left the lineup. Added in 1.6.
+      properties:
+        values:
+          items:
+            anyOf:
+            - type: boolean
+            - type: integer
+            - type: number
+            - format: date
+              type: string
+            - type: string
+          title: Values
+          type: array
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        condition:
+          title: Condition
+          type: string
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - type: 'null'
+          default: null
+          title: Value
+        formula:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Formula
+      required:
+      - offering
+      - condition
+      title: OfferingElimination
       type: object
     DecisionOfferingRef:
       additionalProperties: false
@@ -4196,7 +4306,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.5'
+          - '1.6'
         endpoint:
           type: string
           enum:
@@ -4247,7 +4357,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.5'
+          - '1.6'
         endpoint:
           type: string
           enum:

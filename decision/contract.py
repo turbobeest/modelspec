@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.5"
+CONTRACT_VERSION = "1.6"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1092,6 +1092,15 @@ class FunnelStep(_Strict):
     before: int = Field(ge=0)
     after: int = Field(ge=0)
     may_qualify: int = Field(default=0, ge=0)
+    #: Candidate-grained counts above remain for compatibility. These counts
+    #: expose the same stage at the two grains people make decisions about.
+    #: Added in 1.6.
+    models_before: int = Field(default=0, ge=0)
+    models_after: int = Field(default=0, ge=0)
+    offerings_before: int = Field(default=0, ge=0)
+    offerings_after: int = Field(default=0, ge=0)
+    models_may_qualify: int = Field(default=0, ge=0)
+    offerings_may_qualify: int = Field(default=0, ge=0)
 
 
 class ModelElimination(_Strict):
@@ -1106,9 +1115,32 @@ class ModelElimination(_Strict):
     formula: str | None = None
 
 
+class OfferingElimination(_Strict):
+    """Why one offering of an eliminated model left the lineup. Added in 1.6."""
+
+    values: list[Scalar] = Field(default_factory=list)
+    offering: OfferingRef
+    unit: str | None = None
+    records: list[str] = Field(default_factory=list)
+    condition: str
+    value: Scalar | None = None
+    formula: str | None = None
+
+
+class ModelEliminationGroup(_Strict):
+    """One eliminated model, with its model row or offering rows. Added in 1.6."""
+
+    model: ModelId
+    model_elimination: ModelElimination | None = None
+    offerings: list[OfferingElimination] = Field(default_factory=list)
+
+
 class Eliminated(_Strict):
     funnel: list[FunnelStep] = Field(default_factory=list)
     models: list[ModelElimination] = Field(default_factory=list)
+    #: The candidate-grained ``models`` list remains for older clients.
+    #: Added in 1.6.
+    model_groups: list[ModelEliminationGroup] = Field(default_factory=list)
 
 
 class ConstraintCost(_Strict):
@@ -1206,7 +1238,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.5"] = CONTRACT_VERSION
+    contract_version: Literal["1.6"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1245,7 +1277,8 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
-    MayQualify, Eliminated, FunnelStep, ModelElimination, ConstraintCost, TippingPoint,
+    MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
+    ModelEliminationGroup, ConstraintCost, TippingPoint,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
 )
 

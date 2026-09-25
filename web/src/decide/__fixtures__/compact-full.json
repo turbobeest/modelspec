@@ -806,7 +806,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "1.5",
+  "contract_version": "1.6",
   "decision_id": "dec_cc55843bc8a929e6bef02739",
   "snapshot": "snap_abbaaf63dc6a7cac",
   "spec_hash": "sha256:2e6d018a3802e03cd200cf58efd0d6910f67f06e11d32f6063b7a0ff7706e806",
@@ -1094,13 +1094,25 @@
         "condition": "model.class = text-generator",
         "before": 4,
         "after": 4,
-        "may_qualify": 0
+        "may_qualify": 0,
+        "models_before": 4,
+        "models_after": 4,
+        "offerings_before": 4,
+        "offerings_after": 4,
+        "models_may_qualify": 0,
+        "offerings_may_qualify": 0
       },
       {
         "condition": "quality >= 60 @independent",
         "before": 4,
         "after": 3,
-        "may_qualify": 0
+        "may_qualify": 0,
+        "models_before": 4,
+        "models_after": 3,
+        "offerings_before": 4,
+        "offerings_after": 3,
+        "models_may_qualify": 0,
+        "offerings_may_qualify": 0
       }
     ],
     "models": [
@@ -1120,6 +1132,30 @@
         "condition": "quality >= 60 @independent",
         "value": 36.0,
         "formula": null
+      }
+    ],
+    "model_groups": [
+      {
+        "model": "lab/delta",
+        "model_elimination": null,
+        "offerings": [
+          {
+            "values": [],
+            "offering": {
+              "model": "lab/delta",
+              "provider": "cloud",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unit": "percent",
+            "records": [
+              "lab/delta#quality#36.0"
+            ],
+            "condition": "quality >= 60 @independent",
+            "value": 36.0,
+            "formula": null
+          }
+        ]
       }
     ]
   },

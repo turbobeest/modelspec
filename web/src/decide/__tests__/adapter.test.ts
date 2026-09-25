@@ -31,7 +31,7 @@ const answer = {
   status: "answered",
   results: [],
   may_qualify: [],
-  eliminated: { funnel: [], models: [] },
+  eliminated: { funnel: [], models: [], model_groups: [] },
   constraint_costs: [],
   tipping_points: [],
   relax: [],

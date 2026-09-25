@@ -275,7 +275,14 @@ def _distance(reason, condition):
 def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains):
     from dataclasses import replace
 
-    from decision.contract import ConstraintCost, ModelElimination, NearMiss, render_condition
+    from decision.contract import (
+        ConstraintCost,
+        ModelElimination,
+        ModelEliminationGroup,
+        NearMiss,
+        OfferingElimination,
+        render_condition,
+    )
     from decision.engine import offering_ref, run_optimise
     from decision.filter import apply
 
@@ -298,6 +305,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             return None
         return min(values) if dimension.startswith("-") else max(values)
 
+    candidate_near_misses = {}
     for i, condition in enumerate(resolved.conditions):
         if condition.soft is not None:
             continue
@@ -371,8 +379,8 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                 and not reason.unverified
                 and reason.candidate not in filtered.feasible
             ):
-                decision.near_misses.append(
-                    NearMiss(
+                if not (ref.provider is None and (reason.facet or "").startswith("offering.")):
+                    candidate_near_misses[reason.candidate] = NearMiss(
                         offering=ref,
                         condition=text,
                         facet=reason.facet,
@@ -383,7 +391,6 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         records=records,
                         formula=formula,
                     )
-                )
     if decision.explain == "full":
         already = {m.offering.model_dump_json() for m in decision.eliminated.models}
         for reason in filtered.eliminated:
@@ -411,6 +418,45 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                     model=ref.model, offering=ref, condition="outside requested result limit"
                 )
             )
+
+        grouped = {}
+        for row in decision.eliminated.models:
+            group = grouped.setdefault(row.model, {"model": None, "offerings": {}})
+            if row.offering is None or row.offering.provider is None:
+                group["model"] = group["model"] or row
+            else:
+                key = row.offering.model_dump_json()
+                group["offerings"].setdefault(key, row)
+        decision.eliminated.model_groups = [
+            ModelEliminationGroup(
+                model=model,
+                model_elimination=rows["model"],
+                offerings=[
+                    OfferingElimination(**row.model_dump(exclude={"model"}))
+                    for row in rows["offerings"].values()
+                ],
+            )
+            for model, rows in sorted(grouped.items())
+        ]
+
+    # A near miss is one model, represented by its best offering. Optimise all
+    # offerings of that model without the hard conditions, then retain it only
+    # when that best offering failed exactly one condition.
+    by_model = {}
+    for cid in candidate_near_misses:
+        by_model.setdefault(snapshot.model_of(cid), []).append(cid)
+    for model in sorted(by_model):
+        if any(snapshot.model_of(cid) == model for cid in filtered.feasible):
+            continue
+        offerings = [
+            cid for cid in snapshot.candidates()
+            if snapshot.model_of(cid) == model and snapshot.kind(cid) == "offering"
+        ]
+        candidates = offerings or [model]
+        unconstrained = replace(filtered, feasible=tuple(candidates), may_qualify=(), eliminated=())
+        best = run_optimise(snapshot, unconstrained, resolved.spec, selectors, domains).results
+        if best and best[0].candidate_id in candidate_near_misses:
+            decision.near_misses.append(candidate_near_misses[best[0].candidate_id])
 
 
 def _full(decision, snapshot, ordered, requested, named):

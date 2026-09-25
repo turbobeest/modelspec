@@ -165,3 +165,55 @@ def test_a_bare_model_row_is_represented_not_eliminated():
     assert "lab/m" not in filtered.feasible
     assert "lab/m" not in {e.candidate for e in filtered.eliminated}
     assert "lab/m" not in {m.candidate for m in filtered.may_qualify}
+
+
+def test_explanation_reports_the_filter_funnel_at_model_and_offering_grain():
+    _, index = build()
+    request = parse_spec({
+        "spec_version": 1,
+        "where": ["model.class = text-generator", "offering.price.input <= 0.75"],
+        "optimize": {"min": "offering.price.input"},
+        "explain": "full",
+    }, facets=facets)
+
+    decision = decide(request, index, facets=facets)
+
+    assert [(
+        step.before,
+        step.after,
+        step.models_before,
+        step.models_after,
+        step.offerings_before,
+        step.offerings_after,
+    ) for step in decision.eliminated.funnel] == [
+        (4, 4, 2, 2, 4, 4),
+        (4, 1, 2, 1, 4, 1),
+    ]
+    assert [(miss.offering.model, miss.offering.provider, miss.distance, miss.unit)
+            for miss in decision.near_misses] == [
+        ("lab/m", "p1", 0.25, "usd_per_1m_tokens"),
+    ]
+    group = next(group for group in decision.eliminated.model_groups
+                 if group.model == "lab/m")
+    assert group.model_elimination is None
+    assert [row.offering.provider for row in group.offerings] == ["p1", "p2", "p3"]
+
+
+def test_an_offering_condition_never_makes_a_bare_model_a_near_miss():
+    built = build_snapshot(SnapshotInputs(
+        models=[generator("lab/m"), generator("lab/open")],
+        offerings=[sold("lab/m", "p1", 1.0)],
+        evidence=[evidence("lab/m", TERMINAL, 60.0), evidence("lab/open", TERMINAL, 58.0)],
+        sources=SOURCES, benchmark_domains=DOMAINS,
+    ), gate=False, as_of=AS_OF)
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    request = parse_spec({
+        "spec_version": 1,
+        "where": ["known(offering.provider)"],
+        "optimize": {"max": TERMINAL},
+        "explain": "full",
+    }, facets=facets)
+
+    decision = decide(request, index, facets=facets)
+
+    assert decision.near_misses == []
