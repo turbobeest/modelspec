@@ -72,10 +72,16 @@ class Bits:
 
 @dataclass(frozen=True)
 class FunnelCount:
-    condition: str
+    _condition: Any
     before: int
     after: int
     may_qualify: int
+
+    @property
+    def condition(self) -> str:
+        if isinstance(self._condition, str):
+            return self._condition
+        return render_condition(self._condition)
 
     def as_contract(self) -> FunnelStep:
         return FunnelStep(
@@ -89,11 +95,17 @@ class Elimination:
     """Why one candidate left the lineup. ``value`` is theirs, ``threshold`` is the bar."""
 
     candidate: str
-    condition: str
+    _condition: Any
     value: Any
     threshold: Any
     facet: str | None
     unverified: bool = False
+
+    @property
+    def condition(self) -> str:
+        if isinstance(self._condition, str):
+            return self._condition
+        return render_condition(self._condition)
 
     @property
     def surface(self) -> str | None:
@@ -406,7 +418,21 @@ class _Run:
         self.resolved_threshold[key] = got
         return got
 
-    def _evidence_bits(self, cond: Any, judge: Callable[[Sequence[Any]], Leg]) -> Bits:
+    def _evidence_bits(self, cond: Any, op: str, arg: Any) -> Bits:
+        qualifiers = cond.qualifiers or EvidenceQualifiers()
+        measured = _measurers(qualifiers.measured_by)
+        indexed = getattr(self.index, "evidence_where", None)
+        if indexed is not None:
+            return _as_bits(indexed(
+                cond.facet,
+                op,
+                arg,
+                measured_by=None if measured is None else set(measured),
+                effort=qualifiers.effort,
+                harness=qualifiers.harness,
+                after=qualifiers.measured_after,
+                direct=qualifiers.direct,
+            ), self.universe)
         passing = failing = 0
         for i, cid in enumerate(self.ids):
             try:
@@ -415,7 +441,12 @@ class _Run:
                 raise SpecError([Issue(
                     render_condition(cond), cid, f"{cid} is not in the snapshot", self.path,
                 )]) from None
-            leg = judge(values)
+            if op == "between":
+                low, high = arg
+                leg = _judge(values, lambda value: _op(">=", value, low)
+                             and _op("<=", value, high))
+            else:
+                leg = _judge(values, lambda value: _op(op, value, arg))
             bit = 1 << i
             if leg == "pass":
                 passing |= bit
@@ -431,18 +462,13 @@ class _Run:
         else:
             threshold = cond.value
         if self._is_evidence(cond):
-            return self._evidence_bits(
-                cond, lambda values: _judge(values, lambda value: _op(cond.op, value, threshold)),
-            )
+            return self._evidence_bits(cond, cond.op, threshold)
         return _as_bits(self.index.ids_where(cond.facet, cond.op, threshold), self.universe)
 
     def _window(self, cond: Window) -> Bits:
         low, high = cond.between
         if self._is_evidence(cond):
-            return self._evidence_bits(
-                cond, lambda values: _judge(values, lambda value: _op(">=", value, low)
-                                            and _op("<=", value, high)),
-            )
+            return self._evidence_bits(cond, "between", (low, high))
         lo = _as_bits(self.index.ids_where(cond.facet, ">=", low), self.universe)
         hi = _as_bits(self.index.ids_where(cond.facet, "<=", high), self.universe)
         return bit_and(lo, hi, self.universe)
@@ -452,10 +478,12 @@ class _Run:
         if not values:
             raise ValueError("a set condition has no values")
         if self._is_evidence(cond):
-            wanted = set(values)
-            bits = self._evidence_bits(
-                cond, lambda got: _judge(got, lambda value: value in wanted),
-            )
+            acc: Bits | None = None
+            for value in values:
+                bit = self._evidence_bits(cond, "=", value)
+                acc = bit if acc is None else bit_or(acc, bit, self.universe)
+            assert acc is not None
+            bits = acc
         else:
             acc: Bits | None = None
             for value in values:
@@ -641,7 +669,7 @@ class _Run:
             self.lineup = self.universe & ~retired
             for cid in self._ids_of(retired):
                 eliminations.append(Elimination(
-                    candidate=cid, condition=_RETIRED_CONDITION, value="retired",
+                    candidate=cid, _condition=_RETIRED_CONDITION, value="retired",
                     threshold=("active", "deprecated"), facet="model.lifecycle",
                 ))
         feasible = self.lineup
@@ -658,7 +686,7 @@ class _Run:
             before = feasible.bit_count()
             if cond.soft is not None:
                 self._eval(cond)
-                funnel.append(FunnelCount(render_condition(cond), before, before, 0))
+                funnel.append(FunnelCount(cond, before, before, 0))
                 continue
             raw = self._eval(cond)
             fe_pass, fe_fail, fe_unk = _split(raw, feasible)
@@ -678,14 +706,13 @@ class _Run:
                         found.append(facet_id)
             for cid in self._ids_of(drop):
                 unknown_facets.pop(cid, None)
-            text = render_condition(cond)
             for cid in self._ids_of(new_elim):
                 bit = 1 << self.pos[cid]
                 unverified = bool(unverified_bits & bit) or self._leaf_was_unknown(cond, bit)
                 leg: Leg = "unknown" if unverified else "fail"
                 leaf = self._decisive(cond, bit, leg)
                 eliminations.append(Elimination(
-                    candidate=cid, condition=text,
+                    candidate=cid, _condition=cond,
                     value=None if unverified else self._value(leaf, cid),
                     threshold=self._threshold(leaf),
                     facet=_facet_of(leaf),
@@ -693,7 +720,7 @@ class _Run:
                 ))
             eliminated |= new_elim
             funnel.append(FunnelCount(
-                text, before, feasible.bit_count(), new_maybe.bit_count(),
+                cond, before, feasible.bit_count(), new_maybe.bit_count(),
             ))
             self._cover(feasible, maybe, eliminated)
 

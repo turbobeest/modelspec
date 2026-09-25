@@ -90,6 +90,14 @@ class RecordingSnapshot:
         ))
         return self.snapshot.evidence(cid, benchmark_id, **qualifiers)
 
+    def evidence_where(self, benchmark_id: str, op: str, arg: object, **qualifiers):
+        for cid in self.snapshot.candidates():
+            self.calls.append((
+                "evidence", cid, benchmark_id, qualifiers.get("measured_by"),
+                qualifiers.get("effort"), qualifiers.get("harness"), qualifiers.get("after"),
+            ))
+        return self.snapshot.evidence_where(benchmark_id, op, arg, **qualifiers)
+
 
 def run(*where: str, rows: dict[str, dict], life: dict[str, str] | None = None,
         evidence: dict | None = None, extras: dict[str, dict] | None = None,
@@ -546,6 +554,23 @@ def test_provider_self_report_qualifier_keeps_only_that_measurer() -> None:
     assert names(result, "feasible") == ["lab/m"]
 
 
+def test_evidence_not_equal_passes_when_any_admitted_measurement_differs() -> None:
+    benchmark = "evidence.benchmark"
+    evidence = {
+        ("lab/mixed", benchmark): (
+            evidence_row(benchmark, 50),
+            evidence_row(benchmark, 60),
+        ),
+        ("lab/equal", benchmark): (evidence_row(benchmark, 50),),
+        ("lab/missing", benchmark): (),
+    }
+    rows = {cid: {"model.context_window": 10} for cid, _benchmark in evidence}
+    result, _, _ = run(f"{benchmark} != 50 @independent", rows=rows, evidence=evidence)
+    assert names(result, "feasible") == ["lab/mixed"]
+    assert names(result, "maybe") == ["lab/missing"]
+    assert names(result, "eliminated") == ["lab/equal"]
+
+
 def test_soft_conditions_do_not_filter_and_are_passed_on_as_penalties() -> None:
     rows = {
         "lab/short": {"model.context_window": 1000},
@@ -729,12 +754,168 @@ def test_filter_is_deterministic() -> None:
     assert list(first.feasible) == ["lab/a"]
 
 
+def test_funnel_and_elimination_text_is_rendered_only_when_read(monkeypatch) -> None:
+    import decision.filter as filtering
+
+    rendered = []
+    original = filtering.render_condition
+
+    def record(condition):
+        rendered.append(condition)
+        return original(condition)
+
+    monkeypatch.setattr(filtering, "render_condition", record)
+    result, _, _ = run(
+        "model.context_window >= 10",
+        rows={
+            "lab/pass": {"model.context_window": 20},
+            "lab/fail": {"model.context_window": 5},
+        },
+    )
+    assert rendered == []
+    assert result.funnel[0].condition == "model.context_window >= 10"
+    assert result.eliminated[0].condition == "model.context_window >= 10"
+    assert len(rendered) == 2
+
+
+def _scan_leg(value: FactValue, predicate) -> str:
+    if value.state != "known":
+        return "unknown"
+    return "pass" if predicate(value.value) else "fail"
+
+
+def test_bitset_index_matches_a_brute_force_scan_on_randomized_facts() -> None:
+    rng = random.Random(152)
+    states = ("unknown", "not_disclosed", "requires_contract")
+    for _ in range(30):
+        rows: dict[str, dict[str, object]] = {}
+        for i in range(rng.randint(1, 14)):
+            cid = f"lab/m{i:02d}"
+            context: object = rng.randint(1, 300)
+            if rng.random() < 0.25:
+                context = FactValue(rng.choice(states))
+            openness: object = rng.choice(("open_weights", "closed_weights"))
+            if rng.random() < 0.2:
+                openness = FactValue(rng.choice(states))
+            modalities: object = sorted(rng.sample(
+                ["text", "image", "audio", "document"], rng.randint(1, 4),
+            ))
+            if rng.random() < 0.2:
+                modalities = FactValue(rng.choice(states))
+            rows[cid] = {
+                "model.context_window": context,
+                "model.weights_openness": openness,
+                "model.input_modalities": modalities,
+            }
+        index = loaded_index(rows)
+        threshold = rng.randint(1, 300)
+        low, high = sorted((rng.randint(1, 300), rng.randint(1, 300)))
+        queries = (
+            ("model.context_window", "=", threshold, lambda value: value == threshold),
+            ("model.context_window", "!=", threshold, lambda value: value != threshold),
+            ("model.context_window", "<", threshold, lambda value: value < threshold),
+            ("model.context_window", "<=", threshold, lambda value: value <= threshold),
+            ("model.context_window", ">", threshold, lambda value: value > threshold),
+            ("model.context_window", ">=", threshold, lambda value: value >= threshold),
+            ("model.context_window", "between", (low, high), lambda value: low <= value <= high),
+            ("model.weights_openness", "in", ["open_weights"],
+             lambda value: value == "open_weights"),
+            ("model.weights_openness", "not_in", ["closed_weights"],
+             lambda value: value != "closed_weights"),
+            ("model.input_modalities", "=", ["image", "text"],
+             lambda value: sorted(value) == ["image", "text"]),
+            ("model.input_modalities", "contains", "image", lambda value: "image" in value),
+            ("model.input_modalities", "contains_all", ["image", "text"],
+             lambda value: {"image", "text"} <= set(value)),
+            ("model.input_modalities", "contains_any", ["audio", "image"],
+             lambda value: bool({"audio", "image"} & set(value))),
+        )
+        for facet_id, op, arg, predicate in queries:
+            got = index.ids_where(facet_id, op, arg)
+            expected = {"pass": set(), "fail": set(), "unknown": set()}
+            for cid in index.candidates():
+                expected[_scan_leg(index.fact(cid, facet_id), predicate)].add(cid)
+            assert set(index.ids(got.passing)) == expected["pass"]
+            assert set(index.ids(got.failing)) == expected["fail"]
+            assert set(index.ids(got.unknown)) == expected["unknown"]
+
+
+def test_nested_filter_matches_a_brute_force_scan_on_randomized_evidence() -> None:
+    rng = random.Random(152_141)
+    benchmark = "evidence.benchmark"
+    independent = {
+        "benchmark_author", "independent", "independent_evaluator", "modelspec",
+        "outcome_protocol",
+    }
+    states = ("unknown", "not_disclosed", "requires_contract")
+    for _ in range(30):
+        rows: dict[str, dict[str, object]] = {}
+        evidence: dict[tuple[str, str], tuple[EvidenceValue, ...]] = {}
+        source: dict[str, tuple[FactValue, FactValue, tuple[EvidenceValue, ...]]] = {}
+        for i in range(rng.randint(1, 12)):
+            cid = f"lab/m{i:02d}"
+            context = FactValue("known", rng.randint(1, 300))
+            if rng.random() < 0.25:
+                context = FactValue(rng.choice(states))
+            openness = FactValue("known", rng.choice(("open_weights", "closed_weights")))
+            if rng.random() < 0.2:
+                openness = FactValue(rng.choice(states))
+            measurements = tuple(
+                evidence_row(
+                    benchmark,
+                    rng.randint(0, 100),
+                    measured_by=rng.choice(("independent", "provider_self_report")),
+                    effort=rng.choice(("low", "high")),
+                    date=rng.choice((date(2026, 5, 1), date(2026, 7, 1), None)),
+                )
+                for _ in range(rng.randint(0, 3))
+            )
+            rows[cid] = {
+                "model.context_window": context,
+                "model.weights_openness": openness,
+            }
+            evidence[(cid, benchmark)] = measurements
+            source[cid] = (context, openness, measurements)
+
+        low, high = sorted((rng.randint(1, 250), rng.randint(50, 300)))
+        ceiling = rng.randint(100, 300)
+        evidence_threshold = rng.randint(20, 80)
+        condition = (
+            f"all(any(model.context_window in [{low}, {high}]; "
+            "model.weights_openness in {open_weights}); "
+            f"not(model.context_window > {ceiling}); "
+            f"{benchmark} >= {evidence_threshold} @independent @effort(low) "
+            "measured_after 2026-06-01)"
+        )
+        result, _, _ = run(condition, rows=rows, evidence=evidence)
+
+        expected = {"pass": set(), "fail": set(), "unknown": set()}
+        for cid, (context, openness, measurements) in source.items():
+            window = _scan_leg(context, lambda value: low <= value <= high)
+            open_weights = _scan_leg(openness, lambda value: value == "open_weights")
+            first = tri_or(window, open_weights)
+            below_ceiling = tri_not(_scan_leg(context, lambda value: value > ceiling))
+            admitted = [
+                row.value for row in measurements
+                if row.verified
+                and row.measured_by in independent
+                and row.effort == "low"
+                and row.date is not None
+                and row.date > date(2026, 6, 1)
+            ]
+            evidence_leg = (
+                "unknown" if not admitted
+                else "pass" if any(value >= evidence_threshold for value in admitted)
+                else "fail"
+            )
+            expected[tri_and(tri_and(first, below_ceiling), evidence_leg)].add(cid)
+
+        assert set(result.feasible) == expected["pass"]
+        assert {row.candidate for row in result.may_qualify} == expected["unknown"]
+        assert {row.candidate for row in result.eliminated} == expected["fail"]
+
+
 @pytest.mark.perf
-@pytest.mark.xfail(
-    strict=False,
-    reason="MODEL-152: the snapshot index is still a linear scan, not per-value bitsets; "
-    "about 1.0 ms on CI. The 1 ms bound stands; MODEL-152 removes this marker.",
-)
 def test_filtering_a_30_candidate_index_is_sub_millisecond(tmp_path) -> None:
     facets = registry.default()
     built = build_snapshot(
