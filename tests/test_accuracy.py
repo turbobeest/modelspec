@@ -21,11 +21,22 @@ class FakeFact:
 
 
 class FakeEvidence:
-    def __init__(self, benchmark: str, value: float, when: date, *, date_type="published"):
+    def __init__(
+        self,
+        benchmark: str,
+        value: float,
+        when: date,
+        *,
+        date_type="published",
+        source_kind=None,
+        verified_at=None,
+    ):
         self.benchmark_id = benchmark
         self.value = value
         self.date = when
         self.date_type = date_type
+        self.source_kind = source_kind
+        self.verified_at = verified_at
         self.verified = True
         self.record_id = f"evidence:{benchmark}"
 
@@ -64,6 +75,15 @@ class FakeSnapshot:
     def benchmark_ids(self):
         return tuple(sorted({row.benchmark_id for row in self._evidence}))
 
+    def record(self, record_id):
+        row = next(row for row in self._evidence if row.record_id == record_id)
+        return {
+            "source_kind": row.source_kind,
+            "evidence_date": row.date.isoformat(),
+            "date_type": row.date_type,
+            "verified_at": row.verified_at.isoformat() if row.verified_at else None,
+        }
+
 
 def test_thresholds_and_budgets_live_in_one_config() -> None:
     config = accuracy.load_config(Path("accuracy.yaml"))
@@ -87,7 +107,12 @@ def test_freshness_fails_for_an_established_lineup_model_without_evidence() -> N
 
 
 def test_freshness_fails_for_a_stale_live_leaderboard_reading() -> None:
-    evidence = FakeEvidence("terminal_bench_v4_0", 70, date(2026, 8, 1), date_type="evaluated")
+    evidence = FakeEvidence(
+        "terminal_bench_v4_0",
+        70,
+        date(2026, 8, 1),
+        date_type="observed",
+    )
     result = accuracy.check_freshness(
         FakeSnapshot(evidence=(evidence,)),
         as_of=date(2026, 9, 25),
@@ -99,12 +124,55 @@ def test_freshness_fails_for_a_stale_live_leaderboard_reading() -> None:
     assert any(row["benchmark"] == "terminal_bench_v4_0" for row in result.details)
 
 
+def test_freshness_uses_when_a_live_board_was_observed_not_when_run_was_evaluated() -> None:
+    evidence = FakeEvidence(
+        "terminal_bench_v4_0",
+        70,
+        date(2026, 7, 1),
+        date_type="evaluated",
+        source_kind="live_leaderboard",
+        verified_at=date(2026, 9, 24),
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(evidence,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+    )
+
+    assert result.status == "pass"
+    assert result.counts["live_readings"] == 1
+    assert result.details == []
+
+
+def test_freshness_exempts_an_old_static_evaluated_result() -> None:
+    evidence = FakeEvidence(
+        "gpqa_diamond",
+        80.3,
+        date(2026, 7, 1),
+        date_type="evaluated",
+        source_kind="independent_evaluator",
+        verified_at=date(2026, 7, 2),
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(evidence,)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+    )
+
+    assert result.status == "pass"
+    assert result.counts["live_readings"] == 0
+    assert result.details == []
+
+
 def test_golden_findings_are_report_only() -> None:
     result = accuracy.golden_result({"pass": 12, "partial": 3, "fail": 5})
 
     assert result.status == "report"
     assert result.gating is False
     assert result.counts == {"pass": 12, "partial": 3, "fail": 5}
+    assert "approved; report-only until MODEL-129" in result.summary
 
 
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:

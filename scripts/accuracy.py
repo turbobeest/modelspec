@@ -178,6 +178,54 @@ def _model_candidates(snapshot: Any) -> dict[str, list[str]]:
     return dict(result)
 
 
+_LIVE_SOURCE_KINDS = frozenset({"live_leaderboard", "live-leaderboard", "live_board"})
+
+
+def _evidence_record(snapshot: Any, row: Any) -> Mapping[str, Any]:
+    record_id = getattr(row, "record_id", None)
+    if record_id is None or not hasattr(snapshot, "record"):
+        return {}
+    try:
+        record = snapshot.record(record_id)
+    except (KeyError, TypeError):
+        return {}
+    return record if isinstance(record, Mapping) else {}
+
+
+def _observation_metadata_date(record: Mapping[str, Any]) -> date | None:
+    """Return a source observation date, never an evaluation/publication date."""
+    containers = [record]
+    source_snapshot = record.get("source_snapshot")
+    if isinstance(source_snapshot, Mapping):
+        containers.append(source_snapshot)
+    sources = record.get("sources")
+    if isinstance(sources, Sequence) and not isinstance(sources, (str, bytes)):
+        containers.extend(source for source in sources if isinstance(source, Mapping))
+    for key in ("observed_at", "retrieved_at"):
+        for container in containers:
+            if (value := _day(container.get(key))) is not None:
+                return value
+    return _day(record.get("verified_at"))
+
+
+def _live_observation_date(snapshot: Any, row: Any) -> tuple[bool, date | None]:
+    """Classify a reading and return when the live board was observed.
+
+    ``evaluated`` is deliberately not a live marker: it is also used for fixed
+    benchmark runs. A live source kind makes the source metadata authoritative;
+    an explicit ``observed`` date type means the evidence date is itself the
+    observation date.
+    """
+    record = _evidence_record(snapshot, row)
+    date_type = getattr(row, "date_type", None) or record.get("date_type")
+    source_kind = getattr(row, "source_kind", None) or record.get("source_kind")
+    if source_kind in _LIVE_SOURCE_KINDS:
+        return True, _observation_metadata_date(record)
+    if date_type == "observed":
+        return True, _day(getattr(row, "date", None) or record.get("evidence_date"))
+    return False, None
+
+
 def check_freshness(snapshot: Any, *, as_of: date, config: FreshnessConfig) -> LayerResult:
     """Gate lineup evidence and live-leaderboard observation age."""
     problems: list[dict[str, Any]] = []
@@ -207,11 +255,12 @@ def check_freshness(snapshot: Any, *, as_of: date, config: FreshnessConfig) -> L
             )
         for row in evidence:
             key = row.record_id or f"{model_id}:{row.benchmark_id}:{row.date}:{row.value}"
-            if key in seen_records or row.date_type not in ("evaluated", "observed"):
+            live, observed = _live_observation_date(snapshot, row)
+            if key in seen_records or not live:
                 continue
             seen_records.add(key)
             live_rows += 1
-            if row.date is None:
+            if observed is None:
                 problems.append(
                     {
                         "model": model_id,
@@ -219,13 +268,13 @@ def check_freshness(snapshot: Any, *, as_of: date, config: FreshnessConfig) -> L
                         "reason": "undated_live_leaderboard",
                     }
                 )
-            elif (as_of - row.date).days > config.live_leaderboard_max_age_days:
+            elif (as_of - observed).days > config.live_leaderboard_max_age_days:
                 problems.append(
                     {
                         "model": model_id,
                         "benchmark": row.benchmark_id,
-                        "evidence_date": row.date.isoformat(),
-                        "age_days": (as_of - row.date).days,
+                        "observation_date": observed.isoformat(),
+                        "age_days": (as_of - observed).days,
                         "reason": "stale_live_leaderboard",
                     }
                 )
@@ -247,7 +296,7 @@ def golden_result(counts: Mapping[str, int], details: Any = None) -> LayerResult
         "golden_answers",
         "report",
         False,
-        f"Recall set reported only: {total} questions; Jamie has not approved it as a gate.",
+        f"Recall set approved; report-only until MODEL-129: {total} questions.",
         dict(counts),
         details or [],
     )
