@@ -5,9 +5,11 @@ name: Build and deploy the sites
 # from main, and only after the build has succeeded.
 #
 # Holding mode (Jamie, 2026-09-24). The repository variable SITE_MODE is the one
-# switch. The real modelspec site is always built and always deployed to the
-# Pages preview branch `internal` (https://internal.modelspec-7np.pages.dev).
-# Production (`--branch=main`) gets that real site only when SITE_MODE is
+# switch. The full v1 tree is built first because holding derives its API and
+# legal files from it. The workflow then replaces `dist` with the decide-only
+# live composition and copies that tree byte for byte to the Pages preview
+# branch `internal` (https://internal.modelspec-7np.pages.dev). Production
+# (`--branch=main`) gets that composition only when SITE_MODE is
 # exactly `live`; unset, empty or anything else gets the modelspec holding tree
 # (pipeline/holding.py): a holding page, with /api/**, /legal/** and openapi.yaml
 # byte for byte as the real build has them. A missing variable fails closed.
@@ -96,28 +98,68 @@ jobs:
             echo "Production modelspec.dev gets \`$production/modelspec\`."
             echo "benchgraph.dev gets \`$production/benchgraph\`, the redirect file"
             echo '(the same bytes as `dist/benchgraph`, in both modes).'
-            echo 'The modelspec preview branch `internal` gets `dist-internal`, including decide.'
+            echo 'The modelspec preview branch `internal` gets the same decide composition as live.'
             echo
             echo "holding modelspec: $(find dist-holding/modelspec -type f | wc -l) files, $(du -sh dist-holding/modelspec | cut -f1)"
             echo "holding benchgraph: $(find dist-holding/benchgraph -type f | wc -l) files, $(du -sh dist-holding/benchgraph | cut -f1)"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Assemble the internal decide preview
+      - name: Assemble the live and internal decide sites
         run: |
+          # Holding must derive from the untouched full build above. Live is a
+          # whitelist so a new v1 page cannot reappear merely by being generated.
+          mv dist dist-v1
+          mkdir -p dist/modelspec dist/benchgraph
+          cp -a dist-v1/modelspec/api dist/modelspec/api
+          cp -a dist-v1/modelspec/legal dist/modelspec/legal
+          cp -a dist-v1/modelspec/.well-known dist/modelspec/.well-known
+          cp -a dist-v1/modelspec/openapi.yaml dist/modelspec/openapi.yaml
+          cp -a dist-v1/benchgraph/_redirects dist/benchgraph/_redirects
+          cp web/dist/decide.html dist/modelspec/index.html
+          cp web/dist/decide.html dist/modelspec/404.html
+          cp -a web/dist/assets dist/modelspec/assets
+          find dist/modelspec/assets -type f -name 'main-*' -delete
+          if [ -f web/dist/favicon.svg ]; then cp web/dist/favicon.svg dist/modelspec/favicon.svg; fi
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path("dist/modelspec")
+          (root / "robots.txt").write_text(
+              "User-agent: *\nAllow: /\n\nSitemap: https://modelspec.dev/sitemap.xml\n",
+              encoding="utf-8",
+          )
+          (root / "sitemap.xml").write_text(
+              '<?xml version="1.0" encoding="UTF-8"?>\n'
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+              + "".join(
+                  f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
+                  for path in ("/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
+              )
+              + "</urlset>\n",
+              encoding="utf-8",
+          )
+          (root / "_headers").write_text(
+              "/*\n"
+              "  X-Content-Type-Options: nosniff\n"
+              "  Referrer-Policy: strict-origin-when-cross-origin\n"
+              "  Permissions-Policy: camera=(), microphone=(), geolocation=()\n"
+              "  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\n"
+              "/api/*\n"
+              "  Access-Control-Allow-Origin: *\n"
+              "/assets/*\n"
+              "  Cache-Control: public, max-age=31536000, immutable\n",
+              encoding="utf-8",
+          )
+          PY
           cp -a dist dist-internal
-          cp web/dist/decide.html dist-internal/modelspec/decide.html
-          mkdir -p dist-internal/modelspec/assets
-          cp -R web/dist/assets/. dist-internal/modelspec/assets/
-          test -s dist-internal/modelspec/decide.html
-          test ! -e dist/modelspec/decide.html
-          test ! -e dist-holding/modelspec/decide.html
-          cmp dist/modelspec/index.html dist-internal/modelspec/index.html
+          diff -r dist dist-internal
+          rm -rf dist-v1
 
       - name: Guard the Cloudflare Pages limits
         run: |
           # Pages refuses a deployment over 20,000 files or with any file over 25 MiB.
           # Failing here is far cheaper than a rejected deploy.
-          # benchgraph, in dist and in dist-holding, is the one-file redirect.
+          # benchgraph, in all three trees, is the one-file redirect.
           # The limit still applies. There is no minimum size.
           for site in dist/modelspec dist/benchgraph dist-holding/modelspec dist-holding/benchgraph dist-internal/modelspec; do
             count=$(find "$site" -type f | wc -l)
@@ -136,8 +178,6 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
-          test -s dist/modelspec/models/index.html
-          test -s dist/modelspec/benchmarks/index.html
           test -s dist/modelspec/sitemap.xml
           test -s dist/modelspec/404.html
           test -s dist/modelspec/api/index.json
@@ -147,7 +187,19 @@ jobs:
           test -s dist/modelspec/api/rank/profiles.json
           test -s dist/modelspec/api/policy/catalogue.json
           test -s dist/modelspec/api/graph/views/hardware.json
-          test -n "$(find dist/modelspec/b -name index.html -print -quit)"
+          test -s dist/modelspec/legal/terms/index.html
+          test -s dist/modelspec/legal/privacy/index.html
+          test -s dist/modelspec/legal/neutrality/index.html
+          test ! -e dist/modelspec/downselect
+          test ! -e dist/modelspec/graph
+          test ! -e dist/modelspec/models
+          test ! -e dist/modelspec/providers
+          test ! -e dist/modelspec/benchmarks
+          test ! -e dist/modelspec/m
+          test ! -e dist/modelspec/p
+          test ! -e dist/modelspec/b
+          test ! -e dist/modelspec/pricing
+          diff -r dist dist-internal
           python - <<'PY'
           from pathlib import Path
           root = Path("dist/benchgraph")
@@ -333,7 +385,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy ${{ needs.build.outputs.production || 'dist-holding' }}/benchgraph --project-name=benchgraph --branch=main
 
-      # The real site, always, on the preview branch `internal`, for testing.
+      # The same composition as live, always, on `internal` for testing.
       - name: Deploy the real modelspec site to the internal preview
         if: steps.creds.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3

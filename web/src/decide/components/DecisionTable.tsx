@@ -10,6 +10,7 @@ import {
   label,
 } from "../adapter";
 import type { AdapterDecision, Row, Spec } from "../adapter";
+const unavailable = "not available in this snapshot";
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
   ["name", "Model", (r) => r.m.name],
@@ -92,9 +93,9 @@ export function DecisionTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r, index) => (
               <tr
-                key={r.m.id}
+                key={`${r.m.lab}/${r.m.id}:${r.best.o.id}:${r.status}:${index}`}
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row" : ""}`}
                 onClick={() => onSelect(r.m.id)}
               >
@@ -110,21 +111,21 @@ export function DecisionTable({
                 </td>
                 <td>{r.best.o.provider}</td>
                 <td>
-                  {fmtB(spec.bench, r.cap)}{" "}
+                  {r.cap === null ? unavailable : fmtB(spec.bench, r.cap)}{" "}
                   <small>{r.capR && fmtCI(spec.bench, r.capR)}</small>
                   <small>
                     {r.capR ? (r.labOnly ? "○ lab" : "● ind.") : ""}
                   </small>
                 </td>
-                <td>{money(r.cost)}</td>
-                <td>{per1M(r.best.o.in)}</td>
-                <td>{per1M(r.best.o.out)}</td>
+                <td>{r.cost === null ? unavailable : money(r.cost)}</td>
+                <td>{r.best.o.in === null ? unavailable : per1M(r.best.o.in)}</td>
+                <td>{r.best.o.out === null ? unavailable : per1M(r.best.o.out)}</td>
                 <td>
-                  {r.best.o.ttft === null ? "unknown" : r.best.o.ttft + " ms"}
+                  {r.best.o.ttft === null ? unavailable : r.best.o.ttft + " ms"}
                 </td>
-                <td>{r.tps ?? "unknown"}</td>
-                <td>{tok(r.m.ctx)}</td>
-                <td>{r.m.open ? "Open" : "Closed"}</td>
+                <td>{r.tps ?? unavailable}</td>
+                <td>{r.m.ctx === null ? unavailable : tok(r.m.ctx)}</td>
+                <td>{r.m.open === null ? unavailable : r.m.open ? "Open" : "Closed"}</td>
                 <td>
                   <span
                     className={

@@ -63,6 +63,26 @@ export function SpecPanel({
     setQuery("");
   };
   const ec = edit === null ? null : spec.conds[edit];
+  const conditionAvailable = (condition: Cond) => {
+    switch (condition.f) {
+      case "task$":
+      case "in$":
+      case "ttft":
+      case "tps":
+      case "ctx":
+        return decision.available_axes[condition.f];
+      case "bench":
+        return decision.explanation.inScope.some((row) =>
+          row.m.bench.some((evidence) => evidence.b === condition.b),
+        );
+      case "open":
+        return decision.explanation.inScope.some(
+          (row) => row.m.open !== null,
+        );
+      default:
+        return true;
+    }
+  };
   return (
     <section className="panel spec-panel" aria-label="Your spec">
       <div className="spec-top">
@@ -175,6 +195,9 @@ export function SpecPanel({
                     {[
                       c.soft ? "soft" : "",
                       c.from ? "from task" : "",
+                      !conditionAvailable(c)
+                        ? "not available in this snapshot"
+                        : "",
                       decision.explanation.funnel[i].n -
                       decision.explanation.funnel[i + 1].n
                         ? "−" +
@@ -261,7 +284,7 @@ export function SpecPanel({
                   min="0"
                   step={
                     ec.f === "bench"
-                      ? BENCH[ec.b].d === 3
+                      ? (decision.benchmarks[ec.b]?.d ?? 2) === 3
                         ? 0.005
                         : 0.5
                       : ec.f === "task$"
@@ -279,7 +302,8 @@ export function SpecPanel({
                   }
                 />
                 {ec.f === "bench"
-                  ? BENCH[ec.b].unit
+                  ? decision.benchmarks[ec.b]?.unit ??
+                    "not available in this snapshot"
                   : ec.f === "ctx"
                     ? "tokens"
                     : ec.f === "tps"

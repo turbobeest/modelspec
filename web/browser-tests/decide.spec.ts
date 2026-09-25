@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 test("dragging a cap updates the spec and keyboard floor respects Shift", async ({
   page,
 }) => {
-  await page.goto("/decide.html");
+  await page.goto("/decide.html?demo=1");
   await page.getByText("start from constraints", { exact: true }).click();
   await page.keyboard.press("Escape");
   const plot = page.locator(".plot");
@@ -34,7 +34,7 @@ test("dragging a cap updates the spec and keyboard floor respects Shift", async 
 test("table selection, sorting and excluded toggle drive the Why panel", async ({
   page,
 }) => {
-  await page.goto("/decide.html?layout=table&theme=dark");
+  await page.goto("/decide.html?demo=1&layout=table&theme=dark");
   await page.getByText("start from constraints", { exact: true }).click();
   await page.keyboard.press("Escape");
   const table = page.getByRole("region", {
@@ -59,7 +59,7 @@ test("native modal traps focus, exports CSV, copies links and restores trigger f
   context,
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/decide.html");
+  await page.goto("/decide.html?demo=1");
   await page.getByText("start from constraints", { exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Share or act", exact: true }).click();
@@ -83,7 +83,7 @@ test("native modal traps focus, exports CSV, copies links and restores trigger f
 test("reduced motion disables transitions and narrow desktop collapses result grid", async ({
   page,
 }) => {
-  await page.goto("/decide.html");
+  await page.goto("/decide.html?demo=1");
   await page.getByText("start from constraints", { exact: true }).click();
   await page.keyboard.press("Escape");
   expect(
@@ -105,7 +105,7 @@ test("reduced motion disables transitions and narrow desktop collapses result gr
 test("context arrows move between standard sizes rather than snapping back", async ({
   page,
 }) => {
-  await page.goto("/decide.html");
+  await page.goto("/decide.html?demo=1");
   await page.getByText("start from constraints", { exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByLabel("X axis", { exact: true }).selectOption("ctx");

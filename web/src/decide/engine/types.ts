@@ -56,11 +56,11 @@ export interface Offering {
 }
 
 export interface RawModel<E> {
-  open: boolean;
-  lic: string;
+  open: boolean | null;
+  lic: string | null;
   commercial: boolean | null;
   ctx: number | null;
-  rel: string;
+  rel: string | null;
   status?: "retired";
   retiredOn?: string;
   provisional?: boolean;
@@ -80,9 +80,9 @@ export interface Model extends Omit<RawModel<Evidence>, "status"> {
   name: string;
   lab: string;
   labName: string;
-  origin: string;
-  type: TypeKey;
-  status: "active" | "retired";
+  origin: string | null;
+  type: TypeKey | null;
+  status: "active" | "retired" | null;
   offerings: Offering[];
 }
 

@@ -1,14 +1,40 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  DECIDE_ENDPOINT,
   fictionalEngine,
   hostedEngine,
   templates,
   catalogue,
+  decisionSchema,
 } from "../adapter";
 import { baseSpec } from "../state/spec";
 import type { Spec } from "../adapter";
 const budget = templates[0].spec;
 const decide = (s: Spec = budget) => fictionalEngine.decide(s);
+const contractSpec = {
+  spec_version: 1 as const,
+  snapshot: "latest" as const,
+  task_type: "refactor" as const,
+  where: ["model.class = text-generator"],
+  optimize: { min: "offering.price.input" },
+  explain: "full" as const,
+};
+const answer = {
+  contract_version: "1.0",
+  decision_id: "dec_12345678",
+  snapshot: "snap_12345678",
+  spec_hash: `sha256:${"a".repeat(64)}`,
+  explain: "full",
+  status: "answered",
+  results: [],
+  may_qualify: [],
+  eliminated: { funnel: [], models: [] },
+  constraint_costs: [],
+  tipping_points: [],
+  relax: [],
+  warnings: [],
+};
+afterEach(() => vi.unstubAllGlobals());
 describe("the fictional decision adapter", () => {
   it("maps ranked results, missing independent evidence and eliminations into the contract envelope", () => {
     const d = decide();
@@ -61,8 +87,8 @@ describe("the fictional decision adapter", () => {
       d.constraint_costs.find((c) => c.condition === "≤ $0.100 per task")?.gain
         .codebench_pro,
     ).toBeCloseTo(7.9);
-    expect(d.near_misses[0].relaxed).toEqual({ f: "task$", max: 1.35 });
-    const n = d.near_misses[0],
+    expect(d.nearMisses[0].relaxed).toEqual({ f: "task$", max: 1.35 });
+    const n = d.nearMisses[0],
       s = {
         ...budget,
         conds: budget.conds.map((c, i) => (i === n.ci ? n.relaxed || c : c)),
@@ -126,9 +152,62 @@ describe("the fictional decision adapter", () => {
     expect(d.results).toHaveLength(0);
     expect(d.relax).toHaveLength(2);
   });
-  it("leaves the hosted backend explicitly unconnected", () => {
-    expect(() => hostedEngine.decide(baseSpec)).toThrow("MODEL-151");
+  it("posts a contract spec to the hosted decision endpoint and validates the decision", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(answer), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await expect(hostedEngine.decide(contractSpec)).resolves.toEqual(
+      decisionSchema.parse(answer),
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      DECIDE_ENDPOINT,
+      expect.objectContaining({
+        method: "POST",
+        mode: "cors",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contractSpec),
+      }),
+    );
     expect(catalogue.offerings).toBe(60);
+  });
+  it("preserves the API error code and never accepts an invalid success body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contract_version: "1.0",
+            error: { code: "invalid_spec", message: "Unknown facet" },
+          }),
+          { status: 422, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    await expect(hostedEngine.decide(contractSpec)).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_spec",
+      message: "Unknown facet",
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...answer, snapshot: "latest" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    await expect(hostedEngine.decide(contractSpec)).rejects.toThrow(
+      "invalid decision response",
+    );
   });
 });
 it("tests all offerings in three values and selects a passing one before price", () => {

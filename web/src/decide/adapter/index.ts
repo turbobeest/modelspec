@@ -19,8 +19,17 @@ import {
   daysAgo,
 } from "../engine/reference";
 import type { Row, FullEval, RankedRow } from "../engine/reference";
-import type { Cond, Evidence, Spec } from "../engine/types";
+import type { BenchDef, Cond, Evidence, Spec } from "../engine/types";
 import type { Decision, EvidenceItem, OfferingRef } from "./contract";
+export { DECIDE_ENDPOINT, DecideApiError, hostedEngine } from "./hosted";
+export { decisionSchema, decisionSpecSchema } from "./contract";
+export type {
+  Decision,
+  DecisionSpec,
+  EvidenceItem,
+  OfferingRef,
+  Result,
+} from "./contract";
 import { snapshotId, specHash } from "../state/spec";
 import type { Axis } from "../state/spec";
 export {
@@ -45,6 +54,14 @@ export const templates = TEMPLATES.map((t) => ({
   ...t,
   counts: evaluate(catalogue, t.spec, { lite: true }),
 }));
+export const candidateQuestions = (spec: Spec, dismissed: string[]) =>
+  suggestions(catalogue, spec, dismissed).map((question) => ({
+    ...question,
+    opts: question.opts.map((option) => ({
+      label: option.label,
+      c: option.c,
+    })),
+  }));
 export const status = (r: Row) =>
   r.unrankedWhy || r.status === 0
     ? "May qualify"
@@ -105,15 +122,27 @@ export const axisDefs = {
     fmt: tok,
   },
 };
+function axisRecord<T>(value: (axis: Axis) => T): Record<Axis, T> {
+  return {
+    "task$": value("task$"),
+    "in$": value("in$"),
+    ttft: value("ttft"),
+    tps: value("tps"),
+    ctx: value("ctx"),
+  };
+}
 export interface AdapterDecision extends Decision {
   explanation: FullEval;
-  near_misses: FullEval["nearMisses"];
+  nearMisses: FullEval["nearMisses"];
   questions: ReturnType<typeof suggestions>;
   frontier: Row[];
   winning_strip: { row: Row | undefined; start: number; count: number }[];
+  benchmarks: Record<string, BenchDef>;
+  not_plotted: Record<Axis, string[]>;
+  available_axes: Record<Axis, boolean>;
 }
-/** The only spec-in, decision-out boundary. The UI never ranks candidates. */
-export interface DecisionEngine {
+/** Synchronous boundary for the fictional demo. The hosted contract is async. */
+interface SampleDecisionEngine {
   decide(
     spec: Spec,
     options?: { axis?: Axis; dismissed?: string[] },
@@ -141,7 +170,12 @@ const ev = (e: Evidence): EvidenceItem => ({
   source_snapshot: null,
   directness: "direct",
 });
-export function plotDomain(rows: Row[], spec: Spec, axis: Axis) {
+export function plotDomain(
+  rows: Row[],
+  spec: Spec,
+  axis: Axis,
+  benchmark = BENCH[spec.bench],
+) {
   const ax = axisDefs[axis],
     xc = spec.conds.find((c) => c.f === axis),
     yc = spec.conds.find((c) => c.f === "bench" && c.b === spec.bench);
@@ -177,10 +211,10 @@ export function plotDomain(rows: Row[], spec: Spec, axis: Axis) {
     y1,
     fx: (v: number) => (t(v) - x0) / (x1 - x0),
     fy: (v: number) =>
-      BENCH[spec.bench].hi ? 1 - (v - y0) / (y1 - y0) : (v - y0) / (y1 - y0),
+      benchmark.hi ? 1 - (v - y0) / (y1 - y0) : (v - y0) / (y1 - y0),
     xi: (v: number) => ti(x0 + v * (x1 - x0)),
     yi: (v: number) =>
-      BENCH[spec.bench].hi ? y0 + (1 - v) * (y1 - y0) : y0 + v * (y1 - y0),
+      benchmark.hi ? y0 + (1 - v) * (y1 - y0) : y0 + v * (y1 - y0),
   };
 }
 function minimalRelaxation(spec: Spec): string[] {
@@ -211,7 +245,7 @@ function minimalRelaxation(spec: Spec): string[] {
   return ["Choose a primary benchmark with evidence"];
 }
 
-export const fictionalEngine: DecisionEngine = {
+export const fictionalEngine: SampleDecisionEngine = {
   decide(spec, { axis = "task$", dismissed = [] } = {}) {
     const e = evaluate(catalogue, spec),
       ax = axisDefs[axis],
@@ -318,12 +352,18 @@ export const fictionalEngine: DecisionEngine = {
           may_qualify: f.may,
         })),
         models: e.excluded.map((r) => ({
+          values: [],
+          offering: ref(r),
+          unit: null,
+          records: [],
           model: ref(r).model,
           condition: label(spec.conds[r.dropAt]),
           value: r.best.t[r.dropAt]?.why || null,
         })),
       },
       constraint_costs: e.costs.map((c) => ({
+        units: {},
+        records: [],
         condition: c.label,
         admits: Math.max(0, c.unlocks),
         gain: c.pts === null ? {} : { [domain]: c.pts },
@@ -336,18 +376,25 @@ export const fictionalEngine: DecisionEngine = {
         "sample_snapshot_not_signed",
       ],
       explanation: e,
-      near_misses: e.nearMisses,
+      near_misses: [],
+      top: [],
+      chart: null,
+      number_origins: [],
+      nearMisses: e.nearMisses,
       questions: suggestions(catalogue, spec, dismissed)
         .filter((q) => (q.gain ?? 0) > 0)
         .slice(0, 3),
       frontier,
       winning_strip,
+      benchmarks: BENCH,
+      not_plotted: axisRecord((key) =>
+        e.inScope
+          .filter((row) => axisDefs[key].get(row) === null || row.cap === null)
+          .map((row) => row.m.lab + "/" + row.m.id),
+      ),
+      available_axes: axisRecord((key) =>
+        e.inScope.some((row) => axisDefs[key].get(row) !== null),
+      ),
     };
-  },
-};
-/** MODEL-151 will supply transport and validation for POST /v1/decide. */
-export const hostedEngine: DecisionEngine = {
-  decide() {
-    throw new Error("POST /v1/decide is not connected. MODEL-151.");
   },
 };

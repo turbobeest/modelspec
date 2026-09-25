@@ -3,6 +3,224 @@
   font-variant-numeric: tabular-nums;
   background: #faf9f8;
 }
+
+/* The live contract view owns only presentation. It does not infer facts that
+   POST /v1/decide did not return. */
+.real-app {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+}
+.real-app .global-header a {
+  color: inherit;
+  text-decoration: none;
+}
+.real-main {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 64px 0 96px;
+}
+.real-intro {
+  max-width: 760px;
+  margin-bottom: 36px;
+}
+.real-intro h1 {
+  margin: 8px 0 16px;
+  font-size: clamp(2.1rem, 5vw, 4.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+.real-intro p:last-child {
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+.real-spec,
+.real-result,
+.real-section,
+.real-decision-head,
+.real-metadata {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.real-spec {
+  padding: 24px;
+  border-radius: 10px;
+}
+.real-spec label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.real-spec textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 0.88rem/1.55 var(--mono);
+}
+.real-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+}
+.real-actions a,
+.real-footer a,
+.real-source a {
+  color: var(--accentText);
+}
+.real-loading,
+.real-error {
+  margin-top: 24px;
+}
+.real-decision {
+  margin-top: 42px;
+}
+.real-decision > h2 {
+  margin: 42px 0 18px;
+}
+.real-decision-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border-radius: 10px 10px 0 0;
+}
+.real-decision-head h2 {
+  margin: 3px 0 0;
+  font: 1.35rem var(--mono);
+}
+.real-status {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--accentSoft);
+  color: var(--good);
+  font: 700 0.75rem var(--mono);
+  text-transform: uppercase;
+}
+.real-status.partial {
+  background: var(--warnSoft);
+  color: var(--warn);
+}
+.real-status.no_feasible {
+  background: var(--badSoft);
+  color: var(--bad);
+}
+.real-metadata {
+  margin-top: -1px;
+  padding: 18px 24px;
+  border-radius: 0 0 10px 10px;
+}
+.real-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 22px;
+  margin: 0;
+}
+.real-fields div {
+  min-width: 0;
+}
+.real-fields dt {
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.real-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.real-result,
+.real-section {
+  margin-top: 18px;
+  padding: 24px;
+  border-radius: 10px;
+}
+.real-result > header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.real-result h3,
+.real-item h3 {
+  margin: 0;
+}
+.real-result h4 {
+  margin: 28px 0 10px;
+}
+.real-rank {
+  color: var(--accentText);
+  font: 700 0.85rem var(--mono);
+}
+.real-domain,
+.real-contribution,
+.real-item,
+.real-evidence {
+  margin-top: 12px;
+  border-left: 3px solid var(--line2);
+  padding: 12px 16px;
+  background: var(--bg);
+}
+.real-domain > h5,
+.real-evidence h5 {
+  margin: 0 0 12px;
+  font: 700 0.9rem var(--mono);
+}
+.real-source {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+.real-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+.real-list,
+.real-codes {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+.real-codes {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.real-footer {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  padding: 24px;
+}
+@media (max-width: 640px) {
+  .real-main {
+    width: min(100% - 20px, 1120px);
+    padding-top: 36px;
+  }
+  .real-decision-head,
+  .real-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .real-spec,
+  .real-result,
+  .real-section {
+    padding: 16px;
+  }
+}
 html[data-decide-theme="dark"] {
   background: #0b1426;
 }

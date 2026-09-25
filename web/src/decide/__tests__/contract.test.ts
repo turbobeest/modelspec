@@ -26,6 +26,13 @@ it.each([
     questions,
     frontier,
     winning_strip,
+    top,
+    chart,
+    number_origins,
+    nearMisses,
+    benchmarks,
+    not_plotted,
+    available_axes,
     ...contract
   } = fictionalEngine.decide(spec);
   void explanation;
@@ -33,7 +40,30 @@ it.each([
   void questions;
   void frontier;
   void winning_strip;
-  expect(validate(contract), JSON.stringify(validate.errors, null, 2)).toBe(
+  void top;
+  void chart;
+  void number_origins;
+  void nearMisses;
+  void benchmarks;
+  void not_plotted;
+  void available_axes;
+  const legacyContract = {
+    ...contract,
+    constraint_costs: contract.constraint_costs.map((cost) => ({
+      condition: cost.condition,
+      admits: cost.admits,
+      gain: cost.gain,
+    })),
+    eliminated: {
+      ...contract.eliminated,
+      models: contract.eliminated.models.map((model) => ({
+        model: model.model,
+        condition: model.condition,
+        value: model.value,
+      })),
+    },
+  };
+  expect(validate(legacyContract), JSON.stringify(validate.errors, null, 2)).toBe(
     true,
   );
 });

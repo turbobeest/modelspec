@@ -12,7 +12,8 @@ export function Field({
     steps = [
       ...e.funnel,
       { label: "Ranked on evidence", n: e.feasible.length, may: e.may.length },
-    ];
+    ],
+    total = Math.max(1, steps[0]?.n ?? 1);
   return (
     <section className="narrowing">
       <div className="panel">
@@ -34,7 +35,7 @@ export function Field({
                   style={{
                     width:
                       (100 * (i === steps.length - 1 ? f.n : f.n - f.may)) /
-                        25 +
+                        total +
                       "%",
                   }}
                 />
@@ -42,16 +43,16 @@ export function Field({
                   style={{
                     left:
                       (100 * (i === steps.length - 1 ? f.n : f.n - f.may)) /
-                        25 +
+                        total +
                       "%",
-                    width: (100 * f.may) / 25 + "%",
+                    width: (100 * f.may) / total + "%",
                   }}
                 />
               </span>
               <span>{f.label}</span>
               <small>
                 {i === 0
-                  ? "60 offerings"
+                  ? `${f.n} candidates`
                   : i === steps.length - 1
                     ? `+ ${f.may} may qualify`
                     : `${steps[i - 1].n - f.n ? "−" + (steps[i - 1].n - f.n) : "no change"}${f.may ? " · " + f.may + " may" : ""}`}
@@ -75,8 +76,14 @@ export function Field({
                 <button key={o.label} onClick={() => onAdd(o.c)}>
                   {o.label}{" "}
                   <small>
-                    → {o.n}
-                    {o.may ? " + " + o.may + " may" : ""}
+                    {o.n === undefined ? (
+                      "checking…"
+                    ) : (
+                      <>
+                        → {o.n}
+                        {o.may ? " + " + o.may + " may" : ""}
+                      </>
+                    )}
                   </small>
                 </button>
               ))}
