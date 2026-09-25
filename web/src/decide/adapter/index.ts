@@ -166,6 +166,7 @@ const ev = (e: Evidence): EvidenceItem => ({
   measured_by: e.by === "indep" ? "independent" : "provider_self_report",
   effort: e.effort,
   harness: null,
+  harness_unregistered: false,
   date: e.date,
   date_type: "published",
   source: e.src,
@@ -301,7 +302,8 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.1",
+      contract_version: "1.2",
+      out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
       spec_hash: "sha256:" + specHash(spec),

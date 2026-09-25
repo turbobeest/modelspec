@@ -7,7 +7,10 @@ builds it, gates it and loads it:
   snapshot. Only values whose latest verification is ``verified`` enter, and
   only when every source they name resolves to a registered URL that is not an
   excluded source. Retired models and their offerings go to a separate
-  ``archive`` section. The legacy flat ``benchmarks.scores`` block is never read.
+  ``archive`` section. With a premier list, the ``lineup`` holds only the
+  premier models and their offerings; other active models are counted in
+  ``out_of_lineup`` and left out (MODEL-157). The legacy flat
+  ``benchmarks.scores`` block is never read.
 * The **completeness gate** fails the build when a guaranteed facet is unknown
   or unverified for a premier model or one of its offerings, naming the
   subject, the facet and the source. Computed facets (``computed_by`` in the
@@ -178,7 +181,10 @@ class SnapshotIndex(Protocol):
         harness: str | None = None,
         after: date | None = None,
         direct: bool = False,
+        domains: Iterable[str] = (),
     ) -> Bitset3: ...
+
+    def direct_for(self, benchmark_id: str, domains: Iterable[str] = ()) -> bool: ...
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
 
@@ -351,7 +357,8 @@ class _Compiler:
         self.registry = registry
         self.guard = guard
         self.sources = {str(k): str(v) for k, v in inputs.sources.items()}
-        self.excluded: Counter[str] = Counter()
+        #: subject id (``None`` when a record names none) -> why its records stayed out.
+        self.excluded: dict[str | None, Counter[str]] = {}
         #: (subject, facet) -> (reason, source URLs), for the gate's messages.
         self.rejected: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {}
         self.log = self._verification_log(inputs.verifications)
@@ -361,7 +368,6 @@ class _Compiler:
         self.facts: dict[str, dict[str, list[Any]]] = {}
         self.facet_subject: dict[str, str] = {}
         self.evidence: dict[str, list[list[Any]]] = {}
-        self.used_sources: set[str] = set()
         self.records: dict[str, dict[str, Any]] = {}
         self.fact_records: dict[str, dict[str, str]] = {}
 
@@ -432,8 +438,12 @@ class _Compiler:
             return "unresolved_source"
         return None
 
+    def _exclude(self, sid: str | None, reason: str) -> None:
+        kind = "quarantined" if reason.startswith("quarantined") else reason
+        self.excluded.setdefault(sid, Counter())[kind] += 1
+
     def _reject(self, key: tuple[str, str], reason: str, source_ids: list[str]) -> None:
-        self.excluded["quarantined" if reason.startswith("quarantined") else reason] += 1
+        self._exclude(key[0], reason)
         urls = tuple(self.sources.get(s, s) for s in source_ids)
         self.rejected[key] = (reason, urls)
 
@@ -470,7 +480,6 @@ class _Compiler:
             if reason is not None:
                 self._reject((sid, facet_id), reason, source_ids)
                 continue
-            self.used_sources.update(source_ids)
             self.fact_records.setdefault(sid, {})[facet_id] = self._retain("fact", f)
             row[facet_id] = [state, f.get("value") if state == "known" else None, source_ids]
 
@@ -508,7 +517,7 @@ class _Compiler:
         subject = e.get("subject") or {}
         sid = subject.get("id")
         if sid is None:
-            self.excluded["quarantined"] += 1  # no subject: cannot be v2-verified
+            self._exclude(None, "quarantined")  # no subject: cannot be v2-verified
             return
         if sid not in self.subjects:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
@@ -516,9 +525,8 @@ class _Compiler:
         reason = self._admit("evidence", e.get("id"), e.get("verification"), e.get("score"), source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
         if reason is not None:
-            self.excluded["quarantined" if reason.startswith("quarantined") else reason] += 1
+            self._exclude(sid, reason)
             return
-        self.used_sources.update(source_ids)
         self.evidence.setdefault(sid, []).append([
             str(e["benchmark_id"]), e.get("benchmark_version") or None, e.get("subcategory"),
             float(e["score"]), e.get("unit"), e.get("measured_by"), e.get("effort"),
@@ -548,9 +556,33 @@ class _Compiler:
                 r[0], r[8] or "", r[3], canonical_json(r))) for sid in ids if sid in self.evidence},
         }
 
-    def content(self, as_of: date | None) -> dict[str, Any]:
-        lineup = sorted(s for s, v in self.subjects.items() if v["lifecycle"] != "retired")
+    def content(self, as_of: date | None, premier: Iterable[str] | None = None) -> dict[str, Any]:
+        """The snapshot content. With ``premier``, the lineup is the premier set.
+
+        Retired models always go to the archive. Active and deprecated models
+        outside the premier set leave the snapshot, with their offerings,
+        evidence and records; only their number is kept, as ``out_of_lineup``.
+        """
+        wanted = None if premier is None else set(premier)
         archive = sorted(s for s, v in self.subjects.items() if v["lifecycle"] == "retired")
+        lineup = sorted(s for s, v in self.subjects.items() if v["lifecycle"] != "retired"
+                        and (wanted is None or v["model"] in wanted))
+        kept = {*lineup, *archive}
+        out_of_lineup = sum(1 for s, v in self.subjects.items()
+                            if v["kind"] == "model" and s not in kept)
+        sources: set[str] = set()
+        record_ids: set[str] = set()
+        for sid in kept:
+            for _state, _value, source_ids in self.facts.get(sid, {}).values():
+                sources.update(source_ids)
+            record_ids.update(self.fact_records.get(sid, {}).values())
+            for row in self.evidence.get(sid, ()):
+                sources.update(row[9])
+                record_ids.add(row[10])
+        excluded: Counter[str] = Counter()
+        for sid, counts in self.excluded.items():
+            if sid is None or sid in kept:
+                excluded.update(counts)
         domains = {}
         for bench, tags in sorted(self.inputs.benchmark_domains.items()):
             if self.guard is not None and self.guard.benchmark(bench):
@@ -562,11 +594,12 @@ class _Compiler:
             "facet_subjects": dict(sorted(self.facet_subject.items())),
             "lineup": self._section(lineup),
             "archive": self._section(archive),
+            "out_of_lineup": out_of_lineup,
             "benchmark_domains": domains,
-            "sources": {s: self.sources[s] for s in sorted(self.used_sources)},
-            "excluded": dict(sorted(self.excluded.items())),
-            "record_table": _pack_records(self.records),
-            "fact_records": self.fact_records,
+            "sources": {s: self.sources[s] for s in sorted(sources)},
+            "excluded": dict(sorted(excluded.items())),
+            "record_table": _pack_records({r: self.records[r] for r in record_ids}),
+            "fact_records": {sid: rows for sid, rows in self.fact_records.items() if sid in kept},
         }
 
     # the gate ----------------------------------------------------------------
@@ -608,12 +641,15 @@ def default_registry() -> Any:
 
 def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
                    premier: Iterable[str] | None = None, as_of: date | None = None,
-                   guard: ExcludedSources | None = None) -> Snapshot:
-    """Compile ``inputs``. With ``premier``, run the completeness gate first.
+                   guard: ExcludedSources | None = None, gate: bool = True) -> Snapshot:
+    """Compile ``inputs``. With ``premier``, the lineup is the premier set.
 
-    ``registry`` validates facet IDs and names the guaranteed facets; it is
-    required when ``premier`` is given. ``guard`` drops excluded sources and
-    scans the output; ``build_from_repo`` always passes it.
+    With ``premier`` and ``gate`` (the default), the completeness gate runs
+    first. ``gate=False`` keeps the premier lineup but skips the gate, for an
+    audit that must run while facts are still missing (MODEL-146).
+    ``registry`` validates facet IDs and names the guaranteed facets; the gate
+    requires it. ``guard`` drops excluded sources and scans the output;
+    ``build_from_repo`` always passes it.
     """
     c = _Compiler(inputs, registry, guard)
     for m in inputs.models:
@@ -622,11 +658,12 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
         c.add_offering(o)
     for e in inputs.evidence:
         c.add_evidence(e)
-    if premier is not None:
+    premier = None if premier is None else tuple(premier)
+    if premier is not None and gate:
         gaps = c.gaps(premier)
         if gaps:
             raise CompletenessError(gaps)
-    content = c.content(as_of)
+    content = c.content(as_of, premier)
     if guard is not None:
         text = canonical_json(content).decode("utf-8")
         hit = guard.text.search(text)
@@ -726,7 +763,7 @@ def load_premier(path: str | Path) -> tuple[str, ...]:
 
 
 def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | None,
-                    registry: Any = None) -> Snapshot:
+                    registry: Any = None, gate: bool = True) -> Snapshot:
     """The production build: collect, guard, gate and compile."""
     root = Path(root)
     return build_snapshot(
@@ -735,6 +772,7 @@ def build_from_repo(root: Path, *, premier: str | Path | None, as_of: date | Non
         premier=load_premier(premier) if premier is not None else None,
         as_of=as_of,
         guard=excluded_sources(),
+        gate=gate,
     )
 
 
@@ -940,6 +978,8 @@ class LoadedSnapshot:
         self.signature_verified = signature_verified
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
+        #: Active models the build left out because they are not in the premier set.
+        self.out_of_lineup: int = int(content.get("out_of_lineup") or 0)
         self._sources: dict[str, str] = dict(content["sources"])
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
@@ -1050,20 +1090,26 @@ class LoadedSnapshot:
         harness: str | None = None,
         after: date | None = None,
         direct: bool = False,
+        domains: Iterable[str] = (),
     ) -> Bitset3:
-        """Three-valued evidence condition, indexed lazily per qualifier set."""
+        """Three-valued evidence condition, indexed lazily per qualifier set.
+
+        ``direct`` admits the benchmark only when it is direct for one of
+        ``domains``, the capabilities asked about (see ``direct_for``).
+        """
+        admits = not direct or self.direct_for(benchmark_id, domains)
         key = (
             benchmark_id,
             None if measured_by is None else frozenset(measured_by),
             effort,
             harness,
             after,
-            direct,
+            admits,
         )
         column = self._evidence_bits.get(key)
         if column is None:
             admitted = []
-            for row, cid in enumerate(self._ids):
+            for row, cid in enumerate(self._ids if admits else ()):
                 values = tuple(
                     evidence.value
                     for evidence in self.evidence(
@@ -1074,7 +1120,6 @@ class LoadedSnapshot:
                         harness=harness,
                         after=after,
                     )
-                    if not direct or evidence.directness == "direct"
                 )
                 if values:
                     admitted.append((row, values))
@@ -1083,18 +1128,14 @@ class LoadedSnapshot:
         passing = column.passing(op, arg)
         if passing is None:
             passing = 0
-            for row, cid in enumerate(self._ids):
-                values = (
-                    evidence
-                    for evidence in self.evidence(
-                        cid,
-                        benchmark_id,
-                        measured_by=measured_by,
-                        effort=effort,
-                        harness=harness,
-                        after=after,
-                    )
-                    if not direct or evidence.directness == "direct"
+            for row, cid in enumerate(self._ids if admits else ()):
+                values = self.evidence(
+                    cid,
+                    benchmark_id,
+                    measured_by=measured_by,
+                    effort=effort,
+                    harness=harness,
+                    after=after,
                 )
                 if any(_holds(value.value, op, arg) for value in values):
                     passing |= 1 << row
@@ -1112,6 +1153,16 @@ class LoadedSnapshot:
             and (effort is None or e.effort == effort)
             and (harness is None or e.harness == harness)
             and (after is None or (e.date is not None and e.date > after)))
+
+    def direct_for(self, benchmark_id: str, domains: Iterable[str] = ()) -> bool:
+        """Whether ``benchmark_id`` directly measures a capability asked about.
+
+        Directness is relative to the request (design §4.1): the benchmark must
+        be tagged ``direct`` for one of ``domains``. With no domain asked
+        about, a ``direct`` tag for any domain is enough.
+        """
+        return any((benchmark_id, "direct") in self._domains.get(domain_id, ())
+                   for domain_id in (set(domains) or self._domains))
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]:
         self._check(cid)

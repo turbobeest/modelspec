@@ -35,6 +35,44 @@ const answer = {
   warnings: [],
 };
 afterEach(() => vi.unstubAllGlobals());
+describe("the decision schema", () => {
+  it("parses a 1.2 decision with its additive fields and defaults them on 1.1", () => {
+    const item = {
+      benchmark: "terminal_bench_v4_0",
+      version: null,
+      sub_category: null,
+      value: 58.18,
+      unit: "percent",
+      n: null,
+      measured_by: "benchmark_author",
+      effort: "max",
+      harness: null,
+      harness_unregistered: true,
+      date: "2026-09-01",
+      date_type: "published",
+      source: "https://www.tbench.ai/leaderboard/terminal-bench/4.0",
+      source_snapshot: null,
+      directness: "direct",
+    };
+    const current = decisionSchema.parse({
+      ...answer,
+      contract_version: "1.2",
+      out_of_lineup: 1334,
+      top: [
+        {
+          offering: { model: "lab/a", provider: null, region: null, tier: null },
+          facts: [],
+          contributions: [],
+          evidence: [{ domain: "agentic_tool_use", items: [item] }],
+        },
+      ],
+    });
+    expect(current.out_of_lineup).toBe(1334);
+    expect(current.top[0].evidence[0].items[0].harness_unregistered).toBe(true);
+    const older = decisionSchema.parse(answer);
+    expect(older.out_of_lineup).toBe(0);
+  });
+});
 describe("the fictional decision adapter", () => {
   it("maps ranked results, missing independent evidence and eliminations into the contract envelope", () => {
     const d = decide();

@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.1"
+    assert c.CONTRACT_VERSION == "1.2"
 
 
 def test_relative_condition_names_the_model() -> None:

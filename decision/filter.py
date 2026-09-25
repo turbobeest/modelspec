@@ -12,8 +12,10 @@ already passes does not change this. A per-condition ``unknown`` override wins.
 ``soft`` does not change who remains. No condition adds a score.
 
 ``ids_where`` is called with ``= != < <= > >=`` and ``known``. A window is
-``>=`` intersected with ``<=``. A set is an ``any`` of ``=``. An evidence
-condition calls ``evidence`` and then applies its qualifiers. Retired
+``>=`` intersected with ``<=``. A set is an ``any`` of ``=``, or on a
+set-valued facet one ``contains_any``. An evidence
+condition calls ``evidence`` and then applies its qualifiers; ``@direct`` asks
+whether the benchmark is direct for a capability the spec requests. Retired
 candidates are excluded unless the resolved spec asks for lifecycle ``retired``.
 
 The shared snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138).
@@ -300,11 +302,7 @@ def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str]
     if qualifiers.harness is not None and row.harness != qualifiers.harness:
         return False
     after = qualifiers.measured_after
-    if after is not None and (row.date is None or not row.date > after):
-        return False
-    if qualifiers.direct and getattr(row, "directness", None) != "direct":
-        return False
-    return True
+    return after is None or (row.date is not None and row.date > after)
 
 
 class _Run:
@@ -325,6 +323,8 @@ class _Run:
         self.penalties: list[SoftPenalty] = []
         self.path = ""
         self.lineup = 0
+        #: The capabilities asked about, which ``@direct`` is relative to.
+        self.domains = frozenset(resolved.spec.capabilities or {})
 
     def _ids_of(self, bits: int) -> tuple[str, ...]:
         ids = []
@@ -388,6 +388,8 @@ class _Run:
 
     def _admitted(self, cid: str, cond: Any) -> list[Any]:
         qualifiers = cond.qualifiers or EvidenceQualifiers()
+        if qualifiers.direct and not self.index.direct_for(cond.facet, self.domains):
+            return []
         measured = _measurers(qualifiers.measured_by)
         rows = self.index.evidence(
             cid, cond.facet,
@@ -432,6 +434,7 @@ class _Run:
                 harness=qualifiers.harness,
                 after=qualifiers.measured_after,
                 direct=qualifiers.direct,
+                domains=self.domains,
             ), self.universe)
         passing = failing = 0
         for i, cid in enumerate(self.ids):
@@ -484,6 +487,12 @@ class _Run:
                 acc = bit if acc is None else bit_or(acc, bit, self.universe)
             assert acc is not None
             bits = acc
+        elif getattr(getattr(self._facet(cond.facet), "value_type", None), "kind", None) == "set":
+            # A set-valued facet is in {a, b} when it holds a or b, and not in
+            # {a, b} when it holds neither. Equality never matches a set.
+            bits = _as_bits(
+                self.index.ids_where(cond.facet, "contains_any", list(values)), self.universe
+            )
         else:
             acc: Bits | None = None
             for value in values:

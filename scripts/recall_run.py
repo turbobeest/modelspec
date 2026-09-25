@@ -156,7 +156,12 @@ def _expects_no_separation(expected: Mapping[str, Any]) -> bool:
 def _direct_objective_has_a_value(
     spec: Spec, snapshot: LoadedSnapshot, acceptable: set[str], registry: Registry
 ) -> bool:
-    """Detect the current engine losing directness on benchmark-objective reads."""
+    """Detect the engine losing a direct measurement on a benchmark objective.
+
+    Directness is relative to the capabilities the spec asks about, so the
+    benchmark must be tagged direct for one of them (any domain when none).
+    This reads the tags through ``evidence_for_domain``, not the engine's path.
+    """
     objective = spec.optimize
     facet = objective.max or objective.min
     if facet is None:
@@ -164,12 +169,19 @@ def _direct_objective_has_a_value(
     qualifiers = objective.qualifiers.get(facet)
     if qualifiers is None or not qualifiers.direct:
         return False
+    domains = sorted(spec.capabilities or {}) or list(snapshot.domain_ids())
     selector = EvidenceSelector.from_qualifiers(facet, qualifiers)
     resolved = resolve(spec, facets=registry.facet)
     feasible = apply(resolved, snapshot).feasible
     for candidate in feasible:
         if snapshot.model_of(candidate) not in acceptable:
             continue
+        direct = {
+            row.record_id
+            for domain in domains
+            for row in snapshot.evidence_for_domain(candidate, domain)
+            if row.benchmark_id == facet and row.directness == "direct"
+        }
         matches = snapshot.evidence(
             candidate,
             facet,
@@ -178,7 +190,7 @@ def _direct_objective_has_a_value(
             harness=selector.harness,
             after=selector.after,
         )
-        if len(matches) == 1:
+        if len(matches) == 1 and matches[0].record_id in direct:
             return True
     return False
 
@@ -190,6 +202,7 @@ def _score(
     decision: Decision,
     snapshot: LoadedSnapshot,
     registry: Registry,
+    catalogue: frozenset[str] = frozenset(),
 ) -> QuestionResult:
     findings: list[Finding] = []
     results, flagged = _decision_models(decision)
@@ -253,11 +266,14 @@ def _score(
     required_flags = _models(must_flag_entries) | _rule_flag_models(must_flag_entries, snapshot)
     for model in sorted(required_flags - flagged):
         if model not in candidates:
+            where = (
+                "outside the premier lineup" if model in catalogue else "absent from the snapshot"
+            )
             findings.append(
                 Finding(
                     "missing_data",
                     "partial",
-                    f"required may-qualify model is absent from the snapshot: {model}",
+                    f"required may-qualify model is {where}: {model}",
                 )
             )
         elif model in results:
@@ -363,6 +379,7 @@ def _question_payload(row: QuestionResult, snapshot: LoadedSnapshot) -> dict[str
             "status": decision.status,
             "top_3": _top_rows(decision, snapshot),
             "may_qualify_count": len(decision.may_qualify),
+            "out_of_lineup": decision.out_of_lineup,
             "may_qualify": [
                 item.model_dump(mode="json", by_alias=True) for item in decision.may_qualify[:20]
             ],
@@ -407,6 +424,8 @@ def _markdown(
         "",
         f"- Pass: {counts['pass']}; partial: {counts['partial']}; fail: {counts['fail']}.",
         f"- Missing-data findings: {missing}; engine-behavior findings: {behavior}.",
+        f"- Lineup: {len(_model_ids(snapshot))} models; outside the premier lineup: "
+        f"{snapshot.out_of_lineup}.",
         "- Snapshot exclusions: "
         + (
             ", ".join(f"{key}={value}" for key, value in sorted(snapshot.excluded.items()))
@@ -425,8 +444,8 @@ def _markdown(
                 "### Premier-set completeness gate",
                 "",
                 f"The gated build failed with {len(completeness_gaps)} missing guaranteed facts. "
-                "The runner used an ungated build of the same repository inputs so the audit "
-                "could continue.",
+                "The runner used an ungated build of the same repository inputs and premier "
+                "lineup so the audit could continue.",
                 "",
             ]
         )
@@ -472,25 +491,27 @@ def _snapshot(
     *, root: Path, snapshot_file: Path | None, report_date: date, registry: Registry
 ) -> tuple[LoadedSnapshot, tuple[Gap, ...]]:
     if snapshot_file is not None:
-        return load_snapshot(snapshot_file, key=None), ()
+        return load_snapshot(snapshot_file, key=None, include_archive=True), ()
     gaps: tuple[Gap, ...] = ()
+    premier = root / "premier" / "slice-1.yaml"
     try:
-        built = build_from_repo(
-            root,
-            premier=root / "premier" / "slice-1.yaml",
-            as_of=report_date,
-            registry=registry,
-        )
+        built = build_from_repo(root, premier=premier, as_of=report_date, registry=registry)
     except CompletenessError as exc:
         gaps = exc.gaps
+        # The same premier lineup, without the gate, so the audit can continue.
         built = build_from_repo(
-            root,
-            premier=None,
-            as_of=report_date,
-            registry=registry,
+            root, premier=premier, as_of=report_date, registry=registry, gate=False
         )
-    loaded = load_snapshot_bytes(built.to_bytes(key=None), key=None, source="repository build")
+    loaded = load_snapshot_bytes(
+        built.to_bytes(key=None), key=None, include_archive=True, source="repository build"
+    )
     return loaded, gaps
+
+
+def _catalogue(root: Path) -> frozenset[str]:
+    return frozenset(
+        f"{path.parent.name}/{path.stem}" for path in (root / "models").glob("*/*.md")
+    )
 
 
 def run(
@@ -513,6 +534,7 @@ def run(
     )
     questions = _rows_by_id(root / "tests" / "recall" / "questions.yaml")
     expected = _rows_by_id(root / "tests" / "recall" / "expected.yaml")
+    catalogue = _catalogue(root)
     rows: list[QuestionResult] = []
     for question_id in sorted(questions):
         question = questions[question_id]
@@ -530,6 +552,7 @@ def run(
                     decision,
                     snapshot,
                     registry,
+                    catalogue,
                 )
             )
         except Exception as exc:  # One bad spec must not hide the other 19 audit results.
@@ -555,6 +578,7 @@ def run(
         "snapshot_as_of": snapshot.as_of.isoformat() if snapshot.as_of else None,
         "non_gating": True,
         "snapshot_excluded": snapshot.excluded,
+        "snapshot_out_of_lineup": snapshot.out_of_lineup,
         "premier_completeness_gaps": [
             {
                 "model": gap.model,

@@ -450,8 +450,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.1",
-          "default": "1.1",
+          "const": "1.2",
+          "default": "1.2",
           "title": "Contract Version",
           "type": "string"
         },
@@ -492,6 +492,12 @@
           },
           "title": "Number Origins",
           "type": "array"
+        },
+        "out_of_lineup": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Out Of Lineup",
+          "type": "integer"
         },
         "relax": {
           "items": {
@@ -717,6 +723,11 @@
           ],
           "default": null,
           "title": "Harness"
+        },
+        "harness_unregistered": {
+          "default": false,
+          "title": "Harness Unregistered",
+          "type": "boolean"
         },
         "measured_by": {
           "enum": [
@@ -2430,5 +2441,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.1"
+  "x-contract-version": "1.2"
 }

@@ -2856,8 +2856,8 @@ components:
           title: Number Origins
           type: array
         contract_version:
-          const: '1.1'
-          default: '1.1'
+          const: '1.2'
+          default: '1.2'
           title: Contract Version
           type: string
         decision_id:
@@ -2919,6 +2919,11 @@ components:
             type: string
           title: Warnings
           type: array
+        out_of_lineup:
+          default: 0
+          minimum: 0
+          title: Out Of Lineup
+          type: integer
       required:
       - decision_id
       - snapshot
@@ -3067,6 +3072,10 @@ components:
           - type: 'null'
           default: null
           title: Harness
+        harness_unregistered:
+          default: false
+          title: Harness Unregistered
+          type: boolean
         date:
           format: date
           title: Date
@@ -4023,7 +4032,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.1'
+          - '1.2'
         endpoint:
           type: string
           enum:
@@ -4067,7 +4076,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.1'
+          - '1.2'
         endpoint:
           type: string
           enum:

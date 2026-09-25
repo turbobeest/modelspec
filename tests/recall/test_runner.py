@@ -52,3 +52,57 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
     assert len(result.questions) == 20
     assert {row.verdict for row in result.questions} <= {"pass", "partial", "fail"}
     assert "This report does not gate CI" in result.markdown_path.read_text(encoding="utf-8")
+
+
+def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Path) -> None:
+    import scripts.recall_run as recall
+    from decision.snapshot import CompletenessError, Gap
+
+    calls = []
+    fixture = build_snapshot(
+        SnapshotInputs(models=[model("lab/alpha")], sources=SOURCES), as_of=date(2026, 9, 24)
+    )
+
+    def fake_build(root, *, premier, as_of, registry, gate=True):
+        calls.append((premier, gate))
+        if gate:
+            raise CompletenessError([Gap("lab/alpha", "lab/alpha", "model.class", "unknown")])
+        return fixture
+
+    monkeypatch.setattr(recall, "build_from_repo", fake_build)
+    _, gaps = recall._snapshot(
+        root=tmp_path, snapshot_file=None, report_date=date(2026, 9, 25),
+        registry=default_registry(),
+    )
+    premier = tmp_path / "premier" / "slice-1.yaml"
+    assert calls == [(premier, True), (premier, False)]
+    assert len(gaps) == 1
+
+
+def test_the_direct_detector_reads_directness_against_the_request() -> None:
+    from decision.snapshot import load_snapshot_bytes
+    from scripts.recall_run import _direct_objective_has_a_value
+
+    registry = default_registry()
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha")],
+            evidence=[evidence("lab/alpha", "terminal_bench_v4_0", 60.0)],
+            sources=SOURCES,
+            benchmark_domains={"terminal_bench_v4_0": [
+                ("agentic_tool_use", "direct"), ("software_engineering", "proxy")]},
+        ),
+        as_of=date(2026, 9, 24),
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+    def asks(capability: str):
+        return parse_spec({
+            "spec_version": 1,
+            "capabilities": {capability: "required"},
+            "optimize": {"max": "terminal_bench_v4_0 @direct"},
+        }, facets=registry.facet)
+
+    assert _direct_objective_has_a_value(asks("agentic_tool_use"), index, {"lab/alpha"}, registry)
+    assert not _direct_objective_has_a_value(
+        asks("software_engineering"), index, {"lab/alpha"}, registry)
