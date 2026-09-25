@@ -21,7 +21,14 @@ import {
 import type { Row, FullEval, RankedRow } from "../engine/reference";
 import type { BenchDef, Cond, Evidence, Spec } from "../engine/types";
 import type { Decision, EvidenceItem, OfferingRef } from "./contract";
-export { DECIDE_ENDPOINT, DecideApiError, hostedEngine } from "./hosted";
+export {
+  DECIDE_ENDPOINT,
+  DECIDE_TIMEOUT_MS,
+  DecideApiError,
+  PUBLIC_DECIDE_ENDPOINT,
+  hostedEngine,
+} from "./hosted";
+export type { SpecIssue } from "./hosted";
 export { decisionSchema, decisionSpecSchema } from "./contract";
 export type {
   Decision,
@@ -294,7 +301,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         ? [
             {
               description: `${t.who.m.name} takes #1 at cost weight ${t.at.toFixed(2)}`,
-              dimension: "-cost_per_task",
+              dimension: "-offering.cost_per_task",
               threshold: t.at,
               new_top: ref(t.who).model,
             },
@@ -302,7 +309,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.2",
+      contract_version: "1.3",
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
@@ -322,7 +329,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         contributions: (
           [
             { key: "cap", dimension: domain },
-            { key: "cost", dimension: "-cost_per_task" },
+            { key: "cost", dimension: "-offering.cost_per_task" },
             { key: "speed", dimension: "output_tps" },
           ] as const
         ).map(({ key, dimension }) => ({

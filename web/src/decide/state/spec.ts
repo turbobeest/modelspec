@@ -4,7 +4,17 @@ import { BENCH, buildCatalogue } from "../engine/catalogue";
 import type { Spec, Weights } from "../engine/types";
 export type Axis = "task$" | "in$" | "ttft" | "tps" | "ctx";
 const positive = z.number().finite().nonnegative();
-const bench = z.string().refine((v) => Object.hasOwn(BENCH, v));
+/** A fictional benchmark name (demo), or a published benchmark ID (real mode). */
+const bench = z
+  .string()
+  .refine((v) => Object.hasOwn(BENCH, v) || /^[a-z][a-z0-9_]*$/.test(v));
+const facetId = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/);
+const facetValue = z.union([
+  z.string().min(1).max(200),
+  z.number().finite(),
+  z.boolean(),
+  z.array(z.string().min(1).max(200)).min(1),
+]);
 const metadata = {
   id: z.string().optional(),
   soft: z.boolean().optional(),
@@ -40,6 +50,13 @@ const condition = z.discriminatedUnion("f", [
   z.object({ ...metadata, f: z.literal("origin"), ex: z.array(z.string()) }),
   z.object({
     ...metadata,
+    f: z.literal("facet"),
+    facet: facetId,
+    op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]),
+    value: facetValue,
+  }),
+  z.object({
+    ...metadata,
     f: z.literal("rel"),
     ref: z.string().refine((v) => Object.hasOwn(buildCatalogue().byId, v)),
     b: bench,
@@ -69,6 +86,7 @@ const schema = z.object({
       "Relative reference has no evidence on this benchmark",
     ),
   bar: positive.nullable().optional(),
+  domain: z.string().regex(/^[a-z][a-z0-9_]*$/).optional(),
 });
 export const baseSpec: Spec = {
   task: "",
@@ -119,13 +137,15 @@ export function specHash(spec: Spec) {
 }
 export const snapshotId = (spec: Spec) =>
   "snap_2026-09-24_" + specHash(spec).slice(0, 12);
+/** Set one weight and renormalise the others among `keys` (the sliders offered). */
 export function setWeight(
   w: Weights,
   key: keyof Weights,
   value: number,
+  keys: readonly (keyof Weights)[] = ["cap", "cost", "speed"],
 ): Weights {
   const rest = 1 - value,
-    others = (["cap", "cost", "speed"] as const).filter((k) => k !== key),
+    others = keys.filter((k) => k !== key),
     sum = others.reduce((a, k) => a + w[k], 0);
   const next = { ...w, [key]: value };
   for (const k of others) next[k] = sum ? rest * (w[k] / sum) : rest / 2;

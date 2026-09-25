@@ -9,10 +9,8 @@ import {
   daysAgo,
   status,
   reason,
-  label,
-  relaxLabel,
-  catalogue,
 } from "../adapter";
+import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
 import { setWeight } from "../state/spec";
 export function Why({
@@ -30,6 +28,8 @@ export function Why({
   onRelax: (i: number) => void;
   onProvenance: (e: Evidence) => void;
 }) {
+  const vocab = useVocab(),
+    { label } = vocab;
   const [whyNot, setWhyNot] = useState(""),
     e = decision.explanation,
     compare = e.rows.find((r) => r.m.id === whyNot);
@@ -47,7 +47,7 @@ export function Why({
   const dims = [
     {
       key: "cap",
-      name: spec.bench,
+      name: vocab.benchName(spec.bench),
       value:
         fmtB(spec.bench, row.cap) +
         (row.capR ? " " + fmtCI(spec.bench, row.capR) : ""),
@@ -83,7 +83,7 @@ export function Why({
           </p>
           <div className="inline">
             <span className="badge">
-              {m.type ? TYPES[m.type] : "Class not available in this snapshot"}
+              {m.type ? (vocab.types[m.type] ?? TYPES[m.type]) : "Class not available in this snapshot"}
             </span>
             <span className="badge">
               {m.open === null
@@ -150,7 +150,9 @@ export function Why({
         <div>
           <div className="eyebrow">Why it ranks here</div>
           {ranked ? (
-            dims.map((d) => (
+            dims
+              .filter((d) => vocab.weightKeys.includes(d.key))
+              .map((d) => (
               <div className="contribution" key={d.key}>
                 <div>
                   <strong>{d.name}</strong>
@@ -179,8 +181,15 @@ export function Why({
                       " to " +
                       d.fmt(Math.max(...d.range))
                     : "unknown, so it earns nothing here"}
-                  {d.key === "cost" ? ", compared on a log scale" : ""}
+                  {d.key === "cost"
+                    ? vocab.vocabulary
+                      ? ", compared linearly between the cheapest and the dearest"
+                      : ", compared on a log scale"
+                    : ""}
                 </small>
+                {d.key === "cost" && o.costFormula && (
+                  <small className="formula">{o.costFormula}</small>
+                )}
               </div>
             ))
           ) : (
@@ -376,7 +385,7 @@ export function Why({
                 <strong>{n.row.m.name}</strong>
                 <small>{n.why}</small>
                 <button onClick={() => onRelax(i)}>
-                  {n.relaxed ? relaxLabel(n.relaxed) : "Drop condition"}
+                  {n.relaxed ? vocab.relaxLabel(n.relaxed) : "Drop condition"}
                 </button>
               </div>
             ))}
@@ -392,7 +401,7 @@ export function Why({
               onChange={(ev) => setWhyNot(ev.target.value)}
             >
               <option value="">Choose a model</option>
-              {catalogue.models.map((m) => (
+              {e.rows.map(({ m }) => (
                 <option key={m.id} value={m.id}>
                   {m.name} · {m.labName}
                 </option>
@@ -404,7 +413,7 @@ export function Why({
               {compare.m.name}: {status(compare)}
               {compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
               {compare.rank &&
-                `${spec.bench}: ${fmtB(spec.bench, compare.cap)}; ${money(compare.cost)} per task; ${compare.tps ?? "unknown"} tok/s.`}
+                `${vocab.benchName(spec.bench)}: ${fmtB(spec.bench, compare.cap)}; ${money(compare.cost)} per task; ${compare.tps ?? "unknown"} tok/s.`}
             </p>
           )}
         </div>

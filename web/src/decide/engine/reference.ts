@@ -108,6 +108,8 @@ export function condLabel(c: Cond, D: Catalogue): string {
       return "Origin: exclude " + c.ex.join(", ");
     case "rel":
       return `≥ ${D.byId[c.ref].name} on ${c.b}, and cheaper`;
+    case "facet":
+      return `${c.facet} ${c.op} ${Array.isArray(c.value) ? c.value.join(", ") : String(c.value)}`;
   }
 }
 
@@ -226,6 +228,8 @@ export function testCond(
             `${money(mc)} per task, not cheaper than ${X.name} (${money(xc)})`,
           );
     }
+    case "facet":
+      return un(`${c.facet} is not in the fictional catalogue`);
   }
 }
 

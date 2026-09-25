@@ -62,6 +62,7 @@ const contributionSchema = z
     value: z.number().finite().nullable(),
     normalisation: nullableString,
     evidence: z.array(evidenceItemSchema),
+    formula: nullableString.optional(),
   })
   .strict();
 
@@ -97,6 +98,7 @@ export const decisionSchema = z
             distance: z.number().finite().nullable(),
             unit: nullableString,
             records: z.array(z.string()),
+            formula: nullableString.optional(),
           })
           .strict(),
       )
@@ -114,6 +116,8 @@ export const decisionSchema = z
                   value: z.union([scalar, z.array(scalar)]).nullable(),
                   unit: nullableString,
                   record_id: nullableString,
+                  records: z.array(z.string()).optional(),
+                  formula: nullableString.optional(),
                 })
                 .strict(),
             ),
@@ -145,7 +149,7 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2"]),
+    contract_version: z.enum(["1.1", "1.2", "1.3"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
@@ -183,6 +187,7 @@ export const decisionSchema = z
               model: modelId,
               condition: z.string(),
               value: scalar.nullable(),
+              formula: nullableString.optional(),
             })
             .strict(),
         ),
@@ -267,6 +272,14 @@ export const decisionSpecSchema = z
       .optional(),
     capabilities: z
       .record(facetId, z.enum(["required", "preferred"]))
+      .nullable()
+      .optional(),
+    task_tokens: z
+      .object({
+        input: z.number().int().nonnegative(),
+        output: z.number().int().nonnegative(),
+      })
+      .strict()
       .nullable()
       .optional(),
     where: z

@@ -7,8 +7,8 @@ import {
   tok,
   status,
   reason,
-  label,
 } from "../adapter";
+import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 const unavailable = "not available in this snapshot";
 const columns: [string, string, (r: Row) => number | string][] = [
@@ -36,6 +36,7 @@ export function DecisionTable({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { label, benchName } = useVocab();
   const [sort, setSort] = useState("rank"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
@@ -85,7 +86,7 @@ export function DecisionTable({
                       setDir(sort === key ? -dir : 1);
                     }}
                   >
-                    {title || spec.bench}
+                    {title || benchName(spec.bench)}
                     {sort === key ? (dir === 1 ? " ↑" : " ↓") : ""}
                   </button>
                 </th>

@@ -6,10 +6,10 @@ import {
   fmtCI,
   status,
   reason,
-  relaxLabel,
 } from "../adapter";
 import type { AdapterDecision, Cond, Spec, Row } from "../adapter";
 import type { Axis } from "../state/spec";
+import { useVocab } from "../vocabulary/context";
 export function Canvas({
   decision,
   spec,
@@ -33,6 +33,7 @@ export function Canvas({
   onRelax: (index: number) => void;
   compact: boolean;
 }) {
+  const vocab = useVocab();
   const plot = useRef<HTMLDivElement>(null),
     [hover, setHover] = useState<Row | null>(null),
     drag = useRef<"x" | "y" | null>(null);
@@ -185,7 +186,7 @@ export function Canvas({
                 onAxis(key);
             }}
           >
-            {(["task$", "in$", "ttft", "tps", "ctx"] satisfies Axis[]).map((k) => (
+            {vocab.axes.map((k) => (
               <option value={k} key={k}>
                 {axisDefs[k].label} ({axisDefs[k].unit})
                 {decision.available_axes[k]
@@ -204,14 +205,14 @@ export function Canvas({
           >
             {Object.entries(decision.benchmarks).map(([k, b]) => (
                 <option key={k} value={k}>
-                  {k} ({b.unit})
+                  {vocab.benchName(k)} ({b.unit})
                 </option>
               ))}
           </select>
         </label>
       </div>
       <div className="chart-title">
-        {spec.bench} ({bd.unit}
+        {vocab.benchName(spec.bench)} ({bd.unit}
         {bd.hi ? "" : ", lower is better"})
       </div>
       <div className="plot-wrap" style={{ height }}>
@@ -301,7 +302,7 @@ export function Canvas({
               key={r.m.id}
               className={`point ${r.status === -1 ? "excluded" : status(r) === "May qualify" ? "may" : r.labOnly ? "lab" : ""} ${selected === r.m.id ? "selected" : ""}`}
               style={{ left: percent(pd.fx(x)), top: percent(pd.fy(y)) }}
-              aria-label={`${r.m.name}, ${status(r)}, ${spec.bench} ${fmtB(spec.bench, y)} ${r.labOnly ? "Lab-reported" : "Independent"}, ${ax.label} ${ax.fmt(x)}`}
+              aria-label={`${r.m.name}, ${status(r)}, ${vocab.benchName(spec.bench)} ${fmtB(spec.bench, y)} ${r.labOnly ? "Lab-reported" : "Independent"}, ${ax.label} ${ax.fmt(x)}`}
               onClick={() => onSelect(r.m.id)}
               onPointerEnter={() => setHover(r)}
               onPointerLeave={() => setHover(null)}
@@ -408,7 +409,7 @@ export function Canvas({
           <div
             role="slider"
             tabIndex={0}
-            aria-label={`${spec.bench} floor, ${bd.unit}`}
+            aria-label={`${vocab.benchName(spec.bench)} floor, ${bd.unit}`}
             aria-orientation="vertical"
             aria-valuemin={pd.y0}
             aria-valuemax={pd.y1}
@@ -441,8 +442,8 @@ export function Canvas({
           >
             <span>
               {yc
-                ? `${spec.bench} ${bd.hi ? "≥" : "≤"} ${fmtB(spec.bench, pd.yv)}${yc.f === "bench" && yc.indep ? " · independent" : ""}`
-                : `Drag to set a ${spec.bench} floor`}
+                ? `${vocab.benchName(spec.bench)} ${bd.hi ? "≥" : "≤"} ${fmtB(spec.bench, pd.yv)}${yc.f === "bench" && yc.indep ? " · independent" : ""}`
+                : `Drag to set a ${vocab.benchName(spec.bench)} floor`}
             </span>
           </div>
           {hover && (
@@ -460,7 +461,7 @@ export function Canvas({
                 {hover.m.labName} · via {hover.best.o.provider}
               </small>
               <span>
-                {spec.bench}: {fmtB(spec.bench, hover.cap)}{" "}
+                {vocab.benchName(spec.bench)}: {fmtB(spec.bench, hover.cap)}{" "}
                 {hover.capR ? fmtCI(spec.bench, hover.capR) : "no interval"} ·{" "}
                 {hover.labOnly ? "Lab-reported" : "Independent"}
               </span>
@@ -488,7 +489,7 @@ export function Canvas({
                   <strong>{n.row.m.name}</strong>
                   <small>{n.why}</small>
                   <button onClick={() => onRelax(i)}>
-                    {n.relaxed ? relaxLabel(n.relaxed) : "Drop condition"}
+                    {n.relaxed ? vocab.relaxLabel(n.relaxed) : "Drop condition"}
                   </button>
                 </div>
               ))}
@@ -508,7 +509,7 @@ export function Canvas({
         {ax.log ? ", log scale" : ""})
       </div>
       <div className="winning-caption">
-        Best {spec.bench} you can get at each {ax.label.toLowerCase()}{" "}
+        Best {vocab.benchName(spec.bench)} you can get at each {ax.label.toLowerCase()}{" "}
         {ax.low ? "cap" : "minimum"}
       </div>
       <div className="winning-strip">
@@ -563,7 +564,7 @@ export function Canvas({
           {missing
             .map(
               (r) =>
-                `${r.m.name} (${r.cap === null ? "no " + spec.bench : "no " + ax.label.toLowerCase()})`,
+                `${r.m.name} (${r.cap === null ? "no " + vocab.benchName(spec.bench) : "no " + ax.label.toLowerCase()})`,
             )
             .join(", ")}
         </small>

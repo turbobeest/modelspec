@@ -7,11 +7,23 @@ import {
   hostedEngine,
   DecideApiError,
   parseTask,
-  label,
   fmtB,
   fmtCI,
 } from "./adapter";
-import type { Cond, Decision, Evidence, Spec } from "./adapter";
+import type { Cond, Decision, Evidence, Spec, SpecIssue } from "./adapter";
+import {
+  VocabularyError,
+  loadVocabulary,
+  parseRealTask,
+  realBaseSpec,
+  realQuestions,
+  realTemplates,
+  sendable as sendableSpec,
+} from "./vocabulary";
+import type { Vocabulary } from "./vocabulary";
+import { VocabContext, fictionalVocab, realVocab } from "./vocabulary/context";
+import { placeIssues } from "./vocabulary/issues";
+import { registerBenchmarks } from "./adapter/condition-label";
 import { baseSpec, decodeSpec, encodeSpec } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { SpecPanel } from "./components/SpecPanel";
@@ -73,15 +85,44 @@ function DesignedApp({
     [requestState, setRequestState] = useState<
       | { kind: "idle" }
       | { kind: "loading" }
-      | { kind: "error"; message: string; code: string | null }
+      | {
+          kind: "error";
+          message: string;
+          code: string | null;
+          status: number | null;
+          issues: SpecIssue[];
+        }
       | { kind: "success" }
-    >({ kind: "idle" });
+    >({ kind: "idle" }),
+    [vocabState, setVocabState] = useState<
+      | { kind: "loading" }
+      | { kind: "ready"; vocabulary: Vocabulary }
+      | { kind: "error"; error: VocabularyError }
+    >({ kind: "loading" }),
+    [vocabAttempt, setVocabAttempt] = useState(0);
+  const vocabulary = !demo && vocabState.kind === "ready" ? vocabState.vocabulary : null;
+  const vocab = useMemo(() => {
+    if (!vocabulary) return fictionalVocab;
+    registerBenchmarks(vocabulary.benchmarks);
+    return realVocab(vocabulary);
+  }, [vocabulary]);
+  const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
+  const liveTemplates = useMemo(
+    () => (vocabulary ? realTemplates(vocabulary) : []),
+    [vocabulary],
+  );
+  /** Only the sliders the snapshot can answer, as the engine will be asked. */
+  const sendable = (next: Spec): Spec =>
+    vocabulary ? sendableSpec(vocabulary, next) : next;
+  const questionsFor = (next: Spec) =>
+    vocabulary ? realQuestions(vocabulary, next, dismissed) : candidateQuestions(next, dismissed);
+  // The fictional engine knows only the fictional catalogue: demo mode only.
   const sampleDecision = useMemo(
-      () => fictionalEngine.decide(spec, { axis, dismissed }),
-      [spec, axis, dismissed],
+      () => (demo ? fictionalEngine.decide(spec, { axis, dismissed }) : null),
+      [demo, spec, axis, dismissed],
     );
   const shownSpec = useMemo(() => {
-    if (demo || !hostedDecision) return spec;
+    if (demo || !hostedDecision || vocabulary) return spec;
     const availableBenchmarks = [
       ...new Set(
         hostedDecision.top.flatMap((candidate) =>
@@ -95,29 +136,45 @@ function DesignedApp({
       !availableBenchmarks.includes(spec.bench)
       ? { ...spec, bench: availableBenchmarks[0] }
       : spec;
-  }, [demo, hostedDecision, spec]);
-  const liveDecision = useMemo(
-    () =>
-      hostedDecision
-        ? mapDecisionToViewModel(hostedDecision, shownSpec, {
-            axis,
-            dismissed,
-            questions: hostedQuestions,
-          })
-        : null,
-    [hostedDecision, shownSpec, axis, dismissed, hostedQuestions],
-  );
+  }, [demo, hostedDecision, spec, vocabulary]);
+  const mapped = useMemo(() => {
+    if (!hostedDecision) return { decision: null, error: null };
+    try {
+      return {
+        decision: mapDecisionToViewModel(hostedDecision, shownSpec, {
+          axis: shownAxis,
+          dismissed,
+          questions: hostedQuestions,
+          ...(vocabulary ? { benchmarks: vocab.benchmarks } : {}),
+        }),
+        error: null,
+      };
+    } catch (cause) {
+      // A decision that cannot be drawn is reported, never left as a blank page.
+      return {
+        decision: null,
+        error: cause instanceof Error ? cause.message : String(cause),
+      };
+    }
+  }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
+  const liveDecision = mapped.decision;
   const decision = demo ? sampleDecision : liveDecision,
     e = decision?.explanation,
     selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
     simulatedError = demo && sim === "error" && !retried,
-    error = simulatedError || requestState.kind === "error",
+    error = simulatedError || requestState.kind === "error" || !!mapped.error,
     loading = (demo && sim === "loading") || requestState.kind === "loading";
+  const placed = useMemo(
+    () => (requestState.kind === "error" ? placeIssues(requestState.issues) : []),
+    [requestState],
+  );
+  const specIssues = placed.filter((issue) => issue.target.kind === "spec");
 
-  async function runDecision(nextSpec: Spec) {
+  async function runDecision(requested: Spec) {
     if (demo) return;
+    const nextSpec = sendable(requested);
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -131,7 +188,7 @@ function DesignedApp({
       });
       if (controller.signal.aborted) return;
       setHostedDecision(answer);
-      setHostedQuestions(candidateQuestions(nextSpec, dismissed));
+      setHostedQuestions(questionsFor(nextSpec));
       setRequestState({ kind: "success" });
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
@@ -140,6 +197,8 @@ function DesignedApp({
         kind: "error",
         message: apiError?.message ?? "The decision service could not be reached.",
         code: apiError?.code ?? null,
+        status: apiError?.status ?? null,
+        issues: apiError?.issues ?? [],
       });
     }
   }
@@ -160,10 +219,10 @@ function DesignedApp({
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
-    const candidates = candidateQuestions(spec, dismissed);
+    const candidates = questionsFor(spec);
     void evaluateQuestionOptions({
       engine: hostedEngine,
-      spec: toDecisionSpec(spec, "none"),
+      spec: toDecisionSpec(sendable(spec), "none"),
       questions: candidates,
       signal: controller.signal,
       onUpdate: (next) =>
@@ -180,7 +239,48 @@ function DesignedApp({
           setHostedQuestions([]);
       });
     return () => controller.abort();
-  }, [demo, hostedDecision, spec, dismissed]);
+    // questionsFor and sendable read only vocabulary and dismissed, listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, hostedDecision, spec, dismissed, vocabulary]);
+  useEffect(() => {
+    if (demo) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
+    setVocabState({ kind: "loading" });
+    loadVocabulary(controller.signal)
+      .then((loaded) => setVocabState({ kind: "ready", vocabulary: loaded }))
+      .catch((cause: unknown) => {
+        if (cause instanceof Error && cause.name === "AbortError" && !controller.signal.aborted)
+          return;
+        setVocabState({
+          kind: "error",
+          error:
+            cause instanceof VocabularyError
+              ? cause
+              : new VocabularyError(
+                  "The catalogue vocabulary did not load in time.",
+                  "network",
+                ),
+        });
+      })
+      .finally(() => clearTimeout(timer));
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [demo, vocabAttempt]);
+  useEffect(() => {
+    if (!vocabulary) return;
+    if (initial) {
+      // A shared link: answer it as written. What the engine refuses is shown on its chip.
+      void runDecision(initial.spec);
+      return;
+    }
+    const base = realBaseSpec(vocabulary);
+    setSpec((current) => (current === baseSpec ? base : current));
+    // Once per loaded vocabulary; runDecision reads the latest state itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabulary]);
   useEffect(() => {
     if (view === "work")
       history.replaceState(
@@ -233,7 +333,9 @@ function DesignedApp({
     setEdit(null);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      const p = parseTask(draft),
+      const p: ReturnType<typeof parseTask> & { domain?: string | null } = vocabulary
+          ? parseRealTask(vocabulary, draft)
+          : parseTask(draft),
         keep = spec.conds.filter(
           (c) =>
             !c.from &&
@@ -243,18 +345,24 @@ function DesignedApp({
                 (n.f !== "bench" || c.f !== "bench" || n.b === c.b),
             ),
         );
-      const nextSpec = {
+      const nextSpec: Spec = {
         ...spec,
         task: draft,
         bench: p.bench,
         w: p.w,
         conds: [...p.conds, ...keep],
+        ...(p.domain ? { domain: p.domain } : {}),
       };
       setSpec(nextSpec);
       setTrace(p.trace);
       setParsing(false);
       setSelected(null);
       setAxis(p.bench === "RetrievalEval v2" ? "in$" : "task$");
+      if (!demo && !vocabulary) {
+        // The vocabulary failed or is still loading; its own message says which.
+        setVocabAttempt((n) => (vocabState.kind === "error" ? n + 1 : n));
+        return;
+      }
       void runDecision(nextSpec);
     }, 420);
   }
@@ -290,7 +398,48 @@ function DesignedApp({
     setDismissed([]);
     void runDecision(s);
   }
+  const vocabAlert =
+    !demo && vocabState.kind === "error" ? (
+      <div role="alert" className="error">
+        <div>
+          <strong>
+            {vocabState.error.kind === "missing"
+              ? "No snapshot yet."
+              : "Couldn't load what the snapshot can answer."}
+          </strong>
+          <p>{vocabState.error.message}</p>
+        </div>
+        <button className="ink-button" onClick={() => setVocabAttempt((n) => n + 1)}>
+          Retry
+        </button>
+      </div>
+    ) : null;
+  const errorTitle = () => {
+    if (simulatedError) return "Couldn't load snapshot.";
+    if (mapped.error) return "This decision could not be shown.";
+    if (requestState.kind !== "error") return "Decision unavailable.";
+    if (requestState.status === 400 && requestState.issues.length)
+      return "The engine could not read part of this spec.";
+    if (requestState.status === 503 || requestState.code === "no_snapshot")
+      return "No snapshot yet.";
+    if (requestState.code === "timeout") return "The decision service is taking too long.";
+    if (requestState.status === null) return "Couldn't reach the decision service.";
+    return `Decision unavailable${requestState.code ? ` (${requestState.code})` : ""}.`;
+  };
+  const errorText = () => {
+    if (mapped.error) return `${mapped.error}.`;
+    if (requestState.kind !== "error")
+      return "The catalogue service did not respond. Your spec is kept in the link, so nothing is lost.";
+    if (requestState.status === 400 && requestState.issues.length)
+      return placed.some((issue) => issue.target.kind !== "spec")
+        ? "Each problem is marked beside the condition or control that caused it."
+        : "";
+    if (requestState.status === 503 || requestState.code === "no_snapshot")
+      return `The decision engine has no published snapshot to answer from yet. ${requestState.message}`;
+    return requestState.message;
+  };
   return (
+    <VocabContext.Provider value={vocab}>
     <div className="decide-app" data-theme={theme} data-layout={layout}>
       <header className="global-header">
         <button
@@ -405,10 +554,16 @@ function DesignedApp({
               </button>
             </div>
           </div>
+          {vocabAlert}
+          {!demo && vocabState.kind === "loading" && (
+            <div role="status" aria-busy="true" className="loading">
+              <span>Loading what the current snapshot can answer…</span>
+            </div>
+          )}
           <div>
             <div className="eyebrow">Or start from a template</div>
             <div className="templates">
-              {templates.map((t) => (
+              {(demo ? templates : liveTemplates).map((t) => (
                 <button
                   key={t.id}
                   onClick={() => start({ ...t.spec, task: t.task })}
@@ -419,11 +574,11 @@ function DesignedApp({
                     {t.spec.conds
                       .filter((c) => c.f !== "active")
                       .map((c, i) => (
-                        <span key={i}>{label(c)}</span>
+                        <span key={i}>{vocab.label(c)}</span>
                       ))}
                   </div>
                   <footer>
-                    {demo ? (
+                    {demo && "counts" in t ? (
                       <>
                         <strong>{t.counts.feasible.length}</strong> qualify{" "}
                         <span className="warn">
@@ -433,7 +588,7 @@ function DesignedApp({
                         </span>
                       </>
                     ) : (
-                      <span>Counts load from the current snapshot</span>
+                      <span>{"ranks" in t ? t.ranks : "Counts load from the current snapshot"}</span>
                     )}
                   </footer>
                 </button>
@@ -445,7 +600,7 @@ function DesignedApp({
             <button
               className="link"
               onClick={() => {
-                start(baseSpec);
+                start(vocabulary ? realBaseSpec(vocabulary) : baseSpec);
                 setAddOpen(true);
               }}
             >
@@ -456,14 +611,16 @@ function DesignedApp({
         </main>
       ) : (
         <main className="work">
-          {parsing && !decision && (
+          {parsing && !decision && demo && (
             <div role="status" aria-busy="true" className="loading">
               <span>Reading your task…</span>
             </div>
           )}
-          {decision && <SpecPanel
+          {vocabAlert}
+          {(decision || !demo) && <SpecPanel
             spec={shownSpec}
             decision={decision}
+            issues={placed}
             draft={draft}
             onDraft={setDraft}
             onParse={find}
@@ -483,19 +640,17 @@ function DesignedApp({
           {error ? (
             <div role="alert" className="error">
               <div>
-                <strong>
-                  {simulatedError ? "Couldn't load snapshot" : "Decision unavailable"}
-                  {requestState.kind === "error" && requestState.code
-                    ? ` (${requestState.code})`
-                    : ""}
-                  .
-                </strong>
+                <strong>{errorTitle()}</strong>
                 <p>
-                  {requestState.kind === "error"
-                    ? requestState.message
-                    : "The catalogue service did not respond. Your spec is kept in the link, so nothing is lost."}{" "}
-                  Results below are hidden rather than shown stale.
+                  {errorText()} Results below are hidden rather than shown stale.
                 </p>
+                {!!specIssues.length && (
+                  <ul className="issue-list">
+                    {specIssues.map((issue) => (
+                      <li key={issue.text}>{issue.text}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <button
                 className="ink-button"
@@ -529,7 +684,7 @@ function DesignedApp({
               <Canvas
                 decision={decision}
                 spec={shownSpec}
-                axis={axis}
+                axis={shownAxis}
                 onAxis={setAxis}
                 onSpec={changeSpec}
                 onAdd={add}
@@ -643,13 +798,14 @@ function DesignedApp({
         <Share
           spec={shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
-          axis={axis}
+          axis={shownAxis}
           row={row}
           demo={demo}
           onClose={() => setShare(false)}
         />
       )}
     </div>
+    </VocabContext.Provider>
   );
 }
 

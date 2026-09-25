@@ -53,6 +53,10 @@ export interface Offering {
   ttft: number | null;
   tps: number | null;
   ret: Retention;
+  /** The engine's $ per task for this offering, when the decision shows it. */
+  cost?: number | null;
+  /** How the engine computed it, with the numbers. */
+  costFormula?: string;
 }
 
 export interface RawModel<E> {
@@ -110,7 +114,11 @@ export type Cond = CondBase &
     | { f: "tps"; min: number }
     | { f: "origin"; ex: string[] }
     | { f: "rel"; ref: string; b: string }
+    | { f: "facet"; facet: string; op: FacetOp; value: FacetValue }
   );
+/** A condition on any facet the published vocabulary lists (real mode only). */
+export type FacetOp = "=" | "!=" | "<=" | ">=" | "in" | "not in";
+export type FacetValue = string | number | boolean | string[];
 export type CondField = Cond["f"];
 
 export interface Weights {
@@ -128,6 +136,8 @@ export interface Spec {
   w: Weights;
   conds: Cond[];
   bar?: number | null;
+  /** The capability domain the task needs (real mode), from the vocabulary. */
+  domain?: string;
 }
 
 export interface Template {

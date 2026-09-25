@@ -672,6 +672,42 @@ body {
 .chip.editing {
   border-color: var(--accent);
 }
+/* A condition the engine refused (a 400's issue), with the reason beside it. */
+.chip-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  max-width: 100%;
+}
+.chip.has-issue {
+  border-color: var(--bad);
+  box-shadow: 0 0 0 2px var(--badSoft);
+  background: var(--badSoft);
+}
+.issue-note {
+  color: var(--bad);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 48ch;
+}
+.has-issue > .eyebrow {
+  color: var(--bad);
+}
+.why-panel .formula {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.issue-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--ink2);
+}
 .decide-app .chip button {
   border: 0;
   background: none;

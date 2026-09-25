@@ -140,7 +140,7 @@ describe("the fictional decision adapter", () => {
     expect(d.tipping_points).toEqual([
       {
         description: "Tide 4 takes #1 at cost weight 0.57",
-        dimension: "-cost_per_task",
+        dimension: "-offering.cost_per_task",
         threshold: 0.57,
         new_top: "meridian/meridian-tide-4",
       },

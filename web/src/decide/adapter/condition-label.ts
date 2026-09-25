@@ -3,6 +3,7 @@ import facetsYaml from "../../../../registry/facets.yaml?raw";
 interface FacetPresentation {
   name: string;
   unit: string | null;
+  unitId?: string;
 }
 
 const NAME_OVERRIDES: Readonly<Record<string, string>> = {
@@ -33,6 +34,7 @@ const UNIT_NAMES: Readonly<Record<string, string>> = {
   percent: "%",
   monthly_active_users: "monthly active users",
   benchmark_metric: "benchmark units",
+  usd_per_task: "per task",
   capability_scale: "capability scale",
 };
 
@@ -60,16 +62,33 @@ function registryPresentation(source: string): Readonly<Record<string, FacetPres
       entries[id] = {
         ...entries[id],
         unit: UNIT_NAMES[unit] ?? sentenceCase(unit),
+        unitId: unit,
       };
     }
+    const label = /^ {4}label: (.+)$/.exec(line)?.[1];
+    if (id && label && !NAME_OVERRIDES[id]) entries[id] = { ...entries[id], name: label };
   }
   return entries;
 }
 
 const FACETS = registryPresentation(facetsYaml);
+const BENCHMARKS = new Map<string, { name: string; percent: boolean }>();
+
+/** Benchmark names and units from the published vocabulary (real mode). */
+export function registerBenchmarks(
+  rows: readonly { id: string; name: string; unit: string | null }[],
+): void {
+  BENCHMARKS.clear();
+  for (const row of rows)
+    BENCHMARKS.set(row.id, { name: row.name, percent: row.unit === "percent" });
+}
 
 export function facetName(id: string): string {
-  return FACETS[id]?.name ?? sentenceCase(id.split(".").at(-1) ?? id);
+  return (
+    BENCHMARKS.get(id)?.name ??
+    FACETS[id]?.name ??
+    sentenceCase(id.split(".").at(-1) ?? id)
+  );
 }
 
 function humanValue(value: string): string {
@@ -81,14 +100,46 @@ function humanValue(value: string): string {
 }
 
 function valueWithUnit(facet: string, value: string): string {
+  const numeric = /^-?\d+(\.\d+)?(e-?\d+)?$/.test(value);
+  const unitId = FACETS[facet]?.unitId;
+  if (numeric && unitId === "usd_per_task") return `$${Number(value)} per task`;
+  if (numeric && unitId === "usd_per_1m_tokens") return `$${Number(value)} / 1M tokens`;
+  if (numeric && BENCHMARKS.get(facet)?.percent) return `${Number(value)}%`;
   const unit = FACETS[facet]?.unit;
-  const formatted = /^-?\d+(\.\d+)?$/.test(value)
+  const formatted = numeric
     ? Number(value).toLocaleString("en-US")
     : humanValue(value);
   return unit ? `${formatted} ${unit}` : formatted;
 }
 
+const MODIFIERS: readonly [RegExp, string][] = [
+  [/\s+@independent\b/, "independent"],
+  [/\s+@provider_self_report\b/, "lab-reported only"],
+  [/\s+@direct\b/, "direct evidence"],
+  [/\s+soft\([^)]*\)/, "soft"],
+  [/\s+unknown\([^)]*\)/, ""],
+  [/\s+@any\b/, ""],
+];
+
+/** Split trailing qualifiers and modifiers off a compact condition. */
+function modifiers(condition: string): { core: string; notes: string[] } {
+  let core = condition;
+  const notes: string[] = [];
+  for (const [re, note] of MODIFIERS)
+    if (re.test(core)) {
+      core = core.replace(re, "");
+      if (note) notes.push(note);
+    }
+  return { core, notes };
+}
+
 export function renderContractCondition(condition: string): string {
+  const { core, notes } = modifiers(condition);
+  const text = renderCore(core);
+  return notes.length ? `${text} · ${notes.join(" · ")}` : text;
+}
+
+function renderCore(condition: string): string {
   const known = /^known\(([a-z][a-z0-9_.-]*)\)$/.exec(condition);
   if (known) return `Has a ${facetName(known[1]).toLowerCase()}`;
 

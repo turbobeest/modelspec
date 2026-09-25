@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { fmtB, label } from "../adapter";
+import { fmtB } from "../adapter";
+import { useVocab } from "../vocabulary/context";
 import type { Row, Spec } from "../adapter";
 import { encodeSpec } from "../state/spec";
 import type { Axis } from "../state/spec";
@@ -27,6 +28,7 @@ export function Share({
   demo: boolean;
   onClose: () => void;
 }) {
+  const { label } = useVocab();
   const [tab, setTab] = useState("Permalink"),
     [copied, setCopied] = useState(""),
     [saved, setSaved] = useState(false),
@@ -66,7 +68,7 @@ export function Share({
         ),
       ].join("\n")
     : [
-        "# ModelSpec decision contract 1.1",
+        "# ModelSpec decision contract 1.3",
         `spec_version: ${contractSpec.spec_version}`,
         `snapshot: ${contractSpec.snapshot ?? "latest"}`,
         ...(contractSpec.task_type

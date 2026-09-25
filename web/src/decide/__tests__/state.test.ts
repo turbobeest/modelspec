@@ -16,7 +16,28 @@ it("rejects corrupt hashes and unsafe numeric or catalogue values", () => {
     decodeSpec(encodeSpec({ ...baseSpec, tokIn: -1 }, "task$")),
   ).toBeNull();
   expect(
-    decodeSpec(encodeSpec({ ...baseSpec, bench: "unknown" }, "task$")),
+    decodeSpec(encodeSpec({ ...baseSpec, bench: "Unknown Bench" }, "task$")),
+  ).toBeNull();
+});
+it("accepts a published benchmark ID, a domain and a vocabulary facet condition", () => {
+  const spec = {
+    ...baseSpec,
+    bench: "swe_bench_verified",
+    domain: "software_engineering",
+    conds: [
+      ...baseSpec.conds,
+      { f: "facet" as const, facet: "offering.data.trains_on_customer_data", op: "=" as const, value: false },
+      { f: "facet" as const, facet: "offering.region", op: "in" as const, value: ["global"] },
+    ],
+  };
+  expect(decodeSpec(encodeSpec(spec, "task$"))).toEqual({ spec, x: "task$" });
+  expect(
+    decodeSpec(
+      encodeSpec(
+        { ...baseSpec, conds: [{ f: "facet", facet: "Not A Facet", op: "=", value: 1 }] },
+        "task$",
+      ),
+    ),
   ).toBeNull();
 });
 it("identifies the whole spec deterministically without editor IDs", () => {
