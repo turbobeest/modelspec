@@ -4,6 +4,7 @@ import fixtureJson from "../__fixtures__/full-decision.json";
 import App from "../App";
 import { decisionSchema } from "../adapter";
 import { json, routeFetch, sentSpecs, smallVocabulary } from "./vocab-fixtures";
+import { VOCABULARY_URL } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
 
@@ -162,4 +163,95 @@ it("renders the full decision as four models without machine condition syntax", 
   expect(screen.getByText("No model is one condition away.")).toBeInTheDocument();
   expect(screen.queryByText("model.class = text-generator")).not.toBeInTheDocument();
   expect(screen.queryByText("known(offering.provider)")).not.toBeInTheDocument();
+});
+
+it("on a 409 to the summary, reloads once, retries the summary, then asks for full on the new snapshot", async () => {
+  const fresh = { ...smallVocabulary, snapshot: "snap_after_deploy" };
+  let vocabularyLoads = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? smallVocabulary : fresh),
+    decide: (init) => {
+      const sent = new Headers(init?.headers).get("x-modelspec-snapshot");
+      if (sent !== fresh.snapshot)
+        return json(
+          {
+            contract_version: "1.4",
+            endpoint: "decide",
+            snapshot: fresh.snapshot,
+            error: {
+              code: "snapshot_changed",
+              message: "reload the vocabulary and retry",
+              requested: sent,
+              current: fresh.snapshot,
+            },
+          },
+          409,
+        );
+      return json(fixture);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.click(screen.getByText("start from constraints"));
+
+  expect(
+    await screen.findByRole("region", { name: "Trade-off canvas" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  const sent = (explain: string) =>
+    fetch.mock.calls
+      .filter(
+        ([url, init]) =>
+          url !== VOCABULARY_URL && JSON.parse(String(init?.body)).explain === explain,
+      )
+      .map(([, init]) => new Headers(init?.headers).get("x-modelspec-snapshot"));
+  await waitFor(() => expect(sent("full")).toEqual([fresh.snapshot]));
+  expect(sent("summary")).toEqual([smallVocabulary.snapshot, fresh.snapshot]);
+  // Probes follow the reloaded vocabulary; none of them reloads it again.
+  await waitFor(() => expect(sent("none").length).toBeGreaterThan(0));
+  expect(new Set(sent("none"))).toEqual(new Set([fresh.snapshot]));
+  expect(vocabularyLoads).toBe(2);
+});
+
+it("after the summary reloaded, a 409 to the full request keeps the summary and reloads no more", async () => {
+  const fresh = { ...smallVocabulary, snapshot: "snap_after_deploy" };
+  let vocabularyLoads = 0;
+  const changed = (requested: string | null) =>
+    json(
+      {
+        contract_version: "1.4",
+        endpoint: "decide",
+        snapshot: "snap_newer",
+        error: {
+          code: "snapshot_changed",
+          message: "reload the vocabulary and retry",
+          requested,
+          current: "snap_newer",
+        },
+      },
+      409,
+    );
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? smallVocabulary : fresh),
+    decide: (init) => {
+      const sent = new Headers(init?.headers).get("x-modelspec-snapshot");
+      const explain = JSON.parse(String(init?.body)).explain;
+      if (explain === "full" || sent !== fresh.snapshot) return changed(sent);
+      return json(fixture);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.click(screen.getByText("start from constraints"));
+
+  expect(
+    await screen.findByRole("region", { name: "Trade-off canvas" }),
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(sentSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(vocabularyLoads).toBe(2);
 });

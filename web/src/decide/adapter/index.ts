@@ -26,9 +26,12 @@ export {
   DECIDE_TIMEOUT_MS,
   DecideApiError,
   PUBLIC_DECIDE_ENDPOINT,
+  SNAPSHOT_HEADER,
   hostedEngine,
+  retryOnSnapshotChange,
+  sharedReload,
 } from "./hosted";
-export type { SpecIssue } from "./hosted";
+export type { DecideOptions, HostedDecisionEngine, SpecIssue } from "./hosted";
 export { decisionSchema, decisionSpecSchema } from "./contract";
 export type {
   Decision,

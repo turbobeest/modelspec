@@ -131,15 +131,13 @@ _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "e
 #: is the same one so that a deploy and a load both reach callers in five
 #: minutes rather than by two different rules.
 _policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
-_decision_cache: dict[str, object] = {"snapshot": None}
+#: One `decide_service.SnapshotHolder` per export origin (MODEL-159): the
+#: verified snapshot, revalidated against the origin at most once a minute.
+_decision_holders: dict[str, object] = {}
 #: `state` is one of the `STORE_*` values below; `error` is set only when it is
 #: `broken`; `message` is the operator-facing sentence for whichever it is.
 _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
                                    "state": None, "message": None}
-
-
-class PublishedSnapshotMissing(RuntimeError):
-    """The static site has not published a decision snapshot yet."""
 
 
 def _decide_service():
@@ -154,27 +152,44 @@ async def _get_json(url: str):
     return json.loads(await response.text())
 
 
-async def _get_bytes(url: str) -> bytes:
-    response = await fetch(url)
-    if not response.ok:
-        if response.status == 404:
-            raise PublishedSnapshotMissing(f"{url} returned HTTP 404")
-        raise RuntimeError(f"{url} returned HTTP {response.status}")
-    from js import Uint8Array
-
-    view = Uint8Array.new(await response.arrayBuffer())
-    return bytes(view.to_py())
+class _Fetched:
+    def __init__(self, status: int, etag: str | None, body: bytes | None):
+        self.status, self.etag, self.body = status, etag, body
 
 
-async def _load_decision_snapshot(origin: str, key: str | None):
-    """Fetch, verify and index the decision snapshot once per isolate."""
-    if _decision_cache["snapshot"] is not None:
-        return _decision_cache["snapshot"]
-    decider = _decide_service()
-    raw = await _get_bytes(origin + DECISION_SNAPSHOT_PATH)
-    snapshot = decider.load_snapshot(raw, key=key)
-    _decision_cache["snapshot"] = snapshot
-    return snapshot
+def _snapshot_fetcher(url: str):
+    """A conditional GET of the snapshot, for `decide_service.SnapshotHolder`."""
+
+    async def fetch_snapshot(etag: str | None) -> _Fetched:
+        headers = {"If-None-Match": etag} if etag else {}
+        try:  # pragma: no cover - isolate only
+            from js import Object  # type: ignore[import-not-found]
+            from pyodide.ffi import to_js  # type: ignore[import-not-found]
+            options = to_js({"headers": headers}, dict_converter=Object.fromEntries)
+        except ImportError:
+            options = {"headers": headers}
+        response = await fetch(url, options)
+        status = int(response.status)
+        # A missing header is JS null, which Pyodide does not turn into None.
+        raw_tag = response.headers.get("etag")
+        tag = None if kv_value.absent(raw_tag) else str(raw_tag)
+        if status != 200:
+            return _Fetched(status, tag, None)
+        from js import Uint8Array
+
+        view = Uint8Array.new(await response.arrayBuffer())
+        return _Fetched(status, tag, bytes(view.to_py()))
+
+    return fetch_snapshot
+
+
+def _decision_holder(origin: str):
+    holder = _decision_holders.get(origin)
+    if holder is None:
+        holder = _decide_service().SnapshotHolder(
+            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH))
+        _decision_holders[origin] = holder
+    return holder
 
 
 async def _load_export(origin: str, *, force: bool = False):
@@ -415,7 +430,9 @@ def _cors_headers(request) -> dict[str, str]:
     return {
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
-        "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment",
+        "access-control-allow-headers":
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot",
+        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale",
         "access-control-max-age": "86400",
         "vary": "Origin",
     }
@@ -565,19 +582,22 @@ class Default(WorkerEntrypoint):
             envelope = {
                 "contract_version": decider.contract.CONTRACT_VERSION,
                 "endpoint": "decide",
-                "snapshot": getattr(_decision_cache.get("snapshot"), "snapshot_id", None),
+                "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
                 "service_commit": service_commit,
                 "export_origin": origin,
             }
 
+            sent = request.headers.get(decider.SNAPSHOT_HEADER)
+            expected = None if _absent(sent) else str(sent).strip()
+
             async def _anonymous():
-                return await self._decide(payload, origin)
+                return await self._decide(payload, origin, expected)
 
             async def _live(record, tier):
-                return await self._decide(payload, origin)
+                return await self._decide(payload, origin, expected)
 
             async def _live_unfunded(record, tier):
-                return await self._decide(payload, origin)
+                return await self._decide(payload, origin, expected)
 
             def sandbox():
                 return access.refusal(
@@ -634,7 +654,8 @@ class Default(WorkerEntrypoint):
                     and outcome.body.get("error") == "no_snapshot":
                 headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
             return _decision_response(
-                outcome.status, outcome.body, {**headers, **_cors_headers(request)}
+                outcome.status, outcome.body,
+                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request)},
             )
         return _json_response(outcome.status, outcome.body, headers)
 
@@ -847,8 +868,13 @@ class Default(WorkerEntrypoint):
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
 
-    async def _decide(self, payload, origin: str):
-        """``POST /v1/decide`` against the isolate's verified snapshot."""
+    async def _decide(self, payload, origin: str, expected: str | None = None):
+        """``POST /v1/decide`` against the isolate's verified snapshot.
+
+        ``expected`` is the snapshot the caller's vocabulary names. When this
+        isolate holds another, it revalidates at once: the site may have just
+        deployed it. Still different, the caller gets ``snapshot_changed``.
+        """
         decider = _decide_service()
         key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
         if key is None:
@@ -856,9 +882,12 @@ class Default(WorkerEntrypoint):
                 "no signed decision snapshot is published because the verification key "
                 "is not configured"
             )
+        holder = _decision_holder(origin)
         try:
-            snapshot = await _load_decision_snapshot(origin, key)
-        except PublishedSnapshotMissing:
+            snapshot = await holder.current(key)
+            if expected and expected != snapshot.snapshot_id:
+                snapshot = await holder.current(key, force=True)
+        except decider.SnapshotMissingError:
             return decider.no_snapshot("the published decision snapshot does not exist")
         except decider.SnapshotRefusalError as exc:
             return decider.error_response(
@@ -874,7 +903,7 @@ class Default(WorkerEntrypoint):
                 status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
             )
-        return decider.decide(payload, snapshot)
+        return decider.decide(payload, snapshot, expected_snapshot=expected)
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:

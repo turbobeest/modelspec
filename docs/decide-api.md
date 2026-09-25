@@ -18,7 +18,7 @@ pipeline.build --decision-snapshot-if-ready
                   |
                   v
 modelspec.dev/api/decision/snapshot.json.gz
-                  | fetched and verified once per Worker isolate
+                  | verified per isolate, revalidated at most once a minute
                   v
 POST /v1/decide -> decision.contract.parse_spec -> decision.engine.decide
                   ^
@@ -59,6 +59,11 @@ Unknown fields and unknown facet IDs are errors. Free-text `task` remains
 unsupported in slice 1. A Spec may request `latest` or the ID of the loaded
 Snapshot. Any other ID returns `409 snapshot_not_loaded` rather than silently
 using different data.
+
+A client that built the Spec from `/api/decision/vocabulary.json` sends that
+file's `snapshot` field as the `X-ModelSpec-Snapshot` request header. The header
+is optional and is not part of the Spec, so it does not change `spec_hash` or
+the Decision. See [Snapshot refresh](#snapshot-refresh).
 
 The body limit is 64 KiB.
 
@@ -128,9 +133,58 @@ On the first decision request in an isolate, the Worker:
 4. builds the in-memory index and retains it for that isolate.
 
 The Worker refuses an unsigned Snapshot, changed content, a recomputed hash
-with an invalid signature, and a deployment without the verification key. A
-failed verification is cached as a refusal in that isolate. It never falls
-back to an older export or an unverified answer.
+with an invalid signature, and a deployment without the verification key. With
+no verified Snapshot held, a failed verification is cached as a refusal for one
+revalidation interval, then tried again. The Worker never answers from an
+unverified Snapshot.
+
+## Snapshot refresh
+
+A site deploy publishes a new Snapshot and a new `vocabulary.json` together
+(MODEL-159). A warm isolate picks the new Snapshot up without a restart:
+
+1. At most once every 60 seconds (`REVALIDATE_SECONDS`), the next decision
+   request sends a conditional `GET` of the Snapshot with `If-None-Match` set
+   to the stored ETag. A `304` costs no download.
+2. On a `200` with different bytes, the Worker verifies the new Snapshot as
+   above. Only a verified Snapshot replaces the held one, in one assignment.
+3. If the refresh fails (network error, HTTP error, or a Snapshot that fails
+   verification), the Worker keeps answering from the verified Snapshot it
+   holds and adds `X-ModelSpec-Snapshot-Stale`, which says why. The next
+   attempt is one interval later.
+
+Every decide response from an isolate that holds a Snapshot carries
+`X-ModelSpec-Snapshot`, the ID that answered. Both headers are exposed to the
+browser through CORS.
+
+### `snapshot_changed`
+
+A page loaded before a deploy holds the old vocabulary. It can offer a
+benchmark or facet the new Snapshot does not have. To stop that becoming a
+confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
+
+- When the header names the Snapshot the isolate holds, the request proceeds.
+- When it names another one, the isolate revalidates at once (at most once
+  every 5 seconds, `FORCED_REVALIDATE_SECONDS`), because the site may have
+  just deployed the Snapshot the caller has.
+- If the IDs still differ, the Worker answers `409` before it reads the Spec:
+
+```json
+{
+  "contract_version": "1.4",
+  "endpoint": "decide",
+  "snapshot": "snap_new0123456789ab",
+  "error": {
+    "code": "snapshot_changed",
+    "message": "the request was built for snap_old0123456789ab, but the Worker answers from snap_new0123456789ab; reload the vocabulary and retry",
+    "requested": "snap_old0123456789ab",
+    "current": "snap_new0123456789ab"
+  }
+}
+```
+
+The decide page then reloads `vocabulary.json` and retries once with the new
+Snapshot ID. A second `snapshot_changed` is shown as an error, not retried.
 
 ## Access and browser calls
 
@@ -151,6 +205,7 @@ and handles its `OPTIONS` preflight. It does not send a wildcard CORS header.
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
 | 400 | `invalid_spec` | The body is not a contract-v1 Spec. | Apply every item in `error.issues`; unknown fields are not ignored. |
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
+| 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |

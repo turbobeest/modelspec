@@ -8,6 +8,8 @@ export const DECIDE_ENDPOINT: string =
 export const PUBLIC_DECIDE_ENDPOINT = "https://api.modelspec.dev/v1/decide";
 /** A request that has not answered by then is reported, never left spinning. */
 export const DECIDE_TIMEOUT_MS = 30_000;
+/** Names the snapshot the page's vocabulary describes (MODEL-159). */
+export const SNAPSHOT_HEADER = "X-ModelSpec-Snapshot";
 
 /** One thing the engine could not accept in a spec (a 400's `error.issues`). */
 export interface SpecIssue {
@@ -74,8 +76,14 @@ export class DecideApiError extends Error {
   }
 }
 
+export interface DecideOptions {
+  signal?: AbortSignal;
+  /** The vocabulary's snapshot. A Worker holding another answers `snapshot_changed`. */
+  snapshot?: string;
+}
+
 export interface HostedDecisionEngine {
-  decide(spec: DecisionSpec, options?: { signal?: AbortSignal }): Promise<Decision>;
+  decide(spec: DecisionSpec, options?: DecideOptions): Promise<Decision>;
 }
 
 export const hostedEngine: HostedDecisionEngine = {
@@ -92,6 +100,7 @@ export const hostedEngine: HostedDecisionEngine = {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...(options.snapshot ? { [SNAPSHOT_HEADER]: options.snapshot } : {}),
         },
         body: JSON.stringify(spec),
         signal: timeout.signal,
@@ -142,3 +151,42 @@ export const hostedEngine: HostedDecisionEngine = {
     return parsed.data;
   },
 };
+
+/**
+ * Ask with the page's vocabulary; when the Worker says the snapshot changed
+ * under it (a site deploy), reload the vocabulary and ask once more with it.
+ * A second `snapshot_changed`, or a reload that names the same snapshot, is
+ * thrown, never retried again.
+ */
+export async function retryOnSnapshotChange<V extends { snapshot: string }, T>(
+  current: V | null,
+  ask: (vocabulary: V | null) => Promise<T>,
+  reload: (stale: string) => Promise<V>,
+): Promise<{ result: T; vocabulary: V | null }> {
+  try {
+    return { result: await ask(current), vocabulary: current };
+  } catch (error) {
+    if (!current || !(error instanceof DecideApiError) || error.code !== "snapshot_changed")
+      throw error;
+    const fresh = await reload(current.snapshot);
+    if (fresh.snapshot === current.snapshot) throw error;
+    return { result: await ask(fresh), vocabulary: fresh };
+  }
+}
+
+/**
+ * One vocabulary reload per stale snapshot, however many requests (the
+ * summary, the full explanation, every probe) learn of it at once.
+ */
+export function sharedReload<V>(load: () => Promise<V>): (stale: string) => Promise<V> {
+  const pending = new Map<string, Promise<V>>();
+  return (stale) => {
+    let reload = pending.get(stale);
+    if (!reload) {
+      reload = load();
+      pending.set(stale, reload);
+      reload.catch(() => pending.delete(stale));
+    }
+    return reload;
+  };
+}
