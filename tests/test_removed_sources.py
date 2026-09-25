@@ -29,9 +29,14 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 #: Hosts whose values must not appear, including any subdomain.
 REMOVED_HOSTS = ("artificialanalysis.ai", "zapier.com")
 
-#: Any mention of either source, or of the benchmark ids they own.
+#: Any mention of either source, or of the benchmarks they own. "Omniscience"
+#: is matched as a bare name because that evaluator's hallucination benchmark
+#: was once stored with its prefix dropped. Its column labels
+#: ("Non-Hallucination", "Hallucination rate") are not matched: labs publish
+#: their own evaluations under those names.
 REMOVED_TEXT = re.compile(
-    r"artificial[\s-]?analysis|zapier|automationbench|gdpval-aa|aa-lcr|aa[\s-]intelligence[\s-]index",
+    r"artificial[\s-]?analysis|zapier|automationbench|gdpval-aa|aa-lcr|aa[\s-]intelligence[\s-]index"
+    r"|omniscience",
     re.IGNORECASE,
 )
 
