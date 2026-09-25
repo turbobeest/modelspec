@@ -166,16 +166,6 @@ jobs:
         # else it touches is the standard library, by design.
         run: python -m pip install "PyYAML==6.0.3"
 
-      - name: Sync the decision snapshot verification key
-        working-directory: api/worker
-        run: |
-          if [ -z "$MODELSPEC_SNAPSHOT_KEY" ]; then
-            echo "::warning::MODELSPEC_SNAPSHOT_KEY is not configured; skipping Worker secret sync"
-          else
-            printf '%s' "$MODELSPEC_SNAPSHOT_KEY" \
-              | uv run --project . pywrangler secret put MODELSPEC_SNAPSHOT_KEY
-          fi
-
       - name: Deploy
         working-directory: api/worker
         # BUILD_COMMIT is what makes the smoke test meaningful: the script
@@ -187,6 +177,20 @@ jobs:
         # `access_not_configured` rather than metered against invented limits;
         # anonymous requests do not need it.
         run: uv run --project . pywrangler deploy --var "BUILD_COMMIT:${GITHUB_SHA}" --var "TIER_POLICY:$(jq -c . tiers.json)"
+
+      - name: Sync the decision snapshot verification key
+        # After Deploy, never before: Cloudflare refuses a secret edit while the
+        # Worker's latest version is not the deployed one (a validation-only
+        # `versions upload` leaves exactly that state). `secret put` on the
+        # just-deployed version creates and deploys a new version carrying it.
+        working-directory: api/worker
+        run: |
+          if [ -z "$MODELSPEC_SNAPSHOT_KEY" ]; then
+            echo "::warning::MODELSPEC_SNAPSHOT_KEY is not configured; skipping Worker secret sync"
+          else
+            printf '%s' "$MODELSPEC_SNAPSHOT_KEY" \
+              | uv run --project . pywrangler secret put MODELSPEC_SNAPSHOT_KEY
+          fi
 
       - name: Smoke-test api.modelspec.dev
         run: |
