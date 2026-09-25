@@ -364,7 +364,8 @@ EFFORT_LEVELS = frozenset(
 _EFFORT_ALIASES = {"maximum": "max", "standard": "default"}
 _QUALIFIER = re.compile(r"[\(\[]([^\)\]]*)[\)\]]")
 _EFFORT_QUALIFIER = re.compile(
-    r"^(?:(?:reasoning\s+)?effort\s*[:=]?\s*)?(\w+)(?:\s+(?:reasoning\s+)?effort)?$")
+    r"^(?:(?:(?:reasoning|thinking)\s+)?effort\s*[:=]?\s*)?(\w+)"
+    r"(?:\s+(?:(?:reasoning|thinking)\s+)?effort)?$")
 
 
 def normalise_name(name: str) -> str:
@@ -395,6 +396,10 @@ def _condition(key: str, value: str | None) -> str | None:
         return None
     s = str(value).strip().casefold()
     if key == "effort":
+        # "max effort", "maximum thinking effort": the level, as a table cell would give it.
+        q = _EFFORT_QUALIFIER.match(s)
+        if q and q.group(1) in EFFORT_LEVELS:
+            s = q.group(1)
         return _EFFORT_ALIASES.get(s, s)
     if key == "date":
         parsed = _parse_date(str(value).strip())

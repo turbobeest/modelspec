@@ -941,3 +941,18 @@ def test_an_unregistered_harness_claim_matches_a_named_unregistered_harness(
     assert result.outcome == outcome
     if outcome == "mismatch":
         assert [d.field for d in result.diffs] == ["harness"]
+
+
+@pytest.mark.parametrize(("found", "outcome"), [
+    ("maximum thinking effort", "verified"),
+    ("max reasoning effort", "verified"),
+    ("high thinking effort", "mismatch"),
+])
+def test_an_effort_written_as_prose_is_read_as_its_level(store, regions, found, outcome) -> None:
+    claim = _prose_claim(store)
+    claim = verify.Claim(**{**claim.__dict__, "conditions": {"effort": "max"}})
+    reading = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens", "effort": found,
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]))
+    assert verify.verify(claim, regions, [reading.extractor], today=TODAY).outcome == outcome
