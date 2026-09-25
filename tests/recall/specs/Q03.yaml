@@ -1,0 +1,11 @@
+# gap: no registered domain distinguishes defect review from patch generation.
+spec_version: 1
+snapshot: latest
+task_type: review
+capabilities: {software_engineering: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = closed_weights
+optimize: {max: arena_elo_coding @independent @effort(high)}
+explain: full
+limit: 3

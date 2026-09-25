@@ -1,0 +1,10 @@
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {reasoning: required}
+where:
+  - model.class = text-generator
+  - model.weights_openness = closed_weights
+optimize: {max: gpqa_diamond @independent @max_effort @direct}
+explain: full
+limit: 3
