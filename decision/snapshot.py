@@ -180,6 +180,7 @@ class ExplanationIndex(SnapshotIndex, Protocol):
     def record(self, record_id: str) -> Mapping[str, Any]: ...
     def facet_ids(self) -> tuple[str, ...]: ...
     def domain_ids(self) -> tuple[str, ...]: ...
+    def benchmark_ids(self) -> tuple[str, ...]: ...
 
 
 # ── inputs ─────────────────────────────────────────────────────────────────
@@ -875,6 +876,7 @@ class LoadedSnapshot:
 
         self._evidence = _Evidence({cid: rows for section in sections
                                     for cid, rows in section["evidence"].items()})
+        self._benchmarks = tuple(sorted(content["benchmark_domains"]))
         self._domains: dict[str, list[tuple[str, str]]] = {}
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
@@ -981,6 +983,9 @@ class LoadedSnapshot:
     def domain_ids(self) -> tuple[str, ...]:
         return tuple(sorted(self._domains))
 
+    def benchmark_ids(self) -> tuple[str, ...]:
+        return self._benchmarks
+
     def source_url(self, source_id: str) -> str:
         return self._sources[source_id]
 
@@ -998,6 +1003,61 @@ class LoadedSnapshot:
             row += 1
 
 
+def load_snapshot_bytes(
+    data: bytes,
+    *,
+    key: bytes | str | None = _FROM_ENV,
+    include_archive: bool = False,
+    source: str = "snapshot bytes",
+) -> LoadedSnapshot:
+    """Check and index a gzipped snapshot already held in memory."""
+    try:
+        text = gzip.decompress(data).decode("utf-8")
+        stored_digest = None
+        if text.startswith('{"content":{'):
+            # raw_decode finds the JSON boundary, including escaped quotes and
+            # nested objects. Never search for a delimiter inside content.
+            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
+            suffix = text[end:].lstrip()
+            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+            if "content" in envelope:
+                raise SnapshotIntegrityError(f"{source}: duplicate content member")
+            envelope["content"] = content
+            stored_digest = "sha256:" + hashlib.sha256(
+                text[len('{"content":'):end].encode("utf-8")).hexdigest()
+        else:
+            envelope = json.loads(text)
+    except (OSError, EOFError, ValueError) as exc:
+        raise SnapshotIntegrityError(f"{source}: not a gzipped JSON snapshot: {exc}") from exc
+    if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:
+        raise SnapshotIntegrityError(f"{source}: not a {FORMAT} file")
+    if envelope.get("format_version") != FORMAT_VERSION:
+        raise SnapshotIntegrityError(
+            f"{source}: format version {envelope.get('format_version')!r}, "
+            f"expected {FORMAT_VERSION}"
+        )
+    # Canonical writer output can be checked directly. Other JSON encodings
+    # retain the original semantic hash check, including the signature check.
+    digest = stored_digest
+    if digest != envelope.get("content_hash") or digest is None:
+        digest = content_hash(envelope["content"])
+    if digest != envelope.get("content_hash"):
+        raise SnapshotIntegrityError(f"{source}: content hash mismatch: the snapshot was altered")
+    if envelope.get("snapshot_id") != snapshot_id_for(digest):
+        raise SnapshotIntegrityError(f"{source}: snapshot ID does not match its content hash")
+    key = env_key() if key is _FROM_ENV else _key_bytes(key)
+    verified = False
+    if key is not None:
+        signature = envelope.get("signature")
+        if not signature:
+            raise SnapshotIntegrityError(f"{source}: unsigned snapshot, but a key was given")
+        if (signature.get("alg") != SIGNATURE_ALG
+                or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
+            raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
+        verified = True
+    return LoadedSnapshot(envelope, include_archive=include_archive, signature_verified=verified)
+
+
 def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
                   include_archive: bool = False) -> LoadedSnapshot:
     """Read, check and index a snapshot.
@@ -1009,45 +1069,7 @@ def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
     """
     path = Path(path)
     try:
-        text = gzip.decompress(path.read_bytes()).decode("utf-8")
-        stored_digest = None
-        if text.startswith('{"content":{'):
-            # raw_decode finds the JSON boundary, including escaped quotes and
-            # nested objects. Never search for a delimiter inside content.
-            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
-            suffix = text[end:].lstrip()
-            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
-            if "content" in envelope:
-                raise SnapshotIntegrityError(f"{path}: duplicate content member")
-            envelope["content"] = content
-            stored_digest = "sha256:" + hashlib.sha256(
-                text[len('{"content":'):end].encode("utf-8")).hexdigest()
-        else:
-            envelope = json.loads(text)
-    except (OSError, EOFError, ValueError) as exc:
+        data = path.read_bytes()
+    except OSError as exc:
         raise SnapshotIntegrityError(f"{path}: not a gzipped JSON snapshot: {exc}") from exc
-    if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:
-        raise SnapshotIntegrityError(f"{path}: not a {FORMAT} file")
-    if envelope.get("format_version") != FORMAT_VERSION:
-        raise SnapshotIntegrityError(
-            f"{path}: format version {envelope.get('format_version')!r}, expected {FORMAT_VERSION}")
-    # Canonical writer output can be checked directly. Other JSON encodings
-    # retain the original semantic hash check, including the signature check.
-    digest = stored_digest
-    if digest != envelope.get("content_hash") or digest is None:
-        digest = content_hash(envelope["content"])
-    if digest != envelope.get("content_hash"):
-        raise SnapshotIntegrityError(f"{path}: content hash mismatch: the snapshot was altered")
-    if envelope.get("snapshot_id") != snapshot_id_for(digest):
-        raise SnapshotIntegrityError(f"{path}: snapshot ID does not match its content hash")
-    key = env_key() if key is _FROM_ENV else _key_bytes(key)
-    verified = False
-    if key is not None:
-        signature = envelope.get("signature")
-        if not signature:
-            raise SnapshotIntegrityError(f"{path}: unsigned snapshot, but a key was given")
-        if (signature.get("alg") != SIGNATURE_ALG
-                or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
-            raise SnapshotIntegrityError(f"{path}: signature does not verify with this key")
-        verified = True
-    return LoadedSnapshot(envelope, include_archive=include_archive, signature_verified=verified)
+    return load_snapshot_bytes(data, key=key, include_archive=include_archive, source=str(path))
