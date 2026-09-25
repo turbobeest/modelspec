@@ -115,6 +115,29 @@ it("renders unavailable snapshot facets instead of hiding them", async () => {
   );
   render(<App />);
   fireEvent.click(screen.getByText("start from constraints"));
+  const detail = await screen.findByRole("region", { name: "Why this model" });
+  expect(within(detail).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
+});
+
+it("renders the full decision as four models without machine condition syntax", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(fixture), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    ),
+  );
+  render(<App />);
+  fireEvent.click(screen.getByText("start from constraints"));
+
   const table = await screen.findByRole("region", { name: "Decision table" });
-  expect(within(table).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
+  expect(within(table).getAllByRole("row")).toHaveLength(5);
+  expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
+  expect(screen.getAllByText("Type: text generator").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Has a provider").length).toBeGreaterThan(0);
+  expect(screen.getByText("No model is one condition away.")).toBeInTheDocument();
+  expect(screen.queryByText("model.class = text-generator")).not.toBeInTheDocument();
+  expect(screen.queryByText("known(offering.provider)")).not.toBeInTheDocument();
 });

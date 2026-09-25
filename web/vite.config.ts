@@ -9,6 +9,7 @@ export default defineConfig({
     rolldownOptions: { input: { main: "index.html", decide: "decide.html" } },
   },
   server: {
+    fs: { allow: [".."] },
     proxy: {
       "/api": {
         target: "http://localhost:8000",

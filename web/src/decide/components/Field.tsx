@@ -49,10 +49,10 @@ export function Field({
                   }}
                 />
               </span>
-              <span>{f.label}</span>
+              <span className="funnel-label">{f.label}</span>
               <small>
                 {i === 0
-                  ? `${f.n} candidates`
+                  ? `${decision.population.models} models · ${decision.population.offerings} offerings`
                   : i === steps.length - 1
                     ? `+ ${f.may} may qualify`
                     : `${steps[i - 1].n - f.n ? "−" + (steps[i - 1].n - f.n) : "no change"}${f.may ? " · " + f.may + " may" : ""}`}
