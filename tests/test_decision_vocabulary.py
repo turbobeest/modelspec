@@ -319,3 +319,32 @@ def test_enum_values_carry_the_registry_label(snapshot):
             token = isinstance(item["value"], str) and any(c in item["value"] for c in "_-")
             if token and row["id"] != "offering.provider":  # providers are named separately
                 assert item.get("label"), (row["id"], item["value"])
+
+
+def test_the_registry_default_benchmark_leads_only_with_verified_evidence(vocabulary):
+    """software_engineering defaults to swe_bench_pro (registry/domains.yaml,
+    Jamie 2026-09-25). Here its only row is a mismatch, so it has no verified
+    evidence: the default is not applied and the most-covered direct benchmark
+    leads."""
+    domain = by_id(vocabulary["domains"])["software_engineering"]
+    assert domain["default_benchmark"] is None
+    assert domain["benchmarks"][0] == "swe_bench_verified"
+
+
+def test_a_verified_default_benchmark_leads_its_domain():
+    inputs = SnapshotInputs(
+        models=[generator("lab/a"), generator("lab/b"), generator("lab/c")],
+        offerings=[sold("lab/a", "p1", 1.0, 5.0)],
+        evidence=[
+            evidence("lab/a", "swe_bench_verified", 70.0),
+            evidence("lab/b", "swe_bench_verified", 55.0),
+            evidence("lab/c", "swe_bench_pro", 30.0),
+        ],
+        sources=SOURCES,
+        benchmark_domains=DOMAINS,
+    )
+    built = build_snapshot(inputs, gate=False, as_of=AS_OF)
+    snap = load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    domain = by_id(build_vocabulary(snap, pages=PAGES, cards=CARDS)["domains"])["software_engineering"]
+    assert domain["default_benchmark"] == "swe_bench_pro"
+    assert domain["benchmarks"][0] == "swe_bench_pro"

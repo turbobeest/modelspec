@@ -37,6 +37,9 @@ schema_version: 1
 domains:
   - id: software_engineering
     name: Software engineering
+    # Jamie, 2026-09-25: coding tasks rank on SWE-bench Pro by default whenever
+    # it has verified evidence; the page's "Measured by" switch offers the rest.
+    default_benchmark: swe_bench_pro
     definition: >-
       Producing or changing working software against an objective check:
       resolving issues in real repositories, writing code that passes held-out

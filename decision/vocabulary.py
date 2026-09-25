@@ -238,14 +238,21 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         if not members:
             continue
 
-        def order(row: Mapping[str, Any], domain_id: str = domain.id) -> tuple[Any, ...]:
+        # The registry's default leads when it has verified lineup evidence.
+        default = (domain.default_benchmark
+                   if any(b["id"] == domain.default_benchmark and b["models"] > 0
+                          for b in members) else None)
+
+        def order(row: Mapping[str, Any], domain_id: str = domain.id,
+                  default: str | None = default) -> tuple[Any, ...]:
             direct = any(t == {"id": domain_id, "directness": "direct"} for t in row["domains"])
-            return (not direct, -row["models"], row["id"])
+            return (row["id"] != default, not direct, -row["models"], row["id"])
 
         domains.append({
             "id": domain.id,
             "name": domain.name,
             "proxy_only": domain.proxy_only,
+            "default_benchmark": default,
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
     return {

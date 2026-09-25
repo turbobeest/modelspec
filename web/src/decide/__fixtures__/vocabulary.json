@@ -1722,7 +1722,8 @@
         "swe_bench_verified",
         "arena_webdev",
         "terminal_bench_v4_0"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "engineering_stem",
@@ -1731,7 +1732,8 @@
       "benchmarks": [
         "gpqa_diamond",
         "hle"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "maths",
@@ -1740,7 +1742,8 @@
       "benchmarks": [
         "frontiermath_tiers_1_3_v2",
         "hle"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "reasoning",
@@ -1749,7 +1752,8 @@
       "benchmarks": [
         "gpqa_diamond",
         "hle"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "agentic_tool_use",
@@ -1757,7 +1761,8 @@
       "proxy_only": false,
       "benchmarks": [
         "terminal_bench_v4_0"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "vision_documents",
@@ -1765,7 +1770,8 @@
       "proxy_only": false,
       "benchmarks": [
         "arena_sc_vision"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "multilingual",
@@ -1773,7 +1779,8 @@
       "proxy_only": false,
       "benchmarks": [
         "mteb_multilingual_v2"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "chat_preference",
@@ -1783,7 +1790,8 @@
         "arena_webdev",
         "arena_elo_style_control",
         "arena_sc_vision"
-      ]
+      ],
+      "default_benchmark": null
     },
     {
       "id": "retrieval",
@@ -1793,7 +1801,8 @@
         "mteb_v2_retrieval",
         "mteb_eng_v2",
         "mteb_multilingual_v2"
-      ]
+      ],
+      "default_benchmark": null
     }
   ],
   "models": {
