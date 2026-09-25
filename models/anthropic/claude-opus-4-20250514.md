@@ -765,8 +765,8 @@ benchmarks:
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [8.483125, 41.937268] minutes. METR states measurements above 16 hours are unreliable on this suite.
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: claude-opus-4-20250514
-    score: 1365.67
+    model_id_as_evaluated: claude-opus-4-20250514-thinking-16k
+    score: 1376.93
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -774,14 +774,11 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1365.67 (95% CI 1361.33-1370.02), 42845 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13 is the stated date. Row claude-opus-4-20250514-thinking-16k: rating 1376.93 (95% CI 1372.49-1381.38), 35735 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row claude-opus-4-20250514 (1365.67); dataset re-read 2026-09-24."
     limitations: ''
   - benchmark_id: arena_elo_coding
-    model_id_as_evaluated: claude-opus-4-20250514
-    score: 1401.95
+    model_id_as_evaluated: claude-opus-4-20250514-thinking-16k
+    score: 1442.13
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -789,11 +786,7 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
-      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1401.95 (95% CI 1394.69-1409.20), 7785 votes. The live
-      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category coding; leaderboard_publish_date 2026-09-13 is the stated date. Row claude-opus-4-20250514-thinking-16k: rating 1442.13 (95% CI 1434.27-1450.00), 6559 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row claude-opus-4-20250514 (1401.95); dataset re-read 2026-09-24."
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
   - benchmark_id: arena_elo_style_control

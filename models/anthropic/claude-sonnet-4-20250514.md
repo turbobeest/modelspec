@@ -738,8 +738,8 @@ benchmarks:
   benchmark_notes: ''
   evidence:
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: claude-sonnet-4-20250514
-    score: 1339.29
+    model_id_as_evaluated: claude-sonnet-4-20250514-thinking-32k
+    score: 1350.03
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -747,14 +747,11 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1339.29 (95% CI 1334.85-1343.73), 38966 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13 is the stated date. Row claude-sonnet-4-20250514-thinking-32k: rating 1350.03 (95% CI 1345.52-1354.54), 33944 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row claude-sonnet-4-20250514 (1339.29); dataset re-read 2026-09-24."
     limitations: ''
   - benchmark_id: arena_elo_coding
-    model_id_as_evaluated: claude-sonnet-4-20250514
-    score: 1380.57
+    model_id_as_evaluated: claude-sonnet-4-20250514-thinking-32k
+    score: 1413.6
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -762,11 +759,7 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
-      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1380.57 (95% CI 1373.15-1387.99), 7273 votes. The live
-      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category coding; leaderboard_publish_date 2026-09-13 is the stated date. Row claude-sonnet-4-20250514-thinking-32k: rating 1413.60 (95% CI 1405.70-1421.51), 6299 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row claude-sonnet-4-20250514 (1380.57); dataset re-read 2026-09-24."
     limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-sonnet-4-20250514-thinking-32k

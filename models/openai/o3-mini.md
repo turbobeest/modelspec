@@ -692,8 +692,8 @@ benchmarks:
   benchmark_notes: ''
   evidence:
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: o3-mini
-    score: 1319.14
+    model_id_as_evaluated: o3-mini-high
+    score: 1336.51
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -701,14 +701,11 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1319.14 (95% CI 1315.59-1322.68), 56655 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13 is the stated date. Row o3-mini-high: rating 1336.51 (95% CI 1331.26-1341.75), 18589 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row o3-mini (1319.14); dataset re-read 2026-09-24."
     limitations: ''
   - benchmark_id: arena_elo_coding
-    model_id_as_evaluated: o3-mini
-    score: 1363.09
+    model_id_as_evaluated: o3-mini-high
+    score: 1378.55
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -716,11 +713,7 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
-      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1363.09 (95% CI 1356.64-1369.54), 9385 votes. The live
-      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category coding; leaderboard_publish_date 2026-09-13 is the stated date. Row o3-mini-high: rating 1378.55 (95% CI 1366.96-1390.15), 2596 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row o3-mini (1363.09); dataset re-read 2026-09-24."
     limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: o3-mini-high
